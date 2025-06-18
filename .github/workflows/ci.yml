@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Build Docker images
+        run: docker compose -f docker-compose.yml build
+
+      - name: Start services
+        run: docker compose -f docker-compose.yml up -d
+
+      - name: Wait for API
+        run: |
+          for i in {1..20}; do
+            if curl -fs http://localhost:8080/swagger > /dev/null; then
+              echo "API is up" && break
+            fi
+            sleep 5
+          done
+
+      - name: Stop services
+        if: always()
+        run: docker compose -f docker-compose.yml down
