@@ -1,0 +1,28 @@
+
+version: '3.4'
+
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: logibooks
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  api:
+    build:
+      context: Logibooks.Core
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+
+volumes:
+  pgdata:
