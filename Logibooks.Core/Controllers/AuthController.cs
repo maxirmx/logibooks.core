@@ -56,6 +56,8 @@ public class AuthController(
         _logger.LogDebug("Login attempt for {email}", crd.Email);
 
         User? user = await _db.Users
+            .Include(u => u.UserRoles)
+            .ThenInclude(ur => ur.Role)
             .Where(u => u.Email.ToLower() == crd.Email.ToLower())
             .SingleOrDefaultAsync();
 
@@ -66,6 +68,7 @@ public class AuthController(
         }
 
         if (!BCrypt.Net.BCrypt.Verify(crd.Password, user.Password)) return Unauthorized();
+        if (!user.UserRoles.Any()) return _403();
         UserViewItemWithJWT userViewItem = new(user)
         {
             Token = _jwtUtils.GenerateJwtToken(user),

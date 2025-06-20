@@ -46,6 +46,17 @@ public class AuthorizeAttribute : Attribute, IAuthorizationFilter
         {
             Console.WriteLine("Not logged in or role not authorized");
             context.Result = new JsonResult(new ErrMessage { Msg = "Необходимо войти в систему." }) { StatusCode = StatusCodes.Status401Unauthorized };
+            return;
+        }
+
+        var db = context.HttpContext.RequestServices.GetService<AppDbContext>();
+        if (db != null)
+        {
+            bool hasRoles = db.UserRoles.Any(ur => ur.UserId == userId.Value);
+            if (!hasRoles)
+            {
+                context.Result = new JsonResult(new ErrMessage { Msg = "Недостаточно прав для выполнения операции." }) { StatusCode = StatusCodes.Status403Forbidden };
+            }
         }
     }
 }
