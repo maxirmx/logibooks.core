@@ -41,7 +41,12 @@ namespace Logibooks.Core.Data
         public DbSet<UserRole> UserRoles => Set<UserRole>();
         public async Task<ActionResult<bool>> CheckAdmin(int cuid)
         {
-            var user = await Users.AsNoTracking().Where(x => x.Id == cuid).FirstOrDefaultAsync();
+            var user = await Users
+                .AsNoTracking()
+                .Include(u => u.UserRoles)
+                    .ThenInclude(ur => ur.Role)
+                .Where(x => x.Id == cuid)
+                .FirstOrDefaultAsync(); 
             return user != null && user.IsAdministrator();
         }
         public async Task<ActionResult<bool>> CheckAdminOrSameUser(int id, int cuid)
@@ -60,19 +65,29 @@ namespace Logibooks.Core.Data
         {
             return Users.Any(e => e.Id == id);
         }
-
         public bool Exists(string email)
         {
-            return Users.Any(u => u.Email.Equals(email, StringComparison.OrdinalIgnoreCase));
+            return Users.Any(u => u.Email.ToLower() == email.ToLower());
         }
         public async Task<UserViewItem?> UserViewItem(int id)
         {
-            var user = await Users.AsNoTracking().Where(x => x.Id == id).Select(x => new UserViewItem(x)).FirstOrDefaultAsync();
+            var user = await Users
+                .AsNoTracking()
+                .Include(u => u.UserRoles)
+                    .ThenInclude(ur => ur.Role)
+                .Where(x => x.Id == id)
+                .Select(x => new UserViewItem(x))
+                .FirstOrDefaultAsync();
             return user ?? null;
         }
         public async Task<List<UserViewItem>> UserViewItems()
         {
-            return await Users.AsNoTracking().Select(x => new UserViewItem(x)).ToListAsync();
+            return await Users
+                .AsNoTracking()
+                .Include(u => u.UserRoles)
+                    .ThenInclude(ur => ur.Role)
+                .Select(x => new UserViewItem(x))
+                .ToListAsync();
         }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
