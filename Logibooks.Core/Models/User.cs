@@ -36,7 +36,7 @@ namespace Logibooks.Core.Models
                 return false;
             }
 
-            return UserRoles.Any(ur => ur.Role?.Name == roleName);
+            return UserRoles.Any(ur => string.Equals(ur.Role?.Name, roleName, StringComparison.OrdinalIgnoreCase));
         }
 
         public bool IsAdministrator() => HasRole("administrator");
