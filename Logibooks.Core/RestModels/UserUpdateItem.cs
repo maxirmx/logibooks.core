@@ -49,7 +49,7 @@ public class UserUpdateItem
             return false;
         }
 
-        return Roles.Any(ur => string.Equals(ur, roleName, StringComparison.OrdinalIgnoreCase));
+        return Roles != null && Roles.Any(ur => string.Equals(ur, roleName, StringComparison.OrdinalIgnoreCase));
     }
 
     public bool IsAdministrator() => HasRole("administrator");
