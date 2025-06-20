@@ -11,6 +11,11 @@ This is the core backend service for the Logibooks logistics system. It provides
 - Docker & Docker Compose
 - Swagger UI (for API docs)
 
+### Default Roles
+
+- Logist (`Логист`)
+- Administrator (`Администратор`)
+
 ## Getting Started
 
 ### Prerequisites
