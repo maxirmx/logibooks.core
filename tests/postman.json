@@ -95,10 +95,11 @@
 									"    pm.expect(jsonData.id).to.eql(1);\r",
 									"});\r",
 									"\r",
-									"pm.test(\"Returns correct profile id\", function () {\r",
+									"pm.test(\"JWT token is provided\", function () {\r",
 									"    var jsonData = pm.response.json();\r",
-									"    pm.expect(jsonData.profileId).to.eql(1);\r",
-									"});"
+									"    pm.expect(jsonData.token).to.exist;\r",
+									"});\r",
+									""
 								],
 								"type": "text/javascript",
 								"packages": {}
