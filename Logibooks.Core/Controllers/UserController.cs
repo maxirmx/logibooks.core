@@ -178,7 +178,7 @@ public class UsersController(
             }
         }
 
-        if (update.Password != null) user.Password = BCrypt.Net.BCrypt.HashPassword(update.Password); ;
+        if (update.Password != null) user.Password = BCrypt.Net.BCrypt.HashPassword(update.Password);
 
         _db.Entry(user).State = EntityState.Modified;
         await _db.SaveChangesAsync();
