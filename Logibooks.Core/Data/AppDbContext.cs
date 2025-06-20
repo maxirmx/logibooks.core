@@ -63,7 +63,7 @@ namespace Logibooks.Core.Data
 
         public bool Exists(string email)
         {
-            return Users.Any(u => u.Email.Equals(email, StringComparison.CurrentCultureIgnoreCase));
+            return Users.Any(u => u.Email.Equals(email, StringComparison.OrdinalIgnoreCase));
         }
         public async Task<UserViewItem?> UserViewItem(int id)
         {
