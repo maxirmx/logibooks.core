@@ -219,13 +219,12 @@
 							}
 						},
 						"url": {
-							"raw": "{{base_url}}/users/add",
+							"raw": "{{base_url}}/users",
 							"host": [
 								"{{base_url}}"
 							],
 							"path": [
-								"users",
-								"add"
+								"users"
 							]
 						},
 						"description": "This is a POST request, submitting data to an API via the request body. This request submits JSON data, and the data is reflected in the response.\n\nA successful POST request typically returns a `200 OK` or `201 Created` response code."
@@ -445,7 +444,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n\t\"FirstName\": \"Роман\",\n\t\"LastName\": \"Ойра-Ойра\",\n\t\"Email\": \"oyra2@example.com\",\n     \"Roles\": [\"logist\"]\n    \"ProfileId\": 2\n}",
+							"raw": "{\n\t\"FirstName\": \"Роман\",\n\t\"LastName\": \"Ойра-Ойра\",\n\t\"Email\": \"oyra2@example.com\",\n     \"Roles\": [\"logist\"]\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -881,15 +880,11 @@
 		},
 		{
 			"key": "AdmToken",
-			"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjEiLCJuYmYiOjE3MDA0MjI0NjYsImV4cCI6MTcwMTAyNzI2NiwiaWF0IjoxNzAwNDIyNDY2fQ.7Fp5CQaBkfZUqI-vi0DRfDYid36Cpq_rLTVGshzk-vA"
+			"value": ""
 		},
 		{
 			"key": "UserToken",
-			"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE0IiwibmJmIjoxNzAwNDIyNDY5LCJleHAiOjE3MDEwMjcyNjksImlhdCI6MTcwMDQyMjQ2OX0.r6OvMwUBjijMnK5PQrpsy6dkW3SgyA8QeEWHhD5LoZo"
-		},
-		{
-			"key": "UserId",
-			"value": 14
+			"value": ""
 		}
 	]
 }
