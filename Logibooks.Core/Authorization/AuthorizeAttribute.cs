@@ -44,8 +44,11 @@ public class AuthorizeAttribute : Attribute, IAuthorizationFilter
         var userId = (int?)context.HttpContext.Items["UserId"];
         if (userId == null)
         {
-            Console.WriteLine("Not logged in or role not authorized");
-            context.Result = new JsonResult(new ErrMessage { Msg = "Необходимо войти в систему." }) { StatusCode = StatusCodes.Status401Unauthorized };
+            const string errorMessage = "Необходимо войти в систему.";
+            var logger = context.HttpContext.RequestServices.GetService(typeof(ILogger<AuthorizeAttribute>)) as ILogger<AuthorizeAttribute>;
+            logger?.LogWarning(errorMessage);
+            context.Result = new JsonResult(new ErrMessage { Msg = errorMessage }) { StatusCode = StatusCodes.Status401Unauthorized };
+            return;
         }
     }
 }

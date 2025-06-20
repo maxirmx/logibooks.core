@@ -24,6 +24,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 using System.Text.Json;
+using System.Linq;
 
 using Logibooks.Core.Models;
 using Logibooks.Core.Settings;
@@ -37,6 +38,8 @@ public class UserViewItem(User user)
     public string LastName { get; set; } = user.LastName;
     public string Patronimic { get; set; } = user.Patronimic;
     public string Email { get; set; } = user.Email;
+    public List<string> Roles { get; set; } =
+        user.UserRoles.Select(ur => ur.Role!.Name).ToList();
     public override string ToString()
     {
         return JsonSerializer.Serialize(this, JOptions.DefaultOptions);

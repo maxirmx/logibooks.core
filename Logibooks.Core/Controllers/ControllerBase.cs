@@ -59,9 +59,5 @@ public class LogibooksCoreControllerPreBase : ControllerBase
         return StatusCode(StatusCodes.Status409Conflict,
                           new ErrMessage { Msg = $"Пользователь с таким адресом электронной почты уже зарегистрирован [email = {email}]." });
     }
-    protected ObjectResult _418IAmATeaPot()
-    {
-        return StatusCode(StatusCodes.Status418ImATeapot, new ErrMessage { Msg = "Ошибка TrustVPN" });
-    }
 
 }

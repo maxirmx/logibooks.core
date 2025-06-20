@@ -24,6 +24,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 using System.Text.Json;
+using System.Collections.Generic;
 using Logibooks.Core.Settings;
 
 namespace Logibooks.Core.RestModels;
@@ -35,6 +36,7 @@ public class UserUpdateItem
     public string? Patronimic { get; set; }
     public string? Email { get; set; }
     public string? Password { get; set; }
+    public List<string> Roles { get; set; } = [];
     public override string ToString()
     {
         return JsonSerializer.Serialize(this, JOptions.DefaultOptions);
