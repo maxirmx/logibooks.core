@@ -55,8 +55,9 @@ public class UsersController(
     {
         _logger.LogDebug("GetUsers");
         var ch = await _db.CheckAdmin(_curUserId);
-        if (ch == null || !ch.Value)
+        if (!ch)
         {
+            if (!ch)
             _logger.LogDebug("GetUsers returning '403 Forbidden'");
             return _403();
         }
@@ -104,7 +105,7 @@ public class UsersController(
     {
         _logger.LogDebug("PostUser (create) for {user}", user.ToString());
         var ch = await _db.CheckAdmin(_curUserId);
-        if (ch == null || !ch.Value)
+        if (!ch)
         {
             _logger.LogDebug("PostUser returning '403 Forbidden'");
             return _403();
@@ -197,7 +198,7 @@ public class UsersController(
     {
         _logger.LogDebug("DeleteUser for id={id}", id);
         var ch = await _db.CheckAdmin(_curUserId);
-        if (ch == null || !ch.Value)
+        if (!ch)
         {
             _logger.LogDebug("DeleteUser returning '403 Forbidden'");
             return _403();
