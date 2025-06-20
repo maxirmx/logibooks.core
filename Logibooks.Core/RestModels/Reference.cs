@@ -1,6 +1,6 @@
-﻿// Copyright (C) 2023 Maxim [maxirmx] Samsonov (www.sw.consulting)
+﻿// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
 // All rights reserved.
-// This file is a part of TrustVPN applcation
+// This file is a part of Logibooks Core application
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -23,38 +23,12 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-using Microsoft.AspNetCore.Mvc;
-
-using Logibooks.Core.Authorization;
-using Logibooks.Core.Data;
-using Logibooks.Core.RestModels;
-
-namespace Logibooks.Core.Controllers;
-
-[ApiController]
-[Authorize]
-[Route("api/[controller]")]
-public class StatusController(
-    AppDbContext db,
-    ILogger<StatusController> logger) : LogibooksControllerPreBase(db, logger)
+namespace Logibooks.Core.RestModels;
+public class Reference(int id)
 {
-    // GET: api/auth/status
-    // Checks service status
-    [HttpGet("status")]
-    [AllowAnonymous]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [Produces("application/json", Type = typeof(Status))]
-    public async Task<ActionResult<Status>> Status()
+    public required int Id { get; set; } = id;
+    public override string ToString()
     {
-        _logger.LogDebug("Check service status");
-
-        Status status = new() 
-        {
-            Msg = "Hello, world! Logibooks Core status is fantastic!",
-        };
-        _logger.LogDebug("Check service status returning:\n{status}", status);
-
-        await Task.Delay(100); // Simulate some async work, e.g. database check
-        return Ok(status);
+        return $"Reference: {Id}";
     }
 }

@@ -44,4 +44,5 @@ public class UserViewItem(User user)
     {
         return JsonSerializer.Serialize(this, JOptions.DefaultOptions);
     }
+
 }

@@ -26,6 +26,7 @@
 using System.Text.Json;
 using System.Collections.Generic;
 using Logibooks.Core.Settings;
+using Logibooks.Core.Models;
 
 namespace Logibooks.Core.RestModels;
 
@@ -41,4 +42,16 @@ public class UserUpdateItem
     {
         return JsonSerializer.Serialize(this, JOptions.DefaultOptions);
     }
+    public bool HasRole(string roleName)
+    {
+        if (string.IsNullOrWhiteSpace(roleName))
+        {
+            return false;
+        }
+
+        return Roles != null && Roles.Any(ur => string.Equals(ur, roleName, StringComparison.OrdinalIgnoreCase));
+    }
+
+    public bool IsAdministrator() => HasRole("administrator");
+
 }

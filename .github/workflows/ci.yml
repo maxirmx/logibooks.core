@@ -55,6 +55,14 @@ jobs:
       - name: Start services
         run: docker compose -f docker-compose.yml up -d
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Newman
+        run: npm install -g newman
+
       - name: Wait for API
         run: |
           for i in {1..20}; do
@@ -63,6 +71,14 @@ jobs:
             fi
             sleep 5
           done
+
+      - name: Prepare Postman collection
+        env:
+          MAXIRMX_SECRET_PASSWORD: ${{ secrets.MAXIRMX_SECRET_PASSWORD }}
+        run: sed -i "s/MAXIRMX_SECRET_PASSWORD/$MAXIRMX_SECRET_PASSWORD/g" tests/postman.json
+
+      - name: Run Postman tests
+        run: newman run tests/postman.json
 
       - name: Stop services
         if: always()

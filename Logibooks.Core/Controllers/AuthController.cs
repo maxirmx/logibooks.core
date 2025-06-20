@@ -39,11 +39,9 @@ namespace Logibooks.Core.Controllers;
 public class AuthController(
     AppDbContext db, 
     IJwtUtils jwtUtils,
-    ILogger<AuthController> logger) : LogibooksCoreControllerPreBase
+    ILogger<AuthController> logger) : LogibooksControllerPreBase(db, logger)
 {
-    private readonly AppDbContext _db = db;
     private readonly IJwtUtils _jwtUtils = jwtUtils;
-    private readonly ILogger<AuthController> _logger = logger;
 
     // POST: api/auth/login
     [AllowAnonymous]
@@ -69,7 +67,7 @@ public class AuthController(
 
 
         if (!BCrypt.Net.BCrypt.Verify(crd.Password, user.Password)) return Unauthorized();
-        if (user.UserRoles.Count == 0) return _403();
+        if (!user.HasAnyRole()) return _403();
 
         UserViewItemWithJWT userViewItem = new(user)
         {
