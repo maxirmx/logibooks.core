@@ -45,7 +45,7 @@ namespace Logibooks.Core.Controllers;
 public class UsersController(
     IHttpContextAccessor httpContextAccessor,
     AppDbContext db,
-    ILogger<AuthController> logger) : LogibooksControllerBase(httpContextAccessor, db, logger)
+    ILogger<UsersController> logger) : LogibooksControllerBase(httpContextAccessor, db, logger)
 {
     // GET: api/users
     [HttpGet]
