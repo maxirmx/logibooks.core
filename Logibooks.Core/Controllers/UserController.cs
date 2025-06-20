@@ -94,7 +94,7 @@ public class UsersController(
     }
 
     // POST: api/users
-    [HttpPost("add")]
+    [HttpPost]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(Reference))]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]

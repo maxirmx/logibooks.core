@@ -39,7 +39,7 @@ public class UserViewItem(User user)
     public string Patronimic { get; set; } = user.Patronimic;
     public string Email { get; set; } = user.Email;
     public List<string> Roles { get; set; } =
-        [.. user.UserRoles.Select(ur => ur.Role!.Name)];
+        user.UserRoles.Select(ur => ur.Role!.Name).ToList();
     public override string ToString()
     {
         return JsonSerializer.Serialize(this, JOptions.DefaultOptions);
