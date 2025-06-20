@@ -26,7 +26,7 @@
 namespace Logibooks.Core.RestModels;
 public class Status
 {
-    public required string Msg { get; set; } = "Hello, world! Logibooks Core status is fantastic! ";
+    public required string Msg { get; set; }
     public override string ToString()
     {
         return Msg;

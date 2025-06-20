@@ -48,9 +48,9 @@ public class StatusController(
     {
         _logger.LogDebug("Check service status");
 
-        var status = new Status
+        Status status = new() 
         {
-            Message = "Hello, world!",
+            Msg = "Hello, world! Logibooks Core status is fantastic!",
         };
         _logger.LogDebug("Check service status returning:\n{status}", status);
 
