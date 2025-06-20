@@ -1,4 +1,4 @@
-// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
+﻿// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
 // All rights reserved.
 // This file is a part of Logibooks Core applcation
 //
@@ -23,21 +23,12 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-using System.ComponentModel.DataAnnotations.Schema;
-
-namespace Logibooks.Core.Models
+namespace Logibooks.Core.RestModels;
+public class Reference(int id)
 {
-    [Table("roles")]
-    public class Role
+    public required int Id { get; set; } = id;
+    public override string ToString()
     {
-        [Column("id")]
-        public int Id { get; set; }
-
-        [Column("name")]
-        public required string Name { get; set; }
-
-        [Column("title")]
-        public required string Title { get; set; }
-        public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
+        return $"Reference: {Id}";
     }
 }

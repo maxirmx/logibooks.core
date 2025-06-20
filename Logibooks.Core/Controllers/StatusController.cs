@@ -26,6 +26,7 @@
 using Microsoft.AspNetCore.Mvc;
 
 using Logibooks.Core.Authorization;
+using Logibooks.Core.Data;
 using Logibooks.Core.RestModels;
 
 namespace Logibooks.Core.Controllers;
@@ -34,10 +35,9 @@ namespace Logibooks.Core.Controllers;
 [Authorize]
 [Route("api/[controller]")]
 public class StatusController(
-    ILogger<AuthController> logger) : LogibooksCoreControllerPreBase
+    AppDbContext db,
+    ILogger<AuthController> logger) : LogibooksControllerPreBase(db, logger)
 {
-    private readonly ILogger<AuthController> _logger = logger;
-
     // GET: api/auth/status
     // Checks service status
     [HttpGet("status")]

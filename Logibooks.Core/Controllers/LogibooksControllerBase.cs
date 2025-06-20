@@ -1,6 +1,6 @@
-﻿// Copyright (C) 2023 Maxim [maxirmx] Samsonov (www.sw.consulting)
+﻿// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
 // All rights reserved.
-// This file is a part of TrustVPN applcation
+// This file is a part of Logibooks Core applcation
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -25,10 +25,16 @@
 
 using Microsoft.AspNetCore.Mvc;
 using Logibooks.Core.RestModels;
+using Logibooks.Core.Authorization;
+using Logibooks.Core.Data;
+using Microsoft.Extensions.Logging;
 
 namespace Logibooks.Core.Controllers;
-public class LogibooksCoreControllerPreBase : ControllerBase
+public class LogibooksControllerPreBase(AppDbContext db, ILogger logger) : ControllerBase
 {
+    protected readonly AppDbContext _db = db;
+    protected readonly ILogger _logger = logger;
+
     protected ObjectResult _400()
     {
         return StatusCode(StatusCodes.Status400BadRequest,
@@ -60,4 +66,21 @@ public class LogibooksCoreControllerPreBase : ControllerBase
                           new ErrMessage { Msg = $"Пользователь с таким адресом электронной почты уже зарегистрирован [email = {email}]." });
     }
 
+}
+
+public class LogibooksControllerBase : LogibooksControllerPreBase
+{
+
+    protected readonly int _curUserId;
+
+    protected LogibooksControllerBase(IHttpContextAccessor httpContextAccessor, AppDbContext db, ILogger logger): base(db, logger)
+    {
+        _curUserId = 0;
+        var htc = httpContextAccessor.HttpContext;
+        if (htc != null)
+        {
+            var uid = htc.Items["UserId"];
+            if (uid != null) _curUserId = (int)uid;
+        }
+    }
 }
