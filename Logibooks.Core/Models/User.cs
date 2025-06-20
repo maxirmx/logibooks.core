@@ -1,5 +1,5 @@
-
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Collections.Generic;
 
 namespace Logibooks.Core.Models
 {
@@ -23,5 +23,7 @@ namespace Logibooks.Core.Models
 
         [Column("password")]
         public required string Password { get; set; }
+
+        public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
     }
 }
