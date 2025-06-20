@@ -27,5 +27,6 @@ namespace Logibooks.Core.Settings;
 
 public class AppSettings
 {
-    public string? Secret { get; set; }
+    public string? Secret { get; set; } = null;
+    public int JwtTokenExpirationDays { get; set; } = 7;
 }

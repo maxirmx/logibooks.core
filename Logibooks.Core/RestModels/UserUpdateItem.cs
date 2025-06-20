@@ -23,29 +23,20 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Filters;
+using System.Text.Json;
+using Logibooks.Core.Settings;
 
-namespace Logibooks.Core.Authorization;
-using Logibooks.Core.RestModels;
+namespace Logibooks.Core.RestModels;
 
-
-[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
-public class AuthorizeAttribute : Attribute, IAuthorizationFilter
+public class UserUpdateItem
 {
-    public void OnAuthorization(AuthorizationFilterContext context)
+    public string? FirstName { get; set; }
+    public string? LastName { get; set; }
+    public string? Patronimic { get; set; }
+    public string? Email { get; set; }
+    public string? Password { get; set; }
+    public override string ToString()
     {
-        // skip authorization if action is decorated with [AllowAnonymous] attribute
-        var allowAnonymous = context.ActionDescriptor.EndpointMetadata.OfType<AllowAnonymousAttribute>().Any();
-        if (allowAnonymous)
-            return;
-
-        // authorization
-        var userId = (int?)context.HttpContext.Items["UserId"];
-        if (userId == null)
-        {
-            Console.WriteLine("Not logged in or role not authorized");
-            context.Result = new JsonResult(new ErrMessage { Msg = "Необходимо войти в систему." }) { StatusCode = StatusCodes.Status401Unauthorized };
-        }
+        return JsonSerializer.Serialize(this, JOptions.DefaultOptions);
     }
 }

@@ -23,29 +23,12 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Filters;
-
-namespace Logibooks.Core.Authorization;
-using Logibooks.Core.RestModels;
-
-
-[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
-public class AuthorizeAttribute : Attribute, IAuthorizationFilter
+namespace Logibooks.Core.RestModels;
+public class Status
 {
-    public void OnAuthorization(AuthorizationFilterContext context)
+    public required string Msg { get; set; } = "Hello, world! Logibooks Core status is fantastic! ";
+    public override string ToString()
     {
-        // skip authorization if action is decorated with [AllowAnonymous] attribute
-        var allowAnonymous = context.ActionDescriptor.EndpointMetadata.OfType<AllowAnonymousAttribute>().Any();
-        if (allowAnonymous)
-            return;
-
-        // authorization
-        var userId = (int?)context.HttpContext.Items["UserId"];
-        if (userId == null)
-        {
-            Console.WriteLine("Not logged in or role not authorized");
-            context.Result = new JsonResult(new ErrMessage { Msg = "Необходимо войти в систему." }) { StatusCode = StatusCodes.Status401Unauthorized };
-        }
+        return Msg;
     }
 }

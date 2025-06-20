@@ -23,14 +23,18 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-namespace Logibooks.Core.Models;
+using System.Text.Json;
 
-public class ErrMessage
+using Logibooks.Core.Models;
+using Logibooks.Core.Settings;
+
+namespace Logibooks.Core.RestModels;
+
+public class UserViewItemWithJWT(User user) : UserViewItem(user)
 {
-    public required string Msg { get; set; }
+    public string Token { get; set; } = "";
     public override string ToString()
     {
-        return $"Error: \"{Msg}\"";
+        return JsonSerializer.Serialize(this, JOptions.DefaultOptions);
     }
-
 }

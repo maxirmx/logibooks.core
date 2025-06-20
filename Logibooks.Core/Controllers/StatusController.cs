@@ -1,6 +1,6 @@
-﻿// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
+﻿// Copyright (C) 2023 Maxim [maxirmx] Samsonov (www.sw.consulting)
 // All rights reserved.
-// This file is a part of Logibooks Core applcation
+// This file is a part of TrustVPN applcation
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -24,28 +24,37 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Filters;
 
-namespace Logibooks.Core.Authorization;
+using Logibooks.Core.Authorization;
 using Logibooks.Core.RestModels;
 
+namespace Logibooks.Core.Controllers;
 
-[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
-public class AuthorizeAttribute : Attribute, IAuthorizationFilter
+[ApiController]
+[Authorize]
+[Route("api/[controller]")]
+public class StatusController(
+    ILogger<AuthController> logger) : LogibooksCoreControllerPreBase
 {
-    public void OnAuthorization(AuthorizationFilterContext context)
-    {
-        // skip authorization if action is decorated with [AllowAnonymous] attribute
-        var allowAnonymous = context.ActionDescriptor.EndpointMetadata.OfType<AllowAnonymousAttribute>().Any();
-        if (allowAnonymous)
-            return;
+    private readonly ILogger<AuthController> _logger = logger;
 
-        // authorization
-        var userId = (int?)context.HttpContext.Items["UserId"];
-        if (userId == null)
+    // GET: api/auth/status
+    // Checks service status
+    [HttpGet("status")]
+    [AllowAnonymous]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [Produces("application/json", Type = typeof(Status))]
+    public async Task<ActionResult<Status>> Status()
+    {
+        _logger.LogDebug("Check service status");
+
+        var status = new Status
         {
-            Console.WriteLine("Not logged in or role not authorized");
-            context.Result = new JsonResult(new ErrMessage { Msg = "Необходимо войти в систему." }) { StatusCode = StatusCodes.Status401Unauthorized };
-        }
+            Message = "Hello, world!",
+        };
+        _logger.LogDebug("Check service status returning:\n{status}", status);
+
+        await Task.Delay(100); // Simulate some async work, e.g. database check
+        return Ok(status);
     }
 }

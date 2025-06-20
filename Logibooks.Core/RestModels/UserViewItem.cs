@@ -23,29 +23,22 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Filters;
+using System.Text.Json;
 
-namespace Logibooks.Core.Authorization;
-using Logibooks.Core.RestModels;
+using Logibooks.Core.Models;
+using Logibooks.Core.Settings;
 
+namespace Logibooks.Core.RestModels;
 
-[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
-public class AuthorizeAttribute : Attribute, IAuthorizationFilter
+public class UserViewItem(User user)
 {
-    public void OnAuthorization(AuthorizationFilterContext context)
+    public int Id { get; set; } = user.Id;
+    public string FirstName { get; set; } = user.FirstName;
+    public string LastName { get; set; } = user.LastName;
+    public string Patronimic { get; set; } = user.Patronimic;
+    public string Email { get; set; } = user.Email;
+    public override string ToString()
     {
-        // skip authorization if action is decorated with [AllowAnonymous] attribute
-        var allowAnonymous = context.ActionDescriptor.EndpointMetadata.OfType<AllowAnonymousAttribute>().Any();
-        if (allowAnonymous)
-            return;
-
-        // authorization
-        var userId = (int?)context.HttpContext.Items["UserId"];
-        if (userId == null)
-        {
-            Console.WriteLine("Not logged in or role not authorized");
-            context.Result = new JsonResult(new ErrMessage { Msg = "Необходимо войти в систему." }) { StatusCode = StatusCodes.Status401Unauthorized };
-        }
+        return JsonSerializer.Serialize(this, JOptions.DefaultOptions);
     }
 }
