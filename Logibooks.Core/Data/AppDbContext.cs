@@ -39,7 +39,7 @@ namespace Logibooks.Core.Data
         public DbSet<User> Users => Set<User>();
         public DbSet<Role> Roles => Set<Role>();
         public DbSet<UserRole> UserRoles => Set<UserRole>();
-        public async Task<ActionResult<bool>> CheckAdmin(int cuid)
+        public async Task<bool> CheckAdmin(int cuid)
         {
             var user = await Users
                 .AsNoTracking()
