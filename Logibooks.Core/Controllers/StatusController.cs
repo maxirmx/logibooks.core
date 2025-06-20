@@ -36,7 +36,7 @@ namespace Logibooks.Core.Controllers;
 [Route("api/[controller]")]
 public class StatusController(
     AppDbContext db,
-    ILogger<AuthController> logger) : LogibooksControllerPreBase(db, logger)
+    ILogger<StatusController> logger) : LogibooksControllerPreBase(db, logger)
 {
     // GET: api/auth/status
     // Checks service status
