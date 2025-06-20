@@ -1,14 +1,46 @@
 ﻿
+using Logibooks.Core.Authorization;
 using Logibooks.Core.Data;
+using Logibooks.Core.Settings;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
-builder.Services.AddDbContext<Logibooks.Core.Data.AppDbContext>(options =>
+builder.Services
+// configure strongly typed settings object
+    .Configure<AppSettings>(builder.Configuration.GetSection("AppSettings"))
+// configure DI for application services
+    .AddScoped<IJwtUtils, JwtUtils>()
+    .AddHttpContextAccessor()
+    .AddControllers();
+
+builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Logibooks Core Api", Version = "v1" });
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Description = "JWT Authorization token. Example: \"Authorization: {token}\"",
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer"
+    });
+
+    var scm = new OpenApiSecurityScheme
+    {
+        Reference = new OpenApiReference
+        {
+            Type = ReferenceType.SecurityScheme,
+            Id = "Bearer"
+        }
+    };
+
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement { { scm, Array.Empty<string>() } });
+});
 
 var app = builder.Build();
 
@@ -19,9 +51,12 @@ using (var scope = app.Services.CreateScope())
     db.Database.Migrate();
 }
 
-app.UseSwagger();
-app.UseSwaggerUI();
-app.UseHttpsRedirection();
-app.UseAuthorization();
+app
+    .UseMiddleware<JwtMiddleware>()
+    .UseSwagger()
+    .UseSwaggerUI()
+    .UseHttpsRedirection()
+    .UseAuthorization();
+
 app.MapControllers();
 app.Run();
