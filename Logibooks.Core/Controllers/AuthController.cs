@@ -67,8 +67,10 @@ public class AuthController(
             return _401();
         }
 
+
         if (!BCrypt.Net.BCrypt.Verify(crd.Password, user.Password)) return Unauthorized();
-        if (!user.UserRoles.Any()) return _403();
+        if (user.UserRoles.Count == 0) return _403();
+
         UserViewItemWithJWT userViewItem = new(user)
         {
             Token = _jwtUtils.GenerateJwtToken(user),
