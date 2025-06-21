@@ -4,6 +4,8 @@ VisualStudioVersion = 17.5.33424.131
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Logibooks.Core", "Logibooks.Core\Logibooks.Core.csproj", "{C8D48598-6D6D-43F7-89C6-5F56D91D2593}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Logibooks.Core.Tests", "tests\Logibooks.Core.Tests\Logibooks.Core.Tests.csproj", "{55E5DDE3-21EB-462F-B1F3-9A2A89814E12}"
+EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{8EC462FD-D22E-90A8-E5CE-7E832BA40C5D}"
 	ProjectSection(SolutionItems) = preProject
 		tests\postman.json = tests\postman.json
@@ -20,8 +22,12 @@ Global
 		{C8D48598-6D6D-43F7-89C6-5F56D91D2593}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{C8D48598-6D6D-43F7-89C6-5F56D91D2593}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C8D48598-6D6D-43F7-89C6-5F56D91D2593}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{C8D48598-6D6D-43F7-89C6-5F56D91D2593}.Release|Any CPU.Build.0 = Release|Any CPU
-		{81DDED9D-158B-E303-5F62-77A2896D2A5A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+                {C8D48598-6D6D-43F7-89C6-5F56D91D2593}.Release|Any CPU.Build.0 = Release|Any CPU
+                {55E5DDE3-21EB-462F-B1F3-9A2A89814E12}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+                {55E5DDE3-21EB-462F-B1F3-9A2A89814E12}.Debug|Any CPU.Build.0 = Debug|Any CPU
+                {55E5DDE3-21EB-462F-B1F3-9A2A89814E12}.Release|Any CPU.ActiveCfg = Release|Any CPU
+                {55E5DDE3-21EB-462F-B1F3-9A2A89814E12}.Release|Any CPU.Build.0 = Release|Any CPU
+                {81DDED9D-158B-E303-5F62-77A2896D2A5A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{81DDED9D-158B-E303-5F62-77A2896D2A5A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{81DDED9D-158B-E303-5F62-77A2896D2A5A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{81DDED9D-158B-E303-5F62-77A2896D2A5A}.Release|Any CPU.Build.0 = Release|Any CPU
