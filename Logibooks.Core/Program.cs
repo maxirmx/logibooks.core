@@ -66,8 +66,8 @@ app
     .UseSwagger()
     .UseSwaggerUI()
     .UseHttpsRedirection()
-    .UseAuthorization()
-    .UseCors();
+    .UseCors()
+    .UseAuthorization();
 
 app.MapControllers();
 app.Run();
