@@ -49,6 +49,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Run unit tests
+        run: dotnet test Logibooks.sln --no-build --verbosity normal
+
       - name: Build Docker images
         run: docker compose -f docker-compose.yml build
 
