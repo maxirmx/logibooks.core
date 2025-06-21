@@ -15,6 +15,16 @@ builder.Services
     .AddHttpContextAccessor()
     .AddControllers();
 
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
+
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddEndpointsApiExplorer();
@@ -56,6 +66,7 @@ app
     .UseSwagger()
     .UseSwaggerUI()
     .UseHttpsRedirection()
+    .UseCors()
     .UseAuthorization();
 
 app.MapControllers();

@@ -39,8 +39,8 @@ namespace Logibooks.Core.Models
         [Column("last_name")]
         public string LastName { get; set; } = "";
 
-        [Column("patronimic")]
-        public string Patronimic { get; set; } = "";
+        [Column("patronymic")]
+        public string Patronymic { get; set; } = "";
 
         [Column("email")]
         public required string Email { get; set; }

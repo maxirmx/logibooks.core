@@ -117,7 +117,7 @@ namespace Logibooks.Core.Data
                     Id = 1,
                     FirstName = "Maxim",
                     LastName = "Samsonov",
-                    Patronimic = "",
+                    Patronymic = "",
                     Email = "maxirmx@sw.consulting",
                     Password = "$2b$12$eOXzlwFzyGVERe0sNwFeJO5XnvwsjloUpL4o2AIQ8254RT88MnsDi"
                 }
