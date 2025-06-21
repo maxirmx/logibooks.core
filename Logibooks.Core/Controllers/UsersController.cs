@@ -162,7 +162,7 @@ public class UsersController(
 
         if (update.FirstName != null) user.FirstName = update.FirstName;
         if (update.LastName != null) user.LastName = update.LastName;
-        if (update.Patronimic != null) user.Patronimic = update.Patronimic;
+        if (update.Patronymic != null) user.Patronymic = update.Patronymic;
 
         // Copy user roles from update to database
         if (update.Roles != null && update.Roles.Count > 0)
