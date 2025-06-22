@@ -1,5 +1,5 @@
-# Copyright (c) 2023 Maxim [maxirmx] Samsonov (https://sw.consulting)
-# This file is a part of logibooks project
+﻿# Copyright (c) 2025 Maxim [maxirmx] Samsonov (https://sw.consulting)
+# This file is a part of Logibooks project
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -49,18 +49,35 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
 
-      - name: Run unit tests with coverage
-        run: dotnet test Logibooks.sln --no-build --verbosity normal --collect:"XPlat Code Coverage"
+      - name: Restore & build
+        run: |
+         dotnet restore
+         dotnet build --no-restore --configuration Release
+
+      - name: Test & collect coverage
+        run: |
+          dotnet test Logibooks.sln \
+              --configuration Release \
+              --verbosity normal \
+              --collect:"XPlat Code Coverage"
+
+      - name: Show coverage files
+        run: |
+            echo "Coverage reports:"
+            find . -type f -name "coverage.cobertura.xml" || (echo "❌ no reports found" && exit 1)
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+          files: TestResults/**/coverage.cobertura.xml
+          fail_ci_if_error: true
 
       - name: Build Docker images
         run: docker compose -f docker-compose.yml build
