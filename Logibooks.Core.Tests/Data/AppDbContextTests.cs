@@ -26,18 +26,47 @@
 using NUnit.Framework;
 using Microsoft.EntityFrameworkCore;
 using Logibooks.Core.Data;
+using Logibooks.Core.Models;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using System.Linq;
 
 namespace Logibooks.Core.Tests.Data;
 
 public class AppDbContextTests
 {
+    private static int logistRoleId = 1;
+    private static int adminRoleId = 2;
     private AppDbContext CreateContext()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseInMemoryDatabase("test_db")
+            .UseInMemoryDatabase(databaseName: $"test_db_{System.Guid.NewGuid()}")
             .Options;
-        return new AppDbContext(options);
+
+        var context = new AppDbContext(options);
+
+        // Pre-seed the roles that are needed for tests
+        context.Roles.AddRange(
+            new Role { Id = logistRoleId, Name = "logist", Title = "Логист" },
+            new Role { Id = adminRoleId, Name = "administrator", Title = "Администратор" }
+        );
+
+        context.SaveChanges();
+
+        return context;
     }
+
+    private static Role GetAdminRole(AppDbContext ctx)
+    {
+        return ctx.Roles.Single(r => r.Id == adminRoleId);
+    }
+
+    private static Role GetLogistRole(AppDbContext ctx)
+    {
+        return ctx.Roles.Single(r => r.Id == logistRoleId);
+    }
+
+    #region CheckSameUser Tests
 
     [Test]
     public void CheckSameUser_ReturnsTrue_WhenIdsMatch()
@@ -59,4 +88,480 @@ public class AppDbContextTests
         using var ctx = CreateContext();
         Assert.That(ctx.CheckSameUser(1, 0), Is.False);
     }
+
+    #endregion
+
+    #region CheckAdmin Tests
+
+    [Test]
+    public async Task CheckAdmin_ReturnsTrue_WhenUserIsAdmin()
+    {
+        // Arrange
+        using var ctx = CreateContext();
+        var user = new User
+        {
+            Id = 10,
+            Email = "admin@test.com",
+            Password = "password",
+            FirstName = "Admin",
+            LastName = "User",
+            UserRoles =
+            [
+                new UserRole
+                {
+                    UserId = 10,
+                    RoleId = 2,
+                    Role = GetAdminRole(ctx)
+                }
+            ]
+        };
+        ctx.Users.Add(user);
+        await ctx.SaveChangesAsync();
+
+        // Act
+        var result = await ctx.CheckAdmin(10);
+
+        // Assert
+        Assert.That(result, Is.True);
+    }
+
+    [Test]
+    public async Task CheckAdmin_ReturnsFalse_WhenUserIsNotAdmin()
+    {
+        // Arrange
+        using var ctx = CreateContext();
+
+        var user = new User
+        {
+            Id = 11,
+            Email = "logist@test.com",
+            Password = "password",
+            FirstName = "Logist",
+            LastName = "User",
+            UserRoles =
+            [
+                new UserRole
+                {
+                    UserId = 11,
+                    RoleId = 1,
+                    Role = GetLogistRole(ctx)
+                }
+            ]
+        };
+        ctx.Users.Add(user);
+        await ctx.SaveChangesAsync();
+
+        // Act
+        var result = await ctx.CheckAdmin(11);
+
+        // Assert
+        Assert.That(result, Is.False);
+    }
+
+    [Test]
+    public async Task CheckAdmin_ReturnsFalse_WhenUserDoesNotExist()
+    {
+        // Arrange
+        using var ctx = CreateContext();
+
+        // Act
+        var result = await ctx.CheckAdmin(999);
+
+        // Assert
+        Assert.That(result, Is.False);
+    }
+
+    [Test]
+    public async Task CheckAdmin_ReturnsFalse_WhenUserHasNoRoles()
+    {
+        // Arrange
+        using var ctx = CreateContext();
+        var user = new User
+        {
+            Id = 12,
+            Email = "norole@test.com",
+            Password = "password",
+            FirstName = "No",
+            LastName = "Role",
+            UserRoles = []
+        };
+        ctx.Users.Add(user);
+        await ctx.SaveChangesAsync();
+
+        // Act
+        var result = await ctx.CheckAdmin(12);
+
+        // Assert
+        Assert.That(result, Is.False);
+    }
+
+    #endregion
+
+    #region CheckAdminOrSameUser Tests
+
+    [Test]
+    public async Task CheckAdminOrSameUser_ReturnsTrue_WhenSameUser()
+    {
+        // Arrange
+        using var ctx = CreateContext();
+
+        // Act
+        var result = await ctx.CheckAdminOrSameUser(5, 5);
+
+        // Assert
+        Assert.That(result.Value, Is.True);
+    }
+
+    [Test]
+    public async Task CheckAdminOrSameUser_ReturnsFalse_WhenZeroCuid()
+    {
+        // Arrange
+        using var ctx = CreateContext();
+
+        // Act
+        var result = await ctx.CheckAdminOrSameUser(5, 0);
+
+        // Assert
+        Assert.That(result.Value, Is.False);
+    }
+
+    [Test]
+    public async Task CheckAdminOrSameUser_ReturnsTrue_WhenAdmin()
+    {
+        // Arrange
+        using var ctx = CreateContext();
+        var user = new User
+        {
+            Id = 20,
+            Email = "admin2@test.com",
+            Password = "password",
+            FirstName = "Admin",
+            LastName = "Two",
+            UserRoles = new List<UserRole>
+            {
+                new UserRole
+                {
+                    UserId = 20,
+                    RoleId = 2,
+                    Role = GetAdminRole(ctx)
+                }
+            }
+        };
+        ctx.Users.Add(user);
+        await ctx.SaveChangesAsync();
+
+        // Act
+        var result = await ctx.CheckAdminOrSameUser(5, 20);
+
+        // Assert
+        Assert.That(result.Value, Is.True);
+    }
+
+    [Test]
+    public async Task CheckAdminOrSameUser_ReturnsFalse_WhenNotAdminAndNotSameUser()
+    {
+        // Arrange
+        using var ctx = CreateContext();
+        var user = new User
+        {
+            Id = 21,
+            Email = "logist2@test.com",
+            Password = "password",
+            FirstName = "Logist",
+            LastName = "Two",
+            UserRoles =
+            [
+                new UserRole
+                {
+                    UserId = 21,
+                    RoleId = 1,
+                    Role = GetLogistRole(ctx)
+                }
+            ]
+        };
+        ctx.Users.Add(user);
+        await ctx.SaveChangesAsync();
+
+        // Act
+        var result = await ctx.CheckAdminOrSameUser(5, 21);
+
+        // Assert
+        Assert.That(result.Value, Is.False);
+    }
+
+    #endregion
+
+    #region Exists Tests
+
+    [Test]
+    public void Exists_ReturnsTrue_WhenUserIdExists()
+    {
+        // Arrange
+        using var ctx = CreateContext();
+        ctx.Users.Add(new User
+        {
+            Id = 30,
+            Email = "exists@test.com",
+            Password = "password",
+            FirstName = "Exists",
+            LastName = "User"
+        });
+        ctx.SaveChanges();
+
+        // Act
+        var result = ctx.Exists(30);
+
+        // Assert
+        Assert.That(result, Is.True);
+    }
+
+    [Test]
+    public void Exists_ReturnsFalse_WhenUserIdDoesNotExist()
+    {
+        // Arrange
+        using var ctx = CreateContext();
+
+        // Act
+        var result = ctx.Exists(999);
+
+        // Assert
+        Assert.That(result, Is.False);
+    }
+
+    [Test]
+    public void Exists_ReturnsTrue_WhenEmailExists()
+    {
+        // Arrange
+        using var ctx = CreateContext();
+        ctx.Users.Add(new User
+        {
+            Id = 31,
+            Email = "email_exists@test.com",
+            Password = "password",
+            FirstName = "Email",
+            LastName = "Exists"
+        });
+        ctx.SaveChanges();
+
+        // Act
+        var result = ctx.Exists("email_exists@test.com");
+
+        // Assert
+        Assert.That(result, Is.True);
+    }
+
+    [Test]
+    public void Exists_ReturnsFalse_WhenEmailDoesNotExist()
+    {
+        // Arrange
+        using var ctx = CreateContext();
+
+        // Act
+        var result = ctx.Exists("nonexistent@test.com");
+
+        // Assert
+        Assert.That(result, Is.False);
+    }
+
+    [Test]
+    public void Exists_ReturnsTrue_WhenEmailExistsCaseInsensitive()
+    {
+        // Arrange
+        using var ctx = CreateContext();
+        ctx.Users.Add(new User
+        {
+            Id = 32,
+            Email = "case_test@test.com",
+            Password = "password",
+            FirstName = "Case",
+            LastName = "Test"
+        });
+        ctx.SaveChanges();
+
+        // Act
+        var result = ctx.Exists("CASE_TEST@test.com");
+
+        // Assert
+        Assert.That(result, Is.True);
+    }
+
+    #endregion
+
+    #region UserViewItem Tests
+
+    [Test]
+    public async Task UserViewItem_ReturnsUserViewItem_WhenUserExists()
+    {
+        // Arrange
+        using var ctx = CreateContext();
+        var user = new User
+        {
+            Id = 40,
+            Email = "viewitem@test.com",
+            Password = "password",
+            FirstName = "View",
+            LastName = "Item",
+            Patronymic = "Test",
+            UserRoles =
+            [
+                new UserRole
+                {
+                    UserId = 40,
+                    RoleId = 1,
+                    Role = GetLogistRole(ctx)
+                }
+            ]
+        };
+        ctx.Users.Add(user);
+        await ctx.SaveChangesAsync();
+
+        // Act
+        var result = await ctx.UserViewItem(40);
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result!.Id, Is.EqualTo(40));
+        Assert.That(result.Email, Is.EqualTo("viewitem@test.com"));
+        Assert.That(result.FirstName, Is.EqualTo("View"));
+        Assert.That(result.LastName, Is.EqualTo("Item"));
+        Assert.That(result.Patronymic, Is.EqualTo("Test"));
+        Assert.That(result.Roles, Has.Count.EqualTo(1));
+        Assert.That(result.Roles.First(), Is.EqualTo("logist"));
+    }
+
+    [Test]
+    public async Task UserViewItem_ReturnsNull_WhenUserDoesNotExist()
+    {
+        // Arrange
+        using var ctx = CreateContext();
+
+        // Act
+        var result = await ctx.UserViewItem(999);
+
+        // Assert
+        Assert.That(result, Is.Null);
+    }
+
+    [Test]
+    public async Task UserViewItem_ReturnsCorrectRoles_WhenUserHasMultipleRoles()
+    {
+        // Arrange
+        using var ctx = CreateContext();
+        var user = new User
+        {
+            Id = 41,
+            Email = "multirole@test.com",
+            Password = "password",
+            FirstName = "Multi",
+            LastName = "Role",
+            Patronymic = "",
+            UserRoles =
+            [
+                new UserRole
+                {
+                    UserId = 41,
+                    RoleId = 1,
+                    Role = GetLogistRole(ctx)
+                },
+                new UserRole
+                {
+                    UserId = 41,
+                    RoleId = 2,
+                    Role = GetAdminRole(ctx)
+                }
+            ]
+        };
+        ctx.Users.Add(user);
+        await ctx.SaveChangesAsync();
+
+        // Act
+        var result = await ctx.UserViewItem(41);
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result!.Roles, Has.Count.EqualTo(2));
+        Assert.That(result.Roles, Contains.Item("logist"));
+        Assert.That(result.Roles, Contains.Item("administrator"));
+    }
+
+    #endregion
+
+    #region UserViewItems Tests
+
+    [Test]
+    public async Task UserViewItems_ReturnsAllUsers()
+    {
+        // Arrange
+        using var ctx = CreateContext();
+        ctx.Users.Add(new User
+        {
+            Id = 50,
+            Email = "user1@test.com",
+            Password = "password",
+            FirstName = "User",
+            LastName = "One",
+            UserRoles =
+            [
+                new UserRole
+                {
+                    UserId = 50,
+                    RoleId = 1,
+                    Role = GetLogistRole(ctx)
+                }
+            ]
+        });
+        ctx.Users.Add(new User
+        {
+            Id = 51,
+            Email = "user2@test.com",
+            Password = "password",
+            FirstName = "User",
+            LastName = "Two",
+            UserRoles =
+            [
+                new UserRole
+                {
+                    UserId = 51,
+                    RoleId = 2,
+                    Role = GetAdminRole(ctx)
+                }
+            ]
+        });
+        await ctx.SaveChangesAsync();
+
+        // Act
+        var results = await ctx.UserViewItems();
+
+        // Assert
+        Assert.That(results, Has.Count.GreaterThanOrEqualTo(2));
+        Assert.That(results.Any(u => u.Id == 50), Is.True);
+        Assert.That(results.Any(u => u.Id == 51), Is.True);
+
+        var user1 = results.FirstOrDefault(u => u.Id == 50);
+        var user2 = results.FirstOrDefault(u => u.Id == 51);
+
+        Assert.That(user1?.Roles.Contains("logist"), Is.True);
+        Assert.That(user2?.Roles.Contains("administrator"), Is.True);
+    }
+
+    [Test]
+    public async Task UserViewItems_ReturnsEmptyList_WhenNoUsers()
+    {
+        // Arrange
+        using var ctx = CreateContext();
+        // Clear users table - only do this in a test-specific database
+        foreach (var user in ctx.Users.ToList())
+        {
+            ctx.Users.Remove(user);
+        }
+        await ctx.SaveChangesAsync();
+
+        // Act
+        var results = await ctx.UserViewItems();
+
+        // Assert
+        Assert.That(results, Is.Empty);
+    }
+
+    #endregion
 }
