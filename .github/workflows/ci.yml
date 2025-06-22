@@ -56,7 +56,7 @@ jobs:
 
       - name: Restore & build
         run: |
-	 dotnet restore Logibooks.Core.Tests/Logibooks.Core.Tests.csproj 
+         dotnet restore Logibooks.Core.Tests/Logibooks.Core.Tests.csproj 
          dotnet build Logibooks.Core.Tests/Logibooks.Core.Tests.csproj --no-restore --configuration Release
 
       - name: Test & collect coverage
@@ -66,7 +66,7 @@ jobs:
               --verbosity normal \
               --collect:"XPlat Code Coverage"
 
-      - name: Show coverage files
+      - name: Sh    ow coverage files
         run: |
             echo "Coverage reports:"
             find . -type f -name "coverage.cobertura.xml" || (echo "❌ no reports found" && exit 1)
