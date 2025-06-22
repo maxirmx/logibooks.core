@@ -27,8 +27,11 @@ namespace Logibooks.Core.RestModels;
 public class Status
 {
     public required string Msg { get; set; }
+    public required string AppVersion { get; set; }
+    public required string DbVersion { get; set; }
+
     public override string ToString()
     {
-        return Msg;
+        return $"{Msg} (app={AppVersion}, db={DbVersion})";
     }
 }

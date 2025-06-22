@@ -28,6 +28,7 @@ using Microsoft.AspNetCore.Mvc;
 using Logibooks.Core.Authorization;
 using Logibooks.Core.Data;
 using Logibooks.Core.RestModels;
+using Logibooks.Core;
 
 namespace Logibooks.Core.Controllers;
 
@@ -48,9 +49,11 @@ public class StatusController(
     {
         _logger.LogDebug("Check service status");
 
-        Status status = new() 
+        Status status = new()
         {
             Msg = "Hello, world! Logibooks Core status is fantastic!",
+            AppVersion = VersionInfo.AppVersion,
+            DbVersion = VersionInfo.DbVersion,
         };
         _logger.LogDebug("Check service status returning:\n{status}", status);
 
