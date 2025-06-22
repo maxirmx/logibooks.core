@@ -29,6 +29,7 @@ using Logibooks.Core.Authorization;
 using Logibooks.Core.Data;
 using Logibooks.Core.RestModels;
 using Logibooks.Core;
+using Microsoft.EntityFrameworkCore;
 
 namespace Logibooks.Core.Controllers;
 
@@ -49,15 +50,28 @@ public class StatusController(
     {
         _logger.LogDebug("Check service status");
 
+        // Get the last migration timestamp from the database
+        string dbVersion = "Unknown";
+        try
+        {
+            // Query the __EFMigrationsHistory table for the last applied migration
+            var lastMigration = await _db.Database.GetAppliedMigrationsAsync();
+            dbVersion = lastMigration.LastOrDefault() ?? "No migrations found";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error retrieving migration history");
+            dbVersion = "Error retrieving migration history";
+        }
+
         Status status = new()
         {
             Msg = "Hello, world! Logibooks Core status is fantastic!",
             AppVersion = VersionInfo.AppVersion,
-            DbVersion = VersionInfo.DbVersion,
+            DbVersion = dbVersion,
         };
-        _logger.LogDebug("Check service status returning:\n{status}", status);
 
-        await Task.Delay(100); // Simulate some async work, e.g. database check
+        _logger.LogDebug("Check service status returning:\n{status}", status);
         return Ok(status);
     }
 }
