@@ -17,6 +17,6 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="9.0.6" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\Logibooks.Core\Logibooks.Core.csproj" />
+    <ProjectReference Include="..\Logibooks.Core\Logibooks.Core.csproj" />
   </ItemGroup>
 </Project>

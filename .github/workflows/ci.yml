@@ -57,8 +57,10 @@ jobs:
 
       - name: Restore & build
         run: |
-         dotnet restore
-         dotnet build --no-restore --configuration Release
+	 dotnet restore Logibooks.Core.Tests/Logibooks.Core.Tests.csproj
+    	 dotnet build Logibooks.Core.Tests/Logibooks.Core.Tests.csproj \
+      	  --no-restore \
+      	  --configuration Release
 
       - name: Test & collect coverage
         run: |
