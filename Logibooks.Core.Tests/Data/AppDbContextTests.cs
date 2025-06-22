@@ -27,16 +27,16 @@ using NUnit.Framework;
 using Microsoft.EntityFrameworkCore;
 using Logibooks.Core.Data;
 using Logibooks.Core.Models;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Linq;
+using System.Collections.Generic;
 
 namespace Logibooks.Core.Tests.Data;
 
 public class AppDbContextTests
 {
-    private static int logistRoleId = 1;
-    private static int adminRoleId = 2;
+    private static readonly int LogistRoleId = 1;
+    private static readonly int AdminRoleId = 2;
     private AppDbContext CreateContext()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
@@ -47,8 +47,8 @@ public class AppDbContextTests
 
         // Pre-seed the roles that are needed for tests
         context.Roles.AddRange(
-            new Role { Id = logistRoleId, Name = "logist", Title = "Логист" },
-            new Role { Id = adminRoleId, Name = "administrator", Title = "Администратор" }
+            new Role { Id = LogistRoleId, Name = "logist", Title = "Логист" },
+            new Role { Id = AdminRoleId, Name = "administrator", Title = "Администратор" }
         );
 
         context.SaveChanges();
@@ -58,12 +58,31 @@ public class AppDbContextTests
 
     private static Role GetAdminRole(AppDbContext ctx)
     {
-        return ctx.Roles.Single(r => r.Id == adminRoleId);
+        return ctx.Roles.Single(r => r.Id == AdminRoleId);
     }
 
     private static Role GetLogistRole(AppDbContext ctx)
     {
-        return ctx.Roles.Single(r => r.Id == logistRoleId);
+        return ctx.Roles.Single(r => r.Id == LogistRoleId);
+    }
+
+    private static User CreateUser(int id, string email, string password, string firstName, string lastName, string? patronymic, IEnumerable<Role> roles)
+    {
+        return new User
+        {
+            Id = id,
+            Email = email,
+            Password = password,
+            FirstName = firstName,
+            LastName = lastName,
+            Patronymic = patronymic ?? "",
+            UserRoles = [.. roles.Select(r => new UserRole
+            {
+                UserId = id,
+                RoleId = r.Id,
+                Role = r
+            })]
+        };
     }
 
     #region CheckSameUser Tests
@@ -98,23 +117,7 @@ public class AppDbContextTests
     {
         // Arrange
         using var ctx = CreateContext();
-        var user = new User
-        {
-            Id = 10,
-            Email = "admin@test.com",
-            Password = "password",
-            FirstName = "Admin",
-            LastName = "User",
-            UserRoles =
-            [
-                new UserRole
-                {
-                    UserId = 10,
-                    RoleId = 2,
-                    Role = GetAdminRole(ctx)
-                }
-            ]
-        };
+        var user = CreateUser(10, "admin@test.com", "password", "Admin", "User", null, [GetAdminRole(ctx)]);
         ctx.Users.Add(user);
         await ctx.SaveChangesAsync();
 
@@ -131,23 +134,7 @@ public class AppDbContextTests
         // Arrange
         using var ctx = CreateContext();
 
-        var user = new User
-        {
-            Id = 11,
-            Email = "logist@test.com",
-            Password = "password",
-            FirstName = "Logist",
-            LastName = "User",
-            UserRoles =
-            [
-                new UserRole
-                {
-                    UserId = 11,
-                    RoleId = 1,
-                    Role = GetLogistRole(ctx)
-                }
-            ]
-        };
+        var user = CreateUser(11, "logist@test.com", "password", "Logist", "User", null, [GetLogistRole(ctx)]);
         ctx.Users.Add(user);
         await ctx.SaveChangesAsync();
 
@@ -176,15 +163,7 @@ public class AppDbContextTests
     {
         // Arrange
         using var ctx = CreateContext();
-        var user = new User
-        {
-            Id = 12,
-            Email = "norole@test.com",
-            Password = "password",
-            FirstName = "No",
-            LastName = "Role",
-            UserRoles = []
-        };
+        var user = CreateUser(12, "norole@test.com", "password", "No", "Role", null, []);
         ctx.Users.Add(user);
         await ctx.SaveChangesAsync();
 
@@ -230,23 +209,7 @@ public class AppDbContextTests
     {
         // Arrange
         using var ctx = CreateContext();
-        var user = new User
-        {
-            Id = 20,
-            Email = "admin2@test.com",
-            Password = "password",
-            FirstName = "Admin",
-            LastName = "Two",
-            UserRoles = new List<UserRole>
-            {
-                new UserRole
-                {
-                    UserId = 20,
-                    RoleId = 2,
-                    Role = GetAdminRole(ctx)
-                }
-            }
-        };
+        var user = CreateUser(20, "admin2@test.com", "password", "Admin", "Two", null, [GetAdminRole(ctx)]);
         ctx.Users.Add(user);
         await ctx.SaveChangesAsync();
 
@@ -262,23 +225,7 @@ public class AppDbContextTests
     {
         // Arrange
         using var ctx = CreateContext();
-        var user = new User
-        {
-            Id = 21,
-            Email = "logist2@test.com",
-            Password = "password",
-            FirstName = "Logist",
-            LastName = "Two",
-            UserRoles =
-            [
-                new UserRole
-                {
-                    UserId = 21,
-                    RoleId = 1,
-                    Role = GetLogistRole(ctx)
-                }
-            ]
-        };
+        var user = CreateUser(21, "logist2@test.com", "password", "Logist", "Two", null, [GetLogistRole(ctx)]);
         ctx.Users.Add(user);
         await ctx.SaveChangesAsync();
 
@@ -298,16 +245,8 @@ public class AppDbContextTests
     {
         // Arrange
         using var ctx = CreateContext();
-        ctx.Users.Add(new User
-        {
-            Id = 30,
-            Email = "exists@test.com",
-            Password = "password",
-            FirstName = "Exists",
-            LastName = "User"
-        });
+        ctx.Users.Add(CreateUser(30, "exists@test.com", "password", "Exists", "User", null, []));
         ctx.SaveChanges();
-
         // Act
         var result = ctx.Exists(30);
 
@@ -333,16 +272,8 @@ public class AppDbContextTests
     {
         // Arrange
         using var ctx = CreateContext();
-        ctx.Users.Add(new User
-        {
-            Id = 31,
-            Email = "email_exists@test.com",
-            Password = "password",
-            FirstName = "Email",
-            LastName = "Exists"
-        });
+        ctx.Users.Add(CreateUser(31, "email_exists@test.com", "password", "Email", "Exists", null, []));
         ctx.SaveChanges();
-
         // Act
         var result = ctx.Exists("email_exists@test.com");
 
@@ -368,16 +299,8 @@ public class AppDbContextTests
     {
         // Arrange
         using var ctx = CreateContext();
-        ctx.Users.Add(new User
-        {
-            Id = 32,
-            Email = "case_test@test.com",
-            Password = "password",
-            FirstName = "Case",
-            LastName = "Test"
-        });
+        ctx.Users.Add(CreateUser(32, "case_test@test.com", "password", "Case", "Test", null, []));
         ctx.SaveChanges();
-
         // Act
         var result = ctx.Exists("CASE_TEST@test.com");
 
@@ -394,24 +317,7 @@ public class AppDbContextTests
     {
         // Arrange
         using var ctx = CreateContext();
-        var user = new User
-        {
-            Id = 40,
-            Email = "viewitem@test.com",
-            Password = "password",
-            FirstName = "View",
-            LastName = "Item",
-            Patronymic = "Test",
-            UserRoles =
-            [
-                new UserRole
-                {
-                    UserId = 40,
-                    RoleId = 1,
-                    Role = GetLogistRole(ctx)
-                }
-            ]
-        };
+        var user = CreateUser(40, "viewitem@test.com", "password", "View", "Item", "Test", [GetLogistRole(ctx)]);
         ctx.Users.Add(user);
         await ctx.SaveChangesAsync();
 
@@ -447,30 +353,7 @@ public class AppDbContextTests
     {
         // Arrange
         using var ctx = CreateContext();
-        var user = new User
-        {
-            Id = 41,
-            Email = "multirole@test.com",
-            Password = "password",
-            FirstName = "Multi",
-            LastName = "Role",
-            Patronymic = "",
-            UserRoles =
-            [
-                new UserRole
-                {
-                    UserId = 41,
-                    RoleId = 1,
-                    Role = GetLogistRole(ctx)
-                },
-                new UserRole
-                {
-                    UserId = 41,
-                    RoleId = 2,
-                    Role = GetAdminRole(ctx)
-                }
-            ]
-        };
+        var user = CreateUser(41, "multirole@test.com", "password", "Multi", "Role", "", [GetLogistRole(ctx), GetAdminRole(ctx)]);
         ctx.Users.Add(user);
         await ctx.SaveChangesAsync();
 
@@ -493,40 +376,9 @@ public class AppDbContextTests
     {
         // Arrange
         using var ctx = CreateContext();
-        ctx.Users.Add(new User
-        {
-            Id = 50,
-            Email = "user1@test.com",
-            Password = "password",
-            FirstName = "User",
-            LastName = "One",
-            UserRoles =
-            [
-                new UserRole
-                {
-                    UserId = 50,
-                    RoleId = 1,
-                    Role = GetLogistRole(ctx)
-                }
-            ]
-        });
-        ctx.Users.Add(new User
-        {
-            Id = 51,
-            Email = "user2@test.com",
-            Password = "password",
-            FirstName = "User",
-            LastName = "Two",
-            UserRoles =
-            [
-                new UserRole
-                {
-                    UserId = 51,
-                    RoleId = 2,
-                    Role = GetAdminRole(ctx)
-                }
-            ]
-        });
+        ctx.Users.Add(CreateUser(50, "user1@test.com", "password", "User", "One", null, [GetLogistRole(ctx)]));
+        ctx.Users.Add(CreateUser(51, "user2@test.com", "password", "User", "Two", null, [GetAdminRole(ctx)]));
+
         await ctx.SaveChangesAsync();
 
         // Act
