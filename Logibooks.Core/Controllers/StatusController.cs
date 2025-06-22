@@ -56,12 +56,18 @@ public class StatusController(
         {
             // Query the __EFMigrationsHistory table for the last applied migration
             var lastMigration = await _db.Database.GetAppliedMigrationsAsync();
-            dbVersion = lastMigration.LastOrDefault() ?? "No migrations found";
+            dbVersion = lastMigration.LastOrDefault() ?? "00000000000000";
+            // Truncate dbVersion up to the first '_' if present
+            if (dbVersion.Contains('_'))
+            {
+                dbVersion = dbVersion[..dbVersion.IndexOf('_')];
+            }
+
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Error retrieving migration history");
-            dbVersion = "Error retrieving migration history";
+            dbVersion = "00000000000000";
         }
 
         Status status = new()
