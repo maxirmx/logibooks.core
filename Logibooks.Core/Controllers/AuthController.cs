@@ -59,14 +59,9 @@ public class AuthController(
             .Where(u => u.Email.ToLower() == crd.Email.ToLower())
             .SingleOrDefaultAsync();
 
-        if (user == null)
-        {
-            _logger.LogDebug("Login returning 'Unauthorized'");
-            return _401();
-        }
+        if (user == null) return _401();
 
-
-        if (!BCrypt.Net.BCrypt.Verify(crd.Password, user.Password)) return Unauthorized();
+        if (!BCrypt.Net.BCrypt.Verify(crd.Password, user.Password)) return _401();
         if (!user.HasAnyRole()) return _403();
 
         UserViewItemWithJWT userViewItem = new(user)
