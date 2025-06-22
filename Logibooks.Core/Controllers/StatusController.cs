@@ -1,6 +1,6 @@
-﻿// Copyright (C) 2023 Maxim [maxirmx] Samsonov (www.sw.consulting)
+﻿// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
 // All rights reserved.
-// This file is a part of TrustVPN applcation
+// This file is a part of Logibooks Core application
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -28,6 +28,8 @@ using Microsoft.AspNetCore.Mvc;
 using Logibooks.Core.Authorization;
 using Logibooks.Core.Data;
 using Logibooks.Core.RestModels;
+using Logibooks.Core;
+using Microsoft.EntityFrameworkCore;
 
 namespace Logibooks.Core.Controllers;
 
@@ -48,13 +50,34 @@ public class StatusController(
     {
         _logger.LogDebug("Check service status");
 
-        Status status = new() 
+        // Get the last migration timestamp from the database
+        string dbVersion = "Unknown";
+        try
+        {
+            // Query the __EFMigrationsHistory table for the last applied migration
+            var lastMigration = await _db.Database.GetAppliedMigrationsAsync();
+            dbVersion = lastMigration.LastOrDefault() ?? "00000000000000";
+            // Truncate dbVersion up to the first '_' if present
+            if (dbVersion.Contains('_'))
+            {
+                dbVersion = dbVersion[..dbVersion.IndexOf('_')];
+            }
+
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error retrieving migration history");
+            dbVersion = "00000000000000";
+        }
+
+        Status status = new()
         {
             Msg = "Hello, world! Logibooks Core status is fantastic!",
+            AppVersion = VersionInfo.AppVersion,
+            DbVersion = dbVersion,
         };
-        _logger.LogDebug("Check service status returning:\n{status}", status);
 
-        await Task.Delay(100); // Simulate some async work, e.g. database check
+        _logger.LogDebug("Check service status returning:\n{status}", status);
         return Ok(status);
     }
 }
