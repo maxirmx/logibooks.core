@@ -61,7 +61,7 @@ jobs:
 
       - name: Test & collect coverage
         run: |
-          dotnet test Logibooks.Core.Tests.csproj \
+          dotnet test Logibooks.Core.Tests/Logibooks.Core.Tests.csproj \
               --configuration Release \
               --verbosity normal \
               --collect:"XPlat Code Coverage"
