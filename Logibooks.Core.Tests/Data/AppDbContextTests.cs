@@ -35,8 +35,8 @@ namespace Logibooks.Core.Tests.Data;
 
 public class AppDbContextTests
 {
-    private static readonly int logistRoleId = 1;
-    private static readonly int adminRoleId = 2;
+    private static readonly int LogistRoleId = 1;
+    private static readonly int AdminRoleId = 2;
     private AppDbContext CreateContext()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
@@ -47,8 +47,8 @@ public class AppDbContextTests
 
         // Pre-seed the roles that are needed for tests
         context.Roles.AddRange(
-            new Role { Id = logistRoleId, Name = "logist", Title = "Логист" },
-            new Role { Id = adminRoleId, Name = "administrator", Title = "Администратор" }
+            new Role { Id = LogistRoleId, Name = "logist", Title = "Логист" },
+            new Role { Id = AdminRoleId, Name = "administrator", Title = "Администратор" }
         );
 
         context.SaveChanges();
@@ -58,12 +58,12 @@ public class AppDbContextTests
 
     private static Role GetAdminRole(AppDbContext ctx)
     {
-        return ctx.Roles.Single(r => r.Id == adminRoleId);
+        return ctx.Roles.Single(r => r.Id == AdminRoleId);
     }
 
     private static Role GetLogistRole(AppDbContext ctx)
     {
-        return ctx.Roles.Single(r => r.Id == logistRoleId);
+        return ctx.Roles.Single(r => r.Id == LogistRoleId);
     }
 
     private static User CreateUser(int id, string email, string password, string firstName, string lastName, string? patronymic, IEnumerable<Role> roles)
