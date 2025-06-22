@@ -49,7 +49,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
@@ -57,10 +56,8 @@ jobs:
 
       - name: Restore & build
         run: |
-	 dotnet restore Logibooks.Core.Tests/Logibooks.Core.Tests.csproj
-    	 dotnet build Logibooks.Core.Tests/Logibooks.Core.Tests.csproj \
-      	  --no-restore \
-      	  --configuration Release
+	 dotnet restore Logibooks.Core.Tests/Logibooks.Core.Tests.csproj 
+         dotnet build Logibooks.Core.Tests/Logibooks.Core.Tests.csproj --no-restore --configuration Release
 
       - name: Test & collect coverage
         run: |
