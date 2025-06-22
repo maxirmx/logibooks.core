@@ -1,6 +1,9 @@
 
 # Logibooks Core
 
+[![CI](https://github.com/maxirmx/logibooks.core/actions/workflows/ci.yml/badge.svg)](https://github.com/maxirmx/logibooks.core/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/maxirmx/logibooks.core/branch/main/graph/badge.svg)](https://codecov.io/gh/maxirmx/logibooks.core)
+
 This is the core backend service for the Logibooks logistics system. It provides a RESTful API over a PostgreSQL database using Entity Framework Core.
 
 ## Technologies

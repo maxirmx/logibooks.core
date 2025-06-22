@@ -54,8 +54,13 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
-      - name: Run unit tests
-        run: dotnet test Logibooks.sln --no-build --verbosity normal
+      - name: Run unit tests with coverage
+        run: dotnet test Logibooks.sln --no-build --verbosity normal --collect:"XPlat Code Coverage"
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Build Docker images
         run: docker compose -f docker-compose.yml build
