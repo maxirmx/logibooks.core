@@ -41,7 +41,8 @@ public class AuthorizeAttribute : Attribute, IAuthorizationFilter
             return;
 
         // authorization
-        var userId = (int?)context.HttpContext.Items["UserId"];
+        context.HttpContext.Items.TryGetValue("UserId", out var userIdObj);
+        int? userId = userIdObj is int id ? id : null;
         if (userId == null)
         {
             const string errorMessage = "Необходимо войти в систему.";

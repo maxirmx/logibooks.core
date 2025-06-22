@@ -61,12 +61,13 @@ jobs:
 
       - name: Test & collect coverage
         run: |
-          dotnet test Logibooks.Core.Tests/Logibooks.Core.Tests.csproj \
-              --configuration Release \
-              --verbosity normal \
-              --collect:"XPlat Code Coverage"
+         dotnet test Logibooks.Core.Tests/Logibooks.Core.Tests.csproj \
+          --configuration Release \
+          --verbosity normal \
+          --collect:"XPlat Code Coverage" \
+          -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.ExcludeByFile="**/Migrations/*.cs"
 
-      - name: Sh    ow coverage files
+      - name: Show coverage files
         run: |
             echo "Coverage reports:"
             find . -type f -name "coverage.cobertura.xml" || (echo "❌ no reports found" && exit 1)
