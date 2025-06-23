@@ -34,7 +34,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test:
+  publish:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -77,8 +77,6 @@ jobs:
           context: .
           file: ./Logibooks.Core/Dockerfile
           push:  ${{ contains(github.ref, 'refs/tags/v') }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           annotations: ${{ steps.meta.outputs.annotations }}
