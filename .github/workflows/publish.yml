@@ -65,10 +65,7 @@ jobs:
           labels: |
             org.opencontainers.image.vendor=sw.consulting
             org.opencontainers.image.title=Logibooks Core
-            org.opencontainers.image.source==${{ github.repositoryUrl }}
-            org.opencontainers.image.description=Logibooks core container
-          annotations: |
-            org.opencontainers.image.licenses=BSD-2-Clause
+            org.opencontainers.image.source=${{ github.repositoryUrl }}
             org.opencontainers.image.description=Logibooks core container
 
       - name: Build and push Docker image
