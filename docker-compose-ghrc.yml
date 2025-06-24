@@ -44,7 +44,7 @@ services:
   api:
     image: ghcr.io/maxirmx/logibooks.core:latest
     ports:
-      - "8080:8080"
+      - "8084:8080"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/api/status/status"]
       interval: 30s
@@ -60,10 +60,10 @@ services:
   ui:
     image: ghcr.io/maxirmx/logibooks.ui:latest
     ports:
-      - "80:80"
+      - "8082:8082"
+      - "8083:8083"
     depends_on:
       api:
         condition: service_healthy
-
-volumes:
-  pgdata:
+    volumes:
+      - ./certificate:/etc/nginx/certificate
