@@ -30,8 +30,6 @@ services:
       POSTGRES_DB: logibooks
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-    ports:
-      - "5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 30s
@@ -43,8 +41,6 @@ services:
 
   api:
     image: ghcr.io/maxirmx/logibooks.core:latest
-    ports:
-      - "8084:8080"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/api/status/status"]
       interval: 30s
@@ -67,3 +63,5 @@ services:
         condition: service_healthy
     volumes:
       - ./certificate:/etc/nginx/certificate
+    environment:
+      API_URL: http://api:8080/api
