@@ -71,4 +71,4 @@ services:
     volumes:
       - ./certificate:/etc/nginx/certificate:ro
     environment:
-      API_URL: http://api:8080/api
+      API_URL: https://logibooks.sw.consulting:8085/api
