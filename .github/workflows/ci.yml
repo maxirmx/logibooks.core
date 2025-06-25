@@ -30,6 +30,7 @@ on:
     paths-ignore:
       - '**.adoc'
       - '**.md'
+      - docker-compose-ghrc.yml
   pull_request:
   workflow_dispatch:
 

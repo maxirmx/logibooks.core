@@ -46,6 +46,7 @@ services:
       dockerfile: ./Logibooks.Core/Dockerfile
     ports:
       - "8080:8080"
+      - "8081:8081"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/api/status/status"]
       interval: 30s

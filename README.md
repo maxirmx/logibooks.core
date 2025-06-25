@@ -35,8 +35,13 @@ docker-compose up --build
 
 ### Access
 
-- API: http://localhost:8080/api/sample
-- Swagger UI: http://localhost:8080/swagger
+- API: https://localhost:8081/api/sample
+- Swagger UI: https://localhost:8081/swagger
+
+The HTTPS certificate should be placed in the `https` folder next to
+`docker-compose.yml` as `aspnetapp.pfx`. This folder is mounted into the
+container and the password for the certificate is set to `changeit` in
+`docker-compose.yml`.
 
 ### EF Core Migrations
 
