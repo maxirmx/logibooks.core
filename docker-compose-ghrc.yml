@@ -42,7 +42,7 @@ services:
   api:
     image: ghcr.io/maxirmx/logibooks.core:latest
     ports:
-      - "8081:8081"
+      - "8085:8081"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/api/status/status"]
       interval: 30s
@@ -55,10 +55,10 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: "https://+:8081;http://+:8080"
-      ASPNETCORE_Kestrel__Certificates__Default__Path: "/https/aspnetapp.pfx"
+      ASPNETCORE_Kestrel__Certificates__Default__Path: "/certificate/s.pfx"
       ASPNETCORE_Kestrel__Certificates__Default__Password: "changeit"
     volumes:
-      - ./https:/https:ro
+      - ./certificate:/certificate:ro
 
   ui:
     image: ghcr.io/maxirmx/logibooks.ui:latest
@@ -69,6 +69,6 @@ services:
       api:
         condition: service_healthy
     volumes:
-      - ./certificate:/etc/nginx/certificate
+      - ./certificate:/etc/nginx/certificate:ro
     environment:
       API_URL: http://api:8080/api
