@@ -30,6 +30,17 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.WebHost.ConfigureKestrel(options =>
+{
+    var config = builder.Configuration;
+    var certPath = config["Kestrel:Certificates:Default:Path"];
+    var certPassword = config["Kestrel:Certificates:Default:Password"];
+    if (!string.IsNullOrEmpty(certPath))
+    {
+        options.ListenAnyIP(8081, listenOptions => listenOptions.UseHttps(certPath, certPassword));
+        options.ListenAnyIP(8080);
+    }
+});
 
 builder.Services
 // configure strongly typed settings object
