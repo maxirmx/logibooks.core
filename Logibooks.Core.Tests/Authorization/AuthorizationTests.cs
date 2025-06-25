@@ -35,6 +35,9 @@ using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
 using System.Security.Claims;
 using System.Text;
+using System.IdentityModel.Tokens.Jwt;
+using Microsoft.IdentityModel.Tokens;
+using System.Security.Cryptography;
 
 using Logibooks.Core.Authorization;
 using Logibooks.Core.Models;
@@ -222,6 +225,69 @@ public class JwtUtilsTests
 
         // Act & Assert
         Assert.Throws<Exception>(() => new JwtUtils(mockOptions.Object, _mockLogger.Object));
+    }
+
+    [Test]
+    public void GenerateJwtToken_SetsExpirationCorrectly()
+    {
+        // Arrange
+        _appSettings.JwtTokenExpirationDays = 3;
+        var before = DateTime.UtcNow;
+
+        // Act
+        var token = _jwtUtils.GenerateJwtToken(_testUser);
+
+        // Assert
+        var handler = new JwtSecurityTokenHandler();
+        var jwt = handler.ReadJwtToken(token);
+        Assert.That(jwt.ValidTo, Is.EqualTo(before.AddDays(3)).Within(TimeSpan.FromSeconds(5)));
+    }
+
+    [Test]
+    public void ValidateJwtToken_ReturnsNull_WhenTokenIsExpired()
+    {
+        // Arrange
+        var handler = new JwtSecurityTokenHandler();
+        var key = SHA256.HashData(Encoding.UTF8.GetBytes(_appSettings.Secret!));
+        var descriptor = new SecurityTokenDescriptor
+        {
+            Subject = new ClaimsIdentity(new[] { new Claim("id", _testUser.Id.ToString()) }),
+            NotBefore = DateTime.UtcNow.AddMinutes(-5),
+            Expires = DateTime.UtcNow.AddSeconds(-1),
+            SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+        };
+        var token = handler.CreateToken(descriptor);
+        var tokenString = handler.WriteToken(token);
+
+        // Act
+        var result = _jwtUtils.ValidateJwtToken(tokenString);
+
+        // Assert
+        Assert.That(result, Is.Null);
+    }
+
+    [Test]
+    public void ValidateJwtToken_ReturnsNull_WhenTokenIsMalformed()
+    {
+        // Act
+        var result = _jwtUtils.ValidateJwtToken("notatoken");
+
+        // Assert
+        Assert.That(result, Is.Null);
+    }
+
+    [Test]
+    public void ValidateJwtToken_ReturnsNull_WhenSecretDoesNotMatch()
+    {
+        // Arrange
+        var token = _jwtUtils.GenerateJwtToken(_testUser);
+        _appSettings.Secret = "AnotherSecretThatDoesNotMatch";
+
+        // Act
+        var result = _jwtUtils.ValidateJwtToken(token);
+
+        // Assert
+        Assert.That(result, Is.Null);
     }
 }
 
