@@ -56,7 +56,7 @@ services:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: "https://+:8081;http://+:8080"
       ASPNETCORE_Kestrel__Certificates__Default__Path: "/certificate/s.pfx"
-      ASPNETCORE_Kestrel__Certificates__Default__Password: "changeit"
+      ASPNETCORE_Kestrel__Certificates__Default__Password_File: "/certificate/s.pwd"
     volumes:
       - ./certificate:/certificate:ro
 

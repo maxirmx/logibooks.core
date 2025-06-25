@@ -33,7 +33,7 @@ var builder = WebApplication.CreateBuilder(args);
 var config = builder.Configuration;
 var certPath = config["Kestrel:Certificates:Default:Path"];
 var certPassword = config["Kestrel:Certificates:Default:Password"];
-if (!string.IsNullOrEmpty(certPath))
+if (!string.IsNullOrEmpty(certPath) && File.Exists(certPath))
 {
     builder.WebHost.ConfigureKestrel(options =>
     {
