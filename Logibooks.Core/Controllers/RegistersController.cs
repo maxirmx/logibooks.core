@@ -242,14 +242,8 @@ public class RegistersController(
             if (string.IsNullOrWhiteSpace(value))
                 return default(bool);
 
-            string normalizedVal = value.Trim();
+            string normalizedVal = value.ToLower(RussianCulture).Trim();
             string[] trueValues = ["1", "yes", "true", "да"];
-
-            Console.WriteLine($"Converting '{value}' to boolean for property '{propertyName}'");
-            foreach (var trueValue in trueValues)
-            {
-                Console.WriteLine($"Checking against true value: '{trueValue}'");
-            }
 
             if (trueValues.Contains(normalizedVal, StringComparer.InvariantCultureIgnoreCase))
                 return true;
