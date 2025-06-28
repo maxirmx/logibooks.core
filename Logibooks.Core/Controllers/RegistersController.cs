@@ -242,16 +242,13 @@ public class RegistersController(
             if (string.IsNullOrWhiteSpace(value))
                 return default(bool);
 
-            string normalizedVal = value; //.ToLower(RussianCulture).Trim();
-            var trueValues = new[] { "1", "yes", "true", "да" };
-            var falseValues = new[] { "0", "no", "false", "нет" };
+            string normalizedVal = value.Trim();
+            var trueValues = new[] { "1", "yes", "true", "да", "Да", "ДА" };
 
-            if (trueValues.Contains(normalizedVal, StringComparer.OrdinalIgnoreCase))
+            if (trueValues.Contains(normalizedVal, StringComparer.InvariantCultureIgnoreCase))
                 return true;
-            else if (falseValues.Contains(normalizedVal, StringComparer.OrdinalIgnoreCase))
+            else 
                 return false;
-            else
-                return bool.TryParse(value, out bool result) && result;
         }
         else if (targetType == typeof(DateTime))
         {
