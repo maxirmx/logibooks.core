@@ -209,7 +209,7 @@ public class RegistersController(
         {
             // For nullable types or reference types, return null
             if (propertyType.IsClass || Nullable.GetUnderlyingType(propertyType) != null)
-                return null;
+                return propertyType == typeof(string) ? string.Empty : null;
 
             // For value types, this will throw an exception if we don't handle specific cases below
         }
@@ -259,8 +259,8 @@ public class RegistersController(
         }
         else if (targetType == typeof(string))
         {
-            // For string properties, just use the value directly
-            return value;
+            // For string properties, return the value directly or an empty string for null/empty input
+            return value ?? string.Empty;
         }
 
         // For other types, try using the default conversion

@@ -16,6 +16,7 @@ using System.IO;
 using System.Threading;
 using System;
 using System.Linq;
+using System.Reflection;
 
 namespace Logibooks.Core.Tests.Controllers;
 
@@ -31,7 +32,7 @@ public class RegisterControllerTests
     private Role _adminRole;
     private User _logistUser;
     private User _adminUser;
-    private string testDataDir = Path.Combine(AppContext.BaseDirectory, "test.data");
+    private readonly string testDataDir = Path.Combine(AppContext.BaseDirectory, "test.data");
 #pragma warning restore CS8618
 
     [SetUp]
@@ -300,5 +301,110 @@ public class RegisterControllerTests
             .Returns(Task.CompletedTask);
 
         return mockFile;
+    }
+}
+
+[TestFixture]
+public class ConvertValueToPropertyTypeTests
+{
+#pragma warning disable CS8618
+    private RegistersController _controller;
+#pragma warning restore CS8618
+
+    [SetUp]
+    public void Setup()
+    {
+        // Create a minimal DbContextOptions for AppDbContext
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase($"test_db_{Guid.NewGuid()}")
+            .Options;
+
+        // Pass the valid options to the AppDbContext constructor
+        var dbContext = new AppDbContext(options);
+
+        // Create the controller instance with the valid AppDbContext
+        _controller = (RegistersController)Activator.CreateInstance(
+            typeof(RegistersController),
+            [new Mock<IHttpContextAccessor>().Object, dbContext, new Mock<ILogger<RegistersController>>().Object]
+        )!;
+    }
+
+    [TestCase("42", typeof(int), 42)]
+    [TestCase("notanint", typeof(int), 0)]
+    [TestCase("3.14", typeof(double), 3.14)]
+    [TestCase("2,71", typeof(double), 2.71)] // comma as decimal separator
+    [TestCase("notadouble", typeof(double), 0.0)]
+    [TestCase("123.45", typeof(decimal), 123.45)]
+    [TestCase("67,89", typeof(decimal), 67.89)]
+    [TestCase("notadecimal", typeof(decimal), 0.0)]
+    [TestCase("true", typeof(bool), true)]
+    [TestCase("false", typeof(bool), false)]
+    [TestCase("1", typeof(bool), true)]
+    [TestCase("0", typeof(bool), false)]
+    [TestCase("yes", typeof(bool), true)]
+    [TestCase("no", typeof(bool), false)]
+    [TestCase("да", typeof(bool), true)]
+    [TestCase("нет", typeof(bool), false)]
+    [TestCase("notabool", typeof(bool), false)]
+    [TestCase("2024-06-28", typeof(DateTime), "2024-06-28")]
+    [TestCase("notadate", typeof(DateTime), "0001-01-01")]
+    [TestCase("hello", typeof(string), "hello")]
+    [TestCase("", typeof(string), "")]
+    [TestCase(null, typeof(string), "")]
+    public void ConvertValueToPropertyType_PrimitiveTypes_Works(string? input, Type type, object expected)
+    {
+        var result = _controller.GetType()
+            .GetMethod("ConvertValueToPropertyType", BindingFlags.NonPublic | BindingFlags.Instance)!
+            .Invoke(_controller, new object?[] { input, type, "TestProp" });
+
+        if (type == typeof(DateTime))
+        {
+            var expectedDate = DateTime.TryParse(expected.ToString(), out var dt) ? dt : default;
+            Assert.That(result, Is.EqualTo(expectedDate));
+        }
+        else
+        {
+            Assert.That(result, Is.EqualTo(expected));
+        }
+    }
+
+    [Test]
+    public void ConvertValueToPropertyType_NullableInt_ReturnsNullOnNull()
+    {
+        var type = typeof(int?);
+        var result = _controller.GetType()
+            .GetMethod("ConvertValueToPropertyType", BindingFlags.NonPublic | BindingFlags.Instance)!
+            .Invoke(_controller, new object?[] { null, type, "TestProp" });
+        Assert.That(result, Is.Null);
+    }
+
+    [Test]
+    public void ConvertValueToPropertyType_NullableDouble_ReturnsNullOnEmpty()
+    {
+        var type = typeof(double?);
+        var result = _controller.GetType()
+            .GetMethod("ConvertValueToPropertyType", BindingFlags.NonPublic | BindingFlags.Instance)!
+            .Invoke(_controller, new object?[] { "", type, "TestProp" });
+        Assert.That(result, Is.Null);
+    }
+
+    [Test]
+    public void ConvertValueToPropertyType_UnknownType_UsesChangeType()
+    {
+        var type = typeof(long);
+        var result = _controller.GetType()
+            .GetMethod("ConvertValueToPropertyType", BindingFlags.NonPublic | BindingFlags.Instance)!
+            .Invoke(_controller, new object?[] { "123456789", type, "TestProp" });
+        Assert.That(result, Is.EqualTo(123456789L));
+    }
+
+    [Test]
+    public void ConvertValueToPropertyType_UnknownType_ReturnsDefaultOnError()
+    {
+        var type = typeof(Guid);
+        var result = _controller.GetType()
+            .GetMethod("ConvertValueToPropertyType", BindingFlags.NonPublic | BindingFlags.Instance)!
+            .Invoke(_controller, new object?[] { "notaguid", type, "TestProp" });
+        Assert.That(result, Is.EqualTo(Guid.Empty));
     }
 }
