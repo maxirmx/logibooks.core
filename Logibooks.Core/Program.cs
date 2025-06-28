@@ -33,14 +33,16 @@ var builder = WebApplication.CreateBuilder(args);
 var config = builder.Configuration;
 var certPath = config["Kestrel:Certificates:Default:Path"];
 var certPassword = config["Kestrel:Certificates:Default:Password"];
-if (!string.IsNullOrEmpty(certPath) && File.Exists(certPath))
+bool useHttps = !string.IsNullOrEmpty(certPath) && !string.IsNullOrEmpty(certPassword) && File.Exists(certPath);
+builder.WebHost.ConfigureKestrel(options =>
 {
-    builder.WebHost.ConfigureKestrel(options =>
-    {
-            options.ListenAnyIP(8081, listenOptions => listenOptions.UseHttps(certPath, certPassword));
-            options.ListenAnyIP(8080);
-    });
-}
+     if (useHttps)
+     { 
+            options.ListenAnyIP(8081, listenOptions => listenOptions.UseHttps(certPath!, certPassword));
+     }
+     options.ListenAnyIP(8080);
+});
+
 
 builder.Services
     .Configure<AppSettings>(builder.Configuration.GetSection("AppSettings"))
@@ -97,8 +99,13 @@ using (var scope = app.Services.CreateScope())
 app
     .UseMiddleware<JwtMiddleware>()
     .UseSwagger()
-    .UseSwaggerUI()
-    .UseHttpsRedirection()
+    .UseSwaggerUI();
+if (useHttps)
+{
+    app.UseHttpsRedirection();
+}
+
+app
     .UseCors()
     .UseAuthorization();
 

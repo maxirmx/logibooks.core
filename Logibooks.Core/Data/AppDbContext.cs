@@ -39,6 +39,9 @@ namespace Logibooks.Core.Data
         public DbSet<User> Users => Set<User>();
         public DbSet<Role> Roles => Set<Role>();
         public DbSet<UserRole> UserRoles => Set<UserRole>();
+        public DbSet<Register> Registers => Set<Register>();
+        public DbSet<OrderStatus> Statuses => Set<OrderStatus>();
+        public DbSet<Order> Orders => Set<Order>();
         public async Task<bool> CheckAdmin(int cuid)
         {
             var user = await Users
@@ -48,6 +51,16 @@ namespace Logibooks.Core.Data
                 .Where(x => x.Id == cuid)
                 .FirstOrDefaultAsync(); 
             return user != null && user.IsAdministrator();
+        }
+        public async Task<bool> CheckLogist(int cuid)
+        {
+            var user = await Users
+                .AsNoTracking()
+                .Include(u => u.UserRoles)
+                    .ThenInclude(ur => ur.Role)
+                .Where(x => x.Id == cuid)
+                .FirstOrDefaultAsync();
+            return user != null && user.IsLogist();
         }
         public async Task<ActionResult<bool>> CheckAdminOrSameUser(int id, int cuid)
         {
@@ -106,9 +119,23 @@ namespace Logibooks.Core.Data
                 .WithMany(r => r.UserRoles)
                 .HasForeignKey(ur => ur.RoleId);
 
+            modelBuilder.Entity<Order>()
+                .HasOne(o => o.Register)
+                .WithMany(r => r.Orders)
+                .HasForeignKey(o => o.RegisterId);
+
+            modelBuilder.Entity<Order>()
+                .HasOne(o => o.Status)
+                .WithMany(s => s.Orders)
+                .HasForeignKey(o => o.StatusId);
+
             modelBuilder.Entity<Role>().HasData(
                 new Role { Id = 1, Name = "logist", Title = "Логист" },
                 new Role { Id = 2, Name = "administrator", Title = "Администратор" }
+            );
+
+            modelBuilder.Entity<OrderStatus>().HasData(
+                new OrderStatus { Id = 1, Name = "loaded", Title = "Загружен" }
             );
 
             modelBuilder.Entity<User>().HasData(
