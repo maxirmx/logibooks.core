@@ -15,6 +15,7 @@ using Logibooks.Core.RestModels;
 using System.IO;
 using System.Threading;
 using System;
+using System.Linq;
 
 namespace Logibooks.Core.Tests.Controllers;
 
@@ -237,6 +238,40 @@ public class RegisterControllerTests
         var mockFile = CreateMockFile("Реестр_207730349.zip", "application/zip", zipContent);
 
         var result = await _controller.UploadRegister(mockFile.Object);
+
+        // Assert that the result is OK
+        Assert.That(result, Is.TypeOf<OkObjectResult>());
+        var okResult = result as OkObjectResult;
+
+        // Assert that the response value is not null
+        Assert.That(okResult?.Value, Is.Not.Null);
+
+        // Convert to dictionary to access properties by name without knowing exact casing
+        var responseProps = okResult!.Value!.GetType().GetProperties();
+
+        // Get dictionary of property names to values
+        var responseDict = responseProps.ToDictionary(
+            prop => prop.Name.ToLowerInvariant(),
+            prop => prop.GetValue(okResult.Value)
+        );
+
+        // Check that the response contains expected fields
+        Assert.That(responseDict.ContainsKey("message") || responseDict.ContainsKey("msg"),
+            Is.True, "Response should contain a message property");
+        Assert.That(responseDict.ContainsKey("filename") || responseDict.ContainsKey("fileName"),
+            Is.True, "Response should contain a fileName property");
+        Assert.That(responseDict.ContainsKey("filesize"),
+            Is.True, "Response should contain a fileSize property");
+
+        // Check contents of the message field (case insensitive)
+        string? messageField = null;
+        if (responseDict.ContainsKey("message"))
+            messageField = responseDict["message"]?.ToString();
+        else if (responseDict.ContainsKey("msg"))
+            messageField = responseDict["msg"]?.ToString();
+
+        Assert.That(messageField, Is.Not.Null.And.Contains("Excel file extracted"),
+            "Response message should indicate Excel file was extracted");
     }
 
     // Helper method to create mock IFormFile objects
