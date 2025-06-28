@@ -25,8 +25,8 @@ public class RegisterControllerTests
 #pragma warning disable CS8618
     private AppDbContext _dbContext;
     private Mock<IHttpContextAccessor> _mockHttpContextAccessor;
-    private ILogger<RegisterController> _logger;
-    private RegisterController _controller;
+    private ILogger<RegistersController> _logger;
+    private RegistersController _controller;
     private Role _logistRole;
     private Role _adminRole;
     private User _logistUser;
@@ -69,8 +69,8 @@ public class RegisterControllerTests
         _dbContext.SaveChanges();
 
         _mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
-        _logger = new LoggerFactory().CreateLogger<RegisterController>();
-        _controller = new RegisterController(_mockHttpContextAccessor.Object, _dbContext, _logger);
+        _logger = new LoggerFactory().CreateLogger<RegistersController>();
+        _controller = new RegistersController(_mockHttpContextAccessor.Object, _dbContext, _logger);
     }
 
     [TearDown]
@@ -85,7 +85,7 @@ public class RegisterControllerTests
         var ctx = new DefaultHttpContext();
         ctx.Items["UserId"] = id;
         _mockHttpContextAccessor.Setup(x => x.HttpContext).Returns(ctx);
-        _controller = new RegisterController(_mockHttpContextAccessor.Object, _dbContext, _logger);
+        _controller = new RegistersController(_mockHttpContextAccessor.Object, _dbContext, _logger);
     }
 
     [Test]
@@ -170,7 +170,7 @@ public class RegisterControllerTests
     {
         SetCurrentUserId(1); // Logist user  
 
-        string testFilePath = Path.Combine(testDataDir, "Реестр_207730349.xlsx");       
+        string testFilePath = Path.Combine(testDataDir, "Реестр_207730349.xlsx");
         byte[] excelContent;
 
         try
@@ -186,8 +186,17 @@ public class RegisterControllerTests
         var mockFile = CreateMockFile("Реестр_207730349.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", excelContent);
         var result = await _controller.UploadRegister(mockFile.Object);
 
+        // Updated assertion to match actual implementation
         Assert.That(result, Is.TypeOf<OkObjectResult>());
-        Assert.That(_dbContext.Orders.Count(), Is.GreaterThan(0));
+        var objResult = result as ObjectResult;
+
+        // Check for success status code (2xx)
+        Assert.That(objResult!.StatusCode, Is.GreaterThanOrEqualTo(200).And.LessThan(300),
+            "Should return a success status code");
+
+        // Verify that orders were created in the database
+        Assert.That(_dbContext.Orders.Count(), Is.GreaterThan(0),
+            "Orders should have been created in the database");
     }
 
     [Test]

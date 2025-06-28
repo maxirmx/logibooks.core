@@ -8,16 +8,17 @@ using Logibooks.Core.Authorization;
 using System.IO;
 using Microsoft.EntityFrameworkCore;
 using Logibooks.Core.Mappings;
+using Logibooks.Core.Models;
 
 namespace Logibooks.Core.Controllers;
 
 [ApiController]
 [Authorize]
 [Route("api/[controller]")]
-public class RegisterController(
+public class RegistersController(
     IHttpContextAccessor httpContextAccessor,
     AppDbContext db,
-    ILogger<RegisterController> logger) : LogibooksControllerBase(httpContextAccessor, db, logger)
+    ILogger<RegistersController> logger) : LogibooksControllerBase(httpContextAccessor, db, logger)
 {
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<RegisterItem>))]
@@ -96,7 +97,21 @@ public class RegisterController(
                 var propInfo = typeof(Order).GetProperty(kv.Value);
                 if (propInfo != null)
                 {
-                    propInfo.SetValue(order, val);
+                    if (propInfo != null && val != null)
+                    {
+                        try
+                        {
+                            // Convert string value to appropriate property type
+                            object? convertedValue = ConvertValueToPropertyType(val, propInfo.PropertyType, propInfo.Name);
+                            propInfo.SetValue(order, convertedValue);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "Failed to set value '{Value}' for property {Property}",
+                                val, propInfo.Name);
+                            // Continue with next property rather than failing the whole import
+                        }
+                    }
                 }
             }
             orders.Add(order);
@@ -185,6 +200,79 @@ public class RegisterController(
             _logger.LogError(ex, "Error processing uploaded file");
             return StatusCode(StatusCodes.Status500InternalServerError,
                 new ErrMessage { Msg = $"Error processing file: {ex.Message}" });
+        }
+    }
+
+    private object? ConvertValueToPropertyType(string? value, Type propertyType, string propertyName)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            // For nullable types or reference types, return null
+            if (propertyType.IsClass || Nullable.GetUnderlyingType(propertyType) != null)
+                return null;
+
+            // For value types, this will throw an exception if we don't handle specific cases below
+        }
+
+        // Get the underlying type if it's nullable
+        Type targetType = Nullable.GetUnderlyingType(propertyType) ?? propertyType;
+
+        // Handle common types with specific conversion logic
+        if (targetType == typeof(int) || targetType == typeof(Int32))
+        {
+            return int.TryParse(value, out int result) ? result : default(int);
+        }
+        else if (targetType == typeof(decimal))
+        {
+            // Handle both comma and dot as decimal separators
+            string normalizedVal = value?.Replace(',', '.') ?? "0";
+            return decimal.TryParse(normalizedVal,
+                System.Globalization.NumberStyles.AllowDecimalPoint,
+                System.Globalization.CultureInfo.InvariantCulture,
+                out decimal result) ? result : default(decimal);
+        }
+        else if (targetType == typeof(double))
+        {
+            string normalizedVal = value?.Replace(',', '.') ?? "0";
+            return double.TryParse(normalizedVal,
+                System.Globalization.NumberStyles.AllowDecimalPoint,
+                System.Globalization.CultureInfo.InvariantCulture,
+                out double result) ? result : default(double);
+        }
+        else if (targetType == typeof(bool))
+        {
+            // Handle various representations of boolean values
+            if (string.IsNullOrWhiteSpace(value))
+                return default(bool);
+
+            string normalizedVal = value.ToLowerInvariant().Trim();
+            if (normalizedVal == "1" || normalizedVal == "yes" || normalizedVal == "true" || normalizedVal == "да")
+                return true;
+            else if (normalizedVal == "0" || normalizedVal == "no" || normalizedVal == "false" || normalizedVal == "нет")
+                return false;
+            else
+                return bool.TryParse(value, out bool result) ? result : default(bool);
+        }
+        else if (targetType == typeof(DateTime))
+        {
+            return DateTime.TryParse(value, out DateTime result) ? result : default(DateTime);
+        }
+        else if (targetType == typeof(string))
+        {
+            // For string properties, just use the value directly
+            return value;
+        }
+
+        // For other types, try using the default conversion
+        try
+        {
+            return Convert.ChangeType(value, targetType, System.Globalization.CultureInfo.InvariantCulture);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not convert '{Value}' to type {Type} for property {Property}",
+                value, targetType.Name, propertyName);
+            return targetType.IsValueType ? Activator.CreateInstance(targetType) : null;
         }
     }
 }
