@@ -47,8 +47,8 @@ public class AppDbContextTests
 
         // Pre-seed the roles that are needed for tests
         context.Roles.AddRange(
-            new Role { Id = LogistRoleId, Name = "logist", Title = "Логист" },
-            new Role { Id = AdminRoleId, Name = "administrator", Title = "Администратор" }
+            new Role { Id = LogistRoleId, Name = "logist", Title = "" },
+            new Role { Id = AdminRoleId, Name = "administrator", Title = "" }
         );
 
         context.SaveChanges();
@@ -413,6 +413,19 @@ public class AppDbContextTests
 
         // Assert
         Assert.That(results, Is.Empty);
+    }
+
+    #endregion
+
+    #region Status Tests
+
+    [Test]
+    public void DefaultStatus_IsSeeded()
+    {
+        using var ctx = CreateContext();
+        var status = ctx.Statuses.SingleOrDefault(s => s.Id == 1);
+        Assert.That(status, Is.Not.Null);
+        Assert.That(status!.Title, Is.EqualTo("Р—Р°РіСЂСѓР¶РµРЅ"));
     }
 
     #endregion
