@@ -1,11 +1,13 @@
 using Microsoft.AspNetCore.Mvc;
 using SharpCompress.Archives;
+using ExcelDataReader;
 
 using Logibooks.Core.Data;
 using Logibooks.Core.RestModels;
 using Logibooks.Core.Authorization;
 using System.IO;
 using Microsoft.EntityFrameworkCore;
+using Logibooks.Core.Mappings;
 
 namespace Logibooks.Core.Controllers;
 
@@ -47,6 +49,65 @@ public class RegisterController(
         return Ok(items);
     }
 
+    private async Task<IActionResult> ProcessExcel(byte[] content, string fileName)
+    {
+        var mappingPath = Path.Combine(AppContext.BaseDirectory, "mapping", "register_mapping.yaml");
+        if (!System.IO.File.Exists(mappingPath))
+        {
+            _logger.LogError("Mapping file not found at {path}", mappingPath);
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                new ErrMessage { Msg = "Mapping file missing" });
+        }
+
+        var mapping = RegisterMapping.Load(mappingPath);
+
+        System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+        using var ms = new MemoryStream(content);
+        using var reader = ExcelReaderFactory.CreateReader(ms);
+        var dataSet = reader.AsDataSet();
+        if (dataSet.Tables.Count == 0 || dataSet.Tables[0].Rows.Count == 0)
+            return StatusCode(StatusCodes.Status400BadRequest,
+                new ErrMessage { Msg = "Excel file is empty" });
+
+        var table = dataSet.Tables[0];
+        var headerRow = table.Rows[0];
+        var columnMap = new Dictionary<int, string>();
+        for (int c = 0; c < table.Columns.Count; c++)
+        {
+            var header = headerRow[c]?.ToString() ?? string.Empty;
+            if (mapping.HeaderMappings.TryGetValue(header, out var prop))
+            {
+                columnMap[c] = prop;
+            }
+        }
+
+        var register = new Register { FileName = fileName };
+        _db.Registers.Add(register);
+        await _db.SaveChangesAsync();
+
+        var orders = new List<Order>();
+        for (int r = 1; r < table.Rows.Count; r++)
+        {
+            var row = table.Rows[r];
+            var order = new Order { RegisterId = register.Id, StatusId = 1 };
+            foreach (var kv in columnMap)
+            {
+                var val = row[kv.Key]?.ToString();
+                var propInfo = typeof(Order).GetProperty(kv.Value);
+                if (propInfo != null)
+                {
+                    propInfo.SetValue(order, val);
+                }
+            }
+            orders.Add(order);
+        }
+
+        _db.Orders.AddRange(orders);
+        await _db.SaveChangesAsync();
+
+        return Ok(new { message = "Excel file imported", fileName, fileSize = content.Length, rows = orders.Count });
+    }
+
     [HttpPost("upload")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(ErrMessage))]
@@ -73,15 +134,10 @@ public class RegisterController(
             // Handle based on file type
             if (fileExtension == ".xlsx" || fileExtension == ".xls")
             {
-                // Direct Excel file
                 using var ms = new MemoryStream();
                 await file.CopyToAsync(ms);
-
-                // Process Excel file directly
                 byte[] excelContent = ms.ToArray();
-                // TODO: Process the Excel file content
-
-                return Ok(new { message = "Excel file processed successfully", fileSize = excelContent.Length });
+                return await ProcessExcel(excelContent, file.FileName);
             }
             else if (fileExtension == ".zip" || fileExtension == ".rar")
             {
@@ -116,15 +172,7 @@ public class RegisterController(
                     excelContent = entryStream.ToArray();
                 }
 
-                // Process the extracted Excel file
-                // TODO: Process the Excel file content
-
-                return Ok(new
-                {
-                    message = "Excel file extracted and processed successfully",
-                    fileName = excelFileName,
-                    fileSize = excelContent.Length
-                });
+                return await ProcessExcel(excelContent, excelFileName);
             }
             else
             {

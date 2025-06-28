@@ -187,6 +187,7 @@ public class RegisterControllerTests
         var result = await _controller.UploadRegister(mockFile.Object);
 
         Assert.That(result, Is.TypeOf<OkObjectResult>());
+        Assert.That(_dbContext.Orders.Count(), Is.GreaterThan(0));
     }
 
     [Test]
@@ -270,8 +271,10 @@ public class RegisterControllerTests
         else if (responseDict.ContainsKey("msg"))
             messageField = responseDict["msg"]?.ToString();
 
-        Assert.That(messageField, Is.Not.Null.And.Contains("Excel file extracted"),
-            "Response message should indicate Excel file was extracted");
+        Assert.That(messageField, Is.Not.Null.And.Contains("imported"),
+            "Response message should indicate Excel file was imported");
+
+        Assert.That(_dbContext.Orders.Count(), Is.GreaterThan(0));
     }
 
     // Helper method to create mock IFormFile objects
