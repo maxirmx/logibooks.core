@@ -35,6 +35,7 @@ public class RegisterController(
     [HttpGet("download")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
+    [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(ErrMessage))]
     public async Task<IActionResult> DownloadRegister(string? format = "xlsx")
     {
         var ok = await _db.CheckLogist(_curUserId);
@@ -43,12 +44,21 @@ public class RegisterController(
             return _403();
         }
 
+        // Define supported formats
+        var supportedFormats = new[] { "xlsx", "zip" };
+
+        // Validate the format
+        if (!string.IsNullOrEmpty(format) && !supportedFormats.Contains(format.ToLower()))
+        {
+            return StatusCode(StatusCodes.Status400BadRequest,
+                new ErrMessage { Msg = $"Unsupported format '{format}'. Supported formats are: {string.Join(", ", supportedFormats)}" });
+        }
+
         byte[] content = System.Text.Encoding.UTF8.GetBytes("sample register");
         string contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
         string fileName = "register.xlsx";
 
-        if (string.Equals(format, "zip", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(format, "rar", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(format, "zip", StringComparison.OrdinalIgnoreCase))
         {
             using var ms = new MemoryStream();
             using (var zip = new ZipArchive(ms, ZipArchiveMode.Create, true))
@@ -59,7 +69,7 @@ public class RegisterController(
             }
             content = ms.ToArray();
             contentType = "application/zip";
-            fileName = $"register.{format!.ToLower()}";
+            fileName = "register.zip";
         }
 
         return File(content, contentType, fileName);
