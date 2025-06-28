@@ -16,11 +16,17 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="9.0.6" />
+    <PackageReference Include="YamlDotNet" Version="16.3.0" />
+    <PackageReference Include="ExcelDataReader" Version="3.7.0" />
+    <PackageReference Include="ExcelDataReader.DataSet" Version="3.7.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Logibooks.Core\Logibooks.Core.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <None Update="..\Logibooks.Core\mapping\register_mapping.yaml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="test.data\Реестр_207730349.xlsx">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

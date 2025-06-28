@@ -23,9 +23,20 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-namespace Logibooks.Core;
+using YamlDotNet.Serialization;
+using YamlDotNet.Serialization.NamingConventions;
 
-public static class VersionInfo
+namespace Logibooks.Core.Settings;
+public class RegisterMapping
 {
-    public const string AppVersion = "0.2.0";
+    public Dictionary<string, string> HeaderMappings { get; set; } = new();
+
+    public static RegisterMapping Load(string path)
+    {
+        using var reader = new StreamReader(path);
+        var deserializer = new DeserializerBuilder()
+            .WithNamingConvention(UnderscoredNamingConvention.Instance)
+            .Build();
+        return deserializer.Deserialize<RegisterMapping>(reader) ?? new RegisterMapping();
+    }
 }
