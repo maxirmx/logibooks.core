@@ -33,5 +33,8 @@ public class Register
     [Column("id")]
     public int Id { get; set; }
 
+    [Column("filename")]
+    public required string FileName { get; set; }
+
     public ICollection<Order> Orders { get; set; } = []; 
 }
