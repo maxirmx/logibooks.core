@@ -242,7 +242,7 @@ public class RegistersController(
             if (string.IsNullOrWhiteSpace(value))
                 return default(bool);
 
-            string normalizedVal = value.ToLower(RussianCulture).Trim();
+            string normalizedVal = value; //.ToLower(RussianCulture).Trim();
             var trueValues = new[] { "1", "yes", "true", "да" };
             var falseValues = new[] { "0", "no", "false", "нет" };
 
