@@ -245,6 +245,12 @@ public class RegistersController(
             string normalizedVal = value.Trim();
             var trueValues = new[] { "1", "yes", "true", "да", "Да", "ДА" };
 
+            Console.WriteLine($"Converting '{value}' to boolean for property '{propertyName}'");
+            foreach (var trueValue in trueValues)
+            {
+                Console.WriteLine($"Checking against true value: '{trueValue}'");
+            }
+
             if (trueValues.Contains(normalizedVal, StringComparer.InvariantCultureIgnoreCase))
                 return true;
             else 
