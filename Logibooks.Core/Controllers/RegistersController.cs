@@ -220,7 +220,7 @@ public class RegistersController(
         // Handle common types with specific conversion logic
         if (targetType == typeof(int) || targetType == typeof(Int32))
         {
-            return int.TryParse(value, out int result) ? result : default(int);
+            return int.TryParse(value, out int result) ? result : default;
         }
         else if (targetType == typeof(decimal))
         {
@@ -229,7 +229,7 @@ public class RegistersController(
             return decimal.TryParse(normalizedVal,
                 System.Globalization.NumberStyles.AllowDecimalPoint,
                 System.Globalization.CultureInfo.InvariantCulture,
-                out decimal result) ? result : default(decimal);
+                out decimal result) ? result : default;
         }
         else if (targetType == typeof(double))
         {
@@ -237,7 +237,7 @@ public class RegistersController(
             return double.TryParse(normalizedVal,
                 System.Globalization.NumberStyles.AllowDecimalPoint,
                 System.Globalization.CultureInfo.InvariantCulture,
-                out double result) ? result : default(double);
+                out double result) ? result : default;
         }
         else if (targetType == typeof(bool))
         {
@@ -246,16 +246,19 @@ public class RegistersController(
                 return default(bool);
 
             string normalizedVal = value.ToLowerInvariant().Trim();
-            if (normalizedVal == "1" || normalizedVal == "yes" || normalizedVal == "true" || normalizedVal == "да")
+            var trueValues = new[] { "1", "yes", "true", "да" };
+            var falseValues = new[] { "0", "no", "false", "нет" };
+
+            if (trueValues.Contains(normalizedVal, StringComparer.OrdinalIgnoreCase))
                 return true;
-            else if (normalizedVal == "0" || normalizedVal == "no" || normalizedVal == "false" || normalizedVal == "нет")
+            else if (falseValues.Contains(normalizedVal, StringComparer.OrdinalIgnoreCase))
                 return false;
             else
-                return bool.TryParse(value, out bool result) ? result : default(bool);
+                return bool.TryParse(value, out bool result) && result;
         }
         else if (targetType == typeof(DateTime))
         {
-            return DateTime.TryParse(value, out DateTime result) ? result : default(DateTime);
+            return DateTime.TryParse(value, out DateTime result) ? result : default;
         }
         else if (targetType == typeof(string))
         {
