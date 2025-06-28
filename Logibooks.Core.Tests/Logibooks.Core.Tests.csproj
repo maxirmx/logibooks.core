@@ -20,4 +20,12 @@
   <ItemGroup>
     <ProjectReference Include="..\Logibooks.Core\Logibooks.Core.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <None Update="test.data\Реестр_207730349.xlsx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="test.data\Реестр_207730349.zip">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 </Project>

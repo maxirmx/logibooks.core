@@ -176,6 +176,59 @@ public class AppDbContextTests
 
     #endregion
 
+    #region CheckLogist Tests
+
+    [Test]
+    public async Task CheckLogist_ReturnsTrue_WhenUserIsLogist()
+    {
+        using var ctx = CreateContext();
+        var user = CreateUser(30, "logist@test.com", "password", "Log", "User", null, [GetLogistRole(ctx)]);
+        ctx.Users.Add(user);
+        await ctx.SaveChangesAsync();
+
+        var result = await ctx.CheckLogist(30);
+
+        Assert.That(result, Is.True);
+    }
+
+    [Test]
+    public async Task CheckLogist_ReturnsFalse_WhenUserIsNotLogist()
+    {
+        using var ctx = CreateContext();
+        var user = CreateUser(31, "adminonly@test.com", "password", "Adm", "User", null, [GetAdminRole(ctx)]);
+        ctx.Users.Add(user);
+        await ctx.SaveChangesAsync();
+
+        var result = await ctx.CheckLogist(31);
+
+        Assert.That(result, Is.False);
+    }
+
+    [Test]
+    public async Task CheckLogist_ReturnsFalse_WhenUserDoesNotExist()
+    {
+        using var ctx = CreateContext();
+
+        var result = await ctx.CheckLogist(999);
+
+        Assert.That(result, Is.False);
+    }
+
+    [Test]
+    public async Task CheckLogist_ReturnsFalse_WhenUserHasNoRoles()
+    {
+        using var ctx = CreateContext();
+        var user = CreateUser(32, "norolelogist@test.com", "password", "No", "Role", null, []);
+        ctx.Users.Add(user);
+        await ctx.SaveChangesAsync();
+
+        var result = await ctx.CheckLogist(32);
+
+        Assert.That(result, Is.False);
+    }
+
+    #endregion
+
     #region CheckAdminOrSameUser Tests
 
     [Test]
