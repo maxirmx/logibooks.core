@@ -52,6 +52,16 @@ namespace Logibooks.Core.Data
                 .FirstOrDefaultAsync(); 
             return user != null && user.IsAdministrator();
         }
+        public async Task<bool> CheckLogist(int cuid)
+        {
+            var user = await Users
+                .AsNoTracking()
+                .Include(u => u.UserRoles)
+                    .ThenInclude(ur => ur.Role)
+                .Where(x => x.Id == cuid)
+                .FirstOrDefaultAsync();
+            return user != null && user.IsLogist();
+        }
         public async Task<ActionResult<bool>> CheckAdminOrSameUser(int id, int cuid)
         {
             if (cuid == 0) return false;
