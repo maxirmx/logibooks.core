@@ -243,7 +243,7 @@ public class RegistersController(
                 return default(bool);
 
             string normalizedVal = value.Trim();
-            string[] trueValues = ["1", "yes", "true", "äà", "Äà", "ÄÀ"];
+            string[] trueValues = ["1", "yes", "true", "Ð´Ð°"];
 
             Console.WriteLine($"Converting '{value}' to boolean for property '{propertyName}'");
             foreach (var trueValue in trueValues)
