@@ -9,6 +9,7 @@ using System.IO;
 using Microsoft.EntityFrameworkCore;
 using Logibooks.Core.Mappings;
 using Logibooks.Core.Models;
+using System.Globalization;
 
 namespace Logibooks.Core.Controllers;
 
@@ -203,6 +204,8 @@ public class RegistersController(
         }
     }
 
+    private static readonly CultureInfo RussianCulture = new("ru-RU");
+
     private object? ConvertValueToPropertyType(string? value, Type propertyType, string propertyName)
     {
         if (string.IsNullOrWhiteSpace(value))
@@ -220,24 +223,18 @@ public class RegistersController(
         // Handle common types with specific conversion logic
         if (targetType == typeof(int) || targetType == typeof(Int32))
         {
-            return int.TryParse(value, out int result) ? result : default;
+            return int.TryParse(value, NumberStyles.Integer, RussianCulture, out int result) ? result : default;
         }
         else if (targetType == typeof(decimal))
         {
             // Handle both comma and dot as decimal separators
-            string normalizedVal = value?.Replace(',', '.') ?? "0";
-            return decimal.TryParse(normalizedVal,
-                System.Globalization.NumberStyles.AllowDecimalPoint,
-                System.Globalization.CultureInfo.InvariantCulture,
-                out decimal result) ? result : default;
+            string normalizedVal = value?.Replace('.', ',') ?? "0";
+            return decimal.TryParse(normalizedVal, NumberStyles.AllowDecimalPoint, RussianCulture, out decimal result) ? result : default;
         }
         else if (targetType == typeof(double))
         {
-            string normalizedVal = value?.Replace(',', '.') ?? "0";
-            return double.TryParse(normalizedVal,
-                System.Globalization.NumberStyles.AllowDecimalPoint,
-                System.Globalization.CultureInfo.InvariantCulture,
-                out double result) ? result : default;
+            string normalizedVal = value?.Replace('.', ',') ?? "0";
+            return double.TryParse(normalizedVal, NumberStyles.AllowDecimalPoint, RussianCulture, out double result) ? result : default;
         }
         else if (targetType == typeof(bool))
         {
@@ -245,7 +242,7 @@ public class RegistersController(
             if (string.IsNullOrWhiteSpace(value))
                 return default(bool);
 
-            string normalizedVal = value.ToLowerInvariant().Trim();
+            string normalizedVal = value.ToLower(RussianCulture).Trim();
             var trueValues = new[] { "1", "yes", "true", "да" };
             var falseValues = new[] { "0", "no", "false", "нет" };
 
@@ -258,7 +255,7 @@ public class RegistersController(
         }
         else if (targetType == typeof(DateTime))
         {
-            return DateTime.TryParse(value, out DateTime result) ? result : default;
+            return DateTime.TryParse(value, RussianCulture, DateTimeStyles.None, out DateTime result) ? result : default;
         }
         else if (targetType == typeof(string))
         {
@@ -269,7 +266,7 @@ public class RegistersController(
         // For other types, try using the default conversion
         try
         {
-            return Convert.ChangeType(value, targetType, System.Globalization.CultureInfo.InvariantCulture);
+            return Convert.ChangeType(value, targetType, RussianCulture);
         }
         catch (Exception ex)
         {
