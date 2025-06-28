@@ -47,8 +47,8 @@ public class AppDbContextTests
 
         // Pre-seed the roles that are needed for tests
         context.Roles.AddRange(
-            new Role { Id = LogistRoleId, Name = "logist", Title = "Логист" },
-            new Role { Id = AdminRoleId, Name = "administrator", Title = "Администратор" }
+            new Role { Id = LogistRoleId, Name = "logist", Title = "Р›РѕРіРёСЃС‚" },
+            new Role { Id = AdminRoleId, Name = "administrator", Title = "РђРґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂ" }
         );
 
         context.SaveChanges();
@@ -416,4 +416,5 @@ public class AppDbContextTests
     }
 
     #endregion
+
 }

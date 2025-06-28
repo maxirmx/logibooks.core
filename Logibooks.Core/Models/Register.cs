@@ -25,19 +25,16 @@
 
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace Logibooks.Core.Models
+namespace Logibooks.Core.Models;
+
+[Table("registers")]
+public class Register
 {
-    [Table("roles")]
-    public class Role
-    {
-        [Column("id")]
-        public int Id { get; set; }
+    [Column("id")]
+    public int Id { get; set; }
 
-        [Column("name")]
-        public required string Name { get; set; }
+    [Column("filename")]
+    public required string FileName { get; set; }
 
-        [Column("title")]
-        public required string Title { get; set; }
-        public ICollection<UserRole> UserRoles { get; set; } = [];
-    }
+    public ICollection<Order> Orders { get; set; } = []; 
 }
