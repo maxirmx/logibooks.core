@@ -1,15 +1,11 @@
 using Microsoft.AspNetCore.Mvc;
-using SharpCompress.Writers;
-using SharpCompress.Common;
 using SharpCompress.Archives;
-using SharpCompress.Archives.Zip;
-using SharpCompress.Archives.Rar;
-using SharpCompress.Readers;
 
 using Logibooks.Core.Data;
 using Logibooks.Core.RestModels;
 using Logibooks.Core.Authorization;
 using System.IO;
+using Microsoft.EntityFrameworkCore;
 
 namespace Logibooks.Core.Controllers;
 
@@ -31,14 +27,25 @@ public class RegisterController(
         {
             return _403();
         }
-        var items = Enumerable.Range(1, 50)
-            .Select(i => new RegisterItem { Id = i, Date = DateTime.Today.AddDays(-i), FileName = $"register_{i}.xlsx" })
+
+        // Retrieve registers from database
+        var registers = await _db.Registers
+            .AsNoTracking()
+            .OrderByDescending(r => r.Id) 
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .ToList();
+            .ToListAsync();
+
+        // Map database entities to RegisterItem DTOs
+        var items = registers.Select(r => new RegisterItem
+        {
+            Id = r.Id,
+            FileName = r.FileName,
+            Date = r.DTime
+        }).ToList();
+
         return Ok(items);
     }
-
 
     [HttpPost("upload")]
     [ProducesResponseType(StatusCodes.Status200OK)]

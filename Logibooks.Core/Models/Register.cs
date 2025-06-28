@@ -36,5 +36,7 @@ public class Register
     [Column("filename")]
     public required string FileName { get; set; }
 
+    [Column("dtime")]
+    public DateTime DTime { get; set; } = DateTime.UtcNow;
     public ICollection<Order> Orders { get; set; } = []; 
 }
