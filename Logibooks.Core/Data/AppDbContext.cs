@@ -125,7 +125,7 @@ namespace Logibooks.Core.Data
             );
 
             modelBuilder.Entity<OrderStatus>().HasData(
-                new OrderStatus { Id = 1, Title = "Загружен" }
+                new OrderStatus { Id = 1, Name = "loaded", Title = "Загружен" }
             );
 
             modelBuilder.Entity<User>().HasData(

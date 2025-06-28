@@ -33,6 +33,9 @@ public class OrderStatus
     [Column("id")]
     public int Id { get; set; }
 
+    [Column("name")]
+    public required string Name { get; set; }
+
     [Column("title")]
     public required string Title { get; set; }
 
