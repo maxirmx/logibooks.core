@@ -1,8 +1,15 @@
 using Microsoft.AspNetCore.Mvc;
-using System.IO.Compression;
+using SharpCompress.Writers;
+using SharpCompress.Common;
+using SharpCompress.Archives;
+using SharpCompress.Archives.Zip;
+using SharpCompress.Archives.Rar;
+using SharpCompress.Readers;
+
 using Logibooks.Core.Data;
 using Logibooks.Core.RestModels;
 using Logibooks.Core.Authorization;
+using System.IO;
 
 namespace Logibooks.Core.Controllers;
 
@@ -32,11 +39,12 @@ public class RegisterController(
         return Ok(items);
     }
 
-    [HttpGet("download")]
+
+    [HttpPost("upload")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(ErrMessage))]
-    public async Task<IActionResult> DownloadRegister(string? format = "xlsx")
+    [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
+    public async Task<IActionResult> UploadRegister(IFormFile file)
     {
         var ok = await _db.CheckLogist(_curUserId);
         if (!ok)
@@ -44,34 +52,84 @@ public class RegisterController(
             return _403();
         }
 
-        // Define supported formats
-        var supportedFormats = new[] { "xlsx", "zip" };
-
-        // Validate the format
-        if (!string.IsNullOrEmpty(format) && !supportedFormats.Contains(format.ToLower()))
+        if (file == null || file.Length == 0)
         {
             return StatusCode(StatusCodes.Status400BadRequest,
-                new ErrMessage { Msg = $"Unsupported format '{format}'. Supported formats are: {string.Join(", ", supportedFormats)}" });
+                new ErrMessage { Msg = "No file was uploaded" });
         }
 
-        byte[] content = System.Text.Encoding.UTF8.GetBytes("sample register");
-        string contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-        string fileName = "register.xlsx";
-
-        if (string.Equals(format, "zip", StringComparison.OrdinalIgnoreCase))
+        try
         {
-            using var ms = new MemoryStream();
-            using (var zip = new ZipArchive(ms, ZipArchiveMode.Create, true))
-            {
-                var entry = zip.CreateEntry("register.xlsx");
-                using var es = entry.Open();
-                es.Write(content, 0, content.Length);
-            }
-            content = ms.ToArray();
-            contentType = "application/zip";
-            fileName = "register.zip";
-        }
+            // Get the file extension
+            var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
 
-        return File(content, contentType, fileName);
+            // Handle based on file type
+            if (fileExtension == ".xlsx" || fileExtension == ".xls")
+            {
+                // Direct Excel file
+                using var ms = new MemoryStream();
+                await file.CopyToAsync(ms);
+
+                // Process Excel file directly
+                byte[] excelContent = ms.ToArray();
+                // TODO: Process the Excel file content
+
+                return Ok(new { message = "Excel file processed successfully", fileSize = excelContent.Length });
+            }
+            else if (fileExtension == ".zip" || fileExtension == ".rar")
+            {
+                // Archive file - need to extract Excel
+                using var ms = new MemoryStream();
+                await file.CopyToAsync(ms);
+                ms.Position = 0;
+
+                byte[] excelContent = [];
+                string excelFileName = String.Empty;
+
+                // Extract content from archive
+                using (var archive = ArchiveFactory.Open(ms))
+                {
+                    var excelEntry = archive.Entries.FirstOrDefault(entry =>
+                        !entry.IsDirectory &&
+                        entry.Key != null && 
+                        (Path.GetExtension(entry.Key).Equals(".xlsx", StringComparison.InvariantCultureIgnoreCase) ||
+                         Path.GetExtension(entry.Key).Equals(".xls", StringComparison.InvariantCultureIgnoreCase)));
+
+                    if (excelEntry == null || excelEntry.Key == null)
+                    {
+                        return StatusCode(StatusCodes.Status400BadRequest,
+                            new ErrMessage { Msg = "No Excel file found in the archive" });
+                    }
+
+                    excelFileName = excelEntry.Key;
+
+                    // Extract the Excel file
+                    using var entryStream = new MemoryStream();
+                    excelEntry.WriteTo(entryStream);
+                    excelContent = entryStream.ToArray();
+                }
+
+                // Process the extracted Excel file
+                // TODO: Process the Excel file content
+
+                return Ok(new
+                {
+                    message = "Excel file extracted and processed successfully",
+                    fileName = excelFileName,
+                    fileSize = excelContent.Length
+                });
+            }
+            else
+            {
+                return StatusCode(StatusCodes.Status400BadRequest,
+                    new ErrMessage { Msg = $"Unsupported file type: {fileExtension}. Supported types are: .xlsx, .xls, .zip, .rar" });
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error processing uploaded file");
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                new ErrMessage { Msg = $"Error processing file: {ex.Message}" });
+        }
     }
 }

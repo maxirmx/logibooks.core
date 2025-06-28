@@ -25,9 +25,7 @@
 
 using Microsoft.AspNetCore.Mvc;
 using Logibooks.Core.RestModels;
-using Logibooks.Core.Authorization;
 using Logibooks.Core.Data;
-using Microsoft.Extensions.Logging;
 
 namespace Logibooks.Core.Controllers;
 public class LogibooksControllerPreBase(AppDbContext db, ILogger logger) : ControllerBase

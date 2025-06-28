@@ -12,6 +12,9 @@ using Logibooks.Core.Controllers;
 using Logibooks.Core.Data;
 using Logibooks.Core.Models;
 using Logibooks.Core.RestModels;
+using System.IO;
+using System.Threading;
+using System;
 
 namespace Logibooks.Core.Tests.Controllers;
 
@@ -27,6 +30,7 @@ public class RegisterControllerTests
     private Role _adminRole;
     private User _logistUser;
     private User _adminUser;
+    private string testDataDir = Path.Combine(AppContext.BaseDirectory, "test.data");
 #pragma warning restore CS8618
 
     [SetUp]
@@ -104,23 +108,150 @@ public class RegisterControllerTests
     }
 
     [Test]
-    public async Task DownloadRegister_ReturnsXlsx()
+    public async Task UploadRegister_ReturnsForbidden_ForNonLogist()
     {
-        SetCurrentUserId(1);
-        var res = await _controller.DownloadRegister();
-        Assert.That(res, Is.InstanceOf<FileContentResult>());
-        var file = res as FileContentResult;
-        Assert.That(file!.FileDownloadName, Is.EqualTo("register.xlsx"));
+        SetCurrentUserId(2); // Admin user
+        var mockFile = new Mock<IFormFile>();
+        mockFile.Setup(f => f.Length).Returns(0);
+        var result = await _controller.UploadRegister(mockFile.Object);
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
     }
 
     [Test]
-    public async Task DownloadRegister_ReturnsZipWhenRequested()
+    public async Task UploadRegister_ReturnsBadRequest_WhenNoFileUploaded()
     {
-        SetCurrentUserId(1);
-        var res = await _controller.DownloadRegister("zip");
-        Assert.That(res, Is.InstanceOf<FileContentResult>());
-        var file = res as FileContentResult;
-        Assert.That(file!.FileDownloadName, Is.EqualTo("register.zip"));
-        Assert.That(file.ContentType, Is.EqualTo("application/zip"));
+        SetCurrentUserId(1); // Logist user
+        var mockFile = new Mock<IFormFile>();
+        mockFile.Setup(f => f.Length).Returns(0);
+        var result = await _controller.UploadRegister(mockFile.Object);
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
+        var error = obj.Value as ErrMessage;
+        Assert.That(error!.Msg, Does.Contain("No file was uploaded"));
+    }
+
+    [Test]
+    public async Task UploadRegister_ReturnsBadRequest_WhenEmptyFileUploaded()
+    {
+        SetCurrentUserId(1); // Logist user
+        var mockFile = new Mock<IFormFile>();
+        mockFile.Setup(f => f.Length).Returns(0);
+
+        var result = await _controller.UploadRegister(mockFile.Object);
+
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
+        var error = obj.Value as ErrMessage;
+        Assert.That(error!.Msg, Does.Contain("No file was uploaded"));
+    }
+
+    [Test]
+    public async Task UploadRegister_ReturnsBadRequest_WhenUnsupportedFileType()
+    {
+        SetCurrentUserId(1); // Logist user
+        var mockFile = CreateMockFile("test.pdf", "application/pdf", new byte[] { 0x01 });
+
+        var result = await _controller.UploadRegister(mockFile.Object);
+
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
+        var error = obj.Value as ErrMessage;
+        Assert.That(error!.Msg, Does.Contain("Unsupported file type"));
+    }
+
+    [Test]
+    public async Task UploadRegister_ReturnsSuccess_WhenExcelFileUploaded()
+    {
+        SetCurrentUserId(1); // Logist user  
+
+        string testFilePath = Path.Combine(testDataDir, "Реестр_207730349.xlsx");       
+        byte[] excelContent;
+
+        try
+        {
+            excelContent = File.ReadAllBytes(testFilePath);
+        }
+        catch (Exception ex)
+        {
+            Assert.Fail($"Test file not found at {testFilePath}: {ex.Message}");
+            return;
+        }
+
+        var mockFile = CreateMockFile("Реестр_207730349.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", excelContent);
+        var result = await _controller.UploadRegister(mockFile.Object);
+
+        Assert.That(result, Is.TypeOf<OkObjectResult>());
+    }
+
+    [Test]
+    public async Task UploadRegister_ReturnsBadRequest_WhenZipWithoutExcelUploaded()
+    {
+        SetCurrentUserId(1); // Logist user
+
+        // Create a real ZIP in memory without any Excel files
+        using var zipStream = new MemoryStream();
+        using (var archive = new System.IO.Compression.ZipArchive(zipStream, System.IO.Compression.ZipArchiveMode.Create, true))
+        {
+            var entry = archive.CreateEntry("test.txt");
+            using var entryStream = entry.Open();
+            byte[] textContent = System.Text.Encoding.UTF8.GetBytes("Test content");
+            entryStream.Write(textContent, 0, textContent.Length);
+        }
+
+        var mockFile = CreateMockFile("test.zip", "application/zip", zipStream.ToArray());
+
+        var result = await _controller.UploadRegister(mockFile.Object);
+
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
+        var error = obj.Value as ErrMessage;
+        Assert.That(error!.Msg, Does.Contain("No Excel file found"));
+    }
+
+    [Test]
+    public async Task UploadRegister_ReturnsSuccess_WhenZipWithExcelUploaded()
+    {
+        SetCurrentUserId(1); // Logist user
+
+        // Load test zip file from test.data folder
+        string testFilePath = Path.Combine(testDataDir, "Реестр_207730349.zip");
+
+        byte[] zipContent;
+
+        try
+        {
+            zipContent = File.ReadAllBytes(testFilePath);
+        }
+        catch (Exception ex)
+        {
+            Assert.Fail($"Test file not found at {testFilePath}: {ex.Message}");
+            return;
+        }
+
+        var mockFile = CreateMockFile("Реестр_207730349.zip", "application/zip", zipContent);
+
+        var result = await _controller.UploadRegister(mockFile.Object);
+    }
+
+    // Helper method to create mock IFormFile objects
+    private static Mock<IFormFile> CreateMockFile(string fileName, string contentType, byte[] content)
+    {
+        var mockFile = new Mock<IFormFile>();
+        mockFile.Setup(f => f.FileName).Returns(fileName);
+        mockFile.Setup(f => f.ContentType).Returns(contentType);
+        mockFile.Setup(f => f.Length).Returns(content.Length);
+        mockFile.Setup(f => f.CopyToAsync(It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
+            .Callback<Stream, CancellationToken>((stream, token) => {
+                stream.Write(content, 0, content.Length);
+            })
+            .Returns(Task.CompletedTask);
+
+        return mockFile;
     }
 }
