@@ -351,6 +351,7 @@ public class ConvertValueToPropertyTypeTests
     [TestCase("hello", typeof(string), "hello")]
     [TestCase("", typeof(string), "")]
     [TestCase(null, typeof(string), "")]
+
     public void ConvertValueToPropertyType_PrimitiveTypes_Works(string? input, Type type, object expected)
     {
         var result = _controller.GetType()
