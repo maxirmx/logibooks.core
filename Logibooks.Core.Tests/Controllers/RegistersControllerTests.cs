@@ -295,6 +295,88 @@ public class RegistersControllerTests
         Assert.That(registersCount, Is.EqualTo(0), "No register should be created for an empty Excel file");
     }
 
+    [Test]
+    public async Task UploadRegister_ReturnsBadRequest_WhenZipFileWithoutExcel()
+    {
+        // Arrange
+        SetCurrentUserId(1); // Set to logist user
+
+        // Load the zip file that doesn't contain any Excel files
+        string emptyZipFilePath = Path.Combine(testDataDir, "Zip_Empty.zip");
+        byte[] zipContent;
+
+        try
+        {
+            zipContent = File.ReadAllBytes(emptyZipFilePath);
+        }
+        catch (Exception ex)
+        {
+            Assert.Fail($"Empty ZIP test file not found at {emptyZipFilePath}: {ex.Message}");
+            return;
+        }
+
+        // Create a mock file with the zip content
+        var mockFile = CreateMockFile("Zip_Empty.zip", "application/zip", zipContent);
+
+        // Act
+        var result = await _controller.UploadRegister(mockFile.Object);
+
+        // Assert
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var objResult = result as ObjectResult;
+        Assert.That(objResult!.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
+
+        var errorMessage = objResult.Value as ErrMessage;
+        Assert.That(errorMessage, Is.Not.Null);
+        Assert.That(errorMessage!.Msg, Does.Contain("Файл реестра не найден в архиве"));
+
+        // Verify no register was created in the database
+        var registersCount = await _dbContext.Registers.CountAsync();
+        Assert.That(registersCount, Is.EqualTo(0), "No register should be created when zip file contains no Excel files");
+    }
+
+
+    [Test]
+    public async Task UploadRegister_ReturnsBadRequest_WhenTextFileUploaded()
+    {
+        // Arrange
+        SetCurrentUserId(1); // Logist user
+
+        // Create or load a text file for testing
+        string textFilePath = Path.Combine(testDataDir, "file.txt");
+        byte[] textContent;
+
+        try
+        {
+            // Read the existing file.txt
+            textContent = File.ReadAllBytes(textFilePath);
+        }
+        catch (Exception ex)
+        {
+            Assert.Fail($"Test file not found at {textFilePath}: {ex.Message}");
+            return;
+        }
+
+        var mockFile = CreateMockFile("file.txt", "text/plain", textContent);
+
+        // Act
+        var result = await _controller.UploadRegister(mockFile.Object);
+
+        // Assert
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var objResult = result as ObjectResult;
+        Assert.That(objResult!.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
+
+        var errorMessage = objResult.Value as ErrMessage;
+        Assert.That(errorMessage, Is.Not.Null);
+        Assert.That(errorMessage!.Msg, Does.Contain("Файлы формата .txt не поддерживаются"));
+        Assert.That(errorMessage!.Msg, Does.Contain("Можно загрузить .xlsx, .xls, .zip, .rar"));
+
+        // Verify no register was created in the database
+        var registersCount = await _dbContext.Registers.CountAsync();
+        Assert.That(registersCount, Is.EqualTo(0), "No register should be created for unsupported file types");
+    }
+
     private async Task<IActionResult> InvokeProcessExcel(byte[] content, string fileName, string mappingFile = "register_mapping.yaml")
     {
         return await (Task<IActionResult>)_processExcelMethod.Invoke(
