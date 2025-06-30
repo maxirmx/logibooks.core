@@ -21,7 +21,7 @@ using System.Reflection;
 namespace Logibooks.Core.Tests.Controllers;
 
 [TestFixture]
-public class RegisterControllerTests
+public class RegistersControllerTests
 {
 #pragma warning disable CS8618
     private AppDbContext _dbContext;
@@ -32,8 +32,11 @@ public class RegisterControllerTests
     private Role _adminRole;
     private User _logistUser;
     private User _adminUser;
-    private readonly string testDataDir = Path.Combine(AppContext.BaseDirectory, "test.data");
+    private Type _controllerType;
+    private MethodInfo _processExcelMethod;
 #pragma warning restore CS8618
+
+    private readonly string testDataDir = Path.Combine(AppContext.BaseDirectory, "test.data");
 
     [SetUp]
     public void Setup()
@@ -72,6 +75,12 @@ public class RegisterControllerTests
         _mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
         _logger = new LoggerFactory().CreateLogger<RegistersController>();
         _controller = new RegistersController(_mockHttpContextAccessor.Object, _dbContext, _logger);
+
+        _controllerType = typeof(RegistersController);
+        _processExcelMethod = _controllerType.GetMethod("ProcessExcel",
+            BindingFlags.NonPublic | BindingFlags.Instance)
+            ?? throw new InvalidOperationException("ProcessExcel method not found");
+
     }
 
     [TearDown]
@@ -250,6 +259,46 @@ public class RegisterControllerTests
 
 
         Assert.That(_dbContext.Orders.Count(), Is.GreaterThan(0));
+    }
+
+    private async Task<IActionResult> InvokeProcessExcel(byte[] content, string fileName, string mappingFile = "register_mapping.yaml")
+    {
+        return await (Task<IActionResult>)_processExcelMethod.Invoke(
+            _controller,
+            new object[] { content, fileName, mappingFile })!;
+    }
+
+    [Test]
+    public async Task ProcessExcel_Returns500Error_WhenMappingFileNotFound()
+    {
+        // Arrange
+        // Create a sample Excel file content
+        byte[] excelContent = [0x50, 0x4B, 0x03, 0x04]; // Just some dummy content
+
+        // Make sure mapping directory exists but use a non-existent mapping file name
+        string mappingDir = Path.Combine(AppContext.BaseDirectory, "mapping");
+        Directory.CreateDirectory(mappingDir);
+        string nonExistentMappingFile = "non_existent_mapping.yaml";
+        string mappingPath = Path.Combine(mappingDir, nonExistentMappingFile);
+
+        // Delete the mapping file if it somehow exists
+        if (File.Exists(mappingPath))
+        {
+            File.Delete(mappingPath);
+        }
+
+        // Act
+        var result = await InvokeProcessExcel(excelContent, "test.xlsx", nonExistentMappingFile);
+
+        // Assert
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var objResult = result as ObjectResult;
+        Assert.That(objResult!.StatusCode, Is.EqualTo(StatusCodes.Status500InternalServerError));
+
+        var errMessage = objResult.Value as ErrMessage;
+        Assert.That(errMessage, Is.Not.Null);
+        Assert.That(errMessage!.Msg, Does.Contain("Не найдена спецификация файла реестра"));
+        Assert.That(errMessage.Msg, Does.Contain(mappingPath));
     }
 
     // Helper method to create mock IFormFile objects
