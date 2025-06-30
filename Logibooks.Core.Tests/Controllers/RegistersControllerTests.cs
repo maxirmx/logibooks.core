@@ -475,6 +475,7 @@ public class ConvertValueToPropertyTypeTests
     [TestCase("no", typeof(bool), false)]
     [TestCase("Да", typeof(bool), true)]
     [TestCase("нет", typeof(bool), false)]
+    [TestCase("", typeof(bool), false)]
     [TestCase("notabool", typeof(bool), false)]
     [TestCase("2024-06-28", typeof(DateTime), "2024-06-28")]
     [TestCase("notadate", typeof(DateTime), "0001-01-01")]
