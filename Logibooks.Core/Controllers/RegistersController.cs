@@ -184,7 +184,7 @@ public class RegistersController(
         using var ms = new MemoryStream(content);
         using var reader = ExcelReaderFactory.CreateReader(ms);
         var dataSet = reader.AsDataSet();
-        if (dataSet.Tables.Count == 0 || dataSet.Tables[0].Rows.Count == 0)
+        if (dataSet.Tables.Count == 0 || dataSet.Tables[0].Rows.Count <= 1)
         {
             _logger.LogDebug("ProcessExcel returning '400 Bad Request' - Excel file is empty");
             return _400EmptyRegister();

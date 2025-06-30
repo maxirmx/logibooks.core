@@ -261,11 +261,45 @@ public class RegistersControllerTests
         Assert.That(_dbContext.Orders.Count(), Is.GreaterThan(0));
     }
 
+    [Test]
+    public async Task ProcessExcel_ReturnsBadRequest_WhenExcelFileIsEmpty()
+    {
+        SetCurrentUserId(1); // Logist user  
+
+        string testFilePath = Path.Combine(testDataDir, "Register_Empty.xlsx");
+        byte[] excelContent;
+
+        try
+        {
+            excelContent = File.ReadAllBytes(testFilePath);
+        }
+        catch (Exception ex)
+        {
+            Assert.Fail($"Test file not found at {testFilePath}: {ex.Message}");
+            return;
+        }
+
+        var mockFile = CreateMockFile("Register_Empty.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", excelContent);
+        var result = await _controller.UploadRegister(mockFile.Object);
+
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var objResult = result as ObjectResult;
+        Assert.That(objResult!.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
+
+        var errorMessage = objResult.Value as ErrMessage;
+        Assert.That(errorMessage, Is.Not.Null);
+        Assert.That(errorMessage!.Msg, Does.Contain("Пустой файл реестра"));
+
+        // Verify no register was created in the database
+        var registersCount = await _dbContext.Registers.CountAsync();
+        Assert.That(registersCount, Is.EqualTo(0), "No register should be created for an empty Excel file");
+    }
+
     private async Task<IActionResult> InvokeProcessExcel(byte[] content, string fileName, string mappingFile = "register_mapping.yaml")
     {
         return await (Task<IActionResult>)_processExcelMethod.Invoke(
             _controller,
-            new object[] { content, fileName, mappingFile })!;
+            [content, fileName, mappingFile])!;
     }
 
     [Test]
