@@ -77,9 +77,94 @@ public class RegistersController(
             Date = r.DTime
         }).ToList();
 
-        _logger.LogDebug("GetRegisters returning:\n{items}", JsonSerializer.Serialize(items, JOptions.DefaultOptions));
-
+        _logger.LogDebug("GetRegisters returning count: {count} items", items.Count);
         return Ok(items);
+    }
+
+    [HttpPost("upload")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(ErrMessage))]
+    [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(ErrMessage))]
+    public async Task<IActionResult> UploadRegister(IFormFile file)
+    {
+        _logger.LogDebug("UploadRegister called for {name} ({size} bytes)", file?.FileName, file?.Length);
+
+        var ok = await _db.CheckLogist(_curUserId);
+        if (!ok)
+        {
+            _logger.LogDebug("UploadRegister returning '403 Forbidden'");
+            return _403();
+        }
+
+        if (file == null || file.Length == 0)
+        {
+            _logger.LogDebug("UploadRegister returning '400 Bad Request' - empty file");
+            return _400EmptyRegister();
+        }
+
+        try
+        {
+            // Get the file extension
+            var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
+
+            // Handle based on file type
+            if (fileExtension == ".xlsx" || fileExtension == ".xls")
+            {
+                using var ms = new MemoryStream();
+                await file.CopyToAsync(ms);
+                byte[] excelContent = ms.ToArray();
+                var result = await ProcessExcel(excelContent, file.FileName);
+                _logger.LogDebug("UploadRegister processed Excel file");
+                return result;
+            }
+            else if (fileExtension == ".zip" || fileExtension == ".rar")
+            {
+                // Archive file - need to extract Excel
+                using var ms = new MemoryStream();
+                await file.CopyToAsync(ms);
+                ms.Position = 0;
+
+                byte[] excelContent = [];
+                string excelFileName = String.Empty;
+
+                // Extract content from archive
+                using (var archive = ArchiveFactory.Open(ms))
+                {
+                    var excelEntry = archive.Entries.FirstOrDefault(entry =>
+                        !entry.IsDirectory &&
+                        entry.Key != null && 
+                        (Path.GetExtension(entry.Key).Equals(".xlsx", StringComparison.InvariantCultureIgnoreCase) ||
+                         Path.GetExtension(entry.Key).Equals(".xls", StringComparison.InvariantCultureIgnoreCase)));
+
+                    if (excelEntry == null || excelEntry.Key == null)
+                    {
+                        return _400NoRegister();
+                    }
+
+                    excelFileName = excelEntry.Key;
+
+                    // Extract the Excel file
+                    using var entryStream = new MemoryStream();
+                    excelEntry.WriteTo(entryStream);
+                    excelContent = entryStream.ToArray();
+                }
+
+                var result = await ProcessExcel(excelContent, excelFileName);
+                _logger.LogDebug("UploadRegister processed archive with Excel");
+                return result;
+            }
+            else
+            {
+                _logger.LogDebug("UploadRegister returning '400 Bad Request' - unsupported file type {ext}", fileExtension);
+                return _400UnsupportedFileType(fileExtension);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "UploadRegister returning '500 Internal Server Error'");
+            return _500UploadRegister();
+        }
     }
 
     private async Task<IActionResult> ProcessExcel(byte[] content, string fileName)
@@ -91,8 +176,7 @@ public class RegistersController(
         {
             _logger.LogError("Mapping file not found at {path}", mappingPath);
             _logger.LogDebug("ProcessExcel returning '500 Internal Server Error'");
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new ErrMessage { Msg = "Mapping file missing" });
+            return _500Mapping(mappingPath);
         }
 
         var mapping = RegisterMapping.Load(mappingPath);
@@ -104,8 +188,7 @@ public class RegistersController(
         if (dataSet.Tables.Count == 0 || dataSet.Tables[0].Rows.Count == 0)
         {
             _logger.LogDebug("ProcessExcel returning '400 Bad Request' - Excel file is empty");
-            return StatusCode(StatusCodes.Status400BadRequest,
-                new ErrMessage { Msg = "Excel file is empty" });
+            return _400EmptyRegister();
         }
 
         var table = dataSet.Tables[0];
@@ -160,97 +243,7 @@ public class RegistersController(
 
         _logger.LogDebug("ProcessExcel imported {count} orders", orders.Count);
 
-        return Ok(new { message = "Excel file imported", fileName, fileSize = content.Length, rows = orders.Count });
-    }
-
-    [HttpPost("upload")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(ErrMessage))]
-    [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
-    public async Task<IActionResult> UploadRegister(IFormFile file)
-    {
-        _logger.LogDebug("UploadRegister called for {name} ({size} bytes)", file?.FileName, file?.Length);
-
-        var ok = await _db.CheckLogist(_curUserId);
-        if (!ok)
-        {
-            _logger.LogDebug("UploadRegister returning '403 Forbidden'");
-            return _403();
-        }
-
-        if (file == null || file.Length == 0)
-        {
-            _logger.LogDebug("UploadRegister returning '400 Bad Request' - empty file");
-            return StatusCode(StatusCodes.Status400BadRequest,
-                new ErrMessage { Msg = "No file was uploaded" });
-        }
-
-        try
-        {
-            // Get the file extension
-            var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
-
-            // Handle based on file type
-            if (fileExtension == ".xlsx" || fileExtension == ".xls")
-            {
-                using var ms = new MemoryStream();
-                await file.CopyToAsync(ms);
-                byte[] excelContent = ms.ToArray();
-                var result = await ProcessExcel(excelContent, file.FileName);
-                _logger.LogDebug("UploadRegister processed Excel file");
-                return result;
-            }
-            else if (fileExtension == ".zip" || fileExtension == ".rar")
-            {
-                // Archive file - need to extract Excel
-                using var ms = new MemoryStream();
-                await file.CopyToAsync(ms);
-                ms.Position = 0;
-
-                byte[] excelContent = [];
-                string excelFileName = String.Empty;
-
-                // Extract content from archive
-                using (var archive = ArchiveFactory.Open(ms))
-                {
-                    var excelEntry = archive.Entries.FirstOrDefault(entry =>
-                        !entry.IsDirectory &&
-                        entry.Key != null && 
-                        (Path.GetExtension(entry.Key).Equals(".xlsx", StringComparison.InvariantCultureIgnoreCase) ||
-                         Path.GetExtension(entry.Key).Equals(".xls", StringComparison.InvariantCultureIgnoreCase)));
-
-                    if (excelEntry == null || excelEntry.Key == null)
-                    {
-                        return StatusCode(StatusCodes.Status400BadRequest,
-                            new ErrMessage { Msg = "No Excel file found in the archive" });
-                    }
-
-                    excelFileName = excelEntry.Key;
-
-                    // Extract the Excel file
-                    using var entryStream = new MemoryStream();
-                    excelEntry.WriteTo(entryStream);
-                    excelContent = entryStream.ToArray();
-                }
-
-                var result = await ProcessExcel(excelContent, excelFileName);
-                _logger.LogDebug("UploadRegister processed archive with Excel");
-                return result;
-            }
-            else
-            {
-                _logger.LogDebug("UploadRegister returning '400 Bad Request' - unsupported file type {ext}", fileExtension);
-                return StatusCode(StatusCodes.Status400BadRequest,
-                    new ErrMessage { Msg = $"Unsupported file type: {fileExtension}. Supported types are: .xlsx, .xls, .zip, .rar" });
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error processing uploaded file");
-            _logger.LogDebug("UploadRegister returning '500 Internal Server Error'");
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new ErrMessage { Msg = $"Error processing file: {ex.Message}" });
-        }
+        return NoContent();
     }
 
     private static readonly CultureInfo RussianCulture = new("ru-RU");
