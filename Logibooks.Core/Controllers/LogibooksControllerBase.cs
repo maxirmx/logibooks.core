@@ -36,8 +36,24 @@ public class LogibooksControllerPreBase(AppDbContext db, ILogger logger) : Contr
     protected ObjectResult _400()
     {
         return StatusCode(StatusCodes.Status400BadRequest,
-                          new ErrMessage() { Msg = "Нарушена целостность запроса." });
+                          new ErrMessage() { Msg = "Нарушена целостность запроса" });
     }
+    protected ObjectResult _400EmptyRegister()
+    {
+        return StatusCode(StatusCodes.Status400BadRequest,
+                          new ErrMessage() { Msg = "Пустой файл реестра" });
+    }
+    protected ObjectResult _400NoRegister()
+    {
+        return StatusCode(StatusCodes.Status400BadRequest,
+                          new ErrMessage() { Msg = "Файл реестра не найден в архиве" });
+    }
+    protected ObjectResult _400UnsupportedFileType(string ext)
+    {
+        return StatusCode(StatusCodes.Status400BadRequest,
+                          new ErrMessage() { Msg = $"Файлы формата {ext} не поддерживаются. Можно загрузить .xlsx, .xls, .zip, .rar" });
+    }
+
     protected ObjectResult _401()
     {
         return StatusCode(StatusCodes.Status401Unauthorized,
@@ -61,9 +77,19 @@ public class LogibooksControllerPreBase(AppDbContext db, ILogger logger) : Contr
     protected ObjectResult _409Email(string email)
     {
         return StatusCode(StatusCodes.Status409Conflict,
-                          new ErrMessage { Msg = $"Пользователь с таким адресом электронной почты уже зарегистрирован [email = {email}]." });
+                          new ErrMessage { Msg = $"Пользователь с таким адресом электронной почты уже зарегистрирован [email = {email}]" });
+    }
+    protected ObjectResult _500Mapping(string fname)
+    {
+        return StatusCode(StatusCodes.Status500InternalServerError,
+                          new ErrMessage { Msg = $"Не найдена спецификация файла реестра [имя файла = {fname}]" });
     }
 
+    protected ObjectResult _500UploadRegister()
+    {
+        return StatusCode(StatusCodes.Status500InternalServerError,
+                          new ErrMessage { Msg = "Внутренняя ошибка при загрузке файла реестра" });
+    }
 }
 
 public class LogibooksControllerBase : LogibooksControllerPreBase

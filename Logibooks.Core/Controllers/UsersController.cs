@@ -133,7 +133,6 @@ public class UsersController(
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
-    [ProducesResponseType(StatusCodes.Status418ImATeapot, Type = typeof(ErrMessage))]
     public async Task<IActionResult> PutUser(int id, UserUpdateItem update)
     {
         _logger.LogDebug("PutUser (update) for id={id} with {update}", id, update.ToString());

@@ -21,7 +21,7 @@ using System.Reflection;
 namespace Logibooks.Core.Tests.Controllers;
 
 [TestFixture]
-public class RegisterControllerTests
+public class RegistersControllerTests
 {
 #pragma warning disable CS8618
     private AppDbContext _dbContext;
@@ -32,8 +32,11 @@ public class RegisterControllerTests
     private Role _adminRole;
     private User _logistUser;
     private User _adminUser;
-    private readonly string testDataDir = Path.Combine(AppContext.BaseDirectory, "test.data");
+    private Type _controllerType;
+    private MethodInfo _processExcelMethod;
 #pragma warning restore CS8618
+
+    private readonly string testDataDir = Path.Combine(AppContext.BaseDirectory, "test.data");
 
     [SetUp]
     public void Setup()
@@ -72,6 +75,12 @@ public class RegisterControllerTests
         _mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
         _logger = new LoggerFactory().CreateLogger<RegistersController>();
         _controller = new RegistersController(_mockHttpContextAccessor.Object, _dbContext, _logger);
+
+        _controllerType = typeof(RegistersController);
+        _processExcelMethod = _controllerType.GetMethod("ProcessExcel",
+            BindingFlags.NonPublic | BindingFlags.Instance)
+            ?? throw new InvalidOperationException("ProcessExcel method not found");
+
     }
 
     [TearDown]
@@ -132,7 +141,7 @@ public class RegisterControllerTests
         var obj = result as ObjectResult;
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
         var error = obj.Value as ErrMessage;
-        Assert.That(error!.Msg, Does.Contain("No file was uploaded"));
+        Assert.That(error!.Msg, Does.Contain("Пустой файл реестра"));
     }
 
     [Test]
@@ -148,7 +157,7 @@ public class RegisterControllerTests
         var obj = result as ObjectResult;
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
         var error = obj.Value as ErrMessage;
-        Assert.That(error!.Msg, Does.Contain("No file was uploaded"));
+        Assert.That(error!.Msg, Does.Contain("Пустой файл реестра"));
     }
 
     [Test]
@@ -163,7 +172,7 @@ public class RegisterControllerTests
         var obj = result as ObjectResult;
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
         var error = obj.Value as ErrMessage;
-        Assert.That(error!.Msg, Does.Contain("Unsupported file type"));
+        Assert.That(error!.Msg, Does.Contain("Файлы формата .pdf не поддерживаются. Можно загрузить .xlsx, .xls, .zip, .rar"));
     }
 
     [Test]
@@ -188,12 +197,7 @@ public class RegisterControllerTests
         var result = await _controller.UploadRegister(mockFile.Object);
 
         // Updated assertion to match actual implementation
-        Assert.That(result, Is.TypeOf<OkObjectResult>());
-        var objResult = result as ObjectResult;
-
-        // Check for success status code (2xx)
-        Assert.That(objResult!.StatusCode, Is.GreaterThanOrEqualTo(200).And.LessThan(300),
-            "Should return a success status code");
+        Assert.That(result, Is.TypeOf<NoContentResult>());
 
         // Verify that orders were created in the database
         Assert.That(_dbContext.Orders.Count(), Is.GreaterThan(0),
@@ -223,7 +227,7 @@ public class RegisterControllerTests
         var obj = result as ObjectResult;
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
         var error = obj.Value as ErrMessage;
-        Assert.That(error!.Msg, Does.Contain("No Excel file found"));
+        Assert.That(error!.Msg, Does.Contain("Файл реестра не найден в архиве"));
     }
 
     [Test]
@@ -251,40 +255,166 @@ public class RegisterControllerTests
         var result = await _controller.UploadRegister(mockFile.Object);
 
         // Assert that the result is OK
-        Assert.That(result, Is.TypeOf<OkObjectResult>());
-        var okResult = result as OkObjectResult;
+        Assert.That(result, Is.TypeOf<NoContentResult>());
 
-        // Assert that the response value is not null
-        Assert.That(okResult?.Value, Is.Not.Null);
-
-        // Convert to dictionary to access properties by name without knowing exact casing
-        var responseProps = okResult!.Value!.GetType().GetProperties();
-
-        // Get dictionary of property names to values
-        var responseDict = responseProps.ToDictionary(
-            prop => prop.Name.ToLowerInvariant(),
-            prop => prop.GetValue(okResult.Value)
-        );
-
-        // Check that the response contains expected fields
-        Assert.That(responseDict.ContainsKey("message") || responseDict.ContainsKey("msg"),
-            Is.True, "Response should contain a message property");
-        Assert.That(responseDict.ContainsKey("filename") || responseDict.ContainsKey("fileName"),
-            Is.True, "Response should contain a fileName property");
-        Assert.That(responseDict.ContainsKey("filesize"),
-            Is.True, "Response should contain a fileSize property");
-
-        // Check contents of the message field (case insensitive)
-        string? messageField = null;
-        if (responseDict.ContainsKey("message"))
-            messageField = responseDict["message"]?.ToString();
-        else if (responseDict.ContainsKey("msg"))
-            messageField = responseDict["msg"]?.ToString();
-
-        Assert.That(messageField, Is.Not.Null.And.Contains("imported"),
-            "Response message should indicate Excel file was imported");
 
         Assert.That(_dbContext.Orders.Count(), Is.GreaterThan(0));
+    }
+
+    [Test]
+    public async Task ProcessExcel_ReturnsBadRequest_WhenExcelFileIsEmpty()
+    {
+        SetCurrentUserId(1); // Logist user  
+
+        string testFilePath = Path.Combine(testDataDir, "Register_Empty.xlsx");
+        byte[] excelContent;
+
+        try
+        {
+            excelContent = File.ReadAllBytes(testFilePath);
+        }
+        catch (Exception ex)
+        {
+            Assert.Fail($"Test file not found at {testFilePath}: {ex.Message}");
+            return;
+        }
+
+        var mockFile = CreateMockFile("Register_Empty.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", excelContent);
+        var result = await _controller.UploadRegister(mockFile.Object);
+
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var objResult = result as ObjectResult;
+        Assert.That(objResult!.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
+
+        var errorMessage = objResult.Value as ErrMessage;
+        Assert.That(errorMessage, Is.Not.Null);
+        Assert.That(errorMessage!.Msg, Does.Contain("Пустой файл реестра"));
+
+        // Verify no register was created in the database
+        var registersCount = await _dbContext.Registers.CountAsync();
+        Assert.That(registersCount, Is.EqualTo(0), "No register should be created for an empty Excel file");
+    }
+
+    [Test]
+    public async Task UploadRegister_ReturnsBadRequest_WhenZipFileWithoutExcel()
+    {
+        // Arrange
+        SetCurrentUserId(1); // Set to logist user
+
+        // Load the zip file that doesn't contain any Excel files
+        string emptyZipFilePath = Path.Combine(testDataDir, "Zip_Empty.zip");
+        byte[] zipContent;
+
+        try
+        {
+            zipContent = File.ReadAllBytes(emptyZipFilePath);
+        }
+        catch (Exception ex)
+        {
+            Assert.Fail($"Empty ZIP test file not found at {emptyZipFilePath}: {ex.Message}");
+            return;
+        }
+
+        // Create a mock file with the zip content
+        var mockFile = CreateMockFile("Zip_Empty.zip", "application/zip", zipContent);
+
+        // Act
+        var result = await _controller.UploadRegister(mockFile.Object);
+
+        // Assert
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var objResult = result as ObjectResult;
+        Assert.That(objResult!.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
+
+        var errorMessage = objResult.Value as ErrMessage;
+        Assert.That(errorMessage, Is.Not.Null);
+        Assert.That(errorMessage!.Msg, Does.Contain("Файл реестра не найден в архиве"));
+
+        // Verify no register was created in the database
+        var registersCount = await _dbContext.Registers.CountAsync();
+        Assert.That(registersCount, Is.EqualTo(0), "No register should be created when zip file contains no Excel files");
+    }
+
+
+    [Test]
+    public async Task UploadRegister_ReturnsBadRequest_WhenTextFileUploaded()
+    {
+        // Arrange
+        SetCurrentUserId(1); // Logist user
+
+        // Create or load a text file for testing
+        string textFilePath = Path.Combine(testDataDir, "file.txt");
+        byte[] textContent;
+
+        try
+        {
+            // Read the existing file.txt
+            textContent = File.ReadAllBytes(textFilePath);
+        }
+        catch (Exception ex)
+        {
+            Assert.Fail($"Test file not found at {textFilePath}: {ex.Message}");
+            return;
+        }
+
+        var mockFile = CreateMockFile("file.txt", "text/plain", textContent);
+
+        // Act
+        var result = await _controller.UploadRegister(mockFile.Object);
+
+        // Assert
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var objResult = result as ObjectResult;
+        Assert.That(objResult!.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
+
+        var errorMessage = objResult.Value as ErrMessage;
+        Assert.That(errorMessage, Is.Not.Null);
+        Assert.That(errorMessage!.Msg, Does.Contain("Файлы формата .txt не поддерживаются"));
+        Assert.That(errorMessage!.Msg, Does.Contain("Можно загрузить .xlsx, .xls, .zip, .rar"));
+
+        // Verify no register was created in the database
+        var registersCount = await _dbContext.Registers.CountAsync();
+        Assert.That(registersCount, Is.EqualTo(0), "No register should be created for unsupported file types");
+    }
+
+    private async Task<IActionResult> InvokeProcessExcel(byte[] content, string fileName, string mappingFile = "register_mapping.yaml")
+    {
+        return await (Task<IActionResult>)_processExcelMethod.Invoke(
+            _controller,
+            [content, fileName, mappingFile])!;
+    }
+
+    [Test]
+    public async Task ProcessExcel_Returns500Error_WhenMappingFileNotFound()
+    {
+        // Arrange
+        // Create a sample Excel file content
+        byte[] excelContent = [0x50, 0x4B, 0x03, 0x04]; // Just some dummy content
+
+        // Make sure mapping directory exists but use a non-existent mapping file name
+        string mappingDir = Path.Combine(AppContext.BaseDirectory, "mapping");
+        Directory.CreateDirectory(mappingDir);
+        string nonExistentMappingFile = "non_existent_mapping.yaml";
+        string mappingPath = Path.Combine(mappingDir, nonExistentMappingFile);
+
+        // Delete the mapping file if it somehow exists
+        if (File.Exists(mappingPath))
+        {
+            File.Delete(mappingPath);
+        }
+
+        // Act
+        var result = await InvokeProcessExcel(excelContent, "test.xlsx", nonExistentMappingFile);
+
+        // Assert
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var objResult = result as ObjectResult;
+        Assert.That(objResult!.StatusCode, Is.EqualTo(StatusCodes.Status500InternalServerError));
+
+        var errMessage = objResult.Value as ErrMessage;
+        Assert.That(errMessage, Is.Not.Null);
+        Assert.That(errMessage!.Msg, Does.Contain("Не найдена спецификация файла реестра"));
+        Assert.That(errMessage.Msg, Does.Contain(mappingPath));
     }
 
     // Helper method to create mock IFormFile objects
