@@ -82,7 +82,7 @@ public class LogibooksControllerPreBase(AppDbContext db, ILogger logger) : Contr
     protected ObjectResult _500Mapping(string fname)
     {
         return StatusCode(StatusCodes.Status500InternalServerError,
-                          new ErrMessage { Msg = $"Не найдена спецификация файла реестра [eимя файла = {fname}]" });
+                          new ErrMessage { Msg = $"Не найдена спецификация файла реестра [имя файла = {fname}]" });
     }
 
     protected ObjectResult _500UploadRegister()
