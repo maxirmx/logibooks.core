@@ -89,14 +89,6 @@ jobs:
       - name: Start services
         run: docker compose -f docker-compose.yml up -d
 
-#      - name: Setup Node.js
-#        uses: actions/setup-node@v4
-#        with:
-#          node-version: '20'
-
-#      - name: Install Newman
-#        run: npm install -g newman
-
       - name: Wait for API
         run: |
           for i in {1..20}; do
@@ -112,7 +104,7 @@ jobs:
         run: sed -i "s/MAXIRMX_SECRET_PASSWORD/$MAXIRMX_SECRET_PASSWORD/g" tests/postman.json
 
       - name: Run Postman collection
-        uses: anthonyvscode/newman-action@v1   # or pin a newer tag
+        uses: anthonyvscode/newman-action@v1   
         with:
           collection: postman.json
           reporters: cli
