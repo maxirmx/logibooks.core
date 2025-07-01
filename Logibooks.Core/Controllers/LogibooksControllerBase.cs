@@ -62,17 +62,17 @@ public class LogibooksControllerPreBase(AppDbContext db, ILogger logger) : Contr
     protected ObjectResult _403()
     {
         return StatusCode(StatusCodes.Status403Forbidden,
-                          new ErrMessage { Msg = "Недостаточно прав для выполнения операции." });
+                          new ErrMessage { Msg = "Недостаточно прав для выполнения операции" });
     }
     protected ObjectResult _404User(int id)
     {
         return StatusCode(StatusCodes.Status404NotFound,
-                          new ErrMessage { Msg = $"Не удалось найти пользователя [id={id}]." });
+                          new ErrMessage { Msg = $"Не удалось найти пользователя [id={id}]" });
     }
-    protected ObjectResult _404Profile(int id)
+    protected ObjectResult _404Register(int id)
     {
         return StatusCode(StatusCodes.Status404NotFound,
-                          new ErrMessage { Msg = $"Не удалось найти профиль [profile id={id}]." });
+                          new ErrMessage { Msg = $"Не удалось найти реестр [id={id}]" });
     }
     protected ObjectResult _409Email(string email)
     {

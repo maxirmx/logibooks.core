@@ -417,6 +417,53 @@ public class RegistersControllerTests
         Assert.That(errMessage.Msg, Does.Contain(mappingPath));
     }
 
+    [Test]
+    public async Task DeleteRegister_DeletesRegisterAndOrders_WhenUserIsLogist()
+    {
+        SetCurrentUserId(1); // Logist user
+
+        var register = new Register { Id = 1, FileName = "reg.xlsx" };
+        var order1 = new Order { Id = 1, RegisterId = 1, StatusId = 1 };
+        var order2 = new Order { Id = 2, RegisterId = 1, StatusId = 1 };
+        _dbContext.Registers.Add(register);
+        _dbContext.Orders.AddRange(order1, order2);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.DeleteRegister(1);
+
+        Assert.That(result, Is.TypeOf<NoContentResult>());
+        Assert.That(await _dbContext.Registers.FindAsync(1), Is.Null);
+        Assert.That(_dbContext.Orders.Any(o => o.RegisterId == 1), Is.False);
+    }
+
+    [Test]
+    public async Task DeleteRegister_ReturnsForbidden_WhenUserIsNotLogist()
+    {
+        SetCurrentUserId(2); // Non-logist user
+
+        var register = new Register { Id = 1, FileName = "reg.xlsx" };
+        _dbContext.Registers.Add(register);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.DeleteRegister(1);
+
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
+    }
+
+    [Test]
+    public async Task DeleteRegister_ReturnsNotFound_WhenRegisterDoesNotExist()
+    {
+        SetCurrentUserId(1); // Logist user
+
+        var result = await _controller.DeleteRegister(999);
+
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+    }
+
     // Helper method to create mock IFormFile objects
     private static Mock<IFormFile> CreateMockFile(string fileName, string contentType, byte[] content)
     {
