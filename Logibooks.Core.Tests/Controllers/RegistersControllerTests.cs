@@ -131,6 +131,33 @@ public class RegistersControllerTests
         Assert.That(result.Value, Is.Not.Null);
         Assert.That(result.Value!.Id, Is.EqualTo(1));
         Assert.That(result.Value.FileName, Is.EqualTo("reg.xlsx"));
+        Assert.That(result.Value.OrdersTotal, Is.EqualTo(0));
+        Assert.That(result.Value.OrdersByStatus.Count, Is.EqualTo(0));
+    }
+
+    [Test]
+    public async Task GetRegister_ReturnsOrderCounts()
+    {
+        SetCurrentUserId(1);
+        _dbContext.Statuses.AddRange(
+            new OrderStatus { Id = 1, Name = "loaded", Title = "Loaded" },
+            new OrderStatus { Id = 2, Name = "processed", Title = "Processed" }
+        );
+        var register = new Register { Id = 1, FileName = "reg.xlsx" };
+        _dbContext.Registers.Add(register);
+        _dbContext.Orders.AddRange(
+            new Order { Id = 1, RegisterId = 1, StatusId = 1 },
+            new Order { Id = 2, RegisterId = 1, StatusId = 2 },
+            new Order { Id = 3, RegisterId = 1, StatusId = 1 }
+        );
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.GetRegister(1);
+
+        Assert.That(result.Value, Is.Not.Null);
+        Assert.That(result.Value!.OrdersTotal, Is.EqualTo(3));
+        Assert.That(result.Value.OrdersByStatus[1], Is.EqualTo(2));
+        Assert.That(result.Value.OrdersByStatus[2], Is.EqualTo(1));
     }
 
     [Test]

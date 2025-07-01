@@ -48,10 +48,10 @@ public class RegistersController(
     ILogger<RegistersController> logger) : LogibooksControllerBase(httpContextAccessor, db, logger)
 {
     [HttpGet("{id}")]
-    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(Register))]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(RegisterViewItem))]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
-    public async Task<ActionResult<Register>> GetRegister(int id)
+    public async Task<ActionResult<RegisterViewItem>> GetRegister(int id)
     {
         _logger.LogDebug("GetRegister for id={id}", id);
 
@@ -73,8 +73,22 @@ public class RegistersController(
             return _404Register(id);
         }
 
+        var statusCounts = register.Orders
+            .GroupBy(o => o.StatusId)
+            .ToDictionary(g => g.Key, g => g.Count());
+
+        var view = new RegisterViewItem
+        {
+            Id = register.Id,
+            FileName = register.FileName,
+            Date = register.DTime,
+            Orders = register.Orders.ToList(),
+            OrdersTotal = register.Orders.Count,
+            OrdersByStatus = statusCounts
+        };
+
         _logger.LogDebug("GetRegister returning register with {count} orders", register.Orders.Count);
-        return register;
+        return view;
     }
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<RegisterItem>))]
