@@ -33,6 +33,7 @@ using Logibooks.Core.RestModels;
 using Logibooks.Core.Settings;
 using Logibooks.Core.Data;
 using Logibooks.Core.Models;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace Logibooks.Core.Controllers;
 
@@ -101,7 +102,7 @@ public class UsersController(
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status409Conflict, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status418ImATeapot, Type = typeof(ErrMessage))]
-    public async Task<ActionResult<Reference>> PostUser(User user)
+    public async Task<ActionResult<Reference>> PostUser(UserCreateItem user)
     {
         _logger.LogDebug("PostUser (create) for {user}", user.ToString());
         var ch = await _db.CheckAdmin(_curUserId);
@@ -120,12 +121,31 @@ public class UsersController(
         string hashToStoreInDb = BCrypt.Net.BCrypt.HashPassword(user.Password);
         user.Password = hashToStoreInDb;
 
-        _db.Users.Add(user);
+        User ur = new()
+        {
+            FirstName = user.FirstName ?? "",
+            LastName = user.LastName ?? "",
+            Patronymic = user.Patronymic ?? "",
+            Email = user.Email,
+            Password = hashToStoreInDb,
+        };
 
-        await _db.SaveChangesAsync();
-        var reference = new Reference(user.Id) { Id = user.Id };
-        _logger.LogDebug("PostUser returning:\n{res}", reference.ToString());
-        return CreatedAtAction(nameof(GetUser), new { id = user.Id }, reference);
+        _db.Users.Add(ur);
+        await _db.SaveChangesAsync(); // This assigns ur.Id
+
+        if (user.Roles != null && user.Roles.Count > 0)
+        {
+            var rolesInDb = _db.Roles.Where(r => user.Roles.Contains(r.Name)).ToList();
+            foreach (var role in rolesInDb)
+            {
+                _db.UserRoles.Add(new UserRole { UserId = ur.Id, RoleId = role.Id });
+            }
+            await _db.SaveChangesAsync(); // Save the user roles
+        }
+
+        var reference = new Reference(ur.Id) { Id = ur.Id };
+        _logger.LogDebug("PostUser returning: {res}", reference.ToString());
+        return CreatedAtAction(nameof(GetUser), new { id = ur.Id }, reference);
     }
 
     // PUT: api/users/5
@@ -142,7 +162,7 @@ public class UsersController(
             _logger.LogDebug("PutUser returning '404 Not Found'");
             return _404User(id);
         }
-        bool adminRequired =  (user.IsAdministrator() != update.IsAdministrator());
+        bool adminRequired = update.IsAdministrator() && !user.IsAdministrator();
 
         ActionResult<bool> ch;
         ch = adminRequired ? await _db.CheckAdmin(_curUserId) :

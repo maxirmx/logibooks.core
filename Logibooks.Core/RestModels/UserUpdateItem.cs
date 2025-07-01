@@ -24,9 +24,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 using System.Text.Json;
-using System.Collections.Generic;
 using Logibooks.Core.Settings;
-using Logibooks.Core.Models;
 
 namespace Logibooks.Core.RestModels;
 

@@ -24,24 +24,26 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 using System.Text.Json;
-
-using Logibooks.Core.Models;
 using Logibooks.Core.Settings;
 
 namespace Logibooks.Core.RestModels;
 
-public class UserViewItem(User user)
+public class UserCreateItem
 {
-    public int Id { get; set; } = user.Id;
-    public string FirstName { get; set; } = user.FirstName;
-    public string LastName { get; set; } = user.LastName;
-    public string Patronymic { get; set; } = user.Patronymic;
-    public string Email { get; set; } = user.Email;
-    public List<string> Roles { get; set; } =
-        [.. user.UserRoles.Select(ur => ur.Role!.Name)];
-    public override string ToString()
+    public string? FirstName { get; set; }
+    public string? LastName { get; set; }
+    public string? Patronymic { get; set; }
+    public string Email { get; set; } = "";
+    public string Password { get; set; } = "";
+    public List<string> Roles { get; set; } = [];
+    public bool HasRole(string roleName)
     {
-        return JsonSerializer.Serialize(this, JOptions.DefaultOptions);
+        if (string.IsNullOrWhiteSpace(roleName))
+        {
+            return false;
+        }
+
+        return Roles != null && Roles.Any(ur => string.Equals(ur, roleName, StringComparison.OrdinalIgnoreCase));
     }
 
 }

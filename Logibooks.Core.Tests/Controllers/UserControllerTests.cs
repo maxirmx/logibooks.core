@@ -245,13 +245,14 @@ public class UsersControllerTests
         _dbContext.Users.Add(_adminUser);
         await _dbContext.SaveChangesAsync();
 
-        var newUser = new User
+        var newUser = new UserCreateItem
         {
             Email = "new@example.com",
             Password = "newpassword",
             FirstName = "New",
             LastName = "User",
-            Patronymic = ""
+            Patronymic = "",
+            Roles = ["logist"] // Assigning role
         };
 
         // Act
@@ -272,6 +273,7 @@ public class UsersControllerTests
         Assert.That(savedUser!.Email, Is.EqualTo("new@example.com"));
         // Check that password was hashed
         Assert.That(BCrypt.Net.BCrypt.Verify("newpassword", savedUser.Password), Is.True);
+        Assert.That(savedUser.UserRoles, Has.Count.EqualTo(1));
     }
 
     [Test]
@@ -282,7 +284,7 @@ public class UsersControllerTests
         _dbContext.Users.AddRange(_adminUser, _regularUser);
         await _dbContext.SaveChangesAsync();
 
-        var newUser = new User
+        var newUser = new UserCreateItem
         {
             Email = "new@example.com",
             Password = "newpassword",
@@ -308,7 +310,7 @@ public class UsersControllerTests
         _dbContext.Users.AddRange(_adminUser, _regularUser);
         await _dbContext.SaveChangesAsync();
 
-        var newUser = new User
+        var newUser = new UserCreateItem
         {
             Email = "regular@example.com", // Already exists
             Password = "newpassword",
