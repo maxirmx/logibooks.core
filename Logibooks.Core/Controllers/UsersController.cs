@@ -101,7 +101,6 @@ public class UsersController(
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status409Conflict, Type = typeof(ErrMessage))]
-    [ProducesResponseType(StatusCodes.Status418ImATeapot, Type = typeof(ErrMessage))]
     public async Task<ActionResult<Reference>> PostUser(UserCreateItem user)
     {
         _logger.LogDebug("PostUser (create) for {user}", user.ToString());
