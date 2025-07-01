@@ -24,6 +24,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace Logibooks.Core.Models;
 
@@ -35,6 +36,8 @@ public class Order
 
     [Column("register_id")]
     public int RegisterId { get; set; }
+
+    [JsonIgnore]
     public Register Register { get; set; } = null!;
 
     [Column("status_id")]

@@ -24,6 +24,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace Logibooks.Core.Models;
 
@@ -38,5 +39,7 @@ public class Register
 
     [Column("dtime")]
     public DateTime DTime { get; set; } = DateTime.UtcNow;
+
+    [JsonIgnore]
     public ICollection<Order> Orders { get; set; } = []; 
 }
