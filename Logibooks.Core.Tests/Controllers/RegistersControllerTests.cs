@@ -197,7 +197,7 @@ public class RegistersControllerTests
         var result = await _controller.UploadRegister(mockFile.Object);
 
         // Updated assertion to match actual implementation
-        Assert.That(result, Is.TypeOf<OkObjectResult>());
+        Assert.That(result, Is.TypeOf<CreatedAtActionResult>());
 
         // Verify that orders were created in the database
         Assert.That(_dbContext.Orders.Count(), Is.GreaterThan(0),
@@ -255,7 +255,7 @@ public class RegistersControllerTests
         var result = await _controller.UploadRegister(mockFile.Object);
 
         // Assert that the result is OK
-        Assert.That(result, Is.TypeOf<OkObjectResult>());
+        Assert.That(result, Is.TypeOf<CreatedAtActionResult>());
 
 
         Assert.That(_dbContext.Orders.Count(), Is.GreaterThan(0));

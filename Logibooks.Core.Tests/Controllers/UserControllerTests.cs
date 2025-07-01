@@ -261,7 +261,7 @@ public class UsersControllerTests
         // Assert
         Assert.That(result.Result, Is.TypeOf<CreatedAtActionResult>());
         var createdAtActionResult = result.Result as CreatedAtActionResult;
-        Assert.That(createdAtActionResult!.ActionName, Is.EqualTo(nameof(UsersController.GetUser)));
+        Assert.That(createdAtActionResult!.ActionName, Is.EqualTo(nameof(UsersController.PostUser)));
         Assert.That(createdAtActionResult.Value, Is.TypeOf<Reference>());
 
         var reference = createdAtActionResult.Value as Reference;

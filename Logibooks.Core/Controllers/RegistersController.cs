@@ -184,6 +184,7 @@ public class RegistersController(
         var register = await _db.Registers
             .Include(r => r.Orders)
             .FirstOrDefaultAsync(r => r.Id == id);
+
         if (register == null)
         {
             _logger.LogDebug("DeleteRegister returning '404 Not Found'");
@@ -235,10 +236,11 @@ public class RegistersController(
         }
 
         var register = new Register { FileName = fileName };
-        Reference reference = new() { Id = register.Id };
-
         _db.Registers.Add(register);
         await _db.SaveChangesAsync();
+
+        Reference reference = new() { Id = register.Id };
+
 
         var orders = new List<Order>();
         for (int r = 1; r < table.Rows.Count; r++)
