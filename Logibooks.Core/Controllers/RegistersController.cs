@@ -82,7 +82,6 @@ public class RegistersController(
             Id = register.Id,
             FileName = register.FileName,
             Date = register.DTime,
-            Orders = register.Orders.ToList(),
             OrdersTotal = register.Orders.Count,
             OrdersByStatus = statusCounts
         };
