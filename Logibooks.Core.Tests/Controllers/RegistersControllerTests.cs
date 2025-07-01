@@ -119,6 +119,47 @@ public class RegistersControllerTests
     }
 
     [Test]
+    public async Task GetRegister_ReturnsRegister_ForLogist()
+    {
+        SetCurrentUserId(1);
+        var register = new Register { Id = 1, FileName = "reg.xlsx" };
+        _dbContext.Registers.Add(register);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.GetRegister(1);
+
+        Assert.That(result.Value, Is.Not.Null);
+        Assert.That(result.Value!.Id, Is.EqualTo(1));
+        Assert.That(result.Value.FileName, Is.EqualTo("reg.xlsx"));
+    }
+
+    [Test]
+    public async Task GetRegister_ReturnsForbidden_ForNonLogist()
+    {
+        SetCurrentUserId(2);
+        _dbContext.Registers.Add(new Register { Id = 1, FileName = "reg.xlsx" });
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.GetRegister(1);
+
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
+    }
+
+    [Test]
+    public async Task GetRegister_ReturnsNotFound_WhenRegisterMissing()
+    {
+        SetCurrentUserId(1);
+
+        var result = await _controller.GetRegister(99);
+
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+    }
+
+    [Test]
     public async Task UploadRegister_ReturnsForbidden_ForNonLogist()
     {
         SetCurrentUserId(2); // Admin user
