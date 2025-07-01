@@ -609,7 +609,7 @@
 									"\r",
 									"pm.test(\"Returns correct user id\", function () {\r",
 									"    var jsonData = pm.response.json();\r",
-									"    pm.expect(jsonData.id).to.eql(pm.environment.get(\"UserId\"));\r",
+									"    pm.expect(jsonData.id).to.eql(pm.collectionVariables.get(\"UserId\"));\r",
 									"});\r",
 									"\r",
 									"pm.test(\"JWT token is provided\", function () {\r",
@@ -666,12 +666,13 @@
 									"pm.test(\"Your test name\", function () {",
 									"    var jsonData = pm.response.json();",
 									"    pm.expect(jsonData.id).to.eql(pm.collectionVariables.get(\"UserId\"));",
-									"    pm.expect(jsonData.email).to.eql(\"oyra@example.com\");",
+									"    pm.expect(jsonData.email).to.eql(\"oyra1@example.com\");",
 									"});",
 									"",
 									""
 								],
-								"type": "text/javascript"
+								"type": "text/javascript",
+								"packages": {}
 							}
 						}
 					],
@@ -779,6 +780,52 @@
 					"response": []
 				},
 				{
+					"name": "Upload register",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"pm.test(\"Response is a non-empty array\", function () {\r",
+									"    pm.expect(pm.response.json()).to.be.an('array').that.is.not.empty;\r",
+									"});\r",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": "postman-cloud:///1f056729-a053-4b60-8680-ec78f606c208"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/Registers/upload",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"Registers",
+								"upload"
+							]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "Get registers",
 					"event": [
 						{
@@ -861,7 +908,7 @@
 									"\r",
 									"pm.test(\"Returns correct user id\", function () {\r",
 									"    var jsonData = pm.response.json();\r",
-									"    pm.expect(jsonData.id).to.eql(1);\r",
+									"    pm.expect(jsonData.id).to.eql(pm.collectionVariables.get(\"UserIdAdm\"));\r",
 									"});\r",
 									"\r",
 									"pm.test(\"JWT token is provided\", function () {\r",
@@ -920,13 +967,14 @@
 									"",
 									"pm.test(\"Your test name\", function () {",
 									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData.id).to.eql(pm.collectionVariables.get(\"UserId\"));",
-									"    pm.expect(jsonData.email).to.eql(\"oyra@example.com\");",
+									"    pm.expect(jsonData.id).to.eql(pm.collectionVariables.get(\"UserIdAdm\"));",
+									"    pm.expect(jsonData.email).to.eql(\"korneev@example.com\");",
 									"});",
 									"",
 									""
 								],
-								"type": "text/javascript"
+								"type": "text/javascript",
+								"packages": {}
 							}
 						}
 					],
@@ -934,13 +982,13 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{base_url}}/users/{{UserId}}",
+							"raw": "{{base_url}}/users/{{UserIdAdm}}",
 							"host": [
 								"{{base_url}}"
 							],
 							"path": [
 								"users",
-								"{{UserId}}"
+								"{{UserIdAdm}}"
 							]
 						},
 						"description": "This is a GET request and it is used to \"get\" data from an endpoint. There is no request body for a GET request, but you can use query parameters to help specify the resource you want data on (e.g., in this request, we have `id=1`).\n\nA successful GET response will have a `200 OK` status, and should include some kind of response body - for example, HTML web content or JSON data."
