@@ -82,7 +82,7 @@ public class RegistersController(
     }
 
     [HttpPost("upload")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(Reference))]
     [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(ErrMessage))]
@@ -115,7 +115,6 @@ public class RegistersController(
                 await file.CopyToAsync(ms);
                 byte[] excelContent = ms.ToArray();
                 var result = await ProcessExcel(excelContent, file.FileName);
-                _logger.LogDebug("UploadRegister processed Excel file");
                 return result;
             }
             else if (fileExtension == ".zip" || fileExtension == ".rar")
@@ -133,7 +132,7 @@ public class RegistersController(
                 {
                     var excelEntry = archive.Entries.FirstOrDefault(entry =>
                         !entry.IsDirectory &&
-                        entry.Key != null && 
+                        entry.Key != null &&
                         (Path.GetExtension(entry.Key).Equals(".xlsx", StringComparison.InvariantCultureIgnoreCase) ||
                          Path.GetExtension(entry.Key).Equals(".xls", StringComparison.InvariantCultureIgnoreCase)));
 
@@ -167,7 +166,10 @@ public class RegistersController(
         }
     }
 
-    private async Task<IActionResult> ProcessExcel(byte[] content, string fileName, string mappingFile = "register_mapping.yaml")
+    private async Task<IActionResult> ProcessExcel(
+        byte[] content, 
+        string fileName, 
+        string mappingFile = "register_mapping.yaml")
     {
         _logger.LogDebug("ProcessExcel for {file} ({size} bytes)", fileName, content.Length);
 
@@ -203,6 +205,8 @@ public class RegistersController(
         }
 
         var register = new Register { FileName = fileName };
+        Reference reference = new() { Id = register.Id };
+
         _db.Registers.Add(register);
         await _db.SaveChangesAsync();
 
@@ -240,9 +244,8 @@ public class RegistersController(
         _db.Orders.AddRange(orders);
         await _db.SaveChangesAsync();
 
-        _logger.LogDebug("ProcessExcel imported {count} orders", orders.Count);
-
-        return NoContent();
+        _logger.LogDebug("ProcessExcel imported {count} orders and is returning Reference with ID: {id}", orders.Count, reference.Id);
+        return Ok(reference);
     }
 
     private static readonly CultureInfo RussianCulture = new("ru-RU");

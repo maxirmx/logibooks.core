@@ -143,7 +143,7 @@ public class UsersController(
             await _db.SaveChangesAsync(); // Save the user roles
         }
 
-        var reference = new Reference(ur.Id) { Id = ur.Id };
+        var reference = new Reference { Id = ur.Id };
         _logger.LogDebug("PostUser returning: {res}", reference.ToString());
         return CreatedAtAction(nameof(GetUser), new { id = ur.Id }, reference);
     }
