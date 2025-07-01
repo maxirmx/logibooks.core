@@ -97,7 +97,7 @@ public class UsersController(
 
     // POST: api/users
     [HttpPost]
-    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(Reference))]
+    [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(Reference))]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status409Conflict, Type = typeof(ErrMessage))]
@@ -144,7 +144,7 @@ public class UsersController(
 
         var reference = new Reference { Id = ur.Id };
         _logger.LogDebug("PostUser returning: {res}", reference.ToString());
-        return CreatedAtAction(nameof(GetUser), new { id = ur.Id }, reference);
+        return CreatedAtAction(nameof(PostUser), new { id = ur.Id }, reference);
     }
 
     // PUT: api/users/5

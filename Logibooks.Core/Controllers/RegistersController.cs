@@ -82,7 +82,7 @@ public class RegistersController(
     }
 
     [HttpPost("upload")]
-    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(Reference))]
+    [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(Reference))]
     [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(ErrMessage))]
@@ -275,7 +275,8 @@ public class RegistersController(
         await _db.SaveChangesAsync();
 
         _logger.LogDebug("ProcessExcel imported {count} orders and is returning Reference with ID: {id}", orders.Count, reference.Id);
-        return Ok(reference);
+        return CreatedAtAction(nameof(UploadRegister), new { id = reference.Id }, reference);
+        
     }
 
     private static readonly CultureInfo RussianCulture = new("ru-RU");
