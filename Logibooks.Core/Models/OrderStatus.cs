@@ -23,9 +23,21 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-namespace Logibooks.Core;
+using System.ComponentModel.DataAnnotations.Schema;
 
-public static class VersionInfo
+namespace Logibooks.Core.Models;
+
+[Table("statuses")]
+public class OrderStatus
 {
-    public const string AppVersion = "0.2.0";
+    [Column("id")]
+    public int Id { get; set; }
+
+    [Column("name")]
+    public required string Name { get; set; }
+
+    [Column("title")]
+    public required string Title { get; set; }
+
+    public ICollection<Order> Orders { get; set; } = new List<Order>();
 }

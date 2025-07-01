@@ -38,6 +38,10 @@ concurrency:
   group: '${{ github.workflow }}-${{ github.job }}-${{ github.head_ref || github.ref_name }}'
   cancel-in-progress: true
 
+env:
+  LANG: ru_RU.UTF-8
+  LC_ALL: ru_RU.UTF-8
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -85,14 +89,6 @@ jobs:
       - name: Start services
         run: docker compose -f docker-compose.yml up -d
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Install Newman
-        run: npm install -g newman
-
       - name: Wait for API
         run: |
           for i in {1..20}; do
@@ -107,8 +103,15 @@ jobs:
           MAXIRMX_SECRET_PASSWORD: ${{ secrets.MAXIRMX_SECRET_PASSWORD }}
         run: sed -i "s/MAXIRMX_SECRET_PASSWORD/$MAXIRMX_SECRET_PASSWORD/g" tests/postman.json
 
-      - name: Run Postman tests
-        run: newman run tests/postman.json
+      - name: Run Postman collection
+        uses: anthonyvscode/newman-action@v1   
+        with:
+          collection: postman.json
+          reporters: cli
+          workingDir: tests                 
+
+      - name: Output summary to console
+        run: echo ${{ steps.run-newman.outputs.summary }}        
 
       - name: Stop services
         if: always()

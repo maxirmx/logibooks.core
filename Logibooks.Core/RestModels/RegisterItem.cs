@@ -23,9 +23,10 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-namespace Logibooks.Core;
-
-public static class VersionInfo
+namespace Logibooks.Core.RestModels;
+public class RegisterItem
 {
-    public const string AppVersion = "0.2.0";
+    public int Id { get; set; }
+    public string FileName { get; set; } = string.Empty;
+    public DateTime Date { get; set; }
 }

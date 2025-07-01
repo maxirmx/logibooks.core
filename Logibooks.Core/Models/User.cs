@@ -63,6 +63,7 @@ namespace Logibooks.Core.Models
         }
 
         public bool IsAdministrator() => HasRole("administrator");
+        public bool IsLogist() => HasRole("logist");
 
     }
 }

@@ -23,9 +23,23 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-namespace Logibooks.Core;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
-public static class VersionInfo
+namespace Logibooks.Core.Models;
+
+[Table("registers")]
+public class Register
 {
-    public const string AppVersion = "0.2.0";
+    [Column("id")]
+    public int Id { get; set; }
+
+    [Column("filename")]
+    public required string FileName { get; set; }
+
+    [Column("dtime")]
+    public DateTime DTime { get; set; } = DateTime.UtcNow;
+
+    [JsonIgnore]
+    public ICollection<Order> Orders { get; set; } = []; 
 }

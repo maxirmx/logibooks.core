@@ -38,6 +38,6 @@ namespace Logibooks.Core.Models
 
         [Column("title")]
         public required string Title { get; set; }
-        public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
+        public ICollection<UserRole> UserRoles { get; set; } = [];
     }
 }

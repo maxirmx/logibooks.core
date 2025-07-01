@@ -24,9 +24,9 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 namespace Logibooks.Core.RestModels;
-public class Reference(int id)
+public class Reference
 {
-    public required int Id { get; set; } = id;
+    public required int Id { get; set; }
     public override string ToString()
     {
         return $"Reference: {Id}";

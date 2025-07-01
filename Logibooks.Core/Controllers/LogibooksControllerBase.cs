@@ -25,9 +25,7 @@
 
 using Microsoft.AspNetCore.Mvc;
 using Logibooks.Core.RestModels;
-using Logibooks.Core.Authorization;
 using Logibooks.Core.Data;
-using Microsoft.Extensions.Logging;
 
 namespace Logibooks.Core.Controllers;
 public class LogibooksControllerPreBase(AppDbContext db, ILogger logger) : ControllerBase
@@ -38,8 +36,24 @@ public class LogibooksControllerPreBase(AppDbContext db, ILogger logger) : Contr
     protected ObjectResult _400()
     {
         return StatusCode(StatusCodes.Status400BadRequest,
-                          new ErrMessage() { Msg = "Нарушена целостность запроса." });
+                          new ErrMessage() { Msg = "Нарушена целостность запроса" });
     }
+    protected ObjectResult _400EmptyRegister()
+    {
+        return StatusCode(StatusCodes.Status400BadRequest,
+                          new ErrMessage() { Msg = "Пустой файл реестра" });
+    }
+    protected ObjectResult _400NoRegister()
+    {
+        return StatusCode(StatusCodes.Status400BadRequest,
+                          new ErrMessage() { Msg = "Файл реестра не найден в архиве" });
+    }
+    protected ObjectResult _400UnsupportedFileType(string ext)
+    {
+        return StatusCode(StatusCodes.Status400BadRequest,
+                          new ErrMessage() { Msg = $"Файлы формата {ext} не поддерживаются. Можно загрузить .xlsx, .xls, .zip, .rar" });
+    }
+
     protected ObjectResult _401()
     {
         return StatusCode(StatusCodes.Status401Unauthorized,
@@ -48,24 +62,34 @@ public class LogibooksControllerPreBase(AppDbContext db, ILogger logger) : Contr
     protected ObjectResult _403()
     {
         return StatusCode(StatusCodes.Status403Forbidden,
-                          new ErrMessage { Msg = "Недостаточно прав для выполнения операции." });
+                          new ErrMessage { Msg = "Недостаточно прав для выполнения операции" });
     }
     protected ObjectResult _404User(int id)
     {
         return StatusCode(StatusCodes.Status404NotFound,
-                          new ErrMessage { Msg = $"Не удалось найти пользователя [id={id}]." });
+                          new ErrMessage { Msg = $"Не удалось найти пользователя [id={id}]" });
     }
-    protected ObjectResult _404Profile(int id)
+    protected ObjectResult _404Register(int id)
     {
         return StatusCode(StatusCodes.Status404NotFound,
-                          new ErrMessage { Msg = $"Не удалось найти профиль [profile id={id}]." });
+                          new ErrMessage { Msg = $"Не удалось найти реестр [id={id}]" });
     }
     protected ObjectResult _409Email(string email)
     {
         return StatusCode(StatusCodes.Status409Conflict,
-                          new ErrMessage { Msg = $"Пользователь с таким адресом электронной почты уже зарегистрирован [email = {email}]." });
+                          new ErrMessage { Msg = $"Пользователь с таким адресом электронной почты уже зарегистрирован [email = {email}]" });
+    }
+    protected ObjectResult _500Mapping(string fname)
+    {
+        return StatusCode(StatusCodes.Status500InternalServerError,
+                          new ErrMessage { Msg = $"Не найдена спецификация файла реестра [имя файла = {fname}]" });
     }
 
+    protected ObjectResult _500UploadRegister()
+    {
+        return StatusCode(StatusCodes.Status500InternalServerError,
+                          new ErrMessage { Msg = "Внутренняя ошибка при загрузке файла реестра" });
+    }
 }
 
 public class LogibooksControllerBase : LogibooksControllerPreBase
