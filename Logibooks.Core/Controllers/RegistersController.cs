@@ -47,6 +47,35 @@ public class RegistersController(
     AppDbContext db,
     ILogger<RegistersController> logger) : LogibooksControllerBase(httpContextAccessor, db, logger)
 {
+    [HttpGet("{id}")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(Register))]
+    [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
+    [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
+    public async Task<ActionResult<Register>> GetRegister(int id)
+    {
+        _logger.LogDebug("GetRegister for id={id}", id);
+
+        var ok = await _db.CheckLogist(_curUserId);
+        if (!ok)
+        {
+            _logger.LogDebug("GetRegister returning '403 Forbidden'");
+            return _403();
+        }
+
+        var register = await _db.Registers
+            .AsNoTracking()
+            .Include(r => r.Orders)
+            .FirstOrDefaultAsync(r => r.Id == id);
+
+        if (register == null)
+        {
+            _logger.LogDebug("GetRegister returning '404 Not Found'");
+            return _404Register(id);
+        }
+
+        _logger.LogDebug("GetRegister returning register with {count} orders", register.Orders.Count);
+        return register;
+    }
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<RegisterItem>))]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
