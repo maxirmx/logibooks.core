@@ -166,6 +166,37 @@ public class RegistersController(
         }
     }
 
+    [HttpDelete("{id}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
+    [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
+    [ProducesResponseType(StatusCodes.Status418ImATeapot, Type = typeof(ErrMessage))]
+    public async Task<IActionResult> DeleteRegister(int id)
+    {
+        _logger.LogDebug("DeleteRegister for id={id}", id);
+
+        var ok = await _db.CheckLogist(_curUserId);
+        if (!ok)
+        {
+            _logger.LogDebug("DeleteRegister returning '403 Forbidden'");
+            return _403();
+        }
+
+        var register = await _db.Registers
+            .Include(r => r.Orders)
+            .FirstOrDefaultAsync(r => r.Id == id);
+        if (register == null)
+        {
+            _logger.LogDebug("DeleteRegister returning '404 Not Found'");
+            return _404Register(id);
+        }
+
+        _db.Registers.Remove(register);
+        await _db.SaveChangesAsync();
+        _logger.LogDebug("DeleteRegister returning '204 No content'");
+        return NoContent();
+    }
+
     private async Task<IActionResult> ProcessExcel(
         byte[] content, 
         string fileName, 
