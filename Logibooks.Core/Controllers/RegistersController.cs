@@ -90,9 +90,9 @@ public class RegistersController(
         return view;
     }
     [HttpGet]
-    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<RegisterItem>))]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<RegisterViewItem>))]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
-    public async Task<ActionResult<IEnumerable<RegisterItem>>> GetRegisters(int page = 1, int pageSize = 10)
+    public async Task<ActionResult<IEnumerable<RegisterViewItem>>> GetRegisters(int page = 1, int pageSize = 10)
     {
         _logger.LogDebug("GetRegisters for page={page} pageSize={size}", page, pageSize);
 
@@ -106,17 +106,22 @@ public class RegistersController(
         // Retrieve registers from database
         var registers = await _db.Registers
             .AsNoTracking()
-            .OrderByDescending(r => r.Id) 
+            .Include(r => r.Orders)
+            .OrderByDescending(r => r.Id)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();
 
-        // Map database entities to RegisterItem DTOs
-        var items = registers.Select(r => new RegisterItem
+        // Map database entities to RegisterViewItem DTOs with order counts
+        var items = registers.Select(r => new RegisterViewItem
         {
             Id = r.Id,
             FileName = r.FileName,
-            Date = r.DTime
+            Date = r.DTime,
+            OrdersTotal = r.Orders.Count,
+            OrdersByStatus = r.Orders
+                .GroupBy(o => o.StatusId)
+                .ToDictionary(g => g.Key, g => g.Count())
         }).ToList();
 
         _logger.LogDebug("GetRegisters returning count: {count} items", items.Count);

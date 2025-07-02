@@ -105,7 +105,38 @@ public class RegistersControllerTests
         var result = await _controller.GetRegisters();
         Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
         var ok = result.Result as OkObjectResult;
-        Assert.That(ok!.Value, Is.InstanceOf<IEnumerable<RegisterItem>>());
+        Assert.That(ok!.Value, Is.InstanceOf<IEnumerable<RegisterViewItem>>());
+    }
+
+    [Test]
+    public async Task GetRegisters_ReturnsOrderCounts()
+    {
+        SetCurrentUserId(1);
+        _dbContext.Statuses.AddRange(
+            new OrderStatus { Id = 1, Name = "loaded", Title = "Loaded" },
+            new OrderStatus { Id = 2, Name = "processed", Title = "Processed" }
+        );
+        var r1 = new Register { Id = 1, FileName = "r1.xlsx" };
+        var r2 = new Register { Id = 2, FileName = "r2.xlsx" };
+        _dbContext.Registers.AddRange(r1, r2);
+        _dbContext.Orders.AddRange(
+            new Order { Id = 1, RegisterId = 1, StatusId = 1 },
+            new Order { Id = 2, RegisterId = 1, StatusId = 2 },
+            new Order { Id = 3, RegisterId = 2, StatusId = 2 }
+        );
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.GetRegisters();
+        var ok = result.Result as OkObjectResult;
+        var items = (ok!.Value as IEnumerable<RegisterViewItem>)!
+            .OrderBy(i => i.Id).ToArray();
+
+        Assert.That(items.Length, Is.EqualTo(2));
+        Assert.That(items[0].OrdersTotal, Is.EqualTo(2));
+        Assert.That(items[0].OrdersByStatus[1], Is.EqualTo(1));
+        Assert.That(items[0].OrdersByStatus[2], Is.EqualTo(1));
+        Assert.That(items[1].OrdersTotal, Is.EqualTo(1));
+        Assert.That(items[1].OrdersByStatus[2], Is.EqualTo(1));
     }
 
     [Test]
