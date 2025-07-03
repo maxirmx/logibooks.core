@@ -168,21 +168,21 @@ public class RegistersController(
                 r.FileName.Contains(q, StringComparison.OrdinalIgnoreCase) ||
                 r.Date.ToString("s").Contains(q, StringComparison.OrdinalIgnoreCase) ||
                 r.OrdersTotal.ToString().Contains(q, StringComparison.OrdinalIgnoreCase))
-                ;
+                .ToList();
         }
 
         // Sorting
         regs = (sortBy.ToLower(), sortOrder) switch
         {
-            ("filename", "asc") => regs.OrderBy(r => r.FileName),
-            ("filename", "desc") => regs.OrderByDescending(r => r.FileName),
-            ("date", "asc") => regs.OrderBy(r => r.Date),
-            ("date", "desc") => regs.OrderByDescending(r => r.Date),
-            ("orderstotal", "asc") => regs.OrderBy(r => r.OrdersTotal),
-            ("orderstotal", "desc") => regs.OrderByDescending(r => r.OrdersTotal),
-            ("id", "desc") => regs.OrderByDescending(r => r.Id),
-            _ => regs.OrderBy(r => r.Id)
-        }.ToList();
+            ("filename", "asc") => regs.OrderBy(r => r.FileName).ToList(),
+            ("filename", "desc") => regs.OrderByDescending(r => r.FileName).ToList(),
+            ("date", "asc") => regs.OrderBy(r => r.Date).ToList(),
+            ("date", "desc") => regs.OrderByDescending(r => r.Date).ToList(),
+            ("orderstotal", "asc") => regs.OrderBy(r => r.OrdersTotal).ToList(),
+            ("orderstotal", "desc") => regs.OrderByDescending(r => r.OrdersTotal).ToList(),
+            ("id", "desc") => regs.OrderByDescending(r => r.Id).ToList(),
+            _ => regs.OrderBy(r => r.Id).ToList()
+        };
 
         var totalCount = regs.Count;
         var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
