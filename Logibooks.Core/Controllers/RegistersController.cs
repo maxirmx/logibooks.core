@@ -132,9 +132,31 @@ public class RegistersController(
             return _403();
         }
 
-        // Load all registers
-        var regs = await _db.Registers
-            .AsNoTracking()
+        // Build base query for registers
+        IQueryable<Register> query = _db.Registers.AsNoTracking();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var q = search.ToLower();
+            query = query.Where(r => r.FileName.ToLower().Contains(q));
+        }
+
+        query = (sortBy.ToLower(), sortOrder) switch
+        {
+            ("filename", "asc") => query.OrderBy(r => r.FileName),
+            ("filename", "desc") => query.OrderByDescending(r => r.FileName),
+            ("date", "asc") => query.OrderBy(r => r.DTime),
+            ("date", "desc") => query.OrderByDescending(r => r.DTime),
+            ("id", "desc") => query.OrderByDescending(r => r.Id),
+            _ => query.OrderBy(r => r.Id)
+        };
+
+        var totalCount = await query.CountAsync();
+        var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+
+        var regs = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .Select(r => new RegisterViewItem
             {
                 Id = r.Id,
@@ -153,33 +175,14 @@ public class RegistersController(
             item.OrdersTotal = byStatus.Values.Sum();
         }
 
-        if (!string.IsNullOrWhiteSpace(search))
+        if (sortBy.Equals("orderstotal", StringComparison.OrdinalIgnoreCase))
         {
-            var q = search.ToLower();
-            regs = regs.Where(r =>
-                r.Id.ToString().Contains(q, StringComparison.OrdinalIgnoreCase) ||
-                r.FileName.Contains(q, StringComparison.OrdinalIgnoreCase) ||
-                r.Date.ToString("s").Contains(q, StringComparison.OrdinalIgnoreCase) ||
-                r.OrdersTotal.ToString().Contains(q, StringComparison.OrdinalIgnoreCase))
-                .ToList();
+            regs = (sortOrder == "desc")
+                ? regs.OrderByDescending(r => r.OrdersTotal).ToList()
+                : regs.OrderBy(r => r.OrdersTotal).ToList();
         }
 
-        // Sorting
-        regs = (sortBy.ToLower(), sortOrder) switch
-        {
-            ("filename", "asc") => regs.OrderBy(r => r.FileName).ToList(),
-            ("filename", "desc") => regs.OrderByDescending(r => r.FileName).ToList(),
-            ("date", "asc") => regs.OrderBy(r => r.Date).ToList(),
-            ("date", "desc") => regs.OrderByDescending(r => r.Date).ToList(),
-            ("orderstotal", "asc") => regs.OrderBy(r => r.OrdersTotal).ToList(),
-            ("orderstotal", "desc") => regs.OrderByDescending(r => r.OrdersTotal).ToList(),
-            ("id", "desc") => regs.OrderByDescending(r => r.Id).ToList(),
-            _ => regs.OrderBy(r => r.Id).ToList()
-        };
-
-        var totalCount = regs.Count;
-        var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
-        var items = regs.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+        var items = regs;
 
         var result = new PagedResult<RegisterViewItem>
         {

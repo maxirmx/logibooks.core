@@ -209,6 +209,27 @@ public class RegistersControllerTests
     }
 
     [Test]
+    public async Task GetRegisters_ReturnsPaginationMetadata()
+    {
+        SetCurrentUserId(1);
+        for (int i = 1; i <= 25; i++)
+        {
+            _dbContext.Registers.Add(new Register { Id = i, FileName = $"r{i}.xlsx" });
+        }
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.GetRegisters(page: 2, pageSize: 10);
+        var ok = result.Result as OkObjectResult;
+        var pr = ok!.Value as PagedResult<RegisterViewItem>;
+
+        Assert.That(pr!.Items.Count(), Is.EqualTo(10));
+        Assert.That(pr.Pagination.TotalCount, Is.EqualTo(25));
+        Assert.That(pr.Pagination.TotalPages, Is.EqualTo(3));
+        Assert.That(pr.Pagination.HasNextPage, Is.True);
+        Assert.That(pr.Pagination.HasPreviousPage, Is.True);
+    }
+
+    [Test]
     public async Task GetRegister_ReturnsRegister_ForLogist()
     {
         SetCurrentUserId(1);
