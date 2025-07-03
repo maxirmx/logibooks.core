@@ -105,7 +105,7 @@ public class RegistersControllerTests
         var result = await _controller.GetRegisters();
         Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
         var ok = result.Result as OkObjectResult;
-        Assert.That(ok!.Value, Is.InstanceOf<IEnumerable<RegisterViewItem>>());
+        Assert.That(ok!.Value, Is.InstanceOf<PagedResult<RegisterViewItem>>());
     }
 
     [Test]
@@ -128,8 +128,8 @@ public class RegistersControllerTests
 
         var result = await _controller.GetRegisters();
         var ok = result.Result as OkObjectResult;
-        var items = (ok!.Value as IEnumerable<RegisterViewItem>)!
-            .OrderBy(i => i.Id).ToArray();
+        var pr = ok!.Value as PagedResult<RegisterViewItem>;
+        var items = pr!.Items.OrderBy(i => i.Id).ToArray();
 
         Assert.That(items.Length, Is.EqualTo(2));
         Assert.That(items[0].OrdersTotal, Is.EqualTo(2));
@@ -151,8 +151,8 @@ public class RegistersControllerTests
 
         var result = await _controller.GetRegisters();
         var ok = result.Result as OkObjectResult;
-        var items = (ok!.Value as IEnumerable<RegisterViewItem>)!
-            .OrderBy(i => i.Id).ToArray();
+        var pr = ok!.Value as PagedResult<RegisterViewItem>;
+        var items = pr!.Items.OrderBy(i => i.Id).ToArray();
 
         Assert.That(items.Length, Is.EqualTo(2));
         Assert.That(items[0].OrdersTotal, Is.EqualTo(0));
@@ -169,6 +169,43 @@ public class RegistersControllerTests
         Assert.That(result.Result, Is.TypeOf<ObjectResult>());
         var obj = result.Result as ObjectResult;
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
+    }
+
+    [Test]
+    public async Task GetRegisters_SortsByFileName_Descending()
+    {
+        SetCurrentUserId(1);
+        _dbContext.Registers.AddRange(
+            new Register { Id = 1, FileName = "a.xlsx" },
+            new Register { Id = 2, FileName = "b.xlsx" }
+        );
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.GetRegisters(sortBy: "fileName", sortOrder: "desc");
+        var ok = result.Result as OkObjectResult;
+        var pr = ok!.Value as PagedResult<RegisterViewItem>;
+        var items = pr!.Items.ToArray();
+
+        Assert.That(items[0].FileName, Is.EqualTo("b.xlsx"));
+        Assert.That(items[1].FileName, Is.EqualTo("a.xlsx"));
+    }
+
+    [Test]
+    public async Task GetRegisters_SearchFiltersResults()
+    {
+        SetCurrentUserId(1);
+        _dbContext.Registers.AddRange(
+            new Register { Id = 1, FileName = "report1.xlsx" },
+            new Register { Id = 2, FileName = "other.xlsx" }
+        );
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.GetRegisters(search: "report");
+        var ok = result.Result as OkObjectResult;
+        var pr = ok!.Value as PagedResult<RegisterViewItem>;
+
+        Assert.That(pr!.Pagination.TotalCount, Is.EqualTo(1));
+        Assert.That(pr.Items.First().FileName, Is.EqualTo("report1.xlsx"));
     }
 
     [Test]

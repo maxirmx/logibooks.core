@@ -90,11 +90,40 @@ public class RegistersController(
         return view;
     }
     [HttpGet]
-    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<RegisterViewItem>))]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(PagedResult<RegisterViewItem>))]
+    [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
-    public async Task<ActionResult<IEnumerable<RegisterViewItem>>> GetRegisters(int page = 1, int pageSize = 10)
+    public async Task<ActionResult<PagedResult<RegisterViewItem>>> GetRegisters(
+        int page = 1,
+        int pageSize = 10,
+        string? sortBy = null,
+        string sortOrder = "asc",
+        string? search = null)
     {
-        _logger.LogDebug("GetRegisters for page={page} pageSize={size}", page, pageSize);
+        _logger.LogDebug("GetRegisters for page={page} pageSize={size} sortBy={sortBy} sortOrder={sortOrder} search={search}",
+            page, pageSize, sortBy, sortOrder, search);
+
+        if (page <= 0 || pageSize <= 0 || pageSize > 100)
+        {
+            _logger.LogDebug("GetRegisters returning '400 Bad Request' - invalid pagination");
+            return _400();
+        }
+
+        sortBy ??= "id";
+        sortOrder = string.IsNullOrEmpty(sortOrder) ? "asc" : sortOrder.ToLower();
+
+        string[] allowedSortBy = ["id", "filename", "date", "orderstotal"];
+        if (!allowedSortBy.Contains(sortBy.ToLower()))
+        {
+            _logger.LogDebug("GetRegisters returning '400 Bad Request' - invalid sortBy");
+            return _400();
+        }
+
+        if (sortOrder != "asc" && sortOrder != "desc")
+        {
+            _logger.LogDebug("GetRegisters returning '400 Bad Request' - invalid sortOrder");
+            return _400();
+        }
 
         var ok = await _db.CheckLogist(_curUserId);
         if (!ok)
@@ -103,12 +132,9 @@ public class RegistersController(
             return _403();
         }
 
-        // Retrieve registers from database without loading orders
-        var items = await _db.Registers
+        // Load all registers
+        var regs = await _db.Registers
             .AsNoTracking()
-            .OrderByDescending(r => r.Id)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
             .Select(r => new RegisterViewItem
             {
                 Id = r.Id,
@@ -117,18 +143,62 @@ public class RegistersController(
             })
             .ToListAsync();
 
-        var ids = items.Select(i => i.Id).ToList();
+        var ids = regs.Select(r => r.Id).ToList();
         var stats = await FetchOrdersStatsAsync(ids);
 
-        foreach (var item in items)
+        foreach (var item in regs)
         {
             var byStatus = stats.GetValueOrDefault(item.Id, new Dictionary<int, int>());
             item.OrdersByStatus = byStatus;
             item.OrdersTotal = byStatus.Values.Sum();
         }
 
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var q = search.ToLower();
+            regs = regs.Where(r =>
+                r.Id.ToString().Contains(q, StringComparison.OrdinalIgnoreCase) ||
+                r.FileName.Contains(q, StringComparison.OrdinalIgnoreCase) ||
+                r.Date.ToString("s").Contains(q, StringComparison.OrdinalIgnoreCase) ||
+                r.OrdersTotal.ToString().Contains(q, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+
+        // Sorting
+        regs = (sortBy.ToLower(), sortOrder) switch
+        {
+            ("filename", "asc") => regs.OrderBy(r => r.FileName).ToList(),
+            ("filename", "desc") => regs.OrderByDescending(r => r.FileName).ToList(),
+            ("date", "asc") => regs.OrderBy(r => r.Date).ToList(),
+            ("date", "desc") => regs.OrderByDescending(r => r.Date).ToList(),
+            ("orderstotal", "asc") => regs.OrderBy(r => r.OrdersTotal).ToList(),
+            ("orderstotal", "desc") => regs.OrderByDescending(r => r.OrdersTotal).ToList(),
+            ("id", "desc") => regs.OrderByDescending(r => r.Id).ToList(),
+            _ => regs.OrderBy(r => r.Id).ToList()
+        };
+
+        var totalCount = regs.Count;
+        var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+        var items = regs.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+
+        var result = new PagedResult<RegisterViewItem>
+        {
+            Items = items,
+            Pagination = new PaginationInfo
+            {
+                CurrentPage = page,
+                PageSize = pageSize,
+                TotalCount = totalCount,
+                TotalPages = totalPages,
+                HasNextPage = page < totalPages,
+                HasPreviousPage = page > 1
+            },
+            Sorting = new SortingInfo { SortBy = sortBy, SortOrder = sortOrder },
+            Search = search
+        };
+
         _logger.LogDebug("GetRegisters returning count: {count} items", items.Count);
-        return Ok(items);
+        return Ok(result);
     }
 
     [HttpPost("upload")]
