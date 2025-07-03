@@ -74,7 +74,7 @@ public class RegistersController(
             return _404Register(id);
         }
 
-        var ordersStats = await FetchOrdersStats([id]);
+        var ordersStats = await FetchOrdersStatsAsync([id]);
         var ordersByStatus = ordersStats.GetValueOrDefault(id, new Dictionary<int, int>());
 
         var view = new RegisterViewItem
@@ -118,7 +118,7 @@ public class RegistersController(
             .ToListAsync();
 
         var ids = items.Select(i => i.Id).ToList();
-        var stats = await FetchOrdersStats(ids);
+        var stats = await FetchOrdersStatsAsync(ids);
 
         foreach (var item in items)
         {
@@ -247,7 +247,7 @@ public class RegistersController(
         return NoContent();
     }
 
-    private async Task<Dictionary<int, Dictionary<int, int>>> FetchOrdersStats(IEnumerable<int> registerIds)
+    private async Task<Dictionary<int, Dictionary<int, int>>> FetchOrdersStatsAsync(IEnumerable<int> registerIds)
     {
         var grouped = await _db.Orders
             .AsNoTracking()
