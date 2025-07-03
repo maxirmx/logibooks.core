@@ -26,7 +26,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;
-using System.Text.Json;
 
 using SharpCompress.Archives;
 using ExcelDataReader;
@@ -47,6 +46,10 @@ public class RegistersController(
     AppDbContext db,
     ILogger<RegistersController> logger) : LogibooksControllerBase(httpContextAccessor, db, logger)
 {
+
+    private readonly string[] allowedSortBy = ["id", "filename", "date", "orderstotal"];
+    private readonly int maxPageSize = 100;
+
     [HttpGet("{id}")]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(RegisterViewItem))]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
@@ -103,7 +106,7 @@ public class RegistersController(
         _logger.LogDebug("GetRegisters for page={page} pageSize={size} sortBy={sortBy} sortOrder={sortOrder} search={search}",
             page, pageSize, sortBy, sortOrder, search);
 
-        if (page <= 0 || pageSize <= 0 || pageSize > 100)
+        if (page <= 0 || pageSize <= 0 || pageSize > maxPageSize)
         {
             _logger.LogDebug("GetRegisters returning '400 Bad Request' - invalid pagination");
             return _400();
@@ -112,7 +115,6 @@ public class RegistersController(
         sortBy ??= "id";
         sortOrder = string.IsNullOrEmpty(sortOrder) ? "asc" : sortOrder.ToLower();
 
-        string[] allowedSortBy = ["id", "filename", "date", "orderstotal"];
         if (!allowedSortBy.Contains(sortBy.ToLower()))
         {
             _logger.LogDebug("GetRegisters returning '400 Bad Request' - invalid sortBy");
@@ -137,8 +139,7 @@ public class RegistersController(
 
         if (!string.IsNullOrWhiteSpace(search))
         {
-            var q = search.ToLower();
-            baseQuery = baseQuery.Where(r => r.FileName.ToLower().Contains(q));
+            baseQuery = baseQuery.Where(r => r.FileName.Contains(search, StringComparison.OrdinalIgnoreCase));
         }
         // Project to view items with orders total included for sorting
         IQueryable<RegisterViewItem> query = baseQuery
@@ -162,7 +163,7 @@ public class RegistersController(
             _ => query.OrderBy(r => r.Id)
         };
 
-        var totalCount = await query.CountAsync();
+        var totalCount = await baseQuery.CountAsync();
         var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
 
         var items = await query
