@@ -105,7 +105,7 @@ public class RegistersControllerTests
         var result = await _controller.GetRegisters();
         Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
         var ok = result.Result as OkObjectResult;
-        Assert.That(ok!.Value, Is.InstanceOf<IEnumerable<RegisterViewItem>>());
+        Assert.That(ok!.Value, Is.InstanceOf<PagedResult<RegisterViewItem>>());
     }
 
     [Test]
@@ -128,8 +128,8 @@ public class RegistersControllerTests
 
         var result = await _controller.GetRegisters();
         var ok = result.Result as OkObjectResult;
-        var items = (ok!.Value as IEnumerable<RegisterViewItem>)!
-            .OrderBy(i => i.Id).ToArray();
+        var pr = ok!.Value as PagedResult<RegisterViewItem>;
+        var items = pr!.Items.OrderBy(i => i.Id).ToArray();
 
         Assert.That(items.Length, Is.EqualTo(2));
         Assert.That(items[0].OrdersTotal, Is.EqualTo(2));
@@ -151,8 +151,8 @@ public class RegistersControllerTests
 
         var result = await _controller.GetRegisters();
         var ok = result.Result as OkObjectResult;
-        var items = (ok!.Value as IEnumerable<RegisterViewItem>)!
-            .OrderBy(i => i.Id).ToArray();
+        var pr = ok!.Value as PagedResult<RegisterViewItem>;
+        var items = pr!.Items.OrderBy(i => i.Id).ToArray();
 
         Assert.That(items.Length, Is.EqualTo(2));
         Assert.That(items[0].OrdersTotal, Is.EqualTo(0));
@@ -169,6 +169,97 @@ public class RegistersControllerTests
         Assert.That(result.Result, Is.TypeOf<ObjectResult>());
         var obj = result.Result as ObjectResult;
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
+    }
+
+    [Test]
+    public async Task GetRegisters_SortsByFileName_Descending()
+    {
+        SetCurrentUserId(1);
+        _dbContext.Registers.AddRange(
+            new Register { Id = 1, FileName = "a.xlsx" },
+            new Register { Id = 2, FileName = "b.xlsx" }
+        );
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.GetRegisters(sortBy: "fileName", sortOrder: "desc");
+        var ok = result.Result as OkObjectResult;
+        var pr = ok!.Value as PagedResult<RegisterViewItem>;
+        var items = pr!.Items.ToArray();
+
+        Assert.That(items[0].FileName, Is.EqualTo("b.xlsx"));
+        Assert.That(items[1].FileName, Is.EqualTo("a.xlsx"));
+    }
+
+    [Test]
+    public async Task GetRegisters_SearchFiltersResults()
+    {
+        SetCurrentUserId(1);
+        _dbContext.Registers.AddRange(
+            new Register { Id = 1, FileName = "report1.xlsx" },
+            new Register { Id = 2, FileName = "other.xlsx" }
+        );
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.GetRegisters(search: "report");
+        var ok = result.Result as OkObjectResult;
+        var pr = ok!.Value as PagedResult<RegisterViewItem>;
+
+        Assert.That(pr!.Pagination.TotalCount, Is.EqualTo(1));
+        Assert.That(pr.Items.First().FileName, Is.EqualTo("report1.xlsx"));
+    }
+
+    [Test]
+    public async Task GetRegisters_ReturnsPaginationMetadata()
+    {
+        SetCurrentUserId(1);
+        for (int i = 1; i <= 25; i++)
+        {
+            _dbContext.Registers.Add(new Register { Id = i, FileName = $"r{i}.xlsx" });
+        }
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.GetRegisters(page: 2, pageSize: 10);
+        var ok = result.Result as OkObjectResult;
+        var pr = ok!.Value as PagedResult<RegisterViewItem>;
+
+        Assert.That(pr!.Items.Count(), Is.EqualTo(10));
+        Assert.That(pr.Pagination.TotalCount, Is.EqualTo(25));
+        Assert.That(pr.Pagination.TotalPages, Is.EqualTo(3));
+        Assert.That(pr.Pagination.HasNextPage, Is.True);
+        Assert.That(pr.Pagination.HasPreviousPage, Is.True);
+    }
+
+    [Test]
+    public async Task GetRegisters_SortsByOrdersTotalAcrossPages()
+    {
+        SetCurrentUserId(1);
+        _dbContext.Registers.AddRange(
+            new Register { Id = 1, FileName = "r1.xlsx" },
+            new Register { Id = 2, FileName = "r2.xlsx" },
+            new Register { Id = 3, FileName = "r3.xlsx" },
+            new Register { Id = 4, FileName = "r4.xlsx" }
+        );
+        _dbContext.Orders.AddRange(
+            new Order { RegisterId = 1, StatusId = 1 },
+            new Order { RegisterId = 2, StatusId = 1 },
+            new Order { RegisterId = 2, StatusId = 1 },
+            new Order { RegisterId = 3, StatusId = 1 },
+            new Order { RegisterId = 3, StatusId = 1 },
+            new Order { RegisterId = 3, StatusId = 1 }
+        );
+        await _dbContext.SaveChangesAsync();
+
+        var r1 = await _controller.GetRegisters(page: 1, pageSize: 2, sortBy: "ordersTotal", sortOrder: "desc");
+        var ok1 = r1.Result as OkObjectResult;
+        var pr1 = ok1!.Value as PagedResult<RegisterViewItem>;
+
+        Assert.That(pr1!.Items.First().Id, Is.EqualTo(3));
+
+        var r2 = await _controller.GetRegisters(page: 2, pageSize: 2, sortBy: "ordersTotal", sortOrder: "desc");
+        var ok2 = r2.Result as OkObjectResult;
+        var pr2 = ok2!.Value as PagedResult<RegisterViewItem>;
+
+        Assert.That(pr2!.Items.First().Id, Is.EqualTo(1));
     }
 
     [Test]
@@ -265,6 +356,202 @@ public class RegistersControllerTests
         Assert.That(result.Result, Is.TypeOf<ObjectResult>());
         var obj = result.Result as ObjectResult;
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+    }
+
+    [Test]
+    public async Task GetRegisters_ReturnsBadRequest_WhenPageIsZero()
+    {
+        SetCurrentUserId(1);
+        var result = await _controller.GetRegisters(page: 0);
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
+    }
+
+    [Test]
+    public async Task GetRegisters_ReturnsBadRequest_WhenPageIsNegative()
+    {
+        SetCurrentUserId(1);
+        var result = await _controller.GetRegisters(page: -1);
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
+    }
+
+    [Test]
+    public async Task GetRegisters_ReturnsBadRequest_WhenPageSizeIsZero()
+    {
+        SetCurrentUserId(1);
+        var result = await _controller.GetRegisters(pageSize: 0);
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
+    }
+
+    [Test]
+    public async Task GetRegisters_ReturnsBadRequest_WhenPageSizeIsNegative()
+    {
+        SetCurrentUserId(1);
+        var result = await _controller.GetRegisters(pageSize: -5);
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
+    }
+
+    [Test]
+    public async Task GetRegisters_ReturnsBadRequest_WhenPageSizeExceedsMaximum()
+    {
+        SetCurrentUserId(1);
+        var result = await _controller.GetRegisters(pageSize: 101);
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
+    }
+
+    [Test]
+    public async Task GetRegisters_ReturnsBadRequest_WhenSortByIsInvalid()
+    {
+        SetCurrentUserId(1);
+        var result = await _controller.GetRegisters(sortBy: "invalidfield");
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
+    }
+
+    [Test]
+    public async Task GetRegisters_ReturnsBadRequest_WhenSortOrderIsInvalid()
+    {
+        SetCurrentUserId(1);
+        var result = await _controller.GetRegisters(sortOrder: "invalid");
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
+    }
+
+    [Test]
+    public async Task GetRegisters_AcceptsValidSortByValues()
+    {
+        SetCurrentUserId(1);
+        string[] validSortBy = ["id", "filename", "date", "orderstotal"];
+
+        foreach (var sortBy in validSortBy)
+        {
+            var result = await _controller.GetRegisters(sortBy: sortBy);
+            Assert.That(result.Result, Is.TypeOf<OkObjectResult>(),
+                $"sortBy '{sortBy}' should be valid");
+        }
+    }
+
+    [Test]
+    public async Task GetRegisters_AcceptsValidSortOrderValues()
+    {
+        SetCurrentUserId(1);
+        string[] validSortOrders = ["asc", "desc"];
+
+        foreach (var sortOrder in validSortOrders)
+        {
+            var result = await _controller.GetRegisters(sortOrder: sortOrder);
+            Assert.That(result.Result, Is.TypeOf<OkObjectResult>(),
+                $"sortOrder '{sortOrder}' should be valid");
+        }
+    }
+
+    [Test]
+    public async Task GetRegisters_AcceptsMaxPageSize()
+    {
+        SetCurrentUserId(1);
+        var result = await _controller.GetRegisters(pageSize: 100);
+        Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
+    }
+
+    [Test]
+    public async Task GetRegisters_HandlesCaseInsensitiveSortBy()
+    {
+        SetCurrentUserId(1);
+        _dbContext.Registers.AddRange(
+            new Register { Id = 1, FileName = "a.xlsx" },
+            new Register { Id = 2, FileName = "b.xlsx" }
+        );
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.GetRegisters(sortBy: "FILENAME", sortOrder: "desc");
+        Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
+        var ok = result.Result as OkObjectResult;
+        var pr = ok!.Value as PagedResult<RegisterViewItem>;
+        var items = pr!.Items.ToArray();
+
+        Assert.That(items[0].FileName, Is.EqualTo("b.xlsx"));
+        Assert.That(items[1].FileName, Is.EqualTo("a.xlsx"));
+    }
+
+    [Test]
+    public async Task GetRegisters_HandlesCaseInsensitiveSortOrder()
+    {
+        SetCurrentUserId(1);
+        _dbContext.Registers.AddRange(
+            new Register { Id = 1, FileName = "a.xlsx" },
+            new Register { Id = 2, FileName = "b.xlsx" }
+        );
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.GetRegisters(sortBy: "filename", sortOrder: "DESC");
+        Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
+        var ok = result.Result as OkObjectResult;
+        var pr = ok!.Value as PagedResult<RegisterViewItem>;
+        var items = pr!.Items.ToArray();
+
+        Assert.That(items[0].FileName, Is.EqualTo("b.xlsx"));
+        Assert.That(items[1].FileName, Is.EqualTo("a.xlsx"));
+    }
+
+    [Test]
+    public async Task GetRegisters_DefaultsToAscendingWhenSortOrderIsEmpty()
+    {
+        SetCurrentUserId(1);
+        _dbContext.Registers.AddRange(
+            new Register { Id = 2, FileName = "b.xlsx" },
+            new Register { Id = 1, FileName = "a.xlsx" }
+        );
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.GetRegisters(sortBy: "id", sortOrder: "");
+        Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
+        var ok = result.Result as OkObjectResult;
+        var pr = ok!.Value as PagedResult<RegisterViewItem>;
+        var items = pr!.Items.ToArray();
+
+        Assert.That(items[0].Id, Is.EqualTo(1));
+        Assert.That(items[1].Id, Is.EqualTo(2));
+    }
+
+    [Test]
+    public async Task GetRegisters_DefaultsToIdWhenSortByIsNull()
+    {
+        SetCurrentUserId(1);
+        _dbContext.Registers.AddRange(
+            new Register { Id = 2, FileName = "b.xlsx" },
+            new Register { Id = 1, FileName = "a.xlsx" }
+        );
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.GetRegisters(sortBy: null);
+        Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
+        var ok = result.Result as OkObjectResult;
+        var pr = ok!.Value as PagedResult<RegisterViewItem>;
+        var items = pr!.Items.ToArray();
+
+        Assert.That(items[0].Id, Is.EqualTo(1));
+        Assert.That(items[1].Id, Is.EqualTo(2));
+    }
+
+    [Test]
+    public async Task GetRegisters_ReturnsBadRequest_WhenMultipleParametersInvalid()
+    {
+        SetCurrentUserId(1);
+        var result = await _controller.GetRegisters(page: -1, pageSize: 0, sortBy: "invalid", sortOrder: "wrong");
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
     }
 
     [Test]
