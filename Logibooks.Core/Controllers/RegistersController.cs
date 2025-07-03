@@ -139,7 +139,7 @@ public class RegistersController(
 
         if (!string.IsNullOrWhiteSpace(search))
         {
-            baseQuery = baseQuery.Where(r => r.FileName.Contains(search, StringComparison.OrdinalIgnoreCase));
+            baseQuery = baseQuery.Where(r => EF.Functions.Like(r.FileName, $"%{search}%"));
         }
         // Project to view items with orders total included for sorting
         IQueryable<RegisterViewItem> query = baseQuery
