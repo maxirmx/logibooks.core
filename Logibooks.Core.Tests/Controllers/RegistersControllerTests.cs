@@ -230,6 +230,39 @@ public class RegistersControllerTests
     }
 
     [Test]
+    public async Task GetRegisters_SortsByOrdersTotalAcrossPages()
+    {
+        SetCurrentUserId(1);
+        _dbContext.Registers.AddRange(
+            new Register { Id = 1, FileName = "r1.xlsx" },
+            new Register { Id = 2, FileName = "r2.xlsx" },
+            new Register { Id = 3, FileName = "r3.xlsx" },
+            new Register { Id = 4, FileName = "r4.xlsx" }
+        );
+        _dbContext.Orders.AddRange(
+            new Order { RegisterId = 1, StatusId = 1 },
+            new Order { RegisterId = 2, StatusId = 1 },
+            new Order { RegisterId = 2, StatusId = 1 },
+            new Order { RegisterId = 3, StatusId = 1 },
+            new Order { RegisterId = 3, StatusId = 1 },
+            new Order { RegisterId = 3, StatusId = 1 }
+        );
+        await _dbContext.SaveChangesAsync();
+
+        var r1 = await _controller.GetRegisters(page: 1, pageSize: 2, sortBy: "ordersTotal", sortOrder: "desc");
+        var ok1 = r1.Result as OkObjectResult;
+        var pr1 = ok1!.Value as PagedResult<RegisterViewItem>;
+
+        Assert.That(pr1!.Items.First().Id, Is.EqualTo(3));
+
+        var r2 = await _controller.GetRegisters(page: 2, pageSize: 2, sortBy: "ordersTotal", sortOrder: "desc");
+        var ok2 = r2.Result as OkObjectResult;
+        var pr2 = ok2!.Value as PagedResult<RegisterViewItem>;
+
+        Assert.That(pr2!.Items.First().Id, Is.EqualTo(1));
+    }
+
+    [Test]
     public async Task GetRegister_ReturnsRegister_ForLogist()
     {
         SetCurrentUserId(1);
