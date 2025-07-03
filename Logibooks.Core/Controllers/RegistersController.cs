@@ -64,8 +64,9 @@ public class RegistersController(
 
         var register = await _db.Registers
             .AsNoTracking()
-            .Include(r => r.Orders)
-            .FirstOrDefaultAsync(r => r.Id == id);
+            .Where(r => r.Id == id)
+            .Select(r => new { r.Id, r.FileName, r.DTime })
+            .FirstOrDefaultAsync();
 
         if (register == null)
         {
@@ -73,20 +74,23 @@ public class RegistersController(
             return _404Register(id);
         }
 
-        var statusCounts = register.Orders
+        var ordersByStatus = await _db.Orders
+            .AsNoTracking()
+            .Where(o => o.RegisterId == id)
             .GroupBy(o => o.StatusId)
-            .ToDictionary(g => g.Key, g => g.Count());
+            .Select(g => new { StatusId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(g => g.StatusId, g => g.Count);
 
         var view = new RegisterViewItem
         {
             Id = register.Id,
             FileName = register.FileName,
             Date = register.DTime,
-            OrdersTotal = register.Orders.Count,
-            OrdersByStatus = statusCounts
+            OrdersTotal = ordersByStatus.Values.Sum(),
+            OrdersByStatus = ordersByStatus
         };
 
-        _logger.LogDebug("GetRegister returning register with {count} orders", register.Orders.Count);
+        _logger.LogDebug("GetRegister returning register with {count} orders", view.OrdersTotal);
         return view;
     }
     [HttpGet]
@@ -103,26 +107,36 @@ public class RegistersController(
             return _403();
         }
 
-        // Retrieve registers from database
-        var registers = await _db.Registers
+        // Retrieve registers from database without loading orders
+        var items = await _db.Registers
             .AsNoTracking()
-            .Include(r => r.Orders)
             .OrderByDescending(r => r.Id)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
+            .Select(r => new RegisterViewItem
+            {
+                Id = r.Id,
+                FileName = r.FileName,
+                Date = r.DTime
+            })
             .ToListAsync();
 
-        // Map database entities to RegisterViewItem DTOs with order counts
-        var items = registers.Select(r => new RegisterViewItem
+        var ids = items.Select(i => i.Id).ToList();
+        var stats = await _db.Orders
+            .AsNoTracking()
+            .Where(o => ids.Contains(o.RegisterId))
+            .Select(o => new { o.RegisterId, o.StatusId })
+            .ToListAsync();
+
+        foreach (var item in items)
         {
-            Id = r.Id,
-            FileName = r.FileName,
-            Date = r.DTime,
-            OrdersTotal = r.Orders.Count,
-            OrdersByStatus = r.Orders
-                .GroupBy(o => o.StatusId)
-                .ToDictionary(g => g.Key, g => g.Count())
-        }).ToList();
+            var byStatus = stats
+                .Where(s => s.RegisterId == item.Id)
+                .GroupBy(s => s.StatusId)
+                .ToDictionary(g => g.Key, g => g.Count());
+            item.OrdersByStatus = byStatus;
+            item.OrdersTotal = byStatus.Values.Sum();
+        }
 
         _logger.LogDebug("GetRegisters returning count: {count} items", items.Count);
         return Ok(items);
