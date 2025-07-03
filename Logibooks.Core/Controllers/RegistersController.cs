@@ -122,16 +122,9 @@ public class RegistersController(
 
         foreach (var item in items)
         {
-            if (stats.TryGetValue(item.Id, out var byStatus))
-            {
-                item.OrdersByStatus = byStatus;
-                item.OrdersTotal = byStatus.Values.Sum();
-            }
-            else
-            {
-                item.OrdersByStatus = new();
-                item.OrdersTotal = 0;
-            }
+            var byStatus = stats.GetValueOrDefault(item.Id, new Dictionary<int, int>());
+            item.OrdersByStatus = byStatus;
+            item.OrdersTotal = byStatus.Values.Sum();
         }
 
         _logger.LogDebug("GetRegisters returning count: {count} items", items.Count);
