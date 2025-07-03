@@ -74,14 +74,12 @@ public class RegistersController(
             return _404Register(id);
         }
 
-        var statusIds = await _db.Orders
+        var ordersByStatus = await _db.Orders
             .AsNoTracking()
             .Where(o => o.RegisterId == id)
-            .Select(o => o.StatusId)
-            .ToListAsync();
-        var ordersByStatus = statusIds
-            .GroupBy(s => s)
-            .ToDictionary(g => g.Key, g => g.Count());
+            .GroupBy(o => o.StatusId)
+            .Select(g => new { StatusId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(g => g.StatusId, g => g.Count);
 
         var view = new RegisterViewItem
         {
