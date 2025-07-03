@@ -64,8 +64,9 @@ public class RegistersController(
 
         var register = await _db.Registers
             .AsNoTracking()
-            .Include(r => r.Orders)
-            .FirstOrDefaultAsync(r => r.Id == id);
+            .Where(r => r.Id == id)
+            .Select(r => new { r.Id, r.FileName, r.DTime })
+            .FirstOrDefaultAsync();
 
         if (register == null)
         {
@@ -73,26 +74,25 @@ public class RegistersController(
             return _404Register(id);
         }
 
-        var statusCounts = register.Orders
-            .GroupBy(o => o.StatusId)
-            .ToDictionary(g => g.Key, g => g.Count());
+        var ordersStats = await FetchOrdersStatsAsync([id]);
+        var ordersByStatus = ordersStats.GetValueOrDefault(id, new Dictionary<int, int>());
 
         var view = new RegisterViewItem
         {
             Id = register.Id,
             FileName = register.FileName,
             Date = register.DTime,
-            OrdersTotal = register.Orders.Count,
-            OrdersByStatus = statusCounts
+            OrdersTotal = ordersByStatus.Values.Sum(),
+            OrdersByStatus = ordersByStatus
         };
 
-        _logger.LogDebug("GetRegister returning register with {count} orders", register.Orders.Count);
+        _logger.LogDebug("GetRegister returning register with {count} orders", view.OrdersTotal);
         return view;
     }
     [HttpGet]
-    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<RegisterItem>))]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<RegisterViewItem>))]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
-    public async Task<ActionResult<IEnumerable<RegisterItem>>> GetRegisters(int page = 1, int pageSize = 10)
+    public async Task<ActionResult<IEnumerable<RegisterViewItem>>> GetRegisters(int page = 1, int pageSize = 10)
     {
         _logger.LogDebug("GetRegisters for page={page} pageSize={size}", page, pageSize);
 
@@ -103,21 +103,29 @@ public class RegistersController(
             return _403();
         }
 
-        // Retrieve registers from database
-        var registers = await _db.Registers
+        // Retrieve registers from database without loading orders
+        var items = await _db.Registers
             .AsNoTracking()
-            .OrderByDescending(r => r.Id) 
+            .OrderByDescending(r => r.Id)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
+            .Select(r => new RegisterViewItem
+            {
+                Id = r.Id,
+                FileName = r.FileName,
+                Date = r.DTime
+            })
             .ToListAsync();
 
-        // Map database entities to RegisterItem DTOs
-        var items = registers.Select(r => new RegisterItem
+        var ids = items.Select(i => i.Id).ToList();
+        var stats = await FetchOrdersStatsAsync(ids);
+
+        foreach (var item in items)
         {
-            Id = r.Id,
-            FileName = r.FileName,
-            Date = r.DTime
-        }).ToList();
+            var byStatus = stats.GetValueOrDefault(item.Id, new Dictionary<int, int>());
+            item.OrdersByStatus = byStatus;
+            item.OrdersTotal = byStatus.Values.Sum();
+        }
 
         _logger.LogDebug("GetRegisters returning count: {count} items", items.Count);
         return Ok(items);
@@ -239,8 +247,24 @@ public class RegistersController(
         return NoContent();
     }
 
+    private async Task<Dictionary<int, Dictionary<int, int>>> FetchOrdersStatsAsync(IEnumerable<int> registerIds)
+    {
+        var grouped = await _db.Orders
+            .AsNoTracking()
+            .Where(o => registerIds.Contains(o.RegisterId))
+            .GroupBy(o => new { o.RegisterId, o.StatusId })
+            .Select(g => new { g.Key.RegisterId, g.Key.StatusId, Count = g.Count() })
+            .ToListAsync();
+
+        return grouped
+            .GroupBy(g => g.RegisterId)
+            .ToDictionary(
+                g => g.Key,
+                g => g.ToDictionary(x => x.StatusId, x => x.Count));
+    }
+
     private async Task<IActionResult> ProcessExcel(
-        byte[] content, 
+        byte[] content,
         string fileName, 
         string mappingFile = "register_mapping.yaml")
     {
