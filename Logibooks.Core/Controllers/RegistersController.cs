@@ -74,12 +74,8 @@ public class RegistersController(
             return _404Register(id);
         }
 
-        var ordersByStatus = await _db.Orders
-            .AsNoTracking()
-            .Where(o => o.RegisterId == id)
-            .GroupBy(o => o.StatusId)
-            .Select(g => new { StatusId = g.Key, Count = g.Count() })
-            .ToDictionaryAsync(g => g.StatusId, g => g.Count);
+        var ordersStats = await FetchOrdersStats([id]);
+        var ordersByStatus = ordersStats.GetValueOrDefault(id, new Dictionary<int, int>());
 
         var view = new RegisterViewItem
         {
@@ -122,18 +118,11 @@ public class RegistersController(
             .ToListAsync();
 
         var ids = items.Select(i => i.Id).ToList();
-        var stats = await _db.Orders
-            .AsNoTracking()
-            .Where(o => ids.Contains(o.RegisterId))
-            .Select(o => new { o.RegisterId, o.StatusId })
-            .ToListAsync();
+        var stats = await FetchOrdersStats(ids);
 
         foreach (var item in items)
         {
-            var byStatus = stats
-                .Where(s => s.RegisterId == item.Id)
-                .GroupBy(s => s.StatusId)
-                .ToDictionary(g => g.Key, g => g.Count());
+            var byStatus = stats.GetValueOrDefault(item.Id, new Dictionary<int, int>());
             item.OrdersByStatus = byStatus;
             item.OrdersTotal = byStatus.Values.Sum();
         }
@@ -258,8 +247,24 @@ public class RegistersController(
         return NoContent();
     }
 
+    private async Task<Dictionary<int, Dictionary<int, int>>> FetchOrdersStats(IEnumerable<int> registerIds)
+    {
+        var grouped = await _db.Orders
+            .AsNoTracking()
+            .Where(o => registerIds.Contains(o.RegisterId))
+            .GroupBy(o => new { o.RegisterId, o.StatusId })
+            .Select(g => new { g.Key.RegisterId, g.Key.StatusId, Count = g.Count() })
+            .ToListAsync();
+
+        return grouped
+            .GroupBy(g => g.RegisterId)
+            .ToDictionary(
+                g => g.Key,
+                g => g.ToDictionary(x => x.StatusId, x => x.Count));
+    }
+
     private async Task<IActionResult> ProcessExcel(
-        byte[] content, 
+        byte[] content,
         string fileName, 
         string mappingFile = "register_mapping.yaml")
     {
