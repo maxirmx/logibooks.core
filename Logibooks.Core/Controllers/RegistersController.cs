@@ -133,20 +133,31 @@ public class RegistersController(
         }
 
         // Build base query for registers
-        IQueryable<Register> query = _db.Registers.AsNoTracking();
+        IQueryable<Register> baseQuery = _db.Registers.AsNoTracking();
 
         if (!string.IsNullOrWhiteSpace(search))
         {
             var q = search.ToLower();
-            query = query.Where(r => r.FileName.ToLower().Contains(q));
+            baseQuery = baseQuery.Where(r => r.FileName.ToLower().Contains(q));
         }
+        // Project to view items with orders total included for sorting
+        IQueryable<RegisterViewItem> query = baseQuery
+            .Select(r => new RegisterViewItem
+            {
+                Id = r.Id,
+                FileName = r.FileName,
+                Date = r.DTime,
+                OrdersTotal = r.Orders.Count()
+            });
 
         query = (sortBy.ToLower(), sortOrder) switch
         {
             ("filename", "asc") => query.OrderBy(r => r.FileName),
             ("filename", "desc") => query.OrderByDescending(r => r.FileName),
-            ("date", "asc") => query.OrderBy(r => r.DTime),
-            ("date", "desc") => query.OrderByDescending(r => r.DTime),
+            ("date", "asc") => query.OrderBy(r => r.Date),
+            ("date", "desc") => query.OrderByDescending(r => r.Date),
+            ("orderstotal", "asc") => query.OrderBy(r => r.OrdersTotal),
+            ("orderstotal", "desc") => query.OrderByDescending(r => r.OrdersTotal),
             ("id", "desc") => query.OrderByDescending(r => r.Id),
             _ => query.OrderBy(r => r.Id)
         };
@@ -154,35 +165,19 @@ public class RegistersController(
         var totalCount = await query.CountAsync();
         var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
 
-        var regs = await query
+        var items = await query
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(r => new RegisterViewItem
-            {
-                Id = r.Id,
-                FileName = r.FileName,
-                Date = r.DTime
-            })
             .ToListAsync();
-
-        var ids = regs.Select(r => r.Id).ToList();
+        var ids = items.Select(r => r.Id).ToList();
         var stats = await FetchOrdersStatsAsync(ids);
 
-        foreach (var item in regs)
+        foreach (var item in items)
         {
             var byStatus = stats.GetValueOrDefault(item.Id, new Dictionary<int, int>());
             item.OrdersByStatus = byStatus;
             item.OrdersTotal = byStatus.Values.Sum();
         }
-
-        if (sortBy.Equals("orderstotal", StringComparison.OrdinalIgnoreCase))
-        {
-            regs = (sortOrder == "desc")
-                ? regs.OrderByDescending(r => r.OrdersTotal).ToList()
-                : regs.OrderBy(r => r.OrdersTotal).ToList();
-        }
-
-        var items = regs;
 
         var result = new PagedResult<RegisterViewItem>
         {
