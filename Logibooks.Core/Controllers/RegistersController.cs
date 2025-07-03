@@ -132,16 +132,9 @@ public class RegistersController(
             return _403();
         }
 
-        // Apply sorting and pagination at the database level
-        var query = _db.Registers.AsNoTracking();
-
-        query = sortOrder == "asc"
-            ? query.OrderBy(r => EF.Property<object>(r, sortBy))
-            : query.OrderByDescending(r => EF.Property<object>(r, sortBy));
-
-        var regs = await query
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
+        // Load all registers
+        var regs = await _db.Registers
+            .AsNoTracking()
             .Select(r => new RegisterViewItem
             {
                 Id = r.Id,
