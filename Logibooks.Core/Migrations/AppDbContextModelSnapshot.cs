@@ -225,12 +225,6 @@ namespace Logibooks.Core.Migrations
 
                     b.HasIndex("StatusId");
 
-                    b.HasIndex("RegisterId", "StatusId")
-                        .HasDatabaseName("IX_orders_register_status");
-
-                    b.HasIndex("RegisterId", "TnVed")
-                        .HasDatabaseName("IX_orders_register_tnved");
-
                     b.ToTable("orders");
                 });
 
