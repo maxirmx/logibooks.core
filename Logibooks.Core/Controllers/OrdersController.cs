@@ -41,7 +41,7 @@ public class OrdersController(
     AppDbContext db,
     ILogger<OrdersController> logger) : LogibooksControllerBase(httpContextAccessor, db, logger)
 {
-    private readonly int maxPageSize = 1000;
+    private const int MaxPageSize = 1000;
 
     [HttpGet("{id}")]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(Order))]
@@ -127,7 +127,7 @@ public class OrdersController(
         _logger.LogDebug("GetOrders for register={reg} status={st} tnVed={tnVed} page={page} size={size} sortBy={sortBy} sortOrder={sortOrder}",
             registerId, statusId, tnVed, page, pageSize, sortBy, sortOrder);
 
-        if (page <= 0 || pageSize <= 0 || pageSize > maxPageSize)
+        if (page <= 0 || pageSize <= 0 || pageSize > MaxPageSize)
         {
             _logger.LogDebug("GetOrders returning '400 Bad Request' - invalid pagination");
             return _400();
