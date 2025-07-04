@@ -28,6 +28,7 @@ using Microsoft.EntityFrameworkCore;
 
 using Logibooks.Core.Authorization;
 using Logibooks.Core.Data;
+using Logibooks.Core.Extensions;
 using Logibooks.Core.Models;
 using Logibooks.Core.RestModels;
 

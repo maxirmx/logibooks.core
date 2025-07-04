@@ -23,14 +23,14 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
-
-using Logibooks.Core.RestModels;
-
+using System.Xml.Linq;
 namespace Logibooks.Core.Models;
 
 [Table("orders")]
+[Index(nameof(TnVed), Name = "IX_orders_tn_ved")]
 public class Order
 {
     [Column("id")]
@@ -180,54 +180,5 @@ public class Order
 
     [Column("other_reason")]
     public string? OtherReason { get; set; }
-
-    public void UpdateFrom(OrderUpdateItem updateItem)
-    {
-        if (updateItem.StatusId.HasValue) StatusId = updateItem.StatusId.Value;
-        if (updateItem.RowNumber.HasValue) RowNumber = updateItem.RowNumber.Value;
-        if (updateItem.OrderNumber != null) OrderNumber = updateItem.OrderNumber;
-        if (updateItem.InvoiceDate != null) InvoiceDate = updateItem.InvoiceDate;
-        if (updateItem.Sticker != null) Sticker = updateItem.Sticker;
-        if (updateItem.Shk != null) Shk = updateItem.Shk;
-        if (updateItem.StickerCode != null) StickerCode = updateItem.StickerCode;
-        if (updateItem.ExtId != null) ExtId = updateItem.ExtId;
-        if (updateItem.TnVed != null) TnVed = updateItem.TnVed;
-        if (updateItem.SiteArticle != null) SiteArticle = updateItem.SiteArticle;
-        if (updateItem.HeelHeight != null) HeelHeight = updateItem.HeelHeight;
-        if (updateItem.Size != null) Size = updateItem.Size;
-        if (updateItem.ProductName != null) ProductName = updateItem.ProductName;
-        if (updateItem.Description != null) Description = updateItem.Description;
-        if (updateItem.Gender != null) Gender = updateItem.Gender;
-        if (updateItem.Brand != null) Brand = updateItem.Brand;
-        if (updateItem.FabricType != null) FabricType = updateItem.FabricType;
-        if (updateItem.Composition != null) Composition = updateItem.Composition;
-        if (updateItem.Lining != null) Lining = updateItem.Lining;
-        if (updateItem.Insole != null) Insole = updateItem.Insole;
-        if (updateItem.Sole != null) Sole = updateItem.Sole;
-        if (updateItem.Country != null) Country = updateItem.Country;
-        if (updateItem.FactoryAddress != null) FactoryAddress = updateItem.FactoryAddress;
-        if (updateItem.Unit != null) Unit = updateItem.Unit;
-        if (updateItem.WeightKg != null) WeightKg = updateItem.WeightKg;
-        if (updateItem.Quantity != null) Quantity = updateItem.Quantity;
-        if (updateItem.UnitPrice != null) UnitPrice = updateItem.UnitPrice;
-        if (updateItem.Currency != null) Currency = updateItem.Currency;
-        if (updateItem.Barcode != null) Barcode = updateItem.Barcode;
-        if (updateItem.Declaration != null) Declaration = updateItem.Declaration;
-        if (updateItem.ProductLink != null) ProductLink = updateItem.ProductLink;
-        if (updateItem.RecipientName != null) RecipientName = updateItem.RecipientName;
-        if (updateItem.RecipientInn != null) RecipientInn = updateItem.RecipientInn;
-        if (updateItem.PassportNumber != null) PassportNumber = updateItem.PassportNumber;
-        if (updateItem.Pinfl != null) Pinfl = updateItem.Pinfl;
-        if (updateItem.RecipientAddress != null) RecipientAddress = updateItem.RecipientAddress;
-        if (updateItem.ContactPhone != null) ContactPhone = updateItem.ContactPhone;
-        if (updateItem.BoxNumber != null) BoxNumber = updateItem.BoxNumber;
-        if (updateItem.Supplier != null) Supplier = updateItem.Supplier;
-        if (updateItem.SupplierInn != null) SupplierInn = updateItem.SupplierInn;
-        if (updateItem.Category != null) Category = updateItem.Category;
-        if (updateItem.Subcategory != null) Subcategory = updateItem.Subcategory;
-        if (updateItem.PersonalData != null) PersonalData = updateItem.PersonalData;
-        if (updateItem.CustomsClearance != null) CustomsClearance = updateItem.CustomsClearance;
-        if (updateItem.DutyPayment != null) DutyPayment = updateItem.DutyPayment;
-        if (updateItem.OtherReason != null) OtherReason = updateItem.OtherReason;
-    }
 }
+
