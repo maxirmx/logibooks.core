@@ -110,6 +110,7 @@ public class OrdersControllerTests
         var result = await _controller.GetOrder(1);
 
         Assert.That(result.Value, Is.Not.Null);
+        Assert.That(result.Value, Is.InstanceOf<OrderViewItem>());
         Assert.That(result.Value!.Id, Is.EqualTo(1));
     }
 
@@ -123,7 +124,7 @@ public class OrdersControllerTests
         _dbContext.Orders.Add(order);
         await _dbContext.SaveChangesAsync();
 
-        var updated = new Order { Id = 2, RegisterId = 1, StatusId = 2, TnVed = "B" };
+        var updated = new OrderUpdateItem { StatusId = 2, TnVed = "B" };
 
         var result = await _controller.UpdateOrder(2, updated);
 
@@ -149,7 +150,7 @@ public class OrdersControllerTests
 
         var result = await _controller.GetOrders(registerId: 1, statusId: 2, tnVed: "B", sortBy: "tnVed", sortOrder: "desc");
         var ok = result.Result as OkObjectResult;
-        var pr = ok!.Value as PagedResult<Order>;
+        var pr = ok!.Value as PagedResult<OrderViewItem>;
 
         Assert.That(pr!.Items.Count(), Is.EqualTo(1));
         Assert.That(pr.Items.First().Id, Is.EqualTo(3));
@@ -200,7 +201,7 @@ public class OrdersControllerTests
     public async Task UpdateOrder_ReturnsForbidden_ForNonLogist()
     {
         SetCurrentUserId(99); // unknown user
-        var updated = new Order { Id = 1 };
+        var updated = new OrderUpdateItem();
 
         var result = await _controller.UpdateOrder(1, updated);
 
@@ -217,7 +218,7 @@ public class OrdersControllerTests
         _dbContext.Registers.Add(register);
         await _dbContext.SaveChangesAsync();
 
-        var updated = new Order { Id = 1, RegisterId = 1, StatusId = 2, TnVed = "B" };
+        var updated = new OrderUpdateItem { StatusId = 2, TnVed = "B" };
 
         var result = await _controller.UpdateOrder(1, updated);
 

@@ -44,10 +44,10 @@ public class OrdersController(
     private const int MaxPageSize = 1000;
 
     [HttpGet("{id}")]
-    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(Order))]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(OrderViewItem))]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
-    public async Task<ActionResult<Order>> GetOrder(int id)
+    public async Task<ActionResult<OrderViewItem>> GetOrder(int id)
     {
         _logger.LogDebug("GetOrder for id={id}", id);
 
@@ -66,14 +66,14 @@ public class OrdersController(
         }
 
         _logger.LogDebug("GetOrder returning order");
-        return order;
+        return new OrderViewItem(order);
     }
 
     [HttpPut("{id}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
-    public async Task<IActionResult> UpdateOrder(int id, Order update)
+    public async Task<IActionResult> UpdateOrder(int id, OrderUpdateItem update)
     {
         _logger.LogDebug("UpdateOrder for id={id}", id);
 
@@ -92,15 +92,15 @@ public class OrdersController(
         }
 
         // Copy allowed properties from update to entity
-        foreach (var prop in typeof(Order).GetProperties())
+        foreach (var prop in typeof(OrderUpdateItem).GetProperties())
         {
-            if (prop.Name == nameof(Order.Id))
+            if (prop.Name == nameof(Order.RegisterId) || prop.Name == nameof(Order.Id))
                 continue;
 
             var val = prop.GetValue(update);
             if (val != null)
             {
-                prop.SetValue(order, val);
+                typeof(Order).GetProperty(prop.Name)?.SetValue(order, val);
             }
         }
 
@@ -112,10 +112,10 @@ public class OrdersController(
     }
 
     [HttpGet]
-    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(PagedResult<Order>))]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(PagedResult<OrderViewItem>))]
     [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
-    public async Task<ActionResult<PagedResult<Order>>> GetOrders(
+    public async Task<ActionResult<PagedResult<OrderViewItem>>> GetOrders(
         int registerId,
         int? statusId = null,
         string? tnVed = null,
@@ -186,9 +186,11 @@ public class OrdersController(
             .Take(pageSize)
             .ToListAsync();
 
-        var result = new PagedResult<Order>
+        var viewItems = items.Select(o => new OrderViewItem(o)).ToList();
+
+        var result = new PagedResult<OrderViewItem>
         {
-            Items = items,
+            Items = viewItems,
             Pagination = new PaginationInfo
             {
                 CurrentPage = page,
