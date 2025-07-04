@@ -168,14 +168,21 @@ public class OrdersController(
             _ => query.OrderBy(o => o.Id)
         };
 
-        var totalCount = await query.CountAsync();
+        var paginatedResult = await query
+            .GroupBy(o => 1)
+            .Select(g => new
+            {
+                TotalCount = g.Count(),
+                Items = g.OrderBy(o => o.Id) // Apply sorting here
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .ToList()
+            })
+            .FirstOrDefaultAsync();
+
+        var totalCount = paginatedResult?.TotalCount ?? 0;
+        var items = paginatedResult?.Items ?? new List<Order>();
         var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
-
-        var items = await query
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync();
-
         var viewItems = items.Select(o => new OrderViewItem(o)).ToList();
 
         var result = new PagedResult<OrderViewItem>
