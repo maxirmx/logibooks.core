@@ -28,17 +28,8 @@ using Logibooks.Core.RestModels;
 
 namespace Logibooks.Core.Extensions;
 
-/// <summary>
-/// Extension methods for Order class
-/// </summary>
 public static class OrderExtensions
 {
-    /// <summary>
-    /// Updates the current order with values from the provided OrderUpdateItem.
-    /// Only non-null values from the update item will be applied.
-    /// </summary>
-    /// <param name="order">The order to update</param>
-    /// <param name="updateItem">The update item containing new values</param>
     public static void UpdateFrom(this Order order, OrderUpdateItem updateItem)
     {
         if (updateItem.StatusId.HasValue) order.StatusId = updateItem.StatusId.Value;
