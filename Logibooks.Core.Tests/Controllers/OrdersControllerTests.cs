@@ -169,5 +169,94 @@ public class OrdersControllerTests
         var obj = result.Result as ObjectResult;
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
     }
+
+    [Test]
+    public async Task GetOrder_ReturnsForbidden_ForNonLogist()
+    {
+        SetCurrentUserId(99); // unknown user
+        var result = await _controller.GetOrder(1);
+
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
+    }
+
+    [Test]
+    public async Task GetOrder_ReturnsNotFound_WhenMissing()
+    {
+        SetCurrentUserId(1);
+        var register = new Register { Id = 1, FileName = "r.xlsx" };
+        _dbContext.Registers.Add(register);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.GetOrder(99);
+
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+    }
+
+    [Test]
+    public async Task UpdateOrder_ReturnsForbidden_ForNonLogist()
+    {
+        SetCurrentUserId(99); // unknown user
+        var updated = new Order { Id = 1 };
+
+        var result = await _controller.UpdateOrder(1, updated);
+
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
+    }
+
+    [Test]
+    public async Task UpdateOrder_ReturnsNotFound_WhenMissing()
+    {
+        SetCurrentUserId(1);
+        var register = new Register { Id = 1, FileName = "r.xlsx" };
+        _dbContext.Registers.Add(register);
+        await _dbContext.SaveChangesAsync();
+
+        var updated = new Order { Id = 1, RegisterId = 1, StatusId = 2, TnVed = "B" };
+
+        var result = await _controller.UpdateOrder(1, updated);
+
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+    }
+
+    [Test]
+    public async Task GetOrders_InvalidPagination_ReturnsBadRequest()
+    {
+        SetCurrentUserId(1);
+        var result = await _controller.GetOrders(registerId: 1, page: 0);
+
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
+    }
+
+    [Test]
+    public async Task GetOrders_InvalidSortBy_ReturnsBadRequest()
+    {
+        SetCurrentUserId(1);
+        var result = await _controller.GetOrders(registerId: 1, sortBy: "foo");
+
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
+    }
+
+    [Test]
+    public async Task GetOrders_InvalidSortOrder_ReturnsBadRequest()
+    {
+        SetCurrentUserId(1);
+        var result = await _controller.GetOrders(registerId: 1, sortOrder: "bad");
+
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
+    }
 }
 
