@@ -1,28 +1,4 @@
-// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
-// All rights reserved.
-// This file is a part of Logibooks Core application
-//
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions
-// are met:
-// 1. Redistributions of source code must retain the above copyright
-// notice, this list of conditions and the following disclaimer.
-// 2. Redistributions in binary form must reproduce the above copyright
-// notice, this list of conditions and the following disclaimer in the
-// documentation and/or other materials provided with the distribution.
-//
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-// ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-// TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
-// PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR CONTRIBUTORS
-// BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-// POSSIBILITY OF SUCH DAMAGE.
-
+using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -40,9 +16,11 @@ namespace Logibooks.Core.Controllers;
 public class OrdersController(
     IHttpContextAccessor httpContextAccessor,
     AppDbContext db,
-    ILogger<OrdersController> logger) : LogibooksControllerBase(httpContextAccessor, db, logger)
+    ILogger<OrdersController> logger,
+    IMapper mapper) : LogibooksControllerBase(httpContextAccessor, db, logger)
 {
     private const int MaxPageSize = 1000;
+    private readonly IMapper _mapper = mapper;
 
     [HttpGet("{id}")]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(OrderViewItem))]
@@ -92,7 +70,8 @@ public class OrdersController(
             return _404Order(id);
         }
 
-        order.UpdateFrom(update);
+        // Use AutoMapper via extension method
+        order.UpdateFrom(update, _mapper);
 
         _db.Entry(order).State = EntityState.Modified;
         await _db.SaveChangesAsync();
@@ -168,21 +147,14 @@ public class OrdersController(
             _ => query.OrderBy(o => o.Id)
         };
 
-        var paginatedResult = await query
-            .GroupBy(o => 1)
-            .Select(g => new
-            {
-                TotalCount = g.Count(),
-                Items = g.OrderBy(o => o.Id) // Apply sorting here
-                    .Skip((page - 1) * pageSize)
-                    .Take(pageSize)
-                    .ToList()
-            })
-            .FirstOrDefaultAsync();
-
-        var totalCount = paginatedResult?.TotalCount ?? 0;
-        var items = paginatedResult?.Items ?? new List<Order>();
+        var totalCount = await query.CountAsync();
         var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+
+        var items = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
         var viewItems = items.Select(o => new OrderViewItem(o)).ToList();
 
         var result = new PagedResult<OrderViewItem>
@@ -204,4 +176,3 @@ public class OrdersController(
         return Ok(result);
     }
 }
-

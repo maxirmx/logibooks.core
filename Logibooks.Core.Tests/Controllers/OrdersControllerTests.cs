@@ -38,6 +38,7 @@ using Logibooks.Core.Controllers;
 using Logibooks.Core.Data;
 using Logibooks.Core.Models;
 using Logibooks.Core.RestModels;
+using AutoMapper;
 
 namespace Logibooks.Core.Tests.Controllers;
 
@@ -72,14 +73,15 @@ public class OrdersControllerTests
             Password = hpw,
             FirstName = "Log",
             LastName = "User",
-            UserRoles = [ new UserRole { UserId = 1, RoleId = 1, Role = _logistRole } ]
+            UserRoles = [new UserRole { UserId = 1, RoleId = 1, Role = _logistRole }]
         };
         _dbContext.Users.Add(_logistUser);
         _dbContext.SaveChanges();
 
         _mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
         _logger = new LoggerFactory().CreateLogger<OrdersController>();
-        _controller = new OrdersController(_mockHttpContextAccessor.Object, _dbContext, _logger);
+        var mockMapper = new Mock<IMapper>(); // Add this line to mock the IMapper dependency  
+        _controller = new OrdersController(_mockHttpContextAccessor.Object, _dbContext, _logger, mockMapper.Object); // Pass the mockMapper.Object  
     }
 
     [TearDown]
@@ -94,7 +96,8 @@ public class OrdersControllerTests
         var ctx = new DefaultHttpContext();
         ctx.Items["UserId"] = id;
         _mockHttpContextAccessor.Setup(x => x.HttpContext).Returns(ctx);
-        _controller = new OrdersController(_mockHttpContextAccessor.Object, _dbContext, _logger);
+        var mockMapper = new Mock<IMapper>();
+        _controller = new OrdersController(_mockHttpContextAccessor.Object, _dbContext, _logger, mockMapper.Object);
     }
 
     [Test]
@@ -125,6 +128,20 @@ public class OrdersControllerTests
         await _dbContext.SaveChangesAsync();
 
         var updated = new OrderUpdateItem { StatusId = 2, TnVed = "B" };
+
+        // Configure the mock to perform the actual mapping
+        var mockMapper = new Mock<IMapper>();
+        mockMapper.Setup(m => m.Map(It.IsAny<OrderUpdateItem>(), It.IsAny<Order>()))
+            .Callback<OrderUpdateItem, Order>((src, dest) =>
+            {
+                // Simulate the AutoMapper behavior - only update non-null values
+                if (src.StatusId.HasValue) dest.StatusId = src.StatusId.Value;
+                if (src.TnVed != null) dest.TnVed = src.TnVed;
+                // Add other properties as needed for testing
+            });
+
+        // Create a new controller instance with the properly configured mock
+        _controller = new OrdersController(_mockHttpContextAccessor.Object, _dbContext, _logger, mockMapper.Object);
 
         var result = await _controller.UpdateOrder(2, updated);
 

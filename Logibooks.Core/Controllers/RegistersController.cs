@@ -339,7 +339,7 @@ public class RegistersController(
     {
         _logger.LogDebug("ProcessExcel for {file} ({size} bytes)", fileName, content.Length);
 
-        var mappingPath = Path.Combine(AppContext.BaseDirectory, "mapping", mappingFile);
+        var mappingPath = Path.Combine(AppContext.BaseDirectory, "Mapping", mappingFile);
         if (!System.IO.File.Exists(mappingPath))
         {
             _logger.LogError("Mapping file not found at {path}, ProcessExcel returning '500 Internal Server Error'", mappingPath);

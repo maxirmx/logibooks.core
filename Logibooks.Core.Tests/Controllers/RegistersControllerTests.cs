@@ -852,7 +852,7 @@ public class RegistersControllerTests
         byte[] excelContent = [0x50, 0x4B, 0x03, 0x04]; // Just some dummy content
 
         // Make sure mapping directory exists but use a non-existent mapping file name
-        string mappingDir = Path.Combine(AppContext.BaseDirectory, "mapping");
+        string mappingDir = Path.Combine(AppContext.BaseDirectory, "Mapping");
         Directory.CreateDirectory(mappingDir);
         string nonExistentMappingFile = "non_existent_mapping.yaml";
         string mappingPath = Path.Combine(mappingDir, nonExistentMappingFile);
