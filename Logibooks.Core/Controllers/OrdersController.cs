@@ -91,18 +91,7 @@ public class OrdersController(
             return _404Order(id);
         }
 
-        // Copy allowed properties from update to entity
-        foreach (var prop in typeof(OrderUpdateItem).GetProperties())
-        {
-            if (prop.Name == nameof(Order.RegisterId) || prop.Name == nameof(Order.Id))
-                continue;
-
-            var val = prop.GetValue(update);
-            if (val != null)
-            {
-                typeof(Order).GetProperty(prop.Name)?.SetValue(order, val);
-            }
-        }
+        order.UpdateFrom(update);
 
         _db.Entry(order).State = EntityState.Modified;
         await _db.SaveChangesAsync();
