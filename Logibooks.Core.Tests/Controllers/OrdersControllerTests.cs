@@ -276,5 +276,26 @@ public class OrdersControllerTests
         var obj = result.Result as ObjectResult;
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
     }
+
+    [Test]
+    public async Task GetOrders_ReturnsAll_WhenPageSizeIsMinusOne()
+    {
+        SetCurrentUserId(1);
+        var reg = new Register { Id = 1, FileName = "r.xlsx" };
+        _dbContext.Registers.Add(reg);
+        _dbContext.Orders.AddRange(
+            new Order { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "A" },
+            new Order { Id = 2, RegisterId = 1, StatusId = 1, TnVed = "B" }
+        );
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.GetOrders(registerId: 1, pageSize: -1);
+        Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
+        var ok = result.Result as OkObjectResult;
+        var pr = ok!.Value as PagedResult<OrderViewItem>;
+        Assert.That(pr!.Items.Count(), Is.EqualTo(2));
+        Assert.That(pr.Pagination.TotalCount, Is.EqualTo(2));
+        Assert.That(pr.Pagination.TotalPages, Is.EqualTo(1));
+    }
 }
 
