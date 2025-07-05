@@ -655,13 +655,6 @@ public class RegistersControllerTests
 
         var mockFile = CreateMockFile("Реестр_207730349.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", excelContent);
         var result = await _controller.UploadRegister(mockFile.Object);
-        if (result is ObjectResult obj)
-        {
-            if (obj.Value is ErrMessage error)
-            {
-                Console.WriteLine(error.Msg);
-            }
-        }
         Assert.That(result, Is.TypeOf<CreatedAtActionResult>());
 
         // Verify that orders were created in the database
