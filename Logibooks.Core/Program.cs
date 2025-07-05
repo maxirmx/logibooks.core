@@ -23,12 +23,13 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi.Models;
+
 using Logibooks.Core.Authorization;
 using Logibooks.Core.Data;
 using Logibooks.Core.Extensions;
 using Logibooks.Core.Settings;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 var config = builder.Configuration;
@@ -46,8 +47,6 @@ builder.WebHost.ConfigureKestrel(options =>
 
 builder.Services.AddAutoMapper(cfg => cfg.AddProfile<OrderMappingProfile>());
 
-// With this corrected line:  
-builder.Services.AddAutoMapper(cfg => cfg.AddProfile<OrderMappingProfile>());
 builder.Services
     .Configure<AppSettings>(builder.Configuration.GetSection("AppSettings"))
     .AddScoped<IJwtUtils, JwtUtils>()
