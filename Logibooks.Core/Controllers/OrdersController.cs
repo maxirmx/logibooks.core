@@ -180,6 +180,11 @@ public class OrdersController(
 
         var totalPages = (int)Math.Ceiling(totalCount / (double)actualPageSize);
 
+        if (actualPage > totalPages && totalPages > 0)
+        {
+            actualPage = 1;
+        }
+
         var items = await query
             .Skip((actualPage - 1) * actualPageSize)
             .Take(actualPageSize)
