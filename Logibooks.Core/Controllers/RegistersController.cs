@@ -106,7 +106,8 @@ public class RegistersController(
         _logger.LogDebug("GetRegisters for page={page} pageSize={size} sortBy={sortBy} sortOrder={sortOrder} search={search}",
             page, pageSize, sortBy, sortOrder, search);
 
-        if (page <= 0 || pageSize <= 0 || pageSize > maxPageSize)
+        if (page <= 0 ||
+            (pageSize != -1 && (pageSize <= 0 || pageSize > maxPageSize)))
         {
             _logger.LogDebug("GetRegisters returning '400 Bad Request' - invalid pagination");
             return _400();
@@ -164,11 +165,20 @@ public class RegistersController(
         };
 
         var totalCount = await baseQuery.CountAsync();
-        var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+
+        int actualPage = pageSize == -1 ? 1 : page;
+        int actualPageSize = pageSize == -1 ? (totalCount == 0 ? 1 : totalCount) : pageSize;
+
+        var totalPages = (int)Math.Ceiling(totalCount / (double)actualPageSize);
+
+        if (actualPage > totalPages && totalPages > 0)
+        {
+            actualPage = 1;
+        }
 
         var items = await query
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
+            .Skip((actualPage - 1) * actualPageSize)
+            .Take(actualPageSize)
             .ToListAsync();
         var ids = items.Select(r => r.Id).ToList();
         var stats = await FetchOrdersStatsAsync(ids);
@@ -185,12 +195,12 @@ public class RegistersController(
             Items = items,
             Pagination = new PaginationInfo
             {
-                CurrentPage = page,
+                CurrentPage = actualPage,
                 PageSize = pageSize,
                 TotalCount = totalCount,
                 TotalPages = totalPages,
-                HasNextPage = page < totalPages,
-                HasPreviousPage = page > 1
+                HasNextPage = actualPage < totalPages,
+                HasPreviousPage = actualPage > 1
             },
             Sorting = new SortingInfo { SortBy = sortBy, SortOrder = sortOrder },
             Search = search

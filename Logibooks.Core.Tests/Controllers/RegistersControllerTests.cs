@@ -489,6 +489,44 @@ public class RegistersControllerTests
     }
 
     [Test]
+    public async Task GetRegisters_ReturnsAll_WhenPageSizeIsMinusOne()
+    {
+        SetCurrentUserId(1);
+        _dbContext.Registers.AddRange(
+            new Register { Id = 1, FileName = "r1.xlsx" },
+            new Register { Id = 2, FileName = "r2.xlsx" },
+            new Register { Id = 3, FileName = "r3.xlsx" }
+        );
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.GetRegisters(pageSize: -1);
+        Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
+        var ok = result.Result as OkObjectResult;
+        var pr = ok!.Value as PagedResult<RegisterViewItem>;
+        Assert.That(pr!.Items.Count(), Is.EqualTo(3));
+        Assert.That(pr.Pagination.TotalCount, Is.EqualTo(3));
+        Assert.That(pr.Pagination.TotalPages, Is.EqualTo(1));
+    }
+
+    [Test]
+    public async Task GetRegisters_PageExceedsTotalPages_ResetsToFirstPage()
+    {
+        SetCurrentUserId(1);
+        for (int i = 1; i <= 6; i++)
+        {
+            _dbContext.Registers.Add(new Register { Id = i, FileName = $"r{i}.xlsx" });
+        }
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.GetRegisters(page: 3, pageSize: 5);
+        Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
+        var ok = result.Result as OkObjectResult;
+        var pr = ok!.Value as PagedResult<RegisterViewItem>;
+        Assert.That(pr!.Pagination.CurrentPage, Is.EqualTo(1));
+        Assert.That(pr.Items.First().Id, Is.EqualTo(1));
+    }
+
+    [Test]
     public async Task GetRegisters_HandlesCaseInsensitiveSortBy()
     {
         SetCurrentUserId(1);
