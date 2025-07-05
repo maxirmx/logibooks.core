@@ -23,11 +23,13 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-using Logibooks.Core.Authorization;
-using Logibooks.Core.Data;
-using Logibooks.Core.Settings;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
+
+using Logibooks.Core.Authorization;
+using Logibooks.Core.Data;
+using Logibooks.Core.Extensions;
+using Logibooks.Core.Settings;
 
 var builder = WebApplication.CreateBuilder(args);
 var config = builder.Configuration;
@@ -36,13 +38,14 @@ var certPassword = config["Kestrel:Certificates:Default:Password"];
 bool useHttps = !string.IsNullOrEmpty(certPath) && !string.IsNullOrEmpty(certPassword) && File.Exists(certPath);
 builder.WebHost.ConfigureKestrel(options =>
 {
-     if (useHttps)
-     { 
-            options.ListenAnyIP(8081, listenOptions => listenOptions.UseHttps(certPath!, certPassword));
-     }
-     options.ListenAnyIP(8080);
+    if (useHttps)
+    {
+        options.ListenAnyIP(8081, listenOptions => listenOptions.UseHttps(certPath!, certPassword));
+    }
+    options.ListenAnyIP(8080);
 });
 
+builder.Services.AddAutoMapper(cfg => cfg.AddProfile<OrderMappingProfile>());
 
 builder.Services
     .Configure<AppSettings>(builder.Configuration.GetSection("AppSettings"))

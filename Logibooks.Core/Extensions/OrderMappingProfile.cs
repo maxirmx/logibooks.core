@@ -1,4 +1,4 @@
-// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
+﻿// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
 // All rights reserved.
 // This file is a part of Logibooks Core application
 //
@@ -23,9 +23,24 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-namespace Logibooks.Core;
+using AutoMapper;
+using Logibooks.Core.Models;
+using Logibooks.Core.RestModels;
 
-public static class VersionInfo
+namespace Logibooks.Core.Extensions;
+
+public class OrderMappingProfile : Profile
 {
-    public const string AppVersion = "0.3.0";
+    public OrderMappingProfile()
+    {
+        CreateMap<OrderUpdateItem, Order>()
+            // Ignore properties that shouldn't be updated
+            .ForMember(dest => dest.Id, opt => opt.Ignore())
+            .ForMember(dest => dest.RegisterId, opt => opt.Ignore())
+            .ForMember(dest => dest.Register, opt => opt.Ignore())
+            .ForMember(dest => dest.Status, opt => opt.Ignore())
+            // Only map non-null values
+            .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
+    }
 }
+

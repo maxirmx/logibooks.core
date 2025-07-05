@@ -5,24 +5,23 @@
 namespace Logibooks.Core.Migrations
 {
     /// <inheritdoc />
-    public partial class FixPatronymic : Migration
+    public partial class AddTnVedIndex : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.RenameColumn(
-                name: "patronimic",
-                table: "users",
-                newName: "patronymic");
+            migrationBuilder.CreateIndex(
+                name: "IX_orders_tn_ved",
+                table: "orders",
+                column: "tn_ved");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.RenameColumn(
-                name: "patronymic",
-                table: "users",
-                newName: "patronimic");
+            migrationBuilder.DropIndex(
+                name: "IX_orders_tn_ved",
+                table: "orders");
         }
     }
 }

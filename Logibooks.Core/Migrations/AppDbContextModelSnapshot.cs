@@ -225,6 +225,8 @@ namespace Logibooks.Core.Migrations
 
                     b.HasIndex("StatusId");
 
+                    b.HasIndex(new[] { "TnVed" }, "IX_orders_tn_ved");
+
                     b.ToTable("orders");
                 });
 

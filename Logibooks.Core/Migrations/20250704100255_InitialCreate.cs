@@ -1,12 +1,15 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+﻿using System;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
+#pragma warning disable CA1814 // Prefer jagged arrays over multidimensional
+
 namespace Logibooks.Core.Migrations
 {
     /// <inheritdoc />
-    public partial class CreateRegisters : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -17,11 +20,26 @@ namespace Logibooks.Core.Migrations
                 {
                     id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    filename = table.Column<string>(type: "text", nullable: false)
+                    filename = table.Column<string>(type: "text", nullable: false),
+                    dtime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_registers", x => x.id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "roles",
+                columns: table => new
+                {
+                    id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    name = table.Column<string>(type: "text", nullable: false),
+                    title = table.Column<string>(type: "text", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_roles", x => x.id);
                 });
 
             migrationBuilder.CreateTable(
@@ -36,6 +54,23 @@ namespace Logibooks.Core.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_statuses", x => x.id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "users",
+                columns: table => new
+                {
+                    id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    first_name = table.Column<string>(type: "text", nullable: false),
+                    last_name = table.Column<string>(type: "text", nullable: false),
+                    patronymic = table.Column<string>(type: "text", nullable: false),
+                    email = table.Column<string>(type: "text", nullable: false),
+                    password = table.Column<string>(type: "text", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_users", x => x.id);
                 });
 
             migrationBuilder.CreateTable(
@@ -109,10 +144,53 @@ namespace Logibooks.Core.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
+            migrationBuilder.CreateTable(
+                name: "user_roles",
+                columns: table => new
+                {
+                    user_id = table.Column<int>(type: "integer", nullable: false),
+                    role_id = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_user_roles", x => new { x.user_id, x.role_id });
+                    table.ForeignKey(
+                        name: "FK_user_roles_roles_role_id",
+                        column: x => x.role_id,
+                        principalTable: "roles",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_user_roles_users_user_id",
+                        column: x => x.user_id,
+                        principalTable: "users",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.InsertData(
+                table: "roles",
+                columns: new[] { "id", "name", "title" },
+                values: new object[,]
+                {
+                    { 1, "logist", "Логист" },
+                    { 2, "administrator", "Администратор" }
+                });
+
             migrationBuilder.InsertData(
                 table: "statuses",
                 columns: new[] { "id", "name", "title" },
                 values: new object[] { 1, "loaded", "Загружен" });
+
+            migrationBuilder.InsertData(
+                table: "users",
+                columns: new[] { "id", "email", "first_name", "last_name", "password", "patronymic" },
+                values: new object[] { 1, "maxirmx@sw.consulting", "Maxim", "Samsonov", "$2b$12$eOXzlwFzyGVERe0sNwFeJO5XnvwsjloUpL4o2AIQ8254RT88MnsDi", "" });
+
+            migrationBuilder.InsertData(
+                table: "user_roles",
+                columns: new[] { "role_id", "user_id" },
+                values: new object[] { 2, 1 });
 
             migrationBuilder.CreateIndex(
                 name: "IX_orders_register_id",
@@ -123,6 +201,11 @@ namespace Logibooks.Core.Migrations
                 name: "IX_orders_status_id",
                 table: "orders",
                 column: "status_id");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_user_roles_role_id",
+                table: "user_roles",
+                column: "role_id");
         }
 
         /// <inheritdoc />
@@ -132,10 +215,19 @@ namespace Logibooks.Core.Migrations
                 name: "orders");
 
             migrationBuilder.DropTable(
+                name: "user_roles");
+
+            migrationBuilder.DropTable(
                 name: "registers");
 
             migrationBuilder.DropTable(
                 name: "statuses");
+
+            migrationBuilder.DropTable(
+                name: "roles");
+
+            migrationBuilder.DropTable(
+                name: "users");
         }
     }
 }
