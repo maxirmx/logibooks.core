@@ -210,4 +210,20 @@ public class OrdersController(
         _logger.LogDebug("GetOrders returning {count} items", items.Count);
         return Ok(result);
     }
+
+    [HttpGet("statuses")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<OrderStatus>))]
+    [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
+    public async Task<ActionResult<IEnumerable<OrderStatus>>> GetStatuses()
+    {
+        var ok = await _db.CheckLogist(_curUserId);
+        if (!ok)
+        {
+            _logger.LogDebug("GetStatuses returning '403 Forbidden'");
+            return _403();
+        }
+        var statuses = await _db.Statuses.AsNoTracking().OrderBy(s => s.Id).ToListAsync();
+        _logger.LogDebug("GetStatuses returning {count} items", statuses.Count);
+        return Ok(statuses);
+    }
 }

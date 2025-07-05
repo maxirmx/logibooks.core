@@ -39,6 +39,7 @@ using Logibooks.Core.Data;
 using Logibooks.Core.Models;
 using Logibooks.Core.RestModels;
 using AutoMapper;
+using System.Collections.Generic;
 
 namespace Logibooks.Core.Tests.Controllers;
 
@@ -316,6 +317,43 @@ public class OrdersControllerTests
         var pr = ok!.Value as PagedResult<OrderViewItem>;
         Assert.That(pr!.Pagination.CurrentPage, Is.EqualTo(1));
         Assert.That(pr.Items.First().Id, Is.EqualTo(1));
+    }
+
+    [Test]
+    public async Task GetStatuses_ReturnsForbidden_ForNonLogist()
+    {
+        SetCurrentUserId(2);
+
+        _dbContext.Statuses.AddRange(
+            new OrderStatus { Id = 1, Name = "loaded", Title = "Loaded" },
+            new OrderStatus { Id = 2, Name = "processed", Title = "Processed" }
+        );
+        await _dbContext.SaveChangesAsync();
+        var result = await _controller.GetStatuses();
+
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>()); // Fix: Access the Result property
+        var obj = result.Result as ObjectResult; 
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
+    }
+
+    [Test]
+    public async Task GetStatuses_ReturnsAllStatuses()
+    {
+        SetCurrentUserId(1);
+        _dbContext.Statuses.AddRange(
+            new OrderStatus { Id = 1, Name = "loaded", Title = "Loaded" },
+            new OrderStatus { Id = 2, Name = "processed", Title = "Processed" }
+        );
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.GetStatuses();
+
+        Assert.That(result.Result, Is.TypeOf<OkObjectResult>()); // Fix: Access the Result property
+        var ok = result.Result as OkObjectResult; 
+        var statuses = ok!.Value as IEnumerable<OrderStatus>;
+        Assert.That(statuses, Is.Not.Null);
+        Assert.That(statuses!.Count(), Is.EqualTo(2));
+        Assert.That(statuses!.First().Name, Is.EqualTo("loaded"));
     }
 }
 
