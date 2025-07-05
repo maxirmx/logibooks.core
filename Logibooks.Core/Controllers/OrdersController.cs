@@ -222,7 +222,7 @@ public class OrdersController(
             _logger.LogDebug("GetStatuses returning '403 Forbidden'");
             return _403();
         }
-        var statuses = await _db.Statuses.AsNoTracking().ToListAsync();
+        var statuses = await _db.Statuses.AsNoTracking().OrderBy(s => s.Id).ToListAsync();
         _logger.LogDebug("GetStatuses returning {count} items", statuses.Count);
         return Ok(statuses);
     }

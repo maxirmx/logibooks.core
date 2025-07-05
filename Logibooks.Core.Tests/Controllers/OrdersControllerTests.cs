@@ -331,15 +331,15 @@ public class OrdersControllerTests
         await _dbContext.SaveChangesAsync();
         var result = await _controller.GetStatuses();
 
-        Assert.That(result, Is.TypeOf<ObjectResult>());
-        var obj = result as ObjectResult;
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>()); // Fix: Access the Result property
+        var obj = result.Result as ObjectResult; 
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
     }
 
     [Test]
     public async Task GetStatuses_ReturnsAllStatuses()
     {
-        SetCurrentUserId(1);   
+        SetCurrentUserId(1);
         _dbContext.Statuses.AddRange(
             new OrderStatus { Id = 1, Name = "loaded", Title = "Loaded" },
             new OrderStatus { Id = 2, Name = "processed", Title = "Processed" }
@@ -348,12 +348,12 @@ public class OrdersControllerTests
 
         var result = await _controller.GetStatuses();
 
-        Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
-        var ok = result.Result as OkObjectResult;
+        Assert.That(result.Result, Is.TypeOf<OkObjectResult>()); // Fix: Access the Result property
+        var ok = result.Result as OkObjectResult; 
         var statuses = ok!.Value as IEnumerable<OrderStatus>;
         Assert.That(statuses, Is.Not.Null);
         Assert.That(statuses!.Count(), Is.EqualTo(2));
-        Assert.That(statuses.First().Name, Is.EqualTo("loaded"));
+        Assert.That(statuses!.First().Name, Is.EqualTo("loaded"));
     }
 }
 
