@@ -297,5 +297,25 @@ public class OrdersControllerTests
         Assert.That(pr.Pagination.TotalCount, Is.EqualTo(2));
         Assert.That(pr.Pagination.TotalPages, Is.EqualTo(1));
     }
+
+    [Test]
+    public async Task GetOrders_PageExceedsTotalPages_ResetsToFirstPage()
+    {
+        SetCurrentUserId(1);
+        var reg = new Register { Id = 1, FileName = "r.xlsx" };
+        _dbContext.Registers.Add(reg);
+        for (int i = 1; i <= 6; i++)
+        {
+            _dbContext.Orders.Add(new Order { Id = i, RegisterId = 1, StatusId = 1, TnVed = "A" });
+        }
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.GetOrders(registerId: 1, page: 3, pageSize: 5);
+        Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
+        var ok = result.Result as OkObjectResult;
+        var pr = ok!.Value as PagedResult<OrderViewItem>;
+        Assert.That(pr!.Pagination.CurrentPage, Is.EqualTo(1));
+        Assert.That(pr.Items.First().Id, Is.EqualTo(1));
+    }
 }
 
