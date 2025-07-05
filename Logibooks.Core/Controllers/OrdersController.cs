@@ -210,4 +210,14 @@ public class OrdersController(
         _logger.LogDebug("GetOrders returning {count} items", items.Count);
         return Ok(result);
     }
+
+    [HttpGet("statuses")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<OrderStatus>))]
+    public async Task<ActionResult<IEnumerable<OrderStatus>>> GetStatuses()
+    {
+        _logger.LogDebug("GetStatuses");
+        var statuses = await _db.Statuses.AsNoTracking().ToListAsync();
+        _logger.LogDebug("GetStatuses returning {count} items", statuses.Count);
+        return Ok(statuses);
+    }
 }
