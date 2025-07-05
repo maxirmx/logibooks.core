@@ -320,8 +320,26 @@ public class OrdersControllerTests
     }
 
     [Test]
+    public async Task GetStatuses_ReturnsForbidden_ForNonLogist()
+    {
+        SetCurrentUserId(2);
+
+        _dbContext.Statuses.AddRange(
+            new OrderStatus { Id = 1, Name = "loaded", Title = "Loaded" },
+            new OrderStatus { Id = 2, Name = "processed", Title = "Processed" }
+        );
+        await _dbContext.SaveChangesAsync();
+        var result = await _controller.GetStatuses();
+
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
+    }
+
+    [Test]
     public async Task GetStatuses_ReturnsAllStatuses()
     {
+        SetCurrentUserId(1);   
         _dbContext.Statuses.AddRange(
             new OrderStatus { Id = 1, Name = "loaded", Title = "Loaded" },
             new OrderStatus { Id = 2, Name = "processed", Title = "Processed" }
