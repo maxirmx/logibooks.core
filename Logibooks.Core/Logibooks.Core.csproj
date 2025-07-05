@@ -31,7 +31,7 @@
     <PackageReference Include="ExcelDataReader.DataSet" Version="3.7.0" />
   </ItemGroup>
   <ItemGroup>
-    <None Update="Mapping\register_mapping.yaml">
+    <None Update="mapping\register_mapping.yaml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

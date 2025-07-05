@@ -25,7 +25,7 @@
 
 using Logibooks.Core.Authorization;
 using Logibooks.Core.Data;
-using Logibooks.Core.Mapping;
+using Logibooks.Core.Extensions;
 using Logibooks.Core.Settings;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;

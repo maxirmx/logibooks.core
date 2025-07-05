@@ -2,12 +2,11 @@
 
 using AutoMapper;
 using NUnit.Framework;
-
-using Logibooks.Core.Mapping;
 using Logibooks.Core.Models;
 using Logibooks.Core.RestModels;
+using Logibooks.Core.Extensions;
 
-namespace Logibooks.Core.Tests.Integration;
+namespace Logibooks.Core.Tests.Extensions;
 
 [TestFixture]
 public class AutoMapperIntegrationTests

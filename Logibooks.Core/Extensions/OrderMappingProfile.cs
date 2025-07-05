@@ -27,7 +27,7 @@ using AutoMapper;
 using Logibooks.Core.Models;
 using Logibooks.Core.RestModels;
 
-namespace Logibooks.Core.Mapping;
+namespace Logibooks.Core.Extensions;
 
 public class OrderMappingProfile : Profile
 {
