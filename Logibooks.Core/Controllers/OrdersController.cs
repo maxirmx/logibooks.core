@@ -96,7 +96,8 @@ public class OrdersController(
         _logger.LogDebug("GetOrders for register={reg} status={st} tnVed={tnVed} page={page} size={size} sortBy={sortBy} sortOrder={sortOrder}",
             registerId, statusId, tnVed, page, pageSize, sortBy, sortOrder);
 
-        if (page <= 0 || pageSize <= 0 || pageSize > MaxPageSize)
+        if (page <= 0 ||
+            (pageSize != -1 && (pageSize <= 0 || pageSize > MaxPageSize)))
         {
             _logger.LogDebug("GetOrders returning '400 Bad Request' - invalid pagination");
             return _400();
@@ -148,11 +149,15 @@ public class OrdersController(
         };
 
         var totalCount = await query.CountAsync();
-        var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+
+        int actualPage = pageSize == -1 ? 1 : page;
+        int actualPageSize = pageSize == -1 ? (totalCount == 0 ? 1 : totalCount) : pageSize;
+
+        var totalPages = (int)Math.Ceiling(totalCount / (double)actualPageSize);
 
         var items = await query
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
+            .Skip((actualPage - 1) * actualPageSize)
+            .Take(actualPageSize)
             .ToListAsync();
 
         var viewItems = items.Select(o => new OrderViewItem(o)).ToList();
@@ -162,12 +167,12 @@ public class OrdersController(
             Items = viewItems,
             Pagination = new PaginationInfo
             {
-                CurrentPage = page,
+                CurrentPage = actualPage,
                 PageSize = pageSize,
                 TotalCount = totalCount,
                 TotalPages = totalPages,
-                HasNextPage = page < totalPages,
-                HasPreviousPage = page > 1
+                HasNextPage = actualPage < totalPages,
+                HasPreviousPage = actualPage > 1
             },
             Sorting = new SortingInfo { SortBy = sortBy, SortOrder = sortOrder }
         };
