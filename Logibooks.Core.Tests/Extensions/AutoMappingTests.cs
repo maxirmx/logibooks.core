@@ -66,7 +66,18 @@ public class AutoMapperIntegrationTests
         // Assert  
         Assert.That(order.StatusId, Is.EqualTo(5));
         Assert.That(order.OrderNumber, Is.EqualTo("DI_TEST_123"));
-        Assert.That(order.Id, Is.EqualTo(1)); // Should remain unchanged  
+        Assert.That(order.Id, Is.EqualTo(1)); // Should remain unchanged
+    }
+
+    [Test]
+    public void AutoMapper_MapsWeightKgDecimal()
+    {
+        var updateItem = new OrderUpdateItem { WeightKg = 1.234m };
+        var order = new Order();
+
+        _mapper.Map(updateItem, order);
+
+        Assert.That(order.WeightKg, Is.EqualTo(1.234m));
     }
 }
 
