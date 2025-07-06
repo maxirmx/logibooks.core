@@ -38,7 +38,6 @@ public class AltaController(
         if (exceptions.Count != 0) _db.AltaExceptions.AddRange(exceptions);
         await _db.SaveChangesAsync();
         return NoContent();
-;
     }
 
     // CRUD for AltaItems
