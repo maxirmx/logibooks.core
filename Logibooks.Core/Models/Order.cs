@@ -114,8 +114,8 @@ public class Order
     [Column("unit")]
     public string? Unit { get; set; }
 
-    [Column("weight_kg")]
-    public string? WeightKg { get; set; }
+    [Column("weight_kg", TypeName = "numeric(10,3)")]
+    public decimal? WeightKg { get; set; }
 
     [Column("quantity")]
     public string? Quantity { get; set; }

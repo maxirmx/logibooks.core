@@ -57,7 +57,7 @@ public class OrderViewItem(Order order)
     public string? Country { get; set; } = order.Country;
     public string? FactoryAddress { get; set; } = order.FactoryAddress;
     public string? Unit { get; set; } = order.Unit;
-    public string? WeightKg { get; set; } = order.WeightKg;
+    public decimal? WeightKg { get; set; } = order.WeightKg;
     public string? Quantity { get; set; } = order.Quantity;
     public string? UnitPrice { get; set; } = order.UnitPrice;
     public string? Currency { get; set; } = order.Currency;
