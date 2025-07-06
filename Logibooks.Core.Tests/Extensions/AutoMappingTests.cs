@@ -2,6 +2,7 @@
 
 using AutoMapper;
 using NUnit.Framework;
+using System;
 using Logibooks.Core.Models;
 using Logibooks.Core.RestModels;
 using Logibooks.Core.Extensions;
@@ -78,6 +79,40 @@ public class AutoMapperIntegrationTests
         _mapper.Map(updateItem, order);
 
         Assert.That(order.WeightKg, Is.EqualTo(1.234m));
+    }
+
+    [Test]
+    public void AutoMapper_MapsQuantityDecimal()
+    {
+        var updateItem = new OrderUpdateItem { Quantity = 2.5m };
+        var order = new Order();
+
+        _mapper.Map(updateItem, order);
+
+        Assert.That(order.Quantity, Is.EqualTo(2.5m));
+    }
+
+    [Test]
+    public void AutoMapper_MapsUnitPriceDecimal()
+    {
+        var updateItem = new OrderUpdateItem { UnitPrice = 3.5m };
+        var order = new Order();
+
+        _mapper.Map(updateItem, order);
+
+        Assert.That(order.UnitPrice, Is.EqualTo(3.5m));
+    }
+
+    [Test]
+    public void AutoMapper_MapsInvoiceDate()
+    {
+        var date = new DateOnly(2024, 6, 28);
+        var updateItem = new OrderUpdateItem { InvoiceDate = date };
+        var order = new Order();
+
+        _mapper.Map(updateItem, order);
+
+        Assert.That(order.InvoiceDate, Is.EqualTo(date));
     }
 }
 

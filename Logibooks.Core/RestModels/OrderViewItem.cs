@@ -23,6 +23,7 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+using System;
 using System.Text.Json;
 using Logibooks.Core.Models;
 using Logibooks.Core.Settings;
@@ -36,7 +37,7 @@ public class OrderViewItem(Order order)
     public int StatusId { get; set; } = order.StatusId;
     public int RowNumber { get; set; } = order.RowNumber;
     public string? OrderNumber { get; set; } = order.OrderNumber;
-    public string? InvoiceDate { get; set; } = order.InvoiceDate;
+    public DateOnly? InvoiceDate { get; set; } = order.InvoiceDate;
     public string? Sticker { get; set; } = order.Sticker;
     public string? Shk { get; set; } = order.Shk;
     public string? StickerCode { get; set; } = order.StickerCode;
@@ -58,8 +59,8 @@ public class OrderViewItem(Order order)
     public string? FactoryAddress { get; set; } = order.FactoryAddress;
     public string? Unit { get; set; } = order.Unit;
     public decimal? WeightKg { get; set; } = order.WeightKg;
-    public string? Quantity { get; set; } = order.Quantity;
-    public string? UnitPrice { get; set; } = order.UnitPrice;
+    public decimal? Quantity { get; set; } = order.Quantity;
+    public decimal? UnitPrice { get; set; } = order.UnitPrice;
     public string? Currency { get; set; } = order.Currency;
     public string? Barcode { get; set; } = order.Barcode;
     public string? Declaration { get; set; } = order.Declaration;
