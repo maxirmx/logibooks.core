@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Logibooks.Core.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250706073017_UpdateWeightKgDecimal")]
-    partial class UpdateWeightKgDecimal
+    [Migration("20250706074307_UpdateWeightKg")]
+    partial class UpdateWeightKg
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

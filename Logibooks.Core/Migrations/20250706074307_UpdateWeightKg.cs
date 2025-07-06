@@ -5,19 +5,19 @@
 namespace Logibooks.Core.Migrations
 {
     /// <inheritdoc />
-    public partial class UpdateWeightKgDecimal : Migration
+    public partial class UpdateWeightKg : Migration
     {
         /// <inheritdoc />
-        protected override void Up(MigrationBuilder migrationBuilder)
+       protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AlterColumn<decimal>(
-                name: "weight_kg",
-                table: "orders",
-                type: "numeric(10,3)",
-                nullable: true,
-                oldClrType: typeof(string),
-                oldType: "text",
-                oldNullable: true);
+            // Convert text to numeric with error handling, preserving column order
+            migrationBuilder.Sql(@"
+                ALTER TABLE orders 
+                ALTER COLUMN weight_kg TYPE numeric(10,3) 
+                USING CASE 
+                    WHEN weight_kg ~ '^[0-9]+\.?[0-9]*$' THEN weight_kg::numeric(10,3)
+                    ELSE 0
+                END");
         }
 
         /// <inheritdoc />
