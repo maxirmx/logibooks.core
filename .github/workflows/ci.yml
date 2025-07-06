@@ -100,6 +100,7 @@ jobs:
         run: sed -i "s/MAXIRMX_SECRET_PASSWORD/$MAXIRMX_SECRET_PASSWORD/g" tests/postman.json
 
       - name: Run Postman collection
+        id: run-newman
         uses: anthonyvscode/newman-action@v1   
         with:
           collection: postman.json
