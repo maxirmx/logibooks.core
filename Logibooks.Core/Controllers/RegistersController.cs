@@ -482,10 +482,6 @@ public class RegistersController(
             if (DateOnly.TryParse(value, RussianCulture, DateTimeStyles.None, out DateOnly result))
                 return result;
 
-            // If direct parsing fails, try parsing as DateTime first and then convert to DateOnly
-            if (DateTime.TryParse(value, RussianCulture, DateTimeStyles.None, out DateTime dateTimeResult))
-                return DateOnly.FromDateTime(dateTimeResult);
-
             return default(DateOnly);
         }
         else if (targetType == typeof(string))
