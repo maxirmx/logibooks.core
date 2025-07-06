@@ -47,7 +47,7 @@ public static class AltaParser
                         low.StartsWith("наименование товара"))
                         continue;
 
-                    string code = vals.Count == 2 ? vals[1] : vals[1];
+                    string code = vals[1];
                     string name = vals[0];
                     string comment = vals.Count == 3 ? vals[2] : string.Empty;
 
