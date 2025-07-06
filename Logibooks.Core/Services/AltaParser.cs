@@ -122,7 +122,7 @@ public static partial class AltaParser
             }
         }
 
-        // Remove duplicates based on Url, Code, and Name
+        // Remove duplicates based on Code only
         var distinctItems = items
             .DistinctBy(x => x.Code)
             .ToList();

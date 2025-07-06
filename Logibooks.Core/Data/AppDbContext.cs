@@ -104,15 +104,8 @@ namespace Logibooks.Core.Data
                 .Select(x => new UserViewItem(x))
                 .ToListAsync();
         }
-        public bool AltaItemCodeExists(string code)
-        {
-            return AltaItems.Any(i => i.Code.ToLower() == code.ToLower());
-        }
-
-        public bool AltaExceptionCodeExists(string code)
-        {
-            return AltaExceptions.Any(e => e.Code.ToLower() == code.ToLower());
-        }
+        public async Task<bool> AltaItemCodeExists(string code) => await AltaItems.AnyAsync(e => e.Code == code);
+        public async Task<bool> AltaExceptionCodeExists(string code) => await AltaExceptions.AnyAsync(e => e.Code == code);
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);

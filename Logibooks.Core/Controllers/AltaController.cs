@@ -102,7 +102,7 @@ public class AltaController(
     {
         if (!await _db.CheckAdmin(_curUserId)) return _403();
 
-        if (_db.AltaItemCodeExists(dto.Code))
+        if (await _db.AltaItemCodeExists(dto.Code))
         {
             return _409AltaItemCode(dto.Code);
         }
@@ -128,7 +128,7 @@ public class AltaController(
         if (item == null) return NotFound();
 
         // Check for code conflict only if the code is being changed
-        if (item.Code != dto.Code && _db.AltaItemCodeExists(dto.Code))
+        if (item.Code != dto.Code && await _db.AltaItemCodeExists(dto.Code))
         {
             return _409AltaItemCode(dto.Code);
         }
@@ -183,7 +183,7 @@ public class AltaController(
     {
         if (!await _db.CheckAdmin(_curUserId)) return _403();
 
-        if (_db.AltaExceptionCodeExists(dto.Code))
+        if (await _db.AltaExceptionCodeExists(dto.Code))
         {
             return _409AltaExceptionCode(dto.Code);
         }
@@ -209,7 +209,7 @@ public class AltaController(
         if (item == null) return NotFound();
 
         // Check for code conflict only if the code is being changed
-        if (item.Code != dto.Code && _db.AltaExceptionCodeExists(dto.Code))
+        if (item.Code != dto.Code && await _db.AltaExceptionCodeExists(dto.Code))
         {
             return _409AltaExceptionCode(dto.Code);
         }

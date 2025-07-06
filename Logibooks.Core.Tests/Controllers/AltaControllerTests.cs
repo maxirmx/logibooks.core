@@ -244,17 +244,15 @@ public class AltaControllerTests
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
     }
 
-    // Add these test methods to the AltaControllerTests class
-
     [Test]
     public async Task CreateItem_ReturnsConflict_WhenCodeAlreadyExists()
     {
         // Arrange
         SetCurrentUserId(1);
-        var existingItem = new AltaItemDto { Url = "u1", Code = "DUPLICATE123", Name = "existing" };
+        var existingItem = new AltaItemDto { Url = "u1", Code = "123", Name = "existing" };
         await _controller.CreateItem(existingItem);
 
-        var duplicateItem = new AltaItemDto { Url = "u2", Code = "DUPLICATE123", Name = "duplicate" };
+        var duplicateItem = new AltaItemDto { Url = "u2", Code = "123", Name = "duplicate" };
 
         // Act
         var result = await _controller.CreateItem(duplicateItem);
@@ -265,7 +263,7 @@ public class AltaControllerTests
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status409Conflict));
 
         var errMessage = obj.Value as ErrMessage;
-        Assert.That(errMessage!.Msg, Contains.Substring("DUPLICATE123"));
+        Assert.That(errMessage!.Msg, Contains.Substring("123"));
         Assert.That(errMessage.Msg, Contains.Substring("уже существует"));
     }
 
@@ -274,10 +272,10 @@ public class AltaControllerTests
     {
         // Arrange
         SetCurrentUserId(1);
-        var existingItem = new AltaItemDto { Url = "u1", Code = "test123", Name = "existing" };
+        var existingItem = new AltaItemDto { Url = "u1", Code = "123", Name = "existing" };
         await _controller.CreateItem(existingItem);
 
-        var duplicateItem = new AltaItemDto { Url = "u2", Code = "TEST123", Name = "duplicate" };
+        var duplicateItem = new AltaItemDto { Url = "u2", Code = "123", Name = "duplicate" };
 
         // Act
         var result = await _controller.CreateItem(duplicateItem);
@@ -293,8 +291,8 @@ public class AltaControllerTests
     {
         // Arrange
         SetCurrentUserId(1);
-        var item1 = new AltaItemDto { Url = "u1", Code = "CODE001", Name = "item1" };
-        var item2 = new AltaItemDto { Url = "u2", Code = "CODE002", Name = "item2" };
+        var item1 = new AltaItemDto { Url = "u1", Code = "001", Name = "item1" };
+        var item2 = new AltaItemDto { Url = "u2", Code = "002", Name = "item2" };
 
         var created1 = await _controller.CreateItem(item1);
         var created2 = await _controller.CreateItem(item2);
@@ -304,7 +302,7 @@ public class AltaControllerTests
 
         // Act - try to change item2's code to item1's code
         item2.Id = id2;
-        item2.Code = "CODE001"; // This should conflict
+        item2.Code = "001"; // This should conflict
         var result = await _controller.UpdateItem(id2, item2);
 
         // Assert
@@ -313,7 +311,7 @@ public class AltaControllerTests
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status409Conflict));
 
         var errMessage = obj.Value as ErrMessage;
-        Assert.That(errMessage!.Msg, Contains.Substring("CODE001"));
+        Assert.That(errMessage!.Msg, Contains.Substring("001"));
     }
 
     [Test]
@@ -321,7 +319,7 @@ public class AltaControllerTests
     {
         // Arrange
         SetCurrentUserId(1);
-        var item = new AltaItemDto { Url = "u1", Code = "SAME123", Name = "original" };
+        var item = new AltaItemDto { Url = "u1", Code = "123", Name = "original" };
         var created = await _controller.CreateItem(item);
         var id = ((created.Result as CreatedAtActionResult)!.Value as AltaItemDto)!.Id;
 
@@ -339,10 +337,10 @@ public class AltaControllerTests
     {
         // Arrange
         SetCurrentUserId(1);
-        var existingException = new AltaExceptionDto { Url = "u1", Code = "EXC123", Name = "existing" };
+        var existingException = new AltaExceptionDto { Url = "u1", Code = "123", Name = "existing" };
         await _controller.CreateException(existingException);
 
-        var duplicateException = new AltaExceptionDto { Url = "u2", Code = "EXC123", Name = "duplicate" };
+        var duplicateException = new AltaExceptionDto { Url = "u2", Code = "123", Name = "duplicate" };
 
         // Act
         var result = await _controller.CreateException(duplicateException);
@@ -353,7 +351,7 @@ public class AltaControllerTests
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status409Conflict));
 
         var errMessage = obj.Value as ErrMessage;
-        Assert.That(errMessage!.Msg, Contains.Substring("EXC123"));
+        Assert.That(errMessage!.Msg, Contains.Substring("123"));
         Assert.That(errMessage.Msg, Contains.Substring("уже существует"));
     }
 
@@ -362,10 +360,10 @@ public class AltaControllerTests
     {
         // Arrange
         SetCurrentUserId(1);
-        var existingException = new AltaExceptionDto { Url = "u1", Code = "exc456", Name = "existing" };
+        var existingException = new AltaExceptionDto { Url = "u1", Code = "456", Name = "existing" };
         await _controller.CreateException(existingException);
 
-        var duplicateException = new AltaExceptionDto { Url = "u2", Code = "EXC456", Name = "duplicate" };
+        var duplicateException = new AltaExceptionDto { Url = "u2", Code = "456", Name = "duplicate" };
 
         // Act
         var result = await _controller.CreateException(duplicateException);
@@ -381,8 +379,8 @@ public class AltaControllerTests
     {
         // Arrange
         SetCurrentUserId(1);
-        var exc1 = new AltaExceptionDto { Url = "u1", Code = "EXCCODE001", Name = "exc1" };
-        var exc2 = new AltaExceptionDto { Url = "u2", Code = "EXCCODE002", Name = "exc2" };
+        var exc1 = new AltaExceptionDto { Url = "u1", Code = "001", Name = "exc1" };
+        var exc2 = new AltaExceptionDto { Url = "u2", Code = "002", Name = "exc2" };
 
         var created1 = await _controller.CreateException(exc1);
         var created2 = await _controller.CreateException(exc2);
@@ -392,7 +390,7 @@ public class AltaControllerTests
 
         // Act - try to change exc2's code to exc1's code
         exc2.Id = id2;
-        exc2.Code = "EXCCODE001"; // This should conflict
+        exc2.Code = "001"; // This should conflict
         var result = await _controller.UpdateException(id2, exc2);
 
         // Assert
@@ -401,7 +399,7 @@ public class AltaControllerTests
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status409Conflict));
 
         var errMessage = obj.Value as ErrMessage;
-        Assert.That(errMessage!.Msg, Contains.Substring("EXCCODE001"));
+        Assert.That(errMessage!.Msg, Contains.Substring("001"));
     }
 
     [Test]
@@ -409,7 +407,7 @@ public class AltaControllerTests
     {
         // Arrange
         SetCurrentUserId(1);
-        var exception = new AltaExceptionDto { Url = "u1", Code = "EXCSAME123", Name = "original" };
+        var exception = new AltaExceptionDto { Url = "u1", Code = "123", Name = "original" };
         var created = await _controller.CreateException(exception);
         var id = ((created.Result as CreatedAtActionResult)!.Value as AltaExceptionDto)!.Id;
 
