@@ -21,7 +21,8 @@ public class AltaController(
     private readonly HttpClient? _httpClient = httpClient;
     // POST api/alta/parse
     [HttpPost("parse")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     public async Task<ActionResult<int>> Parse()
     {
         if (!await _db.CheckAdmin(_curUserId)) return _403();
@@ -36,27 +37,32 @@ public class AltaController(
         if (items.Count != 0) _db.AltaItems.AddRange(items);
         if (exceptions.Count != 0) _db.AltaExceptions.AddRange(exceptions);
         await _db.SaveChangesAsync();
-        return items.Count;
+        return NoContent();
+;
     }
 
     // CRUD for AltaItems
     [HttpGet("items")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<AltaItemDto>))]
     public async Task<ActionResult<IEnumerable<AltaItemDto>>> GetItems()
     {
-        if (!await _db.CheckAdmin(_curUserId)) return _403();
         var items = await _db.AltaItems.AsNoTracking().ToListAsync();
         return items.Select(i => new AltaItemDto(i)).ToList();
     }
 
     [HttpGet("items/{id}")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(AltaItemDto))]
     public async Task<ActionResult<AltaItemDto>> GetItem(int id)
     {
-        if (!await _db.CheckAdmin(_curUserId)) return _403();
         var item = await _db.AltaItems.FindAsync(id);
         return item == null ? _404Object(id) : new AltaItemDto(item);
     }
 
     [HttpPost("items")]
+    [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(Reference))]
+    [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
+    [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
+    [ProducesResponseType(StatusCodes.Status409Conflict, Type = typeof(ErrMessage))]
     public async Task<ActionResult<AltaItemDto>> CreateItem(AltaItemDto dto)
     {
         if (!await _db.CheckAdmin(_curUserId)) return _403();
@@ -68,6 +74,9 @@ public class AltaController(
     }
 
     [HttpPut("items/{id}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
+    [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
     public async Task<IActionResult> UpdateItem(int id, AltaItemDto dto)
     {
         if (!await _db.CheckAdmin(_curUserId)) return _403();
@@ -85,6 +94,9 @@ public class AltaController(
     }
 
     [HttpDelete("items/{id}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
+    [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
     public async Task<IActionResult> DeleteItem(int id)
     {
         if (!await _db.CheckAdmin(_curUserId)) return _403();
@@ -97,22 +109,26 @@ public class AltaController(
 
     // CRUD for AltaExceptions
     [HttpGet("exceptions")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<AltaExceptionDto>))]
     public async Task<ActionResult<IEnumerable<AltaExceptionDto>>> GetExceptions()
     {
-        if (!await _db.CheckAdmin(_curUserId)) return _403();
         var items = await _db.AltaExceptions.AsNoTracking().ToListAsync();
         return items.Select(i => new AltaExceptionDto(i)).ToList();
     }
 
     [HttpGet("exceptions/{id}")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(AltaExceptionDto))]
     public async Task<ActionResult<AltaExceptionDto>> GetException(int id)
     {
-        if (!await _db.CheckAdmin(_curUserId)) return _403();
         var item = await _db.AltaExceptions.FindAsync(id);
         return item == null ? _404Object(id) : new AltaExceptionDto(item);
     }
 
     [HttpPost("exceptions")]
+    [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(Reference))]
+    [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
+    [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
+    [ProducesResponseType(StatusCodes.Status409Conflict, Type = typeof(ErrMessage))]
     public async Task<ActionResult<AltaExceptionDto>> CreateException(AltaExceptionDto dto)
     {
         if (!await _db.CheckAdmin(_curUserId)) return _403();
@@ -124,6 +140,9 @@ public class AltaController(
     }
 
     [HttpPut("exceptions/{id}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
+    [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
     public async Task<IActionResult> UpdateException(int id, AltaExceptionDto dto)
     {
         if (!await _db.CheckAdmin(_curUserId)) return _403();
@@ -141,6 +160,9 @@ public class AltaController(
     }
 
     [HttpDelete("exceptions/{id}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
+    [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
     public async Task<IActionResult> DeleteException(int id)
     {
         if (!await _db.CheckAdmin(_curUserId)) return _403();

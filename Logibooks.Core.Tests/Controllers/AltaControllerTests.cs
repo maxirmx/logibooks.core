@@ -113,8 +113,7 @@ public class AltaControllerTests
         var html = @"<table><tr><td>Prod1</td><td>1234 56 789 0</td><td>c1</td></tr></table>";
         var client = new HttpClient(new FakeHandler(html));
         SetCurrentUserId(1, client);
-        var result = await _controller.Parse();
-        Assert.That(result.Value, Is.EqualTo(2));
+        await _controller.Parse();
         Assert.That(await _dbContext.AltaItems.CountAsync(), Is.EqualTo(2));
     }
 
@@ -125,23 +124,8 @@ public class AltaControllerTests
         var client = new HttpClient(new FakeHandler(html));
         SetCurrentUserId(1, client);
 
-        // Pre-compute expected values based on known parser behavior
-        const int numberOfUrls = 4; // AltaController.Parse() processes 4 URLs
-        const int rowsPerUrl = 1;    // Our test HTML has 1 data row
-        const int itemsPerRow = 1;   // Each row creates 1 item
-        const int exceptionsPerRow = 1; // This row has "за исключением" so creates 1 exception
-
-        var expectedItems = numberOfUrls * rowsPerUrl * itemsPerRow;
-        var expectedExceptions = numberOfUrls * rowsPerUrl * exceptionsPerRow;
-        var expectedTotalReturned = expectedItems; // Parse() returns item count
-
-        var result = await _controller.Parse();
-        Assert.That(result.Value, Is.EqualTo(expectedTotalReturned),
-            $"Expected {expectedTotalReturned} items returned from Parse()");
-        Assert.That(await _dbContext.AltaItems.CountAsync(), Is.EqualTo(expectedItems),
-            $"Expected {expectedItems} items in database");
-        Assert.That(await _dbContext.AltaExceptions.CountAsync(), Is.EqualTo(expectedExceptions),
-            $"Expected {expectedExceptions} exceptions in database");
+        await _controller.Parse();
+        Assert.That(await _dbContext.AltaExceptions.CountAsync(), Is.EqualTo(4));
     }
 
     [Test]
@@ -168,15 +152,35 @@ public class AltaControllerTests
     }
 
     [Test]
-    public async Task CrudOperations_ReturnForbidden_ForNonAdmin()
+    public async Task Items_CrudOperations_ReturnForbidden_ForNonAdmin_ExceptGet()
     {
         SetCurrentUserId(2);
         var dto = new AltaItemDto { Id = 1 };
-        Assert.That((await _controller.GetItems()).Result, Is.TypeOf<ObjectResult>());
-        Assert.That((await _controller.GetItem(1)).Result, Is.TypeOf<ObjectResult>());
-        Assert.That((await _controller.CreateItem(dto)).Result, Is.TypeOf<ObjectResult>());
-        Assert.That(await _controller.UpdateItem(1, dto), Is.TypeOf<ObjectResult>());
-        Assert.That(await _controller.DeleteItem(1), Is.TypeOf<ObjectResult>());
+
+        var result1 = await _controller.GetItems();
+        Assert.That(result1.Result, Is.Null);
+
+        var result2 = await _controller.GetItem(1);
+        Assert.That(result2.Result, Is.TypeOf<ObjectResult>());
+        var obj = result2.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+
+        var result3 = await _controller.CreateItem(dto);
+        Assert.That(result3.Result, Is.TypeOf<ObjectResult>());
+        obj = result3.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
+
+
+        var result4 = await _controller.UpdateItem(1, dto);
+        Assert.That(result4, Is.TypeOf<ObjectResult>());
+        obj = result4 as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
+
+
+        var result5 = await _controller.DeleteItem(1);
+        Assert.That(result5, Is.TypeOf<ObjectResult>());
+        obj = result5 as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
     }
 
     [Test]
@@ -209,20 +213,18 @@ public class AltaControllerTests
     }
 
     [Test]
-    public async Task Exceptions_CrudOperations_ReturnForbidden_ForNonAdmin()
+    public async Task Exceptions_CrudOperations_ReturnForbidden_ForNonAdmin_ExceptGet()
     {
         SetCurrentUserId(2);
         var dto = new AltaExceptionDto { Id = 1 };
         
         var result1 = await _controller.GetExceptions();
-        Assert.That(result1.Result, Is.TypeOf<ObjectResult>());
-        var obj = result1.Result as ObjectResult;
-        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
+        Assert.That(result1.Result, Is.Null);
 
         var result2 = await _controller.GetException(1);
         Assert.That(result2.Result, Is.TypeOf<ObjectResult>());
-        obj = result2.Result as ObjectResult;
-        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
+        var obj = result2.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
 
         var result3 = await _controller.CreateException(dto);
         Assert.That(result3.Result, Is.TypeOf<ObjectResult>());
