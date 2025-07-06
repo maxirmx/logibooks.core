@@ -192,10 +192,15 @@ public class AltaControllerTests
     {
         SetCurrentUserId(2);
         var dto = new AltaExceptionDto { Id = 1 };
-        Assert.That((await _controller.GetExceptions()).Result, Is.TypeOf<ObjectResult>());
-        Assert.That((await _controller.GetException(1)).Result, Is.TypeOf<ObjectResult>());
-        Assert.That((await _controller.CreateException(dto)).Result, Is.TypeOf<ObjectResult>());
-        Assert.That(await _controller.UpdateException(1, dto), Is.TypeOf<ObjectResult>());
-        Assert.That(await _controller.DeleteException(1), Is.TypeOf<ObjectResult>());
+        var getExceptionsResult = await _controller.GetExceptions();
+        Assert.That(getExceptionsResult, Is.TypeOf<ObjectResult>());
+        var getExceptionResult = await _controller.GetException(1);
+        Assert.That(getExceptionResult, Is.TypeOf<ObjectResult>());
+        var createExceptionResult = await _controller.CreateException(dto);
+        Assert.That(createExceptionResult, Is.TypeOf<ObjectResult>());
+        var updateExceptionResult = await _controller.UpdateException(1, dto);
+        Assert.That(updateExceptionResult, Is.TypeOf<ObjectResult>());
+        var deleteExceptionResult = await _controller.DeleteException(1);
+        Assert.That(deleteExceptionResult, Is.TypeOf<ObjectResult>());
     }
 }
