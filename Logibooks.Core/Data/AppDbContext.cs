@@ -42,6 +42,8 @@ namespace Logibooks.Core.Data
         public DbSet<Register> Registers => Set<Register>();
         public DbSet<OrderStatus> Statuses => Set<OrderStatus>();
         public DbSet<Order> Orders => Set<Order>();
+        public DbSet<AltaItem> AltaItems => Set<AltaItem>();
+        public DbSet<AltaException> AltaExceptions => Set<AltaException>();
         public async Task<bool> CheckAdmin(int cuid)
         {
             var user = await Users
