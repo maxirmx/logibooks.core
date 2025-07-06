@@ -20,8 +20,8 @@ public class AltaController(
     public async Task<ActionResult<int>> Parse([FromBody] List<string> urls)
     {
         var (items, exceptions) = await AltaParser.ParseAsync(urls);
-        if (items.Any()) _db.AltaItems.AddRange(items);
-        if (exceptions.Any()) _db.AltaExceptions.AddRange(exceptions);
+        if (items.Count != 0) _db.AltaItems.AddRange(items);
+        if (exceptions.Count != 0) _db.AltaExceptions.AddRange(exceptions);
         await _db.SaveChangesAsync();
         return items.Count;
     }
@@ -35,7 +35,7 @@ public class AltaController(
     public async Task<ActionResult<AltaItem>> GetItem(int id)
     {
         var item = await _db.AltaItems.FindAsync(id);
-        return item == null ? _404Order(id) : item; // reuse message
+        return item == null ? _404Object(id) : item; 
     }
 
     [HttpPost("items")]
@@ -74,7 +74,7 @@ public class AltaController(
     public async Task<ActionResult<AltaException>> GetException(int id)
     {
         var item = await _db.AltaExceptions.FindAsync(id);
-        return item == null ? _404Order(id) : item; // reuse message
+        return item == null ? _404Object(id) : item;
     }
 
     [HttpPost("exceptions")]

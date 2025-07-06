@@ -74,6 +74,11 @@ public class LogibooksControllerPreBase(AppDbContext db, ILogger logger) : Contr
         return StatusCode(StatusCodes.Status404NotFound,
                           new ErrMessage { Msg = $"Не удалось найти реестр [id={id}]" });
     }
+    protected ObjectResult _404Object(int id)
+    {
+        return StatusCode(StatusCodes.Status404NotFound,
+                          new ErrMessage { Msg = $"Не удалось найти j,]trn [id={id}]" });
+    }
     protected ObjectResult _404Order(int id)
     {
         return StatusCode(StatusCodes.Status404NotFound,
