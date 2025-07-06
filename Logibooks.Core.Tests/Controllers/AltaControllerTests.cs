@@ -120,7 +120,7 @@ public class AltaControllerTests
     [Test]
     public async Task Parse_AddsExceptions_ForAdmin()
     {
-        var html = @"<table><tr><td>Prod1</td><td>1234 56 789 0 (за исключением 1234 56 000 0)</td><td>c1</td></tr></table>";
+        var html = @"<table><tr><td>Prod1</td><td>1234 5 (за исключением 1234 56 000 0)</td><td>c1</td></tr></table>";
         var client = new HttpClient(new FakeHandler(html));
         SetCurrentUserId(1, client);
 
@@ -243,4 +243,261 @@ public class AltaControllerTests
         obj = result5 as ObjectResult;
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
     }
+
+    // Add these test methods to the AltaControllerTests class
+
+    [Test]
+    public async Task CreateItem_ReturnsConflict_WhenCodeAlreadyExists()
+    {
+        // Arrange
+        SetCurrentUserId(1);
+        var existingItem = new AltaItemDto { Url = "u1", Code = "DUPLICATE123", Name = "existing" };
+        await _controller.CreateItem(existingItem);
+
+        var duplicateItem = new AltaItemDto { Url = "u2", Code = "DUPLICATE123", Name = "duplicate" };
+
+        // Act
+        var result = await _controller.CreateItem(duplicateItem);
+
+        // Assert
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status409Conflict));
+
+        var errMessage = obj.Value as ErrMessage;
+        Assert.That(errMessage!.Msg, Contains.Substring("DUPLICATE123"));
+        Assert.That(errMessage.Msg, Contains.Substring("уже существует"));
+    }
+
+    [Test]
+    public async Task CreateItem_ReturnsConflict_WhenCodeExistsCaseInsensitive()
+    {
+        // Arrange
+        SetCurrentUserId(1);
+        var existingItem = new AltaItemDto { Url = "u1", Code = "test123", Name = "existing" };
+        await _controller.CreateItem(existingItem);
+
+        var duplicateItem = new AltaItemDto { Url = "u2", Code = "TEST123", Name = "duplicate" };
+
+        // Act
+        var result = await _controller.CreateItem(duplicateItem);
+
+        // Assert
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status409Conflict));
+    }
+
+    [Test]
+    public async Task UpdateItem_ReturnsConflict_WhenChangingToExistingCode()
+    {
+        // Arrange
+        SetCurrentUserId(1);
+        var item1 = new AltaItemDto { Url = "u1", Code = "CODE001", Name = "item1" };
+        var item2 = new AltaItemDto { Url = "u2", Code = "CODE002", Name = "item2" };
+
+        var created1 = await _controller.CreateItem(item1);
+        var created2 = await _controller.CreateItem(item2);
+
+        var id1 = ((created1.Result as CreatedAtActionResult)!.Value as AltaItemDto)!.Id;
+        var id2 = ((created2.Result as CreatedAtActionResult)!.Value as AltaItemDto)!.Id;
+
+        // Act - try to change item2's code to item1's code
+        item2.Id = id2;
+        item2.Code = "CODE001"; // This should conflict
+        var result = await _controller.UpdateItem(id2, item2);
+
+        // Assert
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status409Conflict));
+
+        var errMessage = obj.Value as ErrMessage;
+        Assert.That(errMessage!.Msg, Contains.Substring("CODE001"));
+    }
+
+    [Test]
+    public async Task UpdateItem_Succeeds_WhenKeepingSameCode()
+    {
+        // Arrange
+        SetCurrentUserId(1);
+        var item = new AltaItemDto { Url = "u1", Code = "SAME123", Name = "original" };
+        var created = await _controller.CreateItem(item);
+        var id = ((created.Result as CreatedAtActionResult)!.Value as AltaItemDto)!.Id;
+
+        // Act - update same item keeping the same code
+        item.Id = id;
+        item.Name = "updated";
+        var result = await _controller.UpdateItem(id, item);
+
+        // Assert
+        Assert.That(result, Is.TypeOf<NoContentResult>());
+    }
+
+    [Test]
+    public async Task CreateException_ReturnsConflict_WhenCodeAlreadyExists()
+    {
+        // Arrange
+        SetCurrentUserId(1);
+        var existingException = new AltaExceptionDto { Url = "u1", Code = "EXC123", Name = "existing" };
+        await _controller.CreateException(existingException);
+
+        var duplicateException = new AltaExceptionDto { Url = "u2", Code = "EXC123", Name = "duplicate" };
+
+        // Act
+        var result = await _controller.CreateException(duplicateException);
+
+        // Assert
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status409Conflict));
+
+        var errMessage = obj.Value as ErrMessage;
+        Assert.That(errMessage!.Msg, Contains.Substring("EXC123"));
+        Assert.That(errMessage.Msg, Contains.Substring("уже существует"));
+    }
+
+    [Test]
+    public async Task CreateException_ReturnsConflict_WhenCodeExistsCaseInsensitive()
+    {
+        // Arrange
+        SetCurrentUserId(1);
+        var existingException = new AltaExceptionDto { Url = "u1", Code = "exc456", Name = "existing" };
+        await _controller.CreateException(existingException);
+
+        var duplicateException = new AltaExceptionDto { Url = "u2", Code = "EXC456", Name = "duplicate" };
+
+        // Act
+        var result = await _controller.CreateException(duplicateException);
+
+        // Assert
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status409Conflict));
+    }
+
+    [Test]
+    public async Task UpdateException_ReturnsConflict_WhenChangingToExistingCode()
+    {
+        // Arrange
+        SetCurrentUserId(1);
+        var exc1 = new AltaExceptionDto { Url = "u1", Code = "EXCCODE001", Name = "exc1" };
+        var exc2 = new AltaExceptionDto { Url = "u2", Code = "EXCCODE002", Name = "exc2" };
+
+        var created1 = await _controller.CreateException(exc1);
+        var created2 = await _controller.CreateException(exc2);
+
+        var id1 = ((created1.Result as CreatedAtActionResult)!.Value as AltaExceptionDto)!.Id;
+        var id2 = ((created2.Result as CreatedAtActionResult)!.Value as AltaExceptionDto)!.Id;
+
+        // Act - try to change exc2's code to exc1's code
+        exc2.Id = id2;
+        exc2.Code = "EXCCODE001"; // This should conflict
+        var result = await _controller.UpdateException(id2, exc2);
+
+        // Assert
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status409Conflict));
+
+        var errMessage = obj.Value as ErrMessage;
+        Assert.That(errMessage!.Msg, Contains.Substring("EXCCODE001"));
+    }
+
+    [Test]
+    public async Task UpdateException_Succeeds_WhenKeepingSameCode()
+    {
+        // Arrange
+        SetCurrentUserId(1);
+        var exception = new AltaExceptionDto { Url = "u1", Code = "EXCSAME123", Name = "original" };
+        var created = await _controller.CreateException(exception);
+        var id = ((created.Result as CreatedAtActionResult)!.Value as AltaExceptionDto)!.Id;
+
+        // Act - update same exception keeping the same code
+        exception.Id = id;
+        exception.Name = "updated";
+        var result = await _controller.UpdateException(id, exception);
+
+        // Assert
+        Assert.That(result, Is.TypeOf<NoContentResult>());
+    }
+
+    [Test]
+    public async Task Parse_IgnoresDuplicateCodes_WhenItemsAlreadyExist()
+    {
+        // Arrange
+        SetCurrentUserId(1);
+
+        // Create existing item
+        var existingItem = new AltaItemDto { Url = "existing", Code = "123456789012", Name = "existing" };
+        await _controller.CreateItem(existingItem);
+
+        var initialCount = await _dbContext.AltaItems.CountAsync();
+
+        // Act - parse HTML that would create the same code
+        var html = @"<table><tr><td>NewProd</td><td>1234 56 789 012</td><td>c1</td></tr></table>";
+        var client = new HttpClient(new FakeHandler(html));
+        SetCurrentUserId(1, client);
+        await _controller.Parse();
+
+        // Assert - count should remain the same (duplicate ignored)
+        var finalCount = await _dbContext.AltaItems.CountAsync();
+        Assert.That(finalCount, Is.EqualTo(initialCount));
+    }
+
+    [Test]
+    public async Task Parse_IgnoresDuplicateCodes_WhenExceptionsAlreadyExist()
+    {
+        // Arrange
+        SetCurrentUserId(1);
+
+        // Create existing exception
+        var existingException = new AltaExceptionDto { Url = "existing", Code = "123456000012", Name = "existing" };
+        await _controller.CreateException(existingException);
+
+        var initialCount = await _dbContext.AltaExceptions.CountAsync();
+
+        // Act - parse HTML that would create the same exception code
+        var html = @"<table><tr><td>NewProd</td><td>1234 56 (за исключением 1234 56 000 012)</td><td>c1</td></tr></table>";
+        var client = new HttpClient(new FakeHandler(html));
+        SetCurrentUserId(1, client);
+        await _controller.Parse();
+
+        // Assert - exception count should remain the same (duplicate ignored)
+        var finalCount = await _dbContext.AltaExceptions.CountAsync();
+        Assert.That(finalCount, Is.EqualTo(initialCount));
+    }
+
+    [Test]
+    public async Task Parse_AddsOnlyNewCodes_WhenMixOfExistingAndNew()
+    {
+        // Arrange
+        SetCurrentUserId(1);
+
+        // Create one existing item
+        var existingItem = new AltaItemDto { Url = "existing", Code = "123456789012", Name = "existing" };
+        await _controller.CreateItem(existingItem);
+
+        var initialCount = await _dbContext.AltaItems.CountAsync();
+
+        // Act - parse HTML with both existing and new codes
+        var html = @"<table>
+                    <tr><td>ExistingProd</td><td>1234 56 789 012</td><td>c1</td></tr>
+                    <tr><td>NewProd</td><td>9876 54 321 098</td><td>c2</td></tr>
+                 </table>";
+        var client = new HttpClient(new FakeHandler(html));
+        SetCurrentUserId(1, client);
+        await _controller.Parse();
+
+        // Assert - only one new item should be added
+        var finalCount = await _dbContext.AltaItems.CountAsync();
+        Assert.That(finalCount, Is.EqualTo(initialCount + 1));
+
+        // Verify the new item was added
+        var newItem = await _dbContext.AltaItems.FirstOrDefaultAsync(x => x.Code == "987654321098");
+        Assert.That(newItem, Is.Not.Null);
+        Assert.That(newItem!.Name, Is.EqualTo("NewProd"));
+    }
+
+
 }

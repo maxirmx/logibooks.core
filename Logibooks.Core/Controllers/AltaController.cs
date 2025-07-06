@@ -34,8 +34,16 @@ public class AltaController(
         };
 
         var (items, exceptions) = await AltaParser.ParseAsync(urls, _httpClient);
-        if (items.Count != 0) _db.AltaItems.AddRange(items);
-        if (exceptions.Count != 0) _db.AltaExceptions.AddRange(exceptions);
+
+        // Filter out items with codes that already exist in the database
+        var existingItemCodes = await _db.AltaItems.Select(x => x.Code).ToListAsync();
+        var newItems = items.Where(x => !existingItemCodes.Contains(x.Code)).ToList();
+
+        var existingExceptionCodes = await _db.AltaExceptions.Select(x => x.Code).ToListAsync();
+        var newExceptions = exceptions.Where(x => !existingExceptionCodes.Contains(x.Code)).ToList();
+
+        if (newItems.Count != 0) _db.AltaItems.AddRange(newItems);
+        if (newExceptions.Count != 0) _db.AltaExceptions.AddRange(newExceptions);
         await _db.SaveChangesAsync();
         return NoContent();
     }
@@ -65,6 +73,12 @@ public class AltaController(
     public async Task<ActionResult<AltaItemDto>> CreateItem(AltaItemDto dto)
     {
         if (!await _db.CheckAdmin(_curUserId)) return _403();
+
+        if (_db.AltaItemCodeExists(dto.Code))
+        {
+            return _409AltaItemCode(dto.Code);
+        }
+
         var item = dto.ToModel();
         _db.AltaItems.Add(item);
         await _db.SaveChangesAsync();
@@ -76,12 +90,21 @@ public class AltaController(
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
+    [ProducesResponseType(StatusCodes.Status409Conflict, Type = typeof(ErrMessage))]
     public async Task<IActionResult> UpdateItem(int id, AltaItemDto dto)
     {
         if (!await _db.CheckAdmin(_curUserId)) return _403();
         if (id != dto.Id) return BadRequest();
+
         var item = await _db.AltaItems.FindAsync(id);
         if (item == null) return NotFound();
+
+        // Check for code conflict only if the code is being changed
+        if (item.Code != dto.Code && _db.AltaItemCodeExists(dto.Code))
+        {
+            return _409AltaItemCode(dto.Code);
+        }
+
         item.Url = dto.Url;
         item.Number = dto.Number;
         item.Code = dto.Code;
@@ -131,6 +154,12 @@ public class AltaController(
     public async Task<ActionResult<AltaExceptionDto>> CreateException(AltaExceptionDto dto)
     {
         if (!await _db.CheckAdmin(_curUserId)) return _403();
+
+        if (_db.AltaExceptionCodeExists(dto.Code))
+        {
+            return _409AltaExceptionCode(dto.Code);
+        }
+
         var item = dto.ToModel();
         _db.AltaExceptions.Add(item);
         await _db.SaveChangesAsync();
@@ -142,12 +171,21 @@ public class AltaController(
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
+    [ProducesResponseType(StatusCodes.Status409Conflict, Type = typeof(ErrMessage))]
     public async Task<IActionResult> UpdateException(int id, AltaExceptionDto dto)
     {
         if (!await _db.CheckAdmin(_curUserId)) return _403();
         if (id != dto.Id) return BadRequest();
+
         var item = await _db.AltaExceptions.FindAsync(id);
         if (item == null) return NotFound();
+
+        // Check for code conflict only if the code is being changed
+        if (item.Code != dto.Code && _db.AltaExceptionCodeExists(dto.Code))
+        {
+            return _409AltaExceptionCode(dto.Code);
+        }
+
         item.Url = dto.Url;
         item.Number = dto.Number;
         item.Code = dto.Code;

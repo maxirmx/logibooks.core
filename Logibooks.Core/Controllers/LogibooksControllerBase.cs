@@ -89,6 +89,16 @@ public class LogibooksControllerPreBase(AppDbContext db, ILogger logger) : Contr
         return StatusCode(StatusCodes.Status409Conflict,
                           new ErrMessage { Msg = $"Пользователь с таким адресом электронной почты уже зарегистрирован [email = {email}]" });
     }
+    protected ObjectResult _409AltaItemCode(string code)
+    {
+        return StatusCode(StatusCodes.Status409Conflict,
+                          new ErrMessage { Msg = $"Элемент с таким кодом ТН ВЭД уже существует [код = {code}]" });
+    }
+    protected ObjectResult _409AltaExceptionCode(string code)
+    {
+        return StatusCode(StatusCodes.Status409Conflict,
+                          new ErrMessage { Msg = $"Исключение с таким кодом ТН ВЭД уже существует [код = {code}]" });
+    }
     protected ObjectResult _500Mapping(string fname)
     {
         return StatusCode(StatusCodes.Status500InternalServerError,
