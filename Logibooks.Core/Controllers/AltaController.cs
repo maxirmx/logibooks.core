@@ -3,23 +3,36 @@ using Microsoft.EntityFrameworkCore;
 using Logibooks.Core.Data;
 using Logibooks.Core.Models;
 using Logibooks.Core.Services;
+using Logibooks.Core.Authorization;
+using Logibooks.Core.RestModels;
 
 namespace Logibooks.Core.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/[controller]")]
 [Produces("application/json")]
 public class AltaController(
     IHttpContextAccessor httpContextAccessor,
     AppDbContext db,
-    ILogger<AltaController> logger) : LogibooksControllerBase(httpContextAccessor, db, logger)
+    ILogger<AltaController> logger,
+    HttpClient? httpClient = null) : LogibooksControllerBase(httpContextAccessor, db, logger)
 {
+    private readonly HttpClient? _httpClient = httpClient;
     // POST api/alta/parse
     [HttpPost("parse")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<ActionResult<int>> Parse([FromBody] List<string> urls)
+    public async Task<ActionResult<int>> Parse()
     {
-        var (items, exceptions) = await AltaParser.ParseAsync(urls);
+        if (!await _db.CheckAdmin(_curUserId)) return _403();
+
+        var urls = new List<string>
+        {
+            "https://example.com/alta1",
+            "https://example.com/alta2"
+        };
+
+        var (items, exceptions) = await AltaParser.ParseAsync(urls, _httpClient);
         if (items.Count != 0) _db.AltaItems.AddRange(items);
         if (exceptions.Count != 0) _db.AltaExceptions.AddRange(exceptions);
         await _db.SaveChangesAsync();
@@ -28,28 +41,44 @@ public class AltaController(
 
     // CRUD for AltaItems
     [HttpGet("items")]
-    public async Task<IEnumerable<AltaItem>> GetItems() =>
-        await _db.AltaItems.AsNoTracking().ToListAsync();
+    public async Task<ActionResult<IEnumerable<AltaItemDto>>> GetItems()
+    {
+        if (!await _db.CheckAdmin(_curUserId)) return _403();
+        var items = await _db.AltaItems.AsNoTracking().ToListAsync();
+        return items.Select(i => new AltaItemDto(i)).ToList();
+    }
 
     [HttpGet("items/{id}")]
-    public async Task<ActionResult<AltaItem>> GetItem(int id)
+    public async Task<ActionResult<AltaItemDto>> GetItem(int id)
     {
+        if (!await _db.CheckAdmin(_curUserId)) return _403();
         var item = await _db.AltaItems.FindAsync(id);
-        return item == null ? _404Object(id) : item; 
+        return item == null ? _404Object(id) : new AltaItemDto(item);
     }
 
     [HttpPost("items")]
-    public async Task<ActionResult<AltaItem>> CreateItem(AltaItem item)
+    public async Task<ActionResult<AltaItemDto>> CreateItem(AltaItemDto dto)
     {
+        if (!await _db.CheckAdmin(_curUserId)) return _403();
+        var item = dto.ToModel();
         _db.AltaItems.Add(item);
         await _db.SaveChangesAsync();
-        return CreatedAtAction(nameof(GetItem), new { id = item.Id }, item);
+        dto.Id = item.Id;
+        return CreatedAtAction(nameof(GetItem), new { id = item.Id }, dto);
     }
 
     [HttpPut("items/{id}")]
-    public async Task<IActionResult> UpdateItem(int id, AltaItem item)
+    public async Task<IActionResult> UpdateItem(int id, AltaItemDto dto)
     {
-        if (id != item.Id) return BadRequest();
+        if (!await _db.CheckAdmin(_curUserId)) return _403();
+        if (id != dto.Id) return BadRequest();
+        var item = await _db.AltaItems.FindAsync(id);
+        if (item == null) return NotFound();
+        item.Url = dto.Url;
+        item.Number = dto.Number;
+        item.Code = dto.Code;
+        item.Name = dto.Name;
+        item.Comment = dto.Comment;
         _db.Entry(item).State = EntityState.Modified;
         await _db.SaveChangesAsync();
         return NoContent();
@@ -58,6 +87,7 @@ public class AltaController(
     [HttpDelete("items/{id}")]
     public async Task<IActionResult> DeleteItem(int id)
     {
+        if (!await _db.CheckAdmin(_curUserId)) return _403();
         var item = await _db.AltaItems.FindAsync(id);
         if (item == null) return NotFound();
         _db.AltaItems.Remove(item);
@@ -67,28 +97,44 @@ public class AltaController(
 
     // CRUD for AltaExceptions
     [HttpGet("exceptions")]
-    public async Task<IEnumerable<AltaException>> GetExceptions() =>
-        await _db.AltaExceptions.AsNoTracking().ToListAsync();
+    public async Task<ActionResult<IEnumerable<AltaExceptionDto>>> GetExceptions()
+    {
+        if (!await _db.CheckAdmin(_curUserId)) return _403();
+        var items = await _db.AltaExceptions.AsNoTracking().ToListAsync();
+        return items.Select(i => new AltaExceptionDto(i)).ToList();
+    }
 
     [HttpGet("exceptions/{id}")]
-    public async Task<ActionResult<AltaException>> GetException(int id)
+    public async Task<ActionResult<AltaExceptionDto>> GetException(int id)
     {
+        if (!await _db.CheckAdmin(_curUserId)) return _403();
         var item = await _db.AltaExceptions.FindAsync(id);
-        return item == null ? _404Object(id) : item;
+        return item == null ? _404Object(id) : new AltaExceptionDto(item);
     }
 
     [HttpPost("exceptions")]
-    public async Task<ActionResult<AltaException>> CreateException(AltaException item)
+    public async Task<ActionResult<AltaExceptionDto>> CreateException(AltaExceptionDto dto)
     {
+        if (!await _db.CheckAdmin(_curUserId)) return _403();
+        var item = dto.ToModel();
         _db.AltaExceptions.Add(item);
         await _db.SaveChangesAsync();
-        return CreatedAtAction(nameof(GetException), new { id = item.Id }, item);
+        dto.Id = item.Id;
+        return CreatedAtAction(nameof(GetException), new { id = item.Id }, dto);
     }
 
     [HttpPut("exceptions/{id}")]
-    public async Task<IActionResult> UpdateException(int id, AltaException item)
+    public async Task<IActionResult> UpdateException(int id, AltaExceptionDto dto)
     {
-        if (id != item.Id) return BadRequest();
+        if (!await _db.CheckAdmin(_curUserId)) return _403();
+        if (id != dto.Id) return BadRequest();
+        var item = await _db.AltaExceptions.FindAsync(id);
+        if (item == null) return NotFound();
+        item.Url = dto.Url;
+        item.Number = dto.Number;
+        item.Code = dto.Code;
+        item.Name = dto.Name;
+        item.Comment = dto.Comment;
         _db.Entry(item).State = EntityState.Modified;
         await _db.SaveChangesAsync();
         return NoContent();
@@ -97,6 +143,7 @@ public class AltaController(
     [HttpDelete("exceptions/{id}")]
     public async Task<IActionResult> DeleteException(int id)
     {
+        if (!await _db.CheckAdmin(_curUserId)) return _403();
         var item = await _db.AltaExceptions.FindAsync(id);
         if (item == null) return NotFound();
         _db.AltaExceptions.Remove(item);
