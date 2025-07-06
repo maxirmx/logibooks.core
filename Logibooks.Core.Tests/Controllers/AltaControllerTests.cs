@@ -118,6 +118,18 @@ public class AltaControllerTests
     }
 
     [Test]
+    public async Task Parse_AddsExceptions_ForAdmin()
+    {
+        var html = @"<table><tr><td>Prod1</td><td>1234 56 789 0 (за исключением 1234 56 000 0)</td><td>c1</td></tr></table>";
+        var client = new HttpClient(new FakeHandler(html));
+        SetCurrentUserId(1, client);
+        var result = await _controller.Parse();
+        Assert.That(result.Value, Is.EqualTo(4));
+        Assert.That(await _dbContext.AltaItems.CountAsync(), Is.EqualTo(4));
+        Assert.That(await _dbContext.AltaExceptions.CountAsync(), Is.EqualTo(4));
+    }
+
+    [Test]
     public async Task CrudOperations_Work_ForAdmin()
     {
         SetCurrentUserId(1);
@@ -150,5 +162,40 @@ public class AltaControllerTests
         Assert.That((await _controller.CreateItem(dto)).Result, Is.TypeOf<ObjectResult>());
         Assert.That(await _controller.UpdateItem(1, dto), Is.TypeOf<ObjectResult>());
         Assert.That(await _controller.DeleteItem(1), Is.TypeOf<ObjectResult>());
+    }
+
+    [Test]
+    public async Task Exceptions_CrudOperations_Work_ForAdmin()
+    {
+        SetCurrentUserId(1);
+        var create = new AltaExceptionDto { Url = "u", Code = "c", Name = "n" };
+        var created = await _controller.CreateException(create);
+        var refId = ((created.Result as CreatedAtActionResult)!.Value as AltaExceptionDto)!.Id;
+        var getItem = await _controller.GetException(refId);
+        Assert.That(getItem.Value!.Name, Is.EqualTo("n"));
+
+        create.Id = refId;
+        create.Name = "n2";
+        await _controller.UpdateException(refId, create);
+        var updated = await _controller.GetException(refId);
+        Assert.That(updated.Value!.Name, Is.EqualTo("n2"));
+
+        var items = await _controller.GetExceptions();
+        Assert.That(items.Value!.Count(), Is.EqualTo(1));
+
+        await _controller.DeleteException(refId);
+        Assert.That(await _dbContext.AltaExceptions.FindAsync(refId), Is.Null);
+    }
+
+    [Test]
+    public async Task Exceptions_CrudOperations_ReturnForbidden_ForNonAdmin()
+    {
+        SetCurrentUserId(2);
+        var dto = new AltaExceptionDto { Id = 1 };
+        Assert.That((await _controller.GetExceptions()).Result, Is.TypeOf<ObjectResult>());
+        Assert.That((await _controller.GetException(1)).Result, Is.TypeOf<ObjectResult>());
+        Assert.That((await _controller.CreateException(dto)).Result, Is.TypeOf<ObjectResult>());
+        Assert.That(await _controller.UpdateException(1, dto), Is.TypeOf<ObjectResult>());
+        Assert.That(await _controller.DeleteException(1), Is.TypeOf<ObjectResult>());
     }
 }
