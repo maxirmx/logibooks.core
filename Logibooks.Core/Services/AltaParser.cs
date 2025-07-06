@@ -7,10 +7,11 @@ namespace Logibooks.Core.Services;
 public static class AltaParser
 {
     private static readonly Regex CodePattern = new Regex(@"(\d{4}\s\d{2}\s\d{3}\s\d)", RegexOptions.Compiled);
+    private static readonly HttpClient SharedHttpClient = new HttpClient();
 
     public static async Task<(List<AltaItem> Items, List<AltaException> Exceptions)> ParseAsync(IEnumerable<string> urls, HttpClient? client = null)
     {
-        var http = client ?? new HttpClient();
+        var http = client ?? SharedHttpClient;
         var items = new List<AltaItem>();
         var exceptions = new List<AltaException>();
 
