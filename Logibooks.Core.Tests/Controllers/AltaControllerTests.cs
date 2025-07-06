@@ -186,7 +186,6 @@ public class AltaControllerTests
         var create = new AltaExceptionDto { Url = "u", Code = "c", Name = "n" };
         var created = await _controller.CreateException(create);
 
-        // Replace Assert.IsType with Assert.That and appropriate checks
         Assert.That(created.Result, Is.TypeOf<CreatedAtActionResult>());
         var resultAction = created.Result as CreatedAtActionResult;
         Assert.That(resultAction!.Value, Is.TypeOf<AltaExceptionDto>());
