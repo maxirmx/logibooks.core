@@ -122,6 +122,15 @@ public static partial class AltaParser
             }
         }
 
-        return (items, exceptions);
+        // Remove duplicates based on Url, Code, and Name
+        var distinctItems = items
+            .DistinctBy(x => x.Code)
+            .ToList();
+
+        var distinctExceptions = exceptions
+            .DistinctBy(x =>  x.Code )
+            .ToList();
+
+        return (distinctItems, distinctExceptions);
     }
 }

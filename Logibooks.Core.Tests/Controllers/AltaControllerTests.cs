@@ -114,7 +114,7 @@ public class AltaControllerTests
         var client = new HttpClient(new FakeHandler(html));
         SetCurrentUserId(1, client);
         await _controller.Parse();
-        Assert.That(await _dbContext.AltaItems.CountAsync(), Is.EqualTo(2));
+        Assert.That(await _dbContext.AltaItems.CountAsync(), Is.EqualTo(1));
     }
 
     [Test]
@@ -125,7 +125,7 @@ public class AltaControllerTests
         SetCurrentUserId(1, client);
 
         await _controller.Parse();
-        Assert.That(await _dbContext.AltaExceptions.CountAsync(), Is.EqualTo(4));
+        Assert.That(await _dbContext.AltaExceptions.CountAsync(), Is.EqualTo(1));
     }
 
     [Test]

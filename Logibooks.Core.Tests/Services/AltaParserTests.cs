@@ -30,11 +30,11 @@ public class AltaParserTests
         var html = @"<table>
 <tr><td>Prod1</td><td>1234 56 789 0</td><td>c1</td></tr>
 <tr><td>Prod2</td><td>1111 22 333 4, 2222 33 444 5</td><td></td></tr>
-<tr><td>Prod3</td><td>1234 11 111 1 (за исключением 9999 99 999 9)</td><td>n</td></tr>
+<tr><td>Prod3</td><td>1234  (за исключением 1234 11 111 1)</td><td>n</td></tr>
 </table>";
         var client = new HttpClient(new FakeHandler(html));
-        var (items, exceptions) = await AltaParser.ParseAsync(new[] { "https://test" }, client);
-        Assert.That(items.Count, Is.EqualTo(5));
-        Assert.That(exceptions.Count, Is.EqualTo(2));
+        var (items, exceptions) = await AltaParser.ParseAsync(["https://test"], client);
+        Assert.That(items.Count, Is.EqualTo(4));
+        Assert.That(exceptions.Count, Is.EqualTo(1));
     }
 }
