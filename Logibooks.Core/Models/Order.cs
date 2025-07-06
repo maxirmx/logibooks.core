@@ -24,6 +24,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 using Microsoft.EntityFrameworkCore;
+using System;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 namespace Logibooks.Core.Models;
@@ -51,8 +52,8 @@ public class Order
     [Column("order_number")]
     public string? OrderNumber { get; set; }
 
-    [Column("invoice_date")]
-    public string? InvoiceDate { get; set; }
+    [Column("invoice_date", TypeName = "date")]
+    public DateOnly? InvoiceDate { get; set; }
 
     [Column("sticker")]
     public string? Sticker { get; set; }
@@ -114,14 +115,14 @@ public class Order
     [Column("unit")]
     public string? Unit { get; set; }
 
-    [Column("weight_kg")]
-    public string? WeightKg { get; set; }
+    [Column("weight_kg", TypeName = "numeric(10,3)")]
+    public decimal? WeightKg { get; set; }
 
-    [Column("quantity")]
-    public string? Quantity { get; set; }
+    [Column("quantity", TypeName = "numeric(10,3)")]
+    public decimal? Quantity { get; set; }
 
-    [Column("unit_price")]
-    public string? UnitPrice { get; set; }
+    [Column("unit_price", TypeName = "numeric(10,3)")]
+    public decimal? UnitPrice { get; set; }
 
     [Column("currency")]
     public string? Currency { get; set; }

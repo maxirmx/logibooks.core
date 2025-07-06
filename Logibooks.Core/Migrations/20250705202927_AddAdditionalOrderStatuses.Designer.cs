@@ -3,6 +3,7 @@ using System;
 using Logibooks.Core.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Logibooks.Core.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250705202927_AddAdditionalOrderStatuses")]
+    partial class AddAdditionalOrderStatuses
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -103,8 +106,8 @@ namespace Logibooks.Core.Migrations
                         .HasColumnType("text")
                         .HasColumnName("insole");
 
-                    b.Property<DateOnly?>("InvoiceDate")
-                        .HasColumnType("date")
+                    b.Property<string>("InvoiceDate")
+                        .HasColumnType("text")
                         .HasColumnName("invoice_date");
 
                     b.Property<string>("Lining")
@@ -139,8 +142,8 @@ namespace Logibooks.Core.Migrations
                         .HasColumnType("text")
                         .HasColumnName("product_name");
 
-                    b.Property<decimal?>("Quantity")
-                        .HasColumnType("numeric(10,3)")
+                    b.Property<string>("Quantity")
+                        .HasColumnType("text")
                         .HasColumnName("quantity");
 
                     b.Property<string>("RecipientAddress")
@@ -211,12 +214,12 @@ namespace Logibooks.Core.Migrations
                         .HasColumnType("text")
                         .HasColumnName("unit");
 
-                    b.Property<decimal?>("UnitPrice")
-                        .HasColumnType("numeric(10,3)")
+                    b.Property<string>("UnitPrice")
+                        .HasColumnType("text")
                         .HasColumnName("unit_price");
 
-                    b.Property<decimal?>("WeightKg")
-                        .HasColumnType("numeric(10,3)")
+                    b.Property<string>("WeightKg")
+                        .HasColumnType("text")
                         .HasColumnName("weight_kg");
 
                     b.HasKey("Id");
