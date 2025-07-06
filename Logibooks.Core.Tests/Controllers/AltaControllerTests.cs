@@ -15,6 +15,7 @@ using Logibooks.Core.Data;
 using Logibooks.Core.Models;
 using Logibooks.Core.RestModels;
 using Logibooks.Core.Services;
+using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace Logibooks.Core.Tests.Controllers;
 
@@ -123,10 +124,24 @@ public class AltaControllerTests
         var html = @"<table><tr><td>Prod1</td><td>1234 56 789 0 (за исключением 1234 56 000 0)</td><td>c1</td></tr></table>";
         var client = new HttpClient(new FakeHandler(html));
         SetCurrentUserId(1, client);
+
+        // Pre-compute expected values based on known parser behavior
+        const int numberOfUrls = 4; // AltaController.Parse() processes 4 URLs
+        const int rowsPerUrl = 1;    // Our test HTML has 1 data row
+        const int itemsPerRow = 1;   // Each row creates 1 item
+        const int exceptionsPerRow = 1; // This row has "за исключением" so creates 1 exception
+
+        var expectedItems = numberOfUrls * rowsPerUrl * itemsPerRow;
+        var expectedExceptions = numberOfUrls * rowsPerUrl * exceptionsPerRow;
+        var expectedTotalReturned = expectedItems; // Parse() returns item count
+
         var result = await _controller.Parse();
-        Assert.That(result.Value, Is.EqualTo(4));
-        Assert.That(await _dbContext.AltaItems.CountAsync(), Is.EqualTo(4));
-        Assert.That(await _dbContext.AltaExceptions.CountAsync(), Is.EqualTo(4));
+        Assert.That(result.Value, Is.EqualTo(expectedTotalReturned),
+            $"Expected {expectedTotalReturned} items returned from Parse()");
+        Assert.That(await _dbContext.AltaItems.CountAsync(), Is.EqualTo(expectedItems),
+            $"Expected {expectedItems} items in database");
+        Assert.That(await _dbContext.AltaExceptions.CountAsync(), Is.EqualTo(expectedExceptions),
+            $"Expected {expectedExceptions} exceptions in database");
     }
 
     [Test]
@@ -170,7 +185,14 @@ public class AltaControllerTests
         SetCurrentUserId(1);
         var create = new AltaExceptionDto { Url = "u", Code = "c", Name = "n" };
         var created = await _controller.CreateException(create);
-        var refId = ((created.Result as CreatedAtActionResult)!.Value as AltaExceptionDto)!.Id;
+
+        // Replace Assert.IsType with Assert.That and appropriate checks
+        Assert.That(created.Result, Is.TypeOf<CreatedAtActionResult>());
+        var resultAction = created.Result as CreatedAtActionResult;
+        Assert.That(resultAction!.Value, Is.TypeOf<AltaExceptionDto>());
+        var createdDto = resultAction.Value as AltaExceptionDto;
+        var refId = createdDto!.Id;
+
         var getItem = await _controller.GetException(refId);
         Assert.That(getItem.Value!.Name, Is.EqualTo("n"));
 
@@ -192,15 +214,32 @@ public class AltaControllerTests
     {
         SetCurrentUserId(2);
         var dto = new AltaExceptionDto { Id = 1 };
-        var getExceptionsResult = await _controller.GetExceptions();
-        Assert.That(getExceptionsResult, Is.TypeOf<ObjectResult>());
-        var getExceptionResult = await _controller.GetException(1);
-        Assert.That(getExceptionResult, Is.TypeOf<ObjectResult>());
-        var createExceptionResult = await _controller.CreateException(dto);
-        Assert.That(createExceptionResult, Is.TypeOf<ObjectResult>());
-        var updateExceptionResult = await _controller.UpdateException(1, dto);
-        Assert.That(updateExceptionResult, Is.TypeOf<ObjectResult>());
-        var deleteExceptionResult = await _controller.DeleteException(1);
-        Assert.That(deleteExceptionResult, Is.TypeOf<ObjectResult>());
+        
+        var result1 = await _controller.GetExceptions();
+        Assert.That(result1.Result, Is.TypeOf<ObjectResult>());
+        var obj = result1.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
+
+        var result2 = await _controller.GetException(1);
+        Assert.That(result2.Result, Is.TypeOf<ObjectResult>());
+        obj = result2.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
+
+        var result3 = await _controller.CreateException(dto);
+        Assert.That(result3.Result, Is.TypeOf<ObjectResult>());
+        obj = result3.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
+
+
+        var result4 = await _controller.UpdateException(1, dto);
+        Assert.That(result4, Is.TypeOf<ObjectResult>());
+        obj = result4 as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
+
+
+        var result5 = await _controller.DeleteException(1);
+        Assert.That(result5, Is.TypeOf<ObjectResult>());
+        obj = result5 as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
     }
 }
