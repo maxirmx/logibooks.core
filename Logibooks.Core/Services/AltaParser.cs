@@ -8,7 +8,7 @@ public static class AltaParser
 {
     private static readonly Regex CodePattern = new Regex(@"(\d{4}\s\d{2}\s\d{3}\s\d)", RegexOptions.Compiled);
 
-public static async Task<(List<AltaItem> Items, List<AltaException> Exceptions)> ParseAsync(IEnumerable<string> urls, HttpClient? client = null)
+    public static async Task<(List<AltaItem> Items, List<AltaException> Exceptions)> ParseAsync(IEnumerable<string> urls, HttpClient? client = null)
     {
         var http = client ?? new HttpClient();
         var items = new List<AltaItem>();
@@ -30,7 +30,13 @@ public static async Task<(List<AltaItem> Items, List<AltaException> Exceptions)>
                 {
                     var cells = row.SelectNodes("th|td");
                     if (cells == null) continue;
-                    var vals = cells.Select(c => HtmlEntity.DeEntitize(c.InnerText).Trim()).ToList();
+                    var vals = new List<string>();
+                    foreach (var c in cells)
+                    {
+                        var val = HtmlEntity.DeEntitize(c.InnerText);
+                        if (val == null) continue;
+                        vals.Add(val.Trim());
+                    }
                     if (vals.Count < 2 || vals.Count > 3) continue;
 
                     var low = string.Join(" ", vals).ToLower();
