@@ -211,7 +211,6 @@ public class UsersController(
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
-    [ProducesResponseType(StatusCodes.Status418ImATeapot, Type = typeof(ErrMessage))]
     public async Task<IActionResult> DeleteUser(int id)
     {
         _logger.LogDebug("DeleteUser for id={id}", id);
