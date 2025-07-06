@@ -50,7 +50,6 @@ builder.Services.AddAutoMapper(cfg => cfg.AddProfile<OrderMappingProfile>());
 builder.Services
     .Configure<AppSettings>(builder.Configuration.GetSection("AppSettings"))
     .AddScoped<IJwtUtils, JwtUtils>()
-    .AddScoped<RegisterProcessingService>()
     .AddHttpContextAccessor()
     .AddControllers();
 
