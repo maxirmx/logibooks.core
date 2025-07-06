@@ -476,6 +476,14 @@ public class RegistersController(
         {
             return DateTime.TryParse(value, RussianCulture, DateTimeStyles.None, out DateTime result) ? result : default;
         }
+        else if (targetType == typeof(DateOnly))
+        {
+            // Handle DateOnly type - try parsing date portion only
+            if (DateOnly.TryParse(value, RussianCulture, DateTimeStyles.None, out DateOnly result))
+                return result;
+
+            return default(DateOnly);
+        }
         else if (targetType == typeof(string))
         {
             // For string properties, return the value directly or an empty string for null/empty input

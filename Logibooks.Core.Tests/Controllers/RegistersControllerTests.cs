@@ -1022,6 +1022,9 @@ public class ConvertValueToPropertyTypeTests
     [TestCase("notabool", typeof(bool), false)]
     [TestCase("2024-06-28", typeof(DateTime), "2024-06-28")]
     [TestCase("notadate", typeof(DateTime), "0001-01-01")]
+    [TestCase("2024-06-28", typeof(DateOnly), "2024-06-28")]
+    [TestCase("2024-06-28T13:00:12", typeof(DateOnly), "2024-06-28")]
+    [TestCase("notadate", typeof(DateOnly), "0001-01-01")]
     [TestCase("hello", typeof(string), "hello")]
     [TestCase("", typeof(string), "")]
     [TestCase(null, typeof(string), "")]
@@ -1035,6 +1038,11 @@ public class ConvertValueToPropertyTypeTests
         if (type == typeof(DateTime))
         {
             var expectedDate = DateTime.TryParse(expected.ToString(), out var dt) ? dt : default;
+            Assert.That(result, Is.EqualTo(expectedDate));
+        }
+        else if (type == typeof(DateOnly))
+        {
+            var expectedDate = DateOnly.TryParse(expected.ToString(), out var d) ? d : default;
             Assert.That(result, Is.EqualTo(expectedDate));
         }
         else
