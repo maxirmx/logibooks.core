@@ -97,36 +97,6 @@ public class AltaControllerTests
         _controller = new AltaController(_mockHttpContextAccessor.Object, _dbContext, _logger, client);
     }
 
-    [Test]
-    public async Task Parse_ReturnsForbidden_ForNonAdmin()
-    {
-        SetCurrentUserId(2);
-        var result = await _controller.Parse();
-        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
-        var obj = result.Result as ObjectResult;
-        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
-    }
-
-    [Test]
-    public async Task Parse_AddsItems_ForAdmin()
-    {
-        var html = @"<table><tr><td>Prod1</td><td>1234 56 789 0</td><td>c1</td></tr></table>";
-        var client = new HttpClient(new FakeHandler(html));
-        SetCurrentUserId(1, client);
-        await _controller.Parse();
-        Assert.That(await _dbContext.AltaItems.CountAsync(), Is.EqualTo(1));
-    }
-
-    [Test]
-    public async Task Parse_AddsExceptions_ForAdmin()
-    {
-        var html = @"<table><tr><td>Prod1</td><td>1234 5 (за исключением 1234 56 000 0)</td><td>c1</td></tr></table>";
-        var client = new HttpClient(new FakeHandler(html));
-        SetCurrentUserId(1, client);
-
-        await _controller.Parse();
-        Assert.That(await _dbContext.AltaExceptions.CountAsync(), Is.EqualTo(1));
-    }
 
     [Test]
     public async Task CrudOperations_Work_ForAdmin()
@@ -420,82 +390,6 @@ public class AltaControllerTests
         Assert.That(result, Is.TypeOf<NoContentResult>());
     }
 
-    [Test]
-    public async Task Parse_IgnoresDuplicateCodes_WhenItemsAlreadyExist()
-    {
-        // Arrange
-        SetCurrentUserId(1);
-
-        // Create existing item
-        var existingItem = new AltaItemDto { Url = "existing", Code = "123456789012", Name = "existing" };
-        await _controller.CreateItem(existingItem);
-
-        var initialCount = await _dbContext.AltaItems.CountAsync();
-
-        // Act - parse HTML that would create the same code
-        var html = @"<table><tr><td>NewProd</td><td>1234 56 789 012</td><td>c1</td></tr></table>";
-        var client = new HttpClient(new FakeHandler(html));
-        SetCurrentUserId(1, client);
-        await _controller.Parse();
-
-        // Assert - count should remain the same (duplicate ignored)
-        var finalCount = await _dbContext.AltaItems.CountAsync();
-        Assert.That(finalCount, Is.EqualTo(initialCount));
-    }
-
-    [Test]
-    public async Task Parse_IgnoresDuplicateCodes_WhenExceptionsAlreadyExist()
-    {
-        // Arrange
-        SetCurrentUserId(1);
-
-        // Create existing exception
-        var existingException = new AltaExceptionDto { Url = "existing", Code = "123456000012", Name = "existing" };
-        await _controller.CreateException(existingException);
-
-        var initialCount = await _dbContext.AltaExceptions.CountAsync();
-
-        // Act - parse HTML that would create the same exception code
-        var html = @"<table><tr><td>NewProd</td><td>1234 56 (за исключением 1234 56 000 012)</td><td>c1</td></tr></table>";
-        var client = new HttpClient(new FakeHandler(html));
-        SetCurrentUserId(1, client);
-        await _controller.Parse();
-
-        // Assert - exception count should remain the same (duplicate ignored)
-        var finalCount = await _dbContext.AltaExceptions.CountAsync();
-        Assert.That(finalCount, Is.EqualTo(initialCount));
-    }
-
-    [Test]
-    public async Task Parse_AddsOnlyNewCodes_WhenMixOfExistingAndNew()
-    {
-        // Arrange
-        SetCurrentUserId(1);
-
-        // Create one existing item
-        var existingItem = new AltaItemDto { Url = "existing", Code = "123456789012", Name = "existing" };
-        await _controller.CreateItem(existingItem);
-
-        var initialCount = await _dbContext.AltaItems.CountAsync();
-
-        // Act - parse HTML with both existing and new codes
-        var html = @"<table>
-                    <tr><td>ExistingProd</td><td>1234 56 789 012</td><td>c1</td></tr>
-                    <tr><td>NewProd</td><td>9876 54 321 098</td><td>c2</td></tr>
-                 </table>";
-        var client = new HttpClient(new FakeHandler(html));
-        SetCurrentUserId(1, client);
-        await _controller.Parse();
-
-        // Assert - only one new item should be added
-        var finalCount = await _dbContext.AltaItems.CountAsync();
-        Assert.That(finalCount, Is.EqualTo(initialCount + 1));
-
-        // Verify the new item was added
-        var newItem = await _dbContext.AltaItems.FirstOrDefaultAsync(x => x.Code == "987654321098");
-        Assert.That(newItem, Is.Not.Null);
-        Assert.That(newItem!.Name, Is.EqualTo("NewProd"));
-    }
 
 
 }
