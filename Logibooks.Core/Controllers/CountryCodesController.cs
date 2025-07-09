@@ -57,13 +57,17 @@ public class CountryCodesController(
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<CountryCodeCompactDto>))]
     public async Task<ActionResult<IEnumerable<CountryCodeCompactDto>>> GetCodesCompact()
     {
+        var priorityMapping = new Dictionary<string, int>
+        {
+            { "RU", 0 },
+            { "UZ", 1 },
+            { "GE", 2 },
+            { "AZ", 3 },
+            { "TR", 4 }
+        };
+
         var codes = await _db.CountryCodes.AsNoTracking()
-            .OrderBy(c => c.IsoAlpha2 == "RU" ? 0
-                         : c.IsoAlpha2 == "UZ" ? 1
-                         : c.IsoAlpha2 == "GE" ? 2
-                         : c.IsoAlpha2 == "AZ" ? 3
-                         : c.IsoAlpha2 == "TR" ? 4
-                         : 5)
+            .OrderBy(c => priorityMapping.GetValueOrDefault(c.IsoAlpha2, int.MaxValue))
             .ThenBy(c => c.IsoNumeric)
             .Select(c => new CountryCodeCompactDto(c))
             .ToListAsync();
