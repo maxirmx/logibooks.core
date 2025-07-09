@@ -53,6 +53,28 @@ public class CountryCodesController(
         return codes.Select(c => new CountryCodeDto(c)).ToList();
     }
 
+    [HttpGet("compact")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<CountryCodeCompactDto>))]
+    public async Task<ActionResult<IEnumerable<CountryCodeCompactDto>>> GetCodesCompact()
+    {
+        var priorityMapping = new Dictionary<string, int>
+        {
+            { "RU", 0 },
+            { "UZ", 1 },
+            { "GE", 2 },
+            { "AZ", 3 },
+            { "TR", 4 }
+        };
+
+        var codes = await _db.CountryCodes.AsNoTracking()
+            .OrderBy(c => priorityMapping.GetValueOrDefault(c.IsoAlpha2, int.MaxValue))
+            .ThenBy(c => c.IsoNumeric)
+            .Select(c => new CountryCodeCompactDto(c))
+            .ToListAsync();
+
+        return codes;
+    }
+
     [HttpGet("{id}")]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(CountryCodeDto))]
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]

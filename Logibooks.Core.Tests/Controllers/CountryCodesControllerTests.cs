@@ -138,4 +138,29 @@ public class CountryCodesControllerTests
         Assert.That(result.Value, Is.Not.Null);
         Assert.That(result.Value!.IsoNumeric, Is.EqualTo(840));
     }
+
+    [Test]
+    public async Task GetCodesCompact_OrdersAndSelectsProperly()
+    {
+        SetCurrentUserId(2);
+        _dbContext.CountryCodes.AddRange(
+            new CountryCode { IsoNumeric = 643, IsoAlpha2 = "RU", NameEnOfficial = "RU", NameRuOfficial = "RU" },
+            new CountryCode { IsoNumeric = 860, IsoAlpha2 = "UZ", NameEnOfficial = "UZ", NameRuOfficial = "UZ" },
+            new CountryCode { IsoNumeric = 268, IsoAlpha2 = "GE", NameEnOfficial = "GE", NameRuOfficial = "GE" },
+            new CountryCode { IsoNumeric = 31,  IsoAlpha2 = "AZ", NameEnOfficial = "AZ", NameRuOfficial = "AZ" },
+            new CountryCode { IsoNumeric = 792, IsoAlpha2 = "TR", NameEnOfficial = "TR", NameRuOfficial = "TR" },
+            new CountryCode { IsoNumeric = 124, IsoAlpha2 = "CA", NameEnOfficial = "CA", NameRuOfficial = "CA" },
+            new CountryCode { IsoNumeric = 398, IsoAlpha2 = "KZ", NameEnOfficial = "KZ", NameRuOfficial = "KZ" }
+        );
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.GetCodesCompact();
+        var list = result.Value!.ToList();
+
+        string[] expectedFirst = ["RU", "UZ", "GE", "AZ", "TR"];
+        Assert.That(list.Take(5).Select(c => c.IsoAlpha2), Is.EqualTo(expectedFirst));
+        var rest = list.Skip(5).Select(c => c.IsoNumeric).ToList();
+        Assert.That(rest, Is.EqualTo(rest.OrderBy(n => n).ToList()));
+        Assert.That(list.All(c => c.NameEnOfficial != string.Empty && c.NameRuOfficial != string.Empty));
+    }
 }
