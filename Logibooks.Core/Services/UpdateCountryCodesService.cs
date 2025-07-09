@@ -36,6 +36,7 @@ public class UpdateCountryCodesService(
     AppDbContext db,
     ILogger<UpdateCountryCodesService> logger,
     IHttpClientFactory httpClientFactory)
+    : IUpdateCountryCodesService
 {
     private readonly AppDbContext _db = db;
     private readonly ILogger<UpdateCountryCodesService> _logger = logger;

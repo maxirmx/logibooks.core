@@ -52,7 +52,7 @@ builder.Services.AddAutoMapper(cfg => cfg.AddProfile<OrderMappingProfile>());
 builder.Services
     .Configure<AppSettings>(builder.Configuration.GetSection("AppSettings"))
     .AddScoped<IJwtUtils, JwtUtils>()
-    .AddScoped<UpdateCountryCodesService>()
+    .AddScoped<IUpdateCountryCodesService, UpdateCountryCodesService>()
     .AddHttpContextAccessor()
     .AddControllers();
 

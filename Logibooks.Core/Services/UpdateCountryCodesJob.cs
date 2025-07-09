@@ -27,14 +27,40 @@ using Quartz;
 
 namespace Logibooks.Core.Services;
 
-public class UpdateCountryCodesJob(UpdateCountryCodesService service, ILogger<UpdateCountryCodesJob> logger) : IJob
+public class UpdateCountryCodesJob(IUpdateCountryCodesService service, ILogger<UpdateCountryCodesJob> logger) : IJob
 {
-    private readonly UpdateCountryCodesService _service = service;
+    private readonly IUpdateCountryCodesService _service = service;
     private readonly ILogger<UpdateCountryCodesJob> _logger = logger;
+
+    private static CancellationTokenSource? _prev;
+    private static readonly object _lock = new();
 
     public async Task Execute(IJobExecutionContext context)
     {
+        CancellationTokenSource cts;
+        lock (_lock)
+        {
+            _prev?.Cancel();
+            cts = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken);
+            _prev = cts;
+        }
+
         _logger.LogInformation("Executing UpdateCountryCodesJob");
-        await _service.RunAsync(context.CancellationToken);
+        try
+        {
+            await _service.RunAsync(cts.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogInformation("UpdateCountryCodesJob was cancelled");
+        }
+        finally
+        {
+            cts.Dispose();
+            lock (_lock)
+            {
+                if (_prev == cts) _prev = null;
+            }
+        }
     }
 }
