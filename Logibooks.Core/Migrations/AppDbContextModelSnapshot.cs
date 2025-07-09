@@ -113,7 +113,7 @@ namespace Logibooks.Core.Migrations
 
                     b.Property<string>("IsoAlpha2")
                         .IsRequired()
-                        .HasColumnType("text")
+                        .HasColumnType("character(2)")
                         .HasColumnName("iso_alpha2");
 
                     b.Property<DateTime>("LoadedAt")
