@@ -121,30 +121,37 @@ namespace Logibooks.Core.Migrations
                         .HasColumnName("loaded_at");
 
                     b.Property<string>("NameEnCldr")
+                        .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("name_en_cldr");
 
                     b.Property<string>("NameEnFormal")
+                        .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("name_en_formal");
 
                     b.Property<string>("NameEnOfficial")
+                        .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("name_en_official");
 
                     b.Property<string>("NameEnShort")
+                        .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("name_en_short");
 
                     b.Property<string>("NameRuFormal")
+                        .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("name_ru_formal");
 
                     b.Property<string>("NameRuOfficial")
+                        .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("name_ru_official");
 
                     b.Property<string>("NameRuShort")
+                        .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("name_ru_short");
 
