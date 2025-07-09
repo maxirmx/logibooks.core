@@ -30,6 +30,8 @@ using Logibooks.Core.Authorization;
 using Logibooks.Core.Data;
 using Logibooks.Core.Extensions;
 using Logibooks.Core.Settings;
+using Logibooks.Core.Services;
+using Quartz;
 
 var builder = WebApplication.CreateBuilder(args);
 var config = builder.Configuration;
@@ -50,6 +52,7 @@ builder.Services.AddAutoMapper(cfg => cfg.AddProfile<OrderMappingProfile>());
 builder.Services
     .Configure<AppSettings>(builder.Configuration.GetSection("AppSettings"))
     .AddScoped<IJwtUtils, JwtUtils>()
+    .AddScoped<UpdateCountryCodesService>()
     .AddHttpContextAccessor()
     .AddControllers();
 
@@ -65,6 +68,23 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddQuartz(q =>
+{
+    q.UseMicrosoftDependencyInjectionJobFactory();
+
+    var jobKey = new JobKey("UpdateCountryCodes");
+    q.AddJob<UpdateCountryCodesJob>(opts => opts.WithIdentity(jobKey));
+
+    var cron = config["Jobs:UpdateCountryCodes"];
+    if (!string.IsNullOrWhiteSpace(cron))
+    {
+        q.AddTrigger(opts => opts
+            .ForJob(jobKey)
+            .WithIdentity("UpdateCountryCodes-trigger")
+            .WithCronSchedule(cron));
+    }
+});
+builder.Services.AddQuartzHostedService(options => options.WaitForJobsToComplete = true);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
