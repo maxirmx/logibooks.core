@@ -56,6 +56,8 @@ builder.Services
     .AddHttpContextAccessor()
     .AddControllers();
 
+builder.Services.AddHttpClient();
+
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
