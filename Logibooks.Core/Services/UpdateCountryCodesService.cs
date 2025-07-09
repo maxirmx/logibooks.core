@@ -86,7 +86,7 @@ public class UpdateCountryCodesService(
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogError(ex, "Failed to download country codes");
+            _logger.LogError(ex, "Failed to download country codes from {Url}", DataHubCountryCodesUrl);
             throw;
         }
 
