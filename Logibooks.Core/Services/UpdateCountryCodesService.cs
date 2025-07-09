@@ -78,8 +78,17 @@ public class UpdateCountryCodesService(
     {
         _logger.LogInformation("Downloading {Url}", DataHubCountryCodesUrl);
 
-        using var httpClient = _httpClientFactory.CreateClient();
-        var data = await httpClient.GetByteArrayAsync(DataHubCountryCodesUrl, cancellationToken);
+        byte[] data;
+        try
+        {
+            using var httpClient = _httpClientFactory.CreateClient();
+            data = await httpClient.GetByteArrayAsync(DataHubCountryCodesUrl, cancellationToken);
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Failed to download country codes");
+            throw;
+        }
 
         using var reader = new StreamReader(new MemoryStream(data));
         var config = new CsvConfiguration(CultureInfo.InvariantCulture)

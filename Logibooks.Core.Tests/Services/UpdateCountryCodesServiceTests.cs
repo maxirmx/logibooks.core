@@ -30,23 +30,36 @@ public class FakeCountryCodesHandler : HttpMessageHandler
     }
 }
 
+public class FakeErrorHandler : HttpMessageHandler
+{
+    private readonly HttpStatusCode _code;
+    public FakeErrorHandler(HttpStatusCode code) { _code = code; }
+    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        return Task.FromResult(new HttpResponseMessage(_code));
+    }
+}
+
 [TestFixture]
 public class UpdateCountryCodesServiceTests
 {
-    private static IHttpClientFactory CreateHttpClientFactory(string csv)
+    private static IHttpClientFactory CreateHttpClientFactory(HttpMessageHandler handler)
     {
         var services = new ServiceCollection();
-        services.AddHttpClient("", options => { }).ConfigurePrimaryHttpMessageHandler(() => new FakeCountryCodesHandler(csv));
+        services.AddHttpClient("", options => { }).ConfigurePrimaryHttpMessageHandler(() => handler);
 
         var serviceProvider = services.BuildServiceProvider();
         return serviceProvider.GetRequiredService<IHttpClientFactory>();
     }
 
+    private static IHttpClientFactory CreateHttpClientFactory(string csv)
+        => CreateHttpClientFactory(new FakeCountryCodesHandler(csv));
+
     [Test]
     public async Task RunAsync_InsertsRecords()
     {
         var csv = "ISO3166-1-numeric,ISO3166-1-Alpha-2,UNTERM English Short,UNTERM English Formal,official_name_en,CLDR display name,UNTERM Russian Short,UNTERM Russian Formal,official_name_ru\n" +
-                  "840,us,United States,United States of America,United States of America,United States,США,Соединённые Штаты Америки,Америка";
+                  "840,us,United States,United States of America,United States of America,United States,Г‘ГГЂ,Г‘Г®ГҐГ¤ГЁГ­ВёГ­Г­Г»ГҐ ГГІГ ГІГ» ГЂГ¬ГҐГ°ГЁГЄГЁ,ГЂГ¬ГҐГ°ГЁГЄГ ";
 
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase($"cc_{Guid.NewGuid()}")
@@ -85,7 +98,7 @@ public class UpdateCountryCodesServiceTests
         ctx.SaveChanges();
 
         var csv = "ISO3166-1-numeric,ISO3166-1-Alpha-2,UNTERM English Short,UNTERM English Formal,official_name_en,CLDR display name,UNTERM Russian Short,UNTERM Russian Formal,official_name_ru\n" +
-                  "840,us,United States,United States of America,United States of America,United States,США,Соединённые Штаты Америки,Америка";
+                  "840,us,United States,United States of America,United States of America,United States,Г‘ГГЂ,Г‘Г®ГҐГ¤ГЁГ­ВёГ­Г­Г»ГҐ ГГІГ ГІГ» ГЂГ¬ГҐГ°ГЁГЄГЁ,ГЂГ¬ГҐГ°ГЁГЄГ ";
         var httpClientFactory = CreateHttpClientFactory(csv);
         var svc = new UpdateCountryCodesService(ctx, NullLogger<UpdateCountryCodesService>.Instance, httpClientFactory);
         await svc.RunAsync();
@@ -119,8 +132,8 @@ public class UpdateCountryCodesServiceTests
         ctx.SaveChanges();
 
         var csv = "ISO3166-1-numeric,ISO3166-1-Alpha-2,UNTERM English Short,UNTERM English Formal,official_name_en,CLDR display name,UNTERM Russian Short,UNTERM Russian Formal,official_name_ru\n" +
-                  "840,us,United States,United States of America,United States of America,United States,США,Соединённые Штаты Америки,Америка\n" +
-                  "124,ca,Canada,Canada,Canada,Canada,Канада,Канада,Канада";
+                  "840,us,United States,United States of America,United States of America,United States,Г‘ГГЂ,Г‘Г®ГҐГ¤ГЁГ­ВёГ­Г­Г»ГҐ ГГІГ ГІГ» ГЂГ¬ГҐГ°ГЁГЄГЁ,ГЂГ¬ГҐГ°ГЁГЄГ \n" +
+                  "124,ca,Canada,Canada,Canada,Canada,ГЉГ Г­Г Г¤Г ,ГЉГ Г­Г Г¤Г ,ГЉГ Г­Г Г¤Г ";
         var httpClientFactory = CreateHttpClientFactory(csv);
         var svc = new UpdateCountryCodesService(ctx, NullLogger<UpdateCountryCodesService>.Instance, httpClientFactory);
         await svc.RunAsync();
@@ -134,7 +147,7 @@ public class UpdateCountryCodesServiceTests
     public async Task RunAsync_UppercasesIsoAlpha2()
     {
         var csv = "ISO3166-1-numeric,ISO3166-1-Alpha-2,UNTERM English Short,UNTERM English Formal,official_name_en,CLDR display name,UNTERM Russian Short,UNTERM Russian Formal,official_name_ru\n" +
-                  "840,Us,United States,United States of America,United States of America,United States,США,Соединённые Штаты Америки,Америка";
+                  "840,Us,United States,United States of America,United States of America,United States,Г‘ГГЂ,Г‘Г®ГҐГ¤ГЁГ­ВёГ­Г­Г»ГҐ ГГІГ ГІГ» ГЂГ¬ГҐГ°ГЁГЄГЁ,ГЂГ¬ГҐГ°ГЁГЄГ ";
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase($"cc_{Guid.NewGuid()}")
             .Options;
@@ -166,7 +179,7 @@ public class UpdateCountryCodesServiceTests
     public void RunAsync_RespectsCancellationToken()
     {
         var csv = "ISO3166-1-numeric,ISO3166-1-Alpha-2,UNTERM English Short,UNTERM English Formal,official_name_en,CLDR display name,UNTERM Russian Short,UNTERM Russian Formal,official_name_ru\n" +
-                  "840,us,United States,United States of America,United States of America,United States,США,Соединённые Штаты Америки,Америка";
+                  "840,us,United States,United States of America,United States of America,United States,Г‘ГГЂ,Г‘Г®ГҐГ¤ГЁГ­ВёГ­Г­Г»ГҐ ГГІГ ГІГ» ГЂГ¬ГҐГ°ГЁГЄГЁ,ГЂГ¬ГҐГ°ГЁГЄГ ";
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase($"cc_{Guid.NewGuid()}")
             .Options;
@@ -181,5 +194,18 @@ public class UpdateCountryCodesServiceTests
             async () => await svc.RunAsync(cts.Token),
             Throws.InstanceOf<OperationCanceledException>()
         );
+    }
+
+    [Test]
+    public void RunAsync_ThrowsOnHttpError()
+    {
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase($"cc_{Guid.NewGuid()}")
+            .Options;
+        using var ctx = new AppDbContext(options);
+        var httpClientFactory = CreateHttpClientFactory(new FakeErrorHandler(HttpStatusCode.InternalServerError));
+        var svc = new UpdateCountryCodesService(ctx, NullLogger<UpdateCountryCodesService>.Instance, httpClientFactory);
+
+        Assert.That(async () => await svc.RunAsync(), Throws.InstanceOf<HttpRequestException>());
     }
 }
