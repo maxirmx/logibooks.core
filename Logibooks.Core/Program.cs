@@ -70,8 +70,6 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddQuartz(q =>
 {
-    q.UseMicrosoftDependencyInjectionJobFactory();
-
     var jobKey = new JobKey("UpdateCountryCodes");
     q.AddJob<UpdateCountryCodesJob>(opts => opts.WithIdentity(jobKey));
 
