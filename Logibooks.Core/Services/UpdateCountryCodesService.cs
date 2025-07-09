@@ -42,8 +42,7 @@ public class UpdateCountryCodesService(
     private readonly ILogger<UpdateCountryCodesService> _logger = logger;
     private readonly IHttpClientFactory _httpClientFactory = httpClientFactory;
 
-    private const string DefaultUrl =
-        "https://datahub.io/core/country-codes/r/country-codes.csv";
+    private const string DataHubCountryCodesUrl = "https://datahub.io/core/country-codes/r/country-codes.csv";
 
     private class CsvRecord
     {
@@ -77,11 +76,10 @@ public class UpdateCountryCodesService(
 
     public async Task RunAsync(CancellationToken cancellationToken = default)
     {
-        var url = Environment.GetEnvironmentVariable("FETCH_URL") ?? DefaultUrl;
-        _logger.LogInformation("Downloading {Url}", url);
+        _logger.LogInformation("Downloading {Url}", DataHubCountryCodesUrl);
 
         using var httpClient = _httpClientFactory.CreateClient();
-        var data = await httpClient.GetByteArrayAsync(url, cancellationToken);
+        var data = await httpClient.GetByteArrayAsync(DataHubCountryCodesUrl, cancellationToken);
 
         using var reader = new StreamReader(new MemoryStream(data));
         var config = new CsvConfiguration(CultureInfo.InvariantCulture)
