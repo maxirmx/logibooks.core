@@ -13,6 +13,7 @@ using Logibooks.Core.Data;
 using Logibooks.Core.Models;
 using Logibooks.Core.RestModels;
 using Logibooks.Core.Services;
+using System.Net.Http;
 
 namespace Logibooks.Core.Tests.Controllers;
 
@@ -99,6 +100,18 @@ public class CountryCodesControllerTests
         var result = await _controller.Update();
         _mockService.Verify(s => s.RunAsync(It.IsAny<CancellationToken>()), Times.Once);
         Assert.That(result, Is.TypeOf<NoContentResult>());
+    }
+
+    [Test]
+    public async Task Update_ReturnsServerError_OnHttpException()
+    {
+        SetCurrentUserId(1);
+        _mockService.Setup(s => s.RunAsync(It.IsAny<CancellationToken>())).ThrowsAsync(new HttpRequestException());
+
+        var result = await _controller.Update();
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status500InternalServerError));
     }
 
     [Test]

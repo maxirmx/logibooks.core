@@ -30,6 +30,7 @@ using Logibooks.Core.Services;
 using Logibooks.Core.Data;
 using Logibooks.Core.RestModels;
 using Microsoft.EntityFrameworkCore;
+using System.Net.Http;
 
 namespace Logibooks.Core.Controllers;
 
@@ -68,7 +69,16 @@ public class CountryCodesController(
     {
         if (!await _db.CheckAdmin(_curUserId)) return _403();
 
-        await _service.RunAsync();
+        try
+        {
+            await _service.RunAsync();
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Update returning '500 Internal Server Error'");
+            return _500UploadCountryCodes();
+        }
+
         return NoContent();
     }
 }
