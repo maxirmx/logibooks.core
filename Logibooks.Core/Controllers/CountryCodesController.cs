@@ -28,6 +28,8 @@ using Logibooks.Core.Authorization;
 
 using Logibooks.Core.Services;
 using Logibooks.Core.Data;
+using Logibooks.Core.RestModels;
+using Microsoft.EntityFrameworkCore;
 
 namespace Logibooks.Core.Controllers;
 
@@ -37,15 +39,35 @@ namespace Logibooks.Core.Controllers;
 public class CountryCodesController(
     IHttpContextAccessor httpContextAccessor,
     AppDbContext db,
-    UpdateCountryCodesService service,
+    IUpdateCountryCodesService service,
     ILogger<CountryCodesController> logger) : LogibooksControllerBase(httpContextAccessor, db, logger)
 {
-    private readonly UpdateCountryCodesService _service = service;
+    private readonly IUpdateCountryCodesService _service = service;
 
-    [HttpPost("update")] 
+    [HttpGet]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<CountryCodeDto>))]
+    public async Task<ActionResult<IEnumerable<CountryCodeDto>>> GetCodes()
+    {
+        var codes = await _db.CountryCodes.AsNoTracking().ToListAsync();
+        return codes.Select(c => new CountryCodeDto(c)).ToList();
+    }
+
+    [HttpGet("{id}")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(CountryCodeDto))]
+    [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
+    public async Task<ActionResult<CountryCodeDto>> GetCode(short id)
+    {
+        var cc = await _db.CountryCodes.AsNoTracking().FirstOrDefaultAsync(c => c.IsoNumeric == id);
+        return cc == null ? _404Object(id) : new CountryCodeDto(cc);
+    }
+
+    [HttpPost("update")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     public async Task<IActionResult> Update()
     {
+        if (!await _db.CheckAdmin(_curUserId)) return _403();
+
         await _service.RunAsync();
         return NoContent();
     }
