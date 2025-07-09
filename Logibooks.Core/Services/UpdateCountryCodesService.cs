@@ -95,42 +95,40 @@ public class UpdateCountryCodesService(
         var existing = _db.CountryCodes
             .ToDictionary(cc => cc.IsoNumeric);
 
-        foreach (var r in records)
+        foreach (var record in records)
         {
-            r.IsoAlpha2 = r.IsoAlpha2.ToUpperInvariant();
-            if (existing.TryGetValue(r.IsoNumeric, out var cc))
+            record.IsoAlpha2 = record.IsoAlpha2.ToUpperInvariant();
+            if (existing.TryGetValue(record.IsoNumeric, out var countryCode))
             {
-                cc.IsoAlpha2 = r.IsoAlpha2;
-                cc.NameEnShort = r.NameEnShort;
-                cc.NameEnFormal = r.NameEnFormal;
-                cc.NameEnOfficial = r.NameEnOfficial;
-                cc.NameEnCldr = r.NameEnCldr;
-                cc.NameRuShort = r.NameRuShort;
-                cc.NameRuFormal = r.NameRuFormal;
-                cc.NameRuOfficial = r.NameRuOfficial;
-                cc.LoadedAt = DateTime.UtcNow;
-                _db.CountryCodes.Update(cc);
+                MapRecordToCountryCode(record, countryCode);
+                countryCode.IsoAlpha2 = record.IsoAlpha2;
+                _db.CountryCodes.Update(countryCode);
             }
             else
             {
-                var newCc = new CountryCode
+                var newCountryCode = new CountryCode
                 {
-                    IsoNumeric = r.IsoNumeric,
-                    IsoAlpha2 = r.IsoAlpha2,
-                    NameEnShort = r.NameEnShort,
-                    NameEnFormal = r.NameEnFormal,
-                    NameEnOfficial = r.NameEnOfficial,
-                    NameEnCldr = r.NameEnCldr,
-                    NameRuShort = r.NameRuShort,
-                    NameRuFormal = r.NameRuFormal,
-                    NameRuOfficial = r.NameRuOfficial,
-                    LoadedAt = DateTime.UtcNow
+                    IsoNumeric = record.IsoNumeric,
+                    IsoAlpha2 = record.IsoAlpha2 
                 };
-                _db.CountryCodes.Add(newCc);
+                MapRecordToCountryCode(record, newCountryCode);
+                _db.CountryCodes.Add(newCountryCode);
             }
         }
 
         await _db.SaveChangesAsync(cancellationToken);
         _logger.LogInformation("Loaded {Count} country codes", records.Count);
+    }
+
+    private static void MapRecordToCountryCode(CsvRecord source, CountryCode target)
+    {
+        target.NameEnShort = source.NameEnShort;
+        target.NameEnFormal = source.NameEnFormal;
+        target.NameEnOfficial = source.NameEnOfficial;
+        target.NameEnCldr = source.NameEnCldr;
+        target.NameRuShort = source.NameRuShort;
+        target.NameRuFormal = source.NameRuFormal;
+        target.NameRuOfficial = source.NameRuOfficial;
+        target.LoadedAt = DateTime.UtcNow;
     }
 }
