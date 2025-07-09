@@ -110,6 +110,11 @@ public class LogibooksControllerPreBase(AppDbContext db, ILogger logger) : Contr
         return StatusCode(StatusCodes.Status500InternalServerError,
                           new ErrMessage { Msg = "Внутренняя ошибка при загрузке файла реестра" });
     }
+    protected ObjectResult _500UploadCountryCodes()
+    {
+        return StatusCode(StatusCodes.Status500InternalServerError,
+                          new ErrMessage { Msg = "Ошибка при загрузке списка стран" });
+    }
 }
 
 public class LogibooksControllerBase : LogibooksControllerPreBase

@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Logibooks.Core.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250706095157_AltaParser1")]
-    partial class AltaParser1
+    [Migration("20250709131639_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -59,6 +59,9 @@ namespace Logibooks.Core.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Code")
+                        .IsUnique();
+
                     b.ToTable("alta_exceptions");
                 });
 
@@ -96,7 +99,68 @@ namespace Logibooks.Core.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Code")
+                        .IsUnique();
+
                     b.ToTable("alta_items");
+                });
+
+            modelBuilder.Entity("Logibooks.Core.Models.CountryCode", b =>
+                {
+                    b.Property<short>("IsoNumeric")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("smallint")
+                        .HasColumnName("iso_numeric");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<short>("IsoNumeric"));
+
+                    b.Property<string>("IsoAlpha2")
+                        .IsRequired()
+                        .HasColumnType("character(2)")
+                        .HasColumnName("iso_alpha2");
+
+                    b.Property<DateTime>("LoadedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("loaded_at");
+
+                    b.Property<string>("NameEnCldr")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name_en_cldr");
+
+                    b.Property<string>("NameEnFormal")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name_en_formal");
+
+                    b.Property<string>("NameEnOfficial")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name_en_official");
+
+                    b.Property<string>("NameEnShort")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name_en_short");
+
+                    b.Property<string>("NameRuFormal")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name_ru_formal");
+
+                    b.Property<string>("NameRuOfficial")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name_ru_official");
+
+                    b.Property<string>("NameRuShort")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name_ru_short");
+
+                    b.HasKey("IsoNumeric");
+
+                    b.ToTable("country_codes");
                 });
 
             modelBuilder.Entity("Logibooks.Core.Models.Order", b =>

@@ -15,6 +15,61 @@ namespace Logibooks.Core.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
+                name: "alta_exceptions",
+                columns: table => new
+                {
+                    id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    url = table.Column<string>(type: "text", nullable: false),
+                    number = table.Column<string>(type: "text", nullable: true),
+                    code = table.Column<string>(type: "text", nullable: false),
+                    name = table.Column<string>(type: "text", nullable: false),
+                    comment = table.Column<string>(type: "text", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_alta_exceptions", x => x.id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "alta_items",
+                columns: table => new
+                {
+                    id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    url = table.Column<string>(type: "text", nullable: false),
+                    number = table.Column<string>(type: "text", nullable: true),
+                    code = table.Column<string>(type: "text", nullable: false),
+                    name = table.Column<string>(type: "text", nullable: false),
+                    comment = table.Column<string>(type: "text", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_alta_items", x => x.id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "country_codes",
+                columns: table => new
+                {
+                    iso_numeric = table.Column<short>(type: "smallint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    iso_alpha2 = table.Column<string>(type: "character(2)", nullable: false),
+                    name_en_short = table.Column<string>(type: "text", nullable: false),
+                    name_en_formal = table.Column<string>(type: "text", nullable: false),
+                    name_en_official = table.Column<string>(type: "text", nullable: false),
+                    name_en_cldr = table.Column<string>(type: "text", nullable: false),
+                    name_ru_short = table.Column<string>(type: "text", nullable: false),
+                    name_ru_formal = table.Column<string>(type: "text", nullable: false),
+                    name_ru_official = table.Column<string>(type: "text", nullable: false),
+                    loaded_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_country_codes", x => x.iso_numeric);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "registers",
                 columns: table => new
                 {
@@ -83,7 +138,7 @@ namespace Logibooks.Core.Migrations
                     status_id = table.Column<int>(type: "integer", nullable: false),
                     row_number = table.Column<int>(type: "integer", nullable: false),
                     order_number = table.Column<string>(type: "text", nullable: true),
-                    invoice_date = table.Column<string>(type: "text", nullable: true),
+                    invoice_date = table.Column<DateOnly>(type: "date", nullable: true),
                     sticker = table.Column<string>(type: "text", nullable: true),
                     shk = table.Column<string>(type: "text", nullable: true),
                     sticker_code = table.Column<string>(type: "text", nullable: true),
@@ -104,9 +159,9 @@ namespace Logibooks.Core.Migrations
                     country = table.Column<string>(type: "text", nullable: true),
                     factory_address = table.Column<string>(type: "text", nullable: true),
                     unit = table.Column<string>(type: "text", nullable: true),
-                    weight_kg = table.Column<string>(type: "text", nullable: true),
-                    quantity = table.Column<string>(type: "text", nullable: true),
-                    unit_price = table.Column<string>(type: "text", nullable: true),
+                    weight_kg = table.Column<decimal>(type: "numeric(10,3)", nullable: true),
+                    quantity = table.Column<decimal>(type: "numeric(10,3)", nullable: true),
+                    unit_price = table.Column<decimal>(type: "numeric(10,3)", nullable: true),
                     currency = table.Column<string>(type: "text", nullable: true),
                     barcode = table.Column<string>(type: "text", nullable: true),
                     declaration = table.Column<string>(type: "text", nullable: true),
@@ -193,6 +248,18 @@ namespace Logibooks.Core.Migrations
                 values: new object[] { 2, 1 });
 
             migrationBuilder.CreateIndex(
+                name: "IX_alta_exceptions_code",
+                table: "alta_exceptions",
+                column: "code",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_alta_items_code",
+                table: "alta_items",
+                column: "code",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_orders_register_id",
                 table: "orders",
                 column: "register_id");
@@ -203,6 +270,11 @@ namespace Logibooks.Core.Migrations
                 column: "status_id");
 
             migrationBuilder.CreateIndex(
+                name: "IX_orders_tn_ved",
+                table: "orders",
+                column: "tn_ved");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_user_roles_role_id",
                 table: "user_roles",
                 column: "role_id");
@@ -211,6 +283,15 @@ namespace Logibooks.Core.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropTable(
+                name: "alta_exceptions");
+
+            migrationBuilder.DropTable(
+                name: "alta_items");
+
+            migrationBuilder.DropTable(
+                name: "country_codes");
+
             migrationBuilder.DropTable(
                 name: "orders");
 

@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Logibooks.Core.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250706074307_UpdateWeightKg")]
-    partial class UpdateWeightKg
+    [Migration("20250709195325_AddCountryCodes")]
+    partial class AddCountryCodes
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -24,6 +24,144 @@ namespace Logibooks.Core.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+
+            modelBuilder.Entity("Logibooks.Core.Models.AltaException", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("code");
+
+                    b.Property<string>("Comment")
+                        .HasColumnType("text")
+                        .HasColumnName("comment");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name");
+
+                    b.Property<string>("Number")
+                        .HasColumnType("text")
+                        .HasColumnName("number");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("url");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.ToTable("alta_exceptions");
+                });
+
+            modelBuilder.Entity("Logibooks.Core.Models.AltaItem", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("code");
+
+                    b.Property<string>("Comment")
+                        .HasColumnType("text")
+                        .HasColumnName("comment");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name");
+
+                    b.Property<string>("Number")
+                        .HasColumnType("text")
+                        .HasColumnName("number");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("url");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.ToTable("alta_items");
+                });
+
+            modelBuilder.Entity("Logibooks.Core.Models.CountryCode", b =>
+                {
+                    b.Property<short>("IsoNumeric")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("smallint")
+                        .HasColumnName("iso_numeric");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<short>("IsoNumeric"));
+
+                    b.Property<string>("IsoAlpha2")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("iso_alpha2");
+
+                    b.Property<DateTime>("LoadedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("loaded_at");
+
+                    b.Property<string>("NameEnCldr")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name_en_cldr");
+
+                    b.Property<string>("NameEnFormal")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name_en_formal");
+
+                    b.Property<string>("NameEnOfficial")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name_en_official");
+
+                    b.Property<string>("NameEnShort")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name_en_short");
+
+                    b.Property<string>("NameRuFormal")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name_ru_formal");
+
+                    b.Property<string>("NameRuOfficial")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name_ru_official");
+
+                    b.Property<string>("NameRuShort")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name_ru_short");
+
+                    b.HasKey("IsoNumeric");
+
+                    b.ToTable("country_codes");
+                });
 
             modelBuilder.Entity("Logibooks.Core.Models.Order", b =>
                 {
@@ -106,8 +244,8 @@ namespace Logibooks.Core.Migrations
                         .HasColumnType("text")
                         .HasColumnName("insole");
 
-                    b.Property<string>("InvoiceDate")
-                        .HasColumnType("text")
+                    b.Property<DateOnly?>("InvoiceDate")
+                        .HasColumnType("date")
                         .HasColumnName("invoice_date");
 
                     b.Property<string>("Lining")
@@ -142,8 +280,8 @@ namespace Logibooks.Core.Migrations
                         .HasColumnType("text")
                         .HasColumnName("product_name");
 
-                    b.Property<string>("Quantity")
-                        .HasColumnType("text")
+                    b.Property<decimal?>("Quantity")
+                        .HasColumnType("numeric(10,3)")
                         .HasColumnName("quantity");
 
                     b.Property<string>("RecipientAddress")
@@ -214,8 +352,8 @@ namespace Logibooks.Core.Migrations
                         .HasColumnType("text")
                         .HasColumnName("unit");
 
-                    b.Property<string>("UnitPrice")
-                        .HasColumnType("text")
+                    b.Property<decimal?>("UnitPrice")
+                        .HasColumnType("numeric(10,3)")
                         .HasColumnName("unit_price");
 
                     b.Property<decimal?>("WeightKg")
