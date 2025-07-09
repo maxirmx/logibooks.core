@@ -24,6 +24,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 using System.Globalization;
+using System.Net.Http;
 using CsvHelper;
 using CsvHelper.Configuration;
 using Logibooks.Core.Data;
@@ -34,11 +35,11 @@ namespace Logibooks.Core.Services;
 public class UpdateCountryCodesService(
     AppDbContext db,
     ILogger<UpdateCountryCodesService> logger,
-    HttpClient? httpClient = null)
+    IHttpClientFactory httpClientFactory)
 {
     private readonly AppDbContext _db = db;
     private readonly ILogger<UpdateCountryCodesService> _logger = logger;
-    private readonly HttpClient _httpClient = httpClient ?? new HttpClient();
+    private readonly IHttpClientFactory _httpClientFactory = httpClientFactory;
 
     private const string DefaultUrl =
         "https://datahub.io/core/country-codes/r/country-codes.csv";
@@ -78,7 +79,8 @@ public class UpdateCountryCodesService(
         var url = Environment.GetEnvironmentVariable("FETCH_URL") ?? DefaultUrl;
         _logger.LogInformation("Downloading {Url}", url);
 
-        var data = await _httpClient.GetByteArrayAsync(url, cancellationToken);
+        using var httpClient = _httpClientFactory.CreateClient();
+        var data = await httpClient.GetByteArrayAsync(url, cancellationToken);
 
         using var reader = new StreamReader(new MemoryStream(data));
         var config = new CsvConfiguration(CultureInfo.InvariantCulture)

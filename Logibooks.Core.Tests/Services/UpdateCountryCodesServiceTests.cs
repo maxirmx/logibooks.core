@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
 
@@ -32,6 +33,15 @@ public class FakeCountryCodesHandler : HttpMessageHandler
 [TestFixture]
 public class UpdateCountryCodesServiceTests
 {
+    private static IHttpClientFactory CreateHttpClientFactory(string csv)
+    {
+        var services = new ServiceCollection();
+        services.AddHttpClient("", options => { }).ConfigurePrimaryHttpMessageHandler(() => new FakeCountryCodesHandler(csv));
+
+        var serviceProvider = services.BuildServiceProvider();
+        return serviceProvider.GetRequiredService<IHttpClientFactory>();
+    }
+
     [Test]
     public async Task RunAsync_InsertsRecords()
     {
@@ -42,8 +52,8 @@ public class UpdateCountryCodesServiceTests
             .UseInMemoryDatabase($"cc_{Guid.NewGuid()}")
             .Options;
         using var ctx = new AppDbContext(options);
-        var client = new HttpClient(new FakeCountryCodesHandler(csv));
-        var svc = new UpdateCountryCodesService(ctx, NullLogger<UpdateCountryCodesService>.Instance, client);
+        var httpClientFactory = CreateHttpClientFactory(csv);
+        var svc = new UpdateCountryCodesService(ctx, NullLogger<UpdateCountryCodesService>.Instance, httpClientFactory);
         await svc.RunAsync();
 
         var cc = ctx.CountryCodes.Single();
@@ -76,8 +86,8 @@ public class UpdateCountryCodesServiceTests
 
         var csv = "ISO3166-1-numeric,ISO3166-1-Alpha-2,UNTERM English Short,UNTERM English Formal,official_name_en,CLDR display name,UNTERM Russian Short,UNTERM Russian Formal,official_name_ru\n" +
                   "840,us,United States,United States of America,United States of America,United States,США,Соединённые Штаты Америки,Америка";
-        var client = new HttpClient(new FakeCountryCodesHandler(csv));
-        var svc = new UpdateCountryCodesService(ctx, NullLogger<UpdateCountryCodesService>.Instance, client);
+        var httpClientFactory = CreateHttpClientFactory(csv);
+        var svc = new UpdateCountryCodesService(ctx, NullLogger<UpdateCountryCodesService>.Instance, httpClientFactory);
         await svc.RunAsync();
 
         var cc = ctx.CountryCodes.Single();
@@ -111,8 +121,8 @@ public class UpdateCountryCodesServiceTests
         var csv = "ISO3166-1-numeric,ISO3166-1-Alpha-2,UNTERM English Short,UNTERM English Formal,official_name_en,CLDR display name,UNTERM Russian Short,UNTERM Russian Formal,official_name_ru\n" +
                   "840,us,United States,United States of America,United States of America,United States,США,Соединённые Штаты Америки,Америка\n" +
                   "124,ca,Canada,Canada,Canada,Canada,Канада,Канада,Канада";
-        var client = new HttpClient(new FakeCountryCodesHandler(csv));
-        var svc = new UpdateCountryCodesService(ctx, NullLogger<UpdateCountryCodesService>.Instance, client);
+        var httpClientFactory = CreateHttpClientFactory(csv);
+        var svc = new UpdateCountryCodesService(ctx, NullLogger<UpdateCountryCodesService>.Instance, httpClientFactory);
         await svc.RunAsync();
 
         Assert.That(ctx.CountryCodes.Count(), Is.EqualTo(2));
@@ -129,8 +139,8 @@ public class UpdateCountryCodesServiceTests
             .UseInMemoryDatabase($"cc_{Guid.NewGuid()}")
             .Options;
         using var ctx = new AppDbContext(options);
-        var client = new HttpClient(new FakeCountryCodesHandler(csv));
-        var svc = new UpdateCountryCodesService(ctx, NullLogger<UpdateCountryCodesService>.Instance, client);
+        var httpClientFactory = CreateHttpClientFactory(csv);
+        var svc = new UpdateCountryCodesService(ctx, NullLogger<UpdateCountryCodesService>.Instance, httpClientFactory);
         await svc.RunAsync();
 
         var cc = ctx.CountryCodes.Single();
@@ -145,8 +155,8 @@ public class UpdateCountryCodesServiceTests
             .UseInMemoryDatabase($"cc_{Guid.NewGuid()}")
             .Options;
         using var ctx = new AppDbContext(options);
-        var client = new HttpClient(new FakeCountryCodesHandler(csv));
-        var svc = new UpdateCountryCodesService(ctx, NullLogger<UpdateCountryCodesService>.Instance, client);
+        var httpClientFactory = CreateHttpClientFactory(csv);
+        var svc = new UpdateCountryCodesService(ctx, NullLogger<UpdateCountryCodesService>.Instance, httpClientFactory);
         await svc.RunAsync();
 
         Assert.That(ctx.CountryCodes.Count(), Is.EqualTo(0));
@@ -161,8 +171,8 @@ public class UpdateCountryCodesServiceTests
             .UseInMemoryDatabase($"cc_{Guid.NewGuid()}")
             .Options;
         using var ctx = new AppDbContext(options);
-        var client = new HttpClient(new FakeCountryCodesHandler(csv));
-        var svc = new UpdateCountryCodesService(ctx, NullLogger<UpdateCountryCodesService>.Instance, client);
+        var httpClientFactory = CreateHttpClientFactory(csv);
+        var svc = new UpdateCountryCodesService(ctx, NullLogger<UpdateCountryCodesService>.Instance, httpClientFactory);
 
         var cts = new CancellationTokenSource();
         cts.Cancel();
