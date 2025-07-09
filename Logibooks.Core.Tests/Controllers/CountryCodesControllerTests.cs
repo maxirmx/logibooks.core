@@ -144,13 +144,13 @@ public class CountryCodesControllerTests
     {
         SetCurrentUserId(2);
         _dbContext.CountryCodes.AddRange(
+            new CountryCode { IsoNumeric = 124, IsoAlpha2 = "CA", NameEnOfficial = "CA", NameRuOfficial = "CA" },
+            new CountryCode { IsoNumeric = 792, IsoAlpha2 = "TR", NameEnOfficial = "TR", NameRuOfficial = "TR" },
             new CountryCode { IsoNumeric = 643, IsoAlpha2 = "RU", NameEnOfficial = "RU", NameRuOfficial = "RU" },
             new CountryCode { IsoNumeric = 860, IsoAlpha2 = "UZ", NameEnOfficial = "UZ", NameRuOfficial = "UZ" },
-            new CountryCode { IsoNumeric = 268, IsoAlpha2 = "GE", NameEnOfficial = "GE", NameRuOfficial = "GE" },
             new CountryCode { IsoNumeric = 31,  IsoAlpha2 = "AZ", NameEnOfficial = "AZ", NameRuOfficial = "AZ" },
-            new CountryCode { IsoNumeric = 792, IsoAlpha2 = "TR", NameEnOfficial = "TR", NameRuOfficial = "TR" },
-            new CountryCode { IsoNumeric = 124, IsoAlpha2 = "CA", NameEnOfficial = "CA", NameRuOfficial = "CA" },
-            new CountryCode { IsoNumeric = 398, IsoAlpha2 = "KZ", NameEnOfficial = "KZ", NameRuOfficial = "KZ" }
+            new CountryCode { IsoNumeric = 398, IsoAlpha2 = "KZ", NameEnOfficial = "KZ", NameRuOfficial = "KZ" },
+            new CountryCode { IsoNumeric = 268, IsoAlpha2 = "GE", NameEnOfficial = "GE", NameRuOfficial = "GE" }
         );
         await _dbContext.SaveChangesAsync();
 
