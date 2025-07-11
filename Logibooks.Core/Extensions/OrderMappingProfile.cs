@@ -37,11 +37,11 @@ public class OrderMappingProfile : Profile
             .ForMember(dest => dest.Id, opt => opt.Ignore())
             .ForMember(dest => dest.RegisterId, opt => opt.Ignore())
             .ForMember(dest => dest.Register, opt => opt.Ignore())
-            .ForMember(dest => dest.ExtId, opt => opt.Ignore())
-            .ForMember(dest => dest.PersonalData, opt => opt.Ignore())
-            .ForMember(dest => dest.CustomsClearance, opt => opt.Ignore())
-            .ForMember(dest => dest.DutyPayment, opt => opt.Ignore())
-            .ForMember(dest => dest.OtherReason, opt => opt.Ignore())
+            
+            
+            
+            
+            
             .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
     }
 }
