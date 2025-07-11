@@ -359,7 +359,7 @@ public class RegistersController(
         if (!await _db.Statuses.AnyAsync(s => s.Id == statusId))
         {
             _logger.LogDebug("SetOrderStatuses returning '404 Not Found' - status");
-            return _404Object(statusId);
+            return _404Status(statusId);
         }
 
         await _db.Orders
