@@ -35,18 +35,29 @@ public class CompaniesController(
 
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(CompanyDto))]
+    [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status409Conflict, Type = typeof(ErrMessage))]
     public async Task<ActionResult<CompanyDto>> PostCompany(CompanyDto dto)
     {
+        if (!await _db.CheckAdmin(_curUserId)) return _403();
         if (await _db.Companies.AnyAsync(c => c.Inn == dto.Inn))
         {
             return _409CompanyInn(dto.Inn);
         }
-        var company = dto.ToModel();
-        _db.Companies.Add(company);
-        await _db.SaveChangesAsync();
-        dto.Id = company.Id;
-        return CreatedAtAction(nameof(GetCompany), new { id = company.Id }, dto);
+        try
+        {
+            var company = dto.ToModel();
+            _db.Companies.Add(company);
+            await _db.SaveChangesAsync();
+            dto.Id = company.Id;
+            return CreatedAtAction(nameof(GetCompany), new { id = company.Id }, dto);
+        }
+        catch (DbUpdateException ex) when (ex.InnerException?.Message?.Contains("IX_companies_inn") == true)
+        {
+            // Handle database constraint violation (race condition case)
+            _logger.LogDebug("PostCompany returning '409 Conflict' due to database constraint");
+            return _409CompanyInn(dto.Inn);
+        }
     }
 
     [HttpPut("{id}")]
@@ -75,10 +86,18 @@ public class CompaniesController(
         company.PostalCode = dto.PostalCode;
         company.City = dto.City;
         company.Street = dto.Street;
-
-        _db.Entry(company).State = EntityState.Modified;
-        await _db.SaveChangesAsync();
-        return NoContent();
+        try
+        {
+            _db.Entry(company).State = EntityState.Modified;
+            await _db.SaveChangesAsync();
+            return NoContent();
+        }
+        catch (DbUpdateException ex) when (ex.InnerException?.Message?.Contains("IX_companies_inn") == true)
+        {
+            // Handle database constraint violation (race condition case)
+            _logger.LogDebug("PutCompany returning '409 Conflict' due to database constraint");
+            return _409CompanyInn(dto.Inn);
+        }
     }
 
     [HttpDelete("{id}")]
