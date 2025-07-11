@@ -102,7 +102,62 @@ namespace Logibooks.Core.Migrations
                     b.ToTable("alta_items");
                 });
 
-            modelBuilder.Entity("Logibooks.Core.Models.CountryCode", b =>
+            modelBuilder.Entity("Logibooks.Core.Models.Company", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("City")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("city");
+
+                    b.Property<short>("CountryIsoNumeric")
+                        .HasColumnType("smallint")
+                        .HasColumnName("country_iso_numeric");
+
+                    b.Property<string>("Inn")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("inn");
+
+                    b.Property<string>("Kpp")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("kpp");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name");
+
+                    b.Property<string>("PostalCode")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("postal_code");
+
+                    b.Property<string>("ShortName")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("short_name");
+
+                    b.Property<string>("Street")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("street");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CountryIsoNumeric");
+
+                    b.ToTable("companies");
+                });
+
+            modelBuilder.Entity("Logibooks.Core.Models.Country", b =>
                 {
                     b.Property<short>("IsoNumeric")
                         .ValueGeneratedOnAdd()
@@ -157,7 +212,7 @@ namespace Logibooks.Core.Migrations
 
                     b.HasKey("IsoNumeric");
 
-                    b.ToTable("country_codes");
+                    b.ToTable("countries");
                 });
 
             modelBuilder.Entity("Logibooks.Core.Models.Order", b =>
@@ -535,6 +590,17 @@ namespace Logibooks.Core.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Logibooks.Core.Models.Company", b =>
+                {
+                    b.HasOne("Logibooks.Core.Models.Country", "Country")
+                        .WithMany("Companies")
+                        .HasForeignKey("CountryIsoNumeric")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Country");
+                });
+
             modelBuilder.Entity("Logibooks.Core.Models.Order", b =>
                 {
                     b.HasOne("Logibooks.Core.Models.Register", "Register")
@@ -571,6 +637,11 @@ namespace Logibooks.Core.Migrations
                     b.Navigation("Role");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Logibooks.Core.Models.Country", b =>
+                {
+                    b.Navigation("Companies");
                 });
 
             modelBuilder.Entity("Logibooks.Core.Models.OrderStatus", b =>

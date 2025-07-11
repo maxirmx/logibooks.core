@@ -105,7 +105,7 @@ namespace Logibooks.Core.Migrations
                     b.ToTable("alta_items");
                 });
 
-            modelBuilder.Entity("Logibooks.Core.Models.CountryCode", b =>
+            modelBuilder.Entity("Logibooks.Core.Models.Country", b =>
                 {
                     b.Property<short>("IsoNumeric")
                         .ValueGeneratedOnAdd()

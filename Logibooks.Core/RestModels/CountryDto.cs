@@ -2,7 +2,7 @@ namespace Logibooks.Core.RestModels;
 
 using Logibooks.Core.Models;
 
-public class CountryCodeDto
+public class CountryDto
 {
     public short IsoNumeric { get; set; }
     public string IsoAlpha2 { get; set; } = string.Empty;
@@ -15,8 +15,8 @@ public class CountryCodeDto
     public string NameRuOfficial { get; set; } = string.Empty;
     public DateTime LoadedAt { get; set; }
 
-    public CountryCodeDto() {}
-    public CountryCodeDto(CountryCode cc)
+    public CountryDto() {}
+    public CountryDto(Country cc)
     {
         IsoNumeric = cc.IsoNumeric;
         IsoAlpha2 = cc.IsoAlpha2;

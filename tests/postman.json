@@ -560,7 +560,7 @@
 					"response": []
 				},
 				{
-					"name": "Update country codes",
+					"name": "Update country info",
 					"event": [
 						{
 							"listen": "test",
@@ -589,12 +589,12 @@
 							}
 						},
 						"url": {
-							"raw": "{{base_url}}/CountryCodes/update",
+							"raw": "{{base_url}}/Countries/update",
 							"host": [
 								"{{base_url}}"
 							],
 							"path": [
-								"CountryCodes",
+								"Countries",
 								"update"
 							]
 						},
@@ -994,7 +994,7 @@
 					"response": []
 				},
 				{
-					"name": "Get country codes",
+					"name": "Get country info",
 					"event": [
 						{
 							"listen": "test",
@@ -1017,19 +1017,19 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{base_url}}/CountryCodes",
+							"raw": "{{base_url}}/Countries",
 							"host": [
 								"{{base_url}}"
 							],
 							"path": [
-								"CountryCodes"
+								"Countries"
 							]
 						}
 					},
 					"response": []
 				},
 				{
-					"name": "Get country codes (compact)",
+					"name": "Get country info(compact)",
 					"event": [
 						{
 							"listen": "test",
@@ -1066,12 +1066,12 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{base_url}}/CountryCodes/compact",
+							"raw": "{{base_url}}/Countries/compact",
 							"host": [
 								"{{base_url}}"
 							],
 							"path": [
-								"CountryCodes",
+								"Countries",
 								"compact"
 							]
 						}

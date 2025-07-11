@@ -24,30 +24,41 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace Logibooks.Core.Models;
 
-/// <summary>
-/// Represents a company entity.
-/// </summary>
 [Table("companies")]
-public class Company : Address
+public class Company
 {
-    /// <summary>
-    /// Gets or sets INN (Taxpayer Identification Number).
-    /// </summary>
+    [Column("id")]
+    public int Id { get; set; }
+
     [Column("inn")]
     public string Inn { get; set; } = string.Empty;
 
-    /// <summary>
-    /// Gets or sets KPP (Tax Registration Reason Code).
-    /// </summary>
     [Column("kpp")]
     public string Kpp { get; set; } = string.Empty;
 
-    /// <summary>
-    /// Gets or sets the company name.
-    /// </summary>
     [Column("name")]
     public string Name { get; set; } = string.Empty;
+
+    [Column("short_name")]
+    public string ShortName { get; set; } = string.Empty;
+
+    [Column("country_iso_numeric")]
+    public short CountryIsoNumeric { get; set; }
+
+    [JsonIgnore]
+    public Country Country { get; set; } = null!;
+
+    [Column("postal_code")]
+    public string PostalCode { get; set; } = string.Empty;
+
+    [Column("city")]
+    public string City { get; set; } = string.Empty;
+
+    [Column("street")]
+    public string Street { get; set; } = string.Empty;
+
 }

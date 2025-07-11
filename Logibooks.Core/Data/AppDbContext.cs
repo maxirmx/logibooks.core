@@ -44,7 +44,8 @@ namespace Logibooks.Core.Data
         public DbSet<Order> Orders => Set<Order>();
         public DbSet<AltaItem> AltaItems => Set<AltaItem>();
         public DbSet<AltaException> AltaExceptions => Set<AltaException>();
-        public DbSet<CountryCode> CountryCodes => Set<CountryCode>();
+        public DbSet<Country> Countries => Set<Country>();
+        public DbSet<Company> Companies => Set<Company>();
         public async Task<bool> CheckAdmin(int cuid)
         {
             var user = await Users
@@ -114,9 +115,18 @@ namespace Logibooks.Core.Data
             modelBuilder.Entity<UserRole>()
                 .HasKey(ur => new { ur.UserId, ur.RoleId });
 
-            modelBuilder.Entity<CountryCode>()
+            modelBuilder.Entity<Country>()
                 .HasKey(cc => cc.IsoNumeric);
 
+            modelBuilder.Entity<Company>()
+                .HasKey(cо => cо.Id);
+
+            modelBuilder.Entity<Company>()
+                .HasOne(c => c.Country)
+                .WithMany(cn => cn.Companies)
+                .HasForeignKey(c => c.CountryIsoNumeric)
+                .HasPrincipalKey(cn => cn.IsoNumeric);
+            
             modelBuilder.Entity<UserRole>()
                 .HasOne(ur => ur.User)
                 .WithMany(u => u.UserRoles)
