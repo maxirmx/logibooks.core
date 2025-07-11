@@ -26,7 +26,6 @@
 using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Authorization;
 
 using Logibooks.Core.Authorization;
 using Logibooks.Core.Data;
