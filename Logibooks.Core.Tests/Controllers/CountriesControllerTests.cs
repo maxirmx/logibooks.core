@@ -24,7 +24,7 @@ public class CountriesControllerTests
     private AppDbContext _dbContext;
     private Mock<IHttpContextAccessor> _mockHttpContextAccessor;
     private Mock<ILogger<CountriesController>> _mockLogger;
-    private Mock<IUpdateCountryCodesService> _mockService;
+    private Mock<IUpdateCountriesService> _mockService;
     private CountriesController _controller;
     private Role _adminRole;
     private Role _userRole;
@@ -64,7 +64,7 @@ public class CountriesControllerTests
 
         _mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
         _mockLogger = new Mock<ILogger<CountriesController>>();
-        _mockService = new Mock<IUpdateCountryCodesService>();
+        _mockService = new Mock<IUpdateCountriesService>();
         _controller = new CountriesController(_mockHttpContextAccessor.Object, _dbContext, _mockService.Object, _mockLogger.Object);
     }
 

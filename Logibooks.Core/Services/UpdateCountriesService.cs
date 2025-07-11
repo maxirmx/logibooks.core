@@ -32,14 +32,14 @@ using Logibooks.Core.Models;
 
 namespace Logibooks.Core.Services;
 
-public class UpdateCountryCodesService(
+public class UpdateCountriesService(
     AppDbContext db,
-    ILogger<UpdateCountryCodesService> logger,
+    ILogger<UpdateCountriesService> logger,
     IHttpClientFactory httpClientFactory)
-    : IUpdateCountryCodesService
+    : IUpdateCountriesService
 {
     private readonly AppDbContext _db = db;
-    private readonly ILogger<UpdateCountryCodesService> _logger = logger;
+    private readonly ILogger<UpdateCountriesService> _logger = logger;
     private readonly IHttpClientFactory _httpClientFactory = httpClientFactory;
 
     private const string DataHubCountryCodesUrl = "https://datahub.io/core/country-codes/r/country-codes.csv";
@@ -86,7 +86,7 @@ public class UpdateCountryCodesService(
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogError(ex, "Failed to download country codes from {Url}", DataHubCountryCodesUrl);
+            _logger.LogError(ex, "Failed to download country info from {Url}", DataHubCountryCodesUrl);
             throw;
         }
 

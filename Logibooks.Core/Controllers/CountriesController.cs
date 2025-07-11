@@ -40,10 +40,10 @@ namespace Logibooks.Core.Controllers;
 public class CountriesController(
     IHttpContextAccessor httpContextAccessor,
     AppDbContext db,
-    IUpdateCountryCodesService service,
+    IUpdateCountriesService service,
     ILogger<CountriesController> logger) : LogibooksControllerBase(httpContextAccessor, db, logger)
 {
-    private readonly IUpdateCountryCodesService _service = service;
+    private readonly IUpdateCountriesService _service = service;
 
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<CountryDto>))]
