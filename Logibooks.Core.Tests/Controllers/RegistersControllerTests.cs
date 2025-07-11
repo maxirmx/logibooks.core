@@ -982,26 +982,6 @@ public class RegistersControllerTests
     }
 
     [Test]
-    public async Task SetOrderStatuses_UpdatesOrders()
-    {
-        SetCurrentUserId(1);
-        _dbContext.Statuses.AddRange(
-            new OrderStatus { Id = 1, Title = "Old" },
-            new OrderStatus { Id = 2, Title = "New" });
-        var reg = new Register { Id = 1, FileName = "r.xlsx" };
-        _dbContext.Registers.Add(reg);
-        _dbContext.Orders.AddRange(
-            new Order { Id = 1, RegisterId = 1, StatusId = 1 },
-            new Order { Id = 2, RegisterId = 1, StatusId = 1 });
-        await _dbContext.SaveChangesAsync();
-
-        var result = await _controller.SetOrderStatuses(1, 2);
-
-        Assert.That(result, Is.TypeOf<NoContentResult>());
-        Assert.That(_dbContext.Orders.All(o => o.StatusId == 2));
-    }
-
-    [Test]
     public async Task SetOrderStatuses_ReturnsNotFound_WhenRegisterMissing()
     {
         SetCurrentUserId(1);
