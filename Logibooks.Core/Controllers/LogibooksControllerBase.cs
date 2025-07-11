@@ -102,7 +102,7 @@ public class LogibooksControllerPreBase(AppDbContext db, ILogger logger) : Contr
     protected ObjectResult _409OrderStatus()
     {
         return StatusCode(StatusCodes.Status409Conflict,
-                          new ErrMessage { Msg = $"Невозможно статус, на который ссылаются заказы" });
+                          new ErrMessage { Msg = $"Невозможно удалить статус, на который ссылаются заказы" });
     }
     protected ObjectResult _500Mapping(string fname)
     {
