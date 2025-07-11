@@ -266,7 +266,7 @@ namespace Logibooks.Core.Migrations
                         column: x => x.register_id,
                         principalTable: "registers",
                         principalColumn: "id",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_orders_statuses_status_id",
                         column: x => x.status_id,

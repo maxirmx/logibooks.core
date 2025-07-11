@@ -324,11 +324,11 @@ public class RegistersController(
             return _404Register(id);
         }
 
-        bool hasOrders = await _db.Orders.AnyAsync(r => r.RegisterId == id);
-        if (hasOrders)
-        {
-            return _409Register();
-        }
+        // bool hasOrders = await _db.Orders.AnyAsync(r => r.RegisterId == id);
+        // if (hasOrders)
+        // {
+        //    return _409Register();
+        // }
 
         _db.Registers.Remove(register);
         await _db.SaveChangesAsync();

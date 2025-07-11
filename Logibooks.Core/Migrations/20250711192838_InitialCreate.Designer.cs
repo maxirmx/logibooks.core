@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Logibooks.Core.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250711183439_InitialCreate")]
+    [Migration("20250711192838_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -742,7 +742,7 @@ namespace Logibooks.Core.Migrations
                     b.HasOne("Logibooks.Core.Models.Register", "Register")
                         .WithMany("Orders")
                         .HasForeignKey("RegisterId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("Logibooks.Core.Models.OrderStatus", "Status")

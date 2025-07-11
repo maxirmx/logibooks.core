@@ -873,11 +873,11 @@ public class RegistersControllerTests
         Assert.That(registersCount, Is.EqualTo(0), "No register should be created for unsupported file types");
     }
 
-    private async Task<IActionResult> InvokeProcessExcel(byte[] content, string fileName, string mappingFile = "register_mapping.yaml")
+    private async Task<IActionResult> InvokeProcessExcel(int companyId, byte[] content, string fileName, string mappingFile = "register_mapping.yaml")
     {
         return await (Task<IActionResult>)_processExcelMethod.Invoke(
             _controller,
-            [content, fileName, mappingFile])!;
+            [companyId, content, fileName, mappingFile])!;
     }
 
     [Test]
@@ -900,7 +900,7 @@ public class RegistersControllerTests
         }
 
         // Act
-        var result = await InvokeProcessExcel(excelContent, "test.xlsx", nonExistentMappingFile);
+        var result = await InvokeProcessExcel(1, excelContent, "test.xlsx", nonExistentMappingFile);
 
         // Assert
         Assert.That(result, Is.TypeOf<ObjectResult>());
@@ -944,9 +944,13 @@ public class RegistersControllerTests
 
         var result = await _controller.DeleteRegister(1);
 
-        Assert.That(result, Is.TypeOf<ObjectResult>());
-        var objResult = result as ObjectResult;
-        Assert.That(objResult!.StatusCode, Is.EqualTo(StatusCodes.Status409Conflict));
+        Assert.That(result, Is.TypeOf<NoContentResult>());
+        Assert.That(await _dbContext.Registers.FindAsync(1), Is.Null);
+        Assert.That(_dbContext.Orders.Any(o => o.RegisterId == 1), Is.False);
+
+        // Assert.That(result, Is.TypeOf<ObjectResult>());
+        // var objResult = result as ObjectResult;
+        // Assert.That(objResult!.StatusCode, Is.EqualTo(StatusCodes.Status409Conflict));
     }
 
     [Test]

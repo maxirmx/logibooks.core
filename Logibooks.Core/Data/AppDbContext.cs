@@ -154,8 +154,7 @@ namespace Logibooks.Core.Data
             modelBuilder.Entity<Order>()
                 .HasOne(o => o.Register)
                 .WithMany(r => r.Orders)
-                .HasForeignKey(o => o.RegisterId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .HasForeignKey(o => o.RegisterId);
 
             modelBuilder.Entity<Order>()
                 .HasOne(o => o.Status)

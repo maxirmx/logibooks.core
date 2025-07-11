@@ -739,7 +739,7 @@ namespace Logibooks.Core.Migrations
                     b.HasOne("Logibooks.Core.Models.Register", "Register")
                         .WithMany("Orders")
                         .HasForeignKey("RegisterId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("Logibooks.Core.Models.OrderStatus", "Status")
