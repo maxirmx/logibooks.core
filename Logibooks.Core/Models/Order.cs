@@ -24,9 +24,9 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 using Microsoft.EntityFrameworkCore;
-using System;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
+
 namespace Logibooks.Core.Models;
 
 [Table("orders")]
@@ -44,7 +44,11 @@ public class Order
 
     [Column("status_id")]
     public int StatusId { get; set; }
-    public OrderStatus Status { get; set; } = null!;
+    public OrderCheckStatus Status { get; set; } = null!;
+
+    [Column("check_status_id")]
+    public int CheckStatusId { get; set; }
+    public OrderCheckStatus CheckStatus { get; set; } = null!;
 
     [Column("row_number")]
     public int RowNumber { get; set; }

@@ -23,7 +23,6 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-using System;
 using System.Text.Json;
 using Logibooks.Core.Settings;
 
@@ -32,6 +31,7 @@ namespace Logibooks.Core.RestModels;
 public class OrderUpdateItem
 {
     public int? StatusId { get; set; }
+    public int? CheckStatusId { get; set; }
     public int? RowNumber { get; set; }
     public string? OrderNumber { get; set; }
     public DateOnly? InvoiceDate { get; set; }

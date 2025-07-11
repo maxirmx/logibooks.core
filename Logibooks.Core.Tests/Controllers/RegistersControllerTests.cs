@@ -136,9 +136,9 @@ public class RegistersControllerTests
     public async Task GetRegisters_ReturnsOrderCounts()
     {
         SetCurrentUserId(1);
-        _dbContext.Statuses.AddRange(
-            new OrderStatus { Id = 1, Name = "loaded", Title = "Loaded" },
-            new OrderStatus { Id = 2, Name = "processed", Title = "Processed" }
+        _dbContext.CheckStatuses.AddRange(
+            new OrderCheckStatus { Id = 1,  Title = "Loaded" },
+            new OrderCheckStatus { Id = 2,  Title = "Processed" }
         );
         var r1 = new Register { Id = 1, FileName = "r1.xlsx" };
         var r2 = new Register { Id = 2, FileName = "r2.xlsx" };
@@ -307,9 +307,9 @@ public class RegistersControllerTests
     public async Task GetRegister_ReturnsOrderCounts()
     {
         SetCurrentUserId(1);
-        _dbContext.Statuses.AddRange(
-            new OrderStatus { Id = 1, Name = "loaded", Title = "Loaded" },
-            new OrderStatus { Id = 2, Name = "processed", Title = "Processed" }
+        _dbContext.CheckStatuses.AddRange(
+            new OrderCheckStatus { Id = 1,  Title = "Loaded" },
+            new OrderCheckStatus { Id = 2,  Title = "Processed" }
         );
         var register = new Register { Id = 1, FileName = "reg.xlsx" };
         _dbContext.Registers.Add(register);
@@ -332,10 +332,10 @@ public class RegistersControllerTests
     public async Task GetRegister_ReturnsOrderCounts_WithMultipleStatusGroups()
     {
         SetCurrentUserId(1);
-        _dbContext.Statuses.AddRange(
-            new OrderStatus { Id = 1, Name = "loaded", Title = "Loaded" },
-            new OrderStatus { Id = 2, Name = "processed", Title = "Processed" },
-            new OrderStatus { Id = 3, Name = "delivered", Title = "Delivered" }
+        _dbContext.CheckStatuses.AddRange(
+            new OrderCheckStatus { Id = 1,  Title = "Loaded" },
+            new OrderCheckStatus { Id = 2,  Title = "Processed" },
+            new OrderCheckStatus { Id = 3,  Title = "Delivered" }
         );
         var register = new Register { Id = 1, FileName = "reg.xlsx" };
         _dbContext.Registers.Add(register);

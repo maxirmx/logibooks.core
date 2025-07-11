@@ -324,9 +324,9 @@ public class OrdersControllerTests
     {
         SetCurrentUserId(2);
 
-        _dbContext.Statuses.AddRange(
-            new OrderStatus { Id = 1, Name = "loaded", Title = "Loaded" },
-            new OrderStatus { Id = 2, Name = "processed", Title = "Processed" }
+        _dbContext.CheckStatuses.AddRange(
+            new OrderCheckStatus { Id = 1,  Title = "Loaded" },
+            new OrderCheckStatus { Id = 2,  Title = "Processed" }
         );
         await _dbContext.SaveChangesAsync();
         var result = await _controller.GetStatuses();
@@ -340,20 +340,20 @@ public class OrdersControllerTests
     public async Task GetStatuses_ReturnsAllStatuses()
     {
         SetCurrentUserId(1);
-        _dbContext.Statuses.AddRange(
-            new OrderStatus { Id = 1, Name = "loaded", Title = "Loaded" },
-            new OrderStatus { Id = 2, Name = "processed", Title = "Processed" }
+        _dbContext.CheckStatuses.AddRange(
+            new OrderCheckStatus { Id = 1, Title = "Loaded" },
+            new OrderCheckStatus { Id = 2, Title = "Processed" }
         );
         await _dbContext.SaveChangesAsync();
 
-        var result = await _controller.GetStatuses();
+        var result = await _controller.GetCheckStatuses();
 
-        Assert.That(result.Result, Is.TypeOf<OkObjectResult>()); // Fix: Access the Result property
+        Assert.That(result.Result, Is.TypeOf<OkObjectResult>()); 
         var ok = result.Result as OkObjectResult; 
-        var statuses = ok!.Value as IEnumerable<OrderStatus>;
+        var statuses = ok!.Value as IEnumerable<OrderCheckStatus>;
         Assert.That(statuses, Is.Not.Null);
         Assert.That(statuses!.Count(), Is.EqualTo(2));
-        Assert.That(statuses!.First().Name, Is.EqualTo("loaded"));
+        Assert.That(statuses!.First().Title, Is.EqualTo("Loaded"));
     }
 }
 

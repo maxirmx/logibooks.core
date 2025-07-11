@@ -49,12 +49,25 @@ namespace Logibooks.Core.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "country_codes",
+                name: "check_statuses",
+                columns: table => new
+                {
+                    id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    title = table.Column<string>(type: "text", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_check_statuses", x => x.id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "countries",
                 columns: table => new
                 {
                     iso_numeric = table.Column<short>(type: "smallint", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    iso_alpha2 = table.Column<string>(type: "character(2)", nullable: false),
+                    iso_alpha2 = table.Column<string>(type: "text", nullable: false),
                     name_en_short = table.Column<string>(type: "text", nullable: false),
                     name_en_formal = table.Column<string>(type: "text", nullable: false),
                     name_en_official = table.Column<string>(type: "text", nullable: false),
@@ -66,7 +79,7 @@ namespace Logibooks.Core.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_country_codes", x => x.iso_numeric);
+                    table.PrimaryKey("PK_countries", x => x.iso_numeric);
                 });
 
             migrationBuilder.CreateTable(
@@ -103,7 +116,6 @@ namespace Logibooks.Core.Migrations
                 {
                     id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    name = table.Column<string>(type: "text", nullable: false),
                     title = table.Column<string>(type: "text", nullable: false)
                 },
                 constraints: table =>
@@ -129,6 +141,32 @@ namespace Logibooks.Core.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "companies",
+                columns: table => new
+                {
+                    id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    inn = table.Column<string>(type: "text", nullable: false),
+                    kpp = table.Column<string>(type: "text", nullable: false),
+                    name = table.Column<string>(type: "text", nullable: false),
+                    short_name = table.Column<string>(type: "text", nullable: false),
+                    country_iso_numeric = table.Column<short>(type: "smallint", nullable: false),
+                    postal_code = table.Column<string>(type: "text", nullable: false),
+                    city = table.Column<string>(type: "text", nullable: false),
+                    street = table.Column<string>(type: "text", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_companies", x => x.id);
+                    table.ForeignKey(
+                        name: "FK_companies_countries_country_iso_numeric",
+                        column: x => x.country_iso_numeric,
+                        principalTable: "countries",
+                        principalColumn: "iso_numeric",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "orders",
                 columns: table => new
                 {
@@ -136,6 +174,7 @@ namespace Logibooks.Core.Migrations
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     register_id = table.Column<int>(type: "integer", nullable: false),
                     status_id = table.Column<int>(type: "integer", nullable: false),
+                    check_status_id = table.Column<int>(type: "integer", nullable: false),
                     row_number = table.Column<int>(type: "integer", nullable: false),
                     order_number = table.Column<string>(type: "text", nullable: true),
                     invoice_date = table.Column<DateOnly>(type: "date", nullable: true),
@@ -180,11 +219,24 @@ namespace Logibooks.Core.Migrations
                     personal_data = table.Column<string>(type: "text", nullable: true),
                     customs_clearance = table.Column<string>(type: "text", nullable: true),
                     duty_payment = table.Column<string>(type: "text", nullable: true),
-                    other_reason = table.Column<string>(type: "text", nullable: true)
+                    other_reason = table.Column<string>(type: "text", nullable: true),
+                    OrderStatusId = table.Column<int>(type: "integer", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_orders", x => x.id);
+                    table.ForeignKey(
+                        name: "FK_orders_check_statuses_check_status_id",
+                        column: x => x.check_status_id,
+                        principalTable: "check_statuses",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_orders_check_statuses_status_id",
+                        column: x => x.status_id,
+                        principalTable: "check_statuses",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_orders_registers_register_id",
                         column: x => x.register_id,
@@ -192,11 +244,10 @@ namespace Logibooks.Core.Migrations
                         principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_orders_statuses_status_id",
-                        column: x => x.status_id,
+                        name: "FK_orders_statuses_OrderStatusId",
+                        column: x => x.OrderStatusId,
                         principalTable: "statuses",
-                        principalColumn: "id",
-                        onDelete: ReferentialAction.Cascade);
+                        principalColumn: "id");
                 });
 
             migrationBuilder.CreateTable(
@@ -224,6 +275,21 @@ namespace Logibooks.Core.Migrations
                 });
 
             migrationBuilder.InsertData(
+                table: "check_statuses",
+                columns: new[] { "id", "title" },
+                values: new object[,]
+                {
+                    { 1, "Загружен" },
+                    { 101, "Проблема" },
+                    { 201, "Проверен" }
+                });
+
+            migrationBuilder.InsertData(
+                table: "countries",
+                columns: new[] { "iso_numeric", "iso_alpha2", "loaded_at", "name_en_cldr", "name_en_formal", "name_en_official", "name_en_short", "name_ru_formal", "name_ru_official", "name_ru_short" },
+                values: new object[] { (short)643, "RU", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), "Rusia", "the Russian Federation", "Russian Federation", "Russian Federation (the)", "Российская Федерация", "Российская Федерация", "Российская Федерация" });
+
+            migrationBuilder.InsertData(
                 table: "roles",
                 columns: new[] { "id", "name", "title" },
                 values: new object[,]
@@ -234,18 +300,39 @@ namespace Logibooks.Core.Migrations
 
             migrationBuilder.InsertData(
                 table: "statuses",
-                columns: new[] { "id", "name", "title" },
-                values: new object[] { 1, "loaded", "Загружен" });
+                columns: new[] { "id", "title" },
+                values: new object[] { 1, "Не известен" });
 
             migrationBuilder.InsertData(
                 table: "users",
                 columns: new[] { "id", "email", "first_name", "last_name", "password", "patronymic" },
-                values: new object[] { 1, "maxirmx@sw.consulting", "Maxim", "Samsonov", "$2b$12$eOXzlwFzyGVERe0sNwFeJO5XnvwsjloUpL4o2AIQ8254RT88MnsDi", "" });
+                values: new object[,]
+                {
+                    { 1, "maxirmx@sw.consulting", "Maxim", "Samsonov", "$2b$12$eOXzlwFzyGVERe0sNwFeJO5XnvwsjloUpL4o2AIQ8254RT88MnsDi", "" },
+                    { 2, "director@global-tc.ru", "Эльдар", "Сергутов", "$2a$11$KUvUbYg79OvDjq9xFKw1Ge4AYboMse4xduI.ZD54vp28zkb4DjWfK", "Юрьевич" },
+                    { 3, "wild@global-tc.ru", "Полина", "Баландина", "$2a$11$zA1ohkl1U6UGbkhUlNvtTexHkbQ7CtiFnHTSsBc4xz8a5BY8D9yDS", "Анатольевна" }
+                });
+
+            migrationBuilder.InsertData(
+                table: "companies",
+                columns: new[] { "id", "city", "country_iso_numeric", "inn", "kpp", "name", "postal_code", "short_name", "street" },
+                values: new object[,]
+                {
+                    { 1, "Москва", (short)643, "7704217370", "997750001", "ООО \"Интернет Решения\"", "123112", "", "Пресненская набережная д.10, пом.1, этаж 41, ком.6" },
+                    { 2, "д. Коледино", (short)643, "9714053621", "507401001", "", "", "ООО \"РВБ\"", "Индустриальный Парк Коледино, д.6, стр.1" }
+                });
 
             migrationBuilder.InsertData(
                 table: "user_roles",
                 columns: new[] { "role_id", "user_id" },
-                values: new object[] { 2, 1 });
+                values: new object[,]
+                {
+                    { 1, 1 },
+                    { 2, 1 },
+                    { 1, 2 },
+                    { 2, 2 },
+                    { 1, 3 }
+                });
 
             migrationBuilder.CreateIndex(
                 name: "IX_alta_exceptions_code",
@@ -258,6 +345,21 @@ namespace Logibooks.Core.Migrations
                 table: "alta_items",
                 column: "code",
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_companies_country_iso_numeric",
+                table: "companies",
+                column: "country_iso_numeric");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_orders_check_status_id",
+                table: "orders",
+                column: "check_status_id");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_orders_OrderStatusId",
+                table: "orders",
+                column: "OrderStatusId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_orders_register_id",
@@ -290,13 +392,19 @@ namespace Logibooks.Core.Migrations
                 name: "alta_items");
 
             migrationBuilder.DropTable(
-                name: "country_codes");
+                name: "companies");
 
             migrationBuilder.DropTable(
                 name: "orders");
 
             migrationBuilder.DropTable(
                 name: "user_roles");
+
+            migrationBuilder.DropTable(
+                name: "countries");
+
+            migrationBuilder.DropTable(
+                name: "check_statuses");
 
             migrationBuilder.DropTable(
                 name: "registers");

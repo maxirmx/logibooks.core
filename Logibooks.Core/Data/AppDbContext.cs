@@ -23,11 +23,11 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-using Microsoft.EntityFrameworkCore;
-
 using Logibooks.Core.Models;
 using Logibooks.Core.RestModels;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.IO;
 
 namespace Logibooks.Core.Data
 {
@@ -41,6 +41,7 @@ namespace Logibooks.Core.Data
         public DbSet<UserRole> UserRoles => Set<UserRole>();
         public DbSet<Register> Registers => Set<Register>();
         public DbSet<OrderStatus> Statuses => Set<OrderStatus>();
+        public DbSet<OrderCheckStatus> CheckStatuses => Set<OrderCheckStatus>();
         public DbSet<Order> Orders => Set<Order>();
         public DbSet<AltaItem> AltaItems => Set<AltaItem>();
         public DbSet<AltaException> AltaExceptions => Set<AltaException>();
@@ -153,7 +154,13 @@ namespace Logibooks.Core.Data
             );
 
             modelBuilder.Entity<OrderStatus>().HasData(
-                new OrderStatus { Id = 1, Name = "loaded", Title = "Загружен" }
+                new OrderStatus { Id = 1, Title = "Не известен" }
+            );
+
+            modelBuilder.Entity<OrderCheckStatus>().HasData(
+                new OrderCheckStatus { Id = 1, Title = "Загружен" },
+                new OrderCheckStatus { Id = 101, Title = "Проблема" },
+                new OrderCheckStatus { Id = 201, Title = "Проверен" }
             );
 
             modelBuilder.Entity<User>().HasData(
@@ -168,8 +175,87 @@ namespace Logibooks.Core.Data
                 }
             );
 
+            modelBuilder.Entity<User>().HasData(
+                new User
+                {
+                    Id = 2,
+                    FirstName = "Эльдар",
+                    LastName = "Сергутов",
+                    Patronymic = "Юрьевич",
+                    Email = "director@global-tc.ru",
+                    Password = "$2a$11$KUvUbYg79OvDjq9xFKw1Ge4AYboMse4xduI.ZD54vp28zkb4DjWfK"
+                }
+            );
+
+            modelBuilder.Entity<User>().HasData(
+                new User
+                {
+                    Id = 3,
+                    FirstName = "Полина",
+                    LastName = "Баландина",
+                    Patronymic = "Анатольевна",
+                    Email = "wild@global-tc.ru",
+                    Password = "$2a$11$zA1ohkl1U6UGbkhUlNvtTexHkbQ7CtiFnHTSsBc4xz8a5BY8D9yDS"
+                }
+            );
+
+            modelBuilder.Entity<Country>().HasData(
+                new Country
+                {
+                    IsoNumeric = 643,
+                    IsoAlpha2 = "RU",
+                    NameEnShort = "Russian Federation (the)",
+                    NameEnFormal = "the Russian Federation",
+                    NameEnOfficial = "Russian Federation",
+                    NameEnCldr = "Rusia",
+                    NameRuShort = "Российская Федерация",
+                    NameRuFormal = "Российская Федерация",
+                    NameRuOfficial = "Российская Федерация",
+                    LoadedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+                }
+            );
+
+            modelBuilder.Entity<Company>().HasData(
+                new Company
+                {
+                    Id = 1,
+                    Inn = "7704217370",
+                    Kpp = "997750001",
+                    Name = "ООО \"Интернет Решения\"",
+                    ShortName = "",
+                    CountryIsoNumeric = 643,
+                    PostalCode = "123112",
+                    City = "Москва",
+                    Street = "Пресненская набережная д.10, пом.1, этаж 41, ком.6"
+                },
+                new Company
+                {
+                    Id = 2,
+                    Inn = "9714053621",
+                    Kpp = "507401001",
+                    Name = "",
+                    ShortName = "ООО \"РВБ\"",
+                    CountryIsoNumeric = 643,
+                    PostalCode = "",
+                    City = "д. Коледино",
+                    Street = "Индустриальный Парк Коледино, д.6, стр.1"
+                }
+            );
+
+            modelBuilder.Entity<UserRole>().HasData(
+                new UserRole { UserId = 1, RoleId = 1 }
+            );
             modelBuilder.Entity<UserRole>().HasData(
                 new UserRole { UserId = 1, RoleId = 2 }
+            );
+            modelBuilder.Entity<UserRole>().HasData(
+                new UserRole { UserId = 2, RoleId = 1 }
+            );
+            modelBuilder.Entity<UserRole>().HasData(
+                new UserRole { UserId = 2, RoleId = 2 }
+            );
+            modelBuilder.Entity<UserRole>().HasData(
+                new UserRole { UserId = 3, RoleId = 1 }
             );
         }
     }

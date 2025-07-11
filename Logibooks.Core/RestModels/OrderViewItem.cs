@@ -35,6 +35,7 @@ public class OrderViewItem(Order order)
     public int Id { get; set; } = order.Id;
     public int RegisterId { get; set; } = order.RegisterId;
     public int StatusId { get; set; } = order.StatusId;
+    public int CheckStatusId { get; set; } = order.CheckStatusId;
     public int RowNumber { get; set; } = order.RowNumber;
     public string? OrderNumber { get; set; } = order.OrderNumber;
     public DateOnly? InvoiceDate { get; set; } = order.InvoiceDate;

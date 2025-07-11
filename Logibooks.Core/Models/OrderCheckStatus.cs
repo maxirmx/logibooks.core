@@ -27,8 +27,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Logibooks.Core.Models;
 
-[Table("statuses")]
-public class OrderStatus
+[Table("check_statuses")]
+public class OrderCheckStatus
 {
     [Column("id")]
     public int Id { get; set; }

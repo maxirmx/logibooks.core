@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Logibooks.Core.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250711100451_Re")]
-    partial class Re
+    [Migration("20250711164646_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -158,6 +158,32 @@ namespace Logibooks.Core.Migrations
                     b.HasIndex("CountryIsoNumeric");
 
                     b.ToTable("companies");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            City = "Москва",
+                            CountryIsoNumeric = (short)643,
+                            Inn = "7704217370",
+                            Kpp = "997750001",
+                            Name = "ООО \"Интернет Решения\"",
+                            PostalCode = "123112",
+                            ShortName = "",
+                            Street = "Пресненская набережная д.10, пом.1, этаж 41, ком.6"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            City = "д. Коледино",
+                            CountryIsoNumeric = (short)643,
+                            Inn = "9714053621",
+                            Kpp = "507401001",
+                            Name = "",
+                            PostalCode = "",
+                            ShortName = "ООО \"РВБ\"",
+                            Street = "Индустриальный Парк Коледино, д.6, стр.1"
+                        });
                 });
 
             modelBuilder.Entity("Logibooks.Core.Models.Country", b =>
@@ -216,6 +242,21 @@ namespace Logibooks.Core.Migrations
                     b.HasKey("IsoNumeric");
 
                     b.ToTable("countries");
+
+                    b.HasData(
+                        new
+                        {
+                            IsoNumeric = (short)643,
+                            IsoAlpha2 = "RU",
+                            LoadedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            NameEnCldr = "Rusia",
+                            NameEnFormal = "the Russian Federation",
+                            NameEnOfficial = "Russian Federation",
+                            NameEnShort = "Russian Federation (the)",
+                            NameRuFormal = "Российская Федерация",
+                            NameRuOfficial = "Российская Федерация",
+                            NameRuShort = "Российская Федерация"
+                        });
                 });
 
             modelBuilder.Entity("Logibooks.Core.Models.Order", b =>
@@ -242,6 +283,10 @@ namespace Logibooks.Core.Migrations
                     b.Property<string>("Category")
                         .HasColumnType("text")
                         .HasColumnName("category");
+
+                    b.Property<int>("CheckStatusId")
+                        .HasColumnType("integer")
+                        .HasColumnName("check_status_id");
 
                     b.Property<string>("Composition")
                         .HasColumnType("text")
@@ -310,6 +355,9 @@ namespace Logibooks.Core.Migrations
                     b.Property<string>("OrderNumber")
                         .HasColumnType("text")
                         .HasColumnName("order_number");
+
+                    b.Property<int?>("OrderStatusId")
+                        .HasColumnType("integer");
 
                     b.Property<string>("OtherReason")
                         .HasColumnType("text")
@@ -417,6 +465,10 @@ namespace Logibooks.Core.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CheckStatusId");
+
+                    b.HasIndex("OrderStatusId");
+
                     b.HasIndex("RegisterId");
 
                     b.HasIndex("StatusId");
@@ -424,6 +476,42 @@ namespace Logibooks.Core.Migrations
                     b.HasIndex(new[] { "TnVed" }, "IX_orders_tn_ved");
 
                     b.ToTable("orders");
+                });
+
+            modelBuilder.Entity("Logibooks.Core.Models.OrderCheckStatus", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("title");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("check_statuses");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Title = "Загружен"
+                        },
+                        new
+                        {
+                            Id = 101,
+                            Title = "Проблема"
+                        },
+                        new
+                        {
+                            Id = 201,
+                            Title = "Проверен"
+                        });
                 });
 
             modelBuilder.Entity("Logibooks.Core.Models.OrderStatus", b =>
@@ -434,11 +522,6 @@ namespace Logibooks.Core.Migrations
                         .HasColumnName("id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("name");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -453,8 +536,7 @@ namespace Logibooks.Core.Migrations
                         new
                         {
                             Id = 1,
-                            Name = "loaded",
-                            Title = "Загружен"
+                            Title = "Не известен"
                         });
                 });
 
@@ -566,6 +648,24 @@ namespace Logibooks.Core.Migrations
                             LastName = "Samsonov",
                             Password = "$2b$12$eOXzlwFzyGVERe0sNwFeJO5XnvwsjloUpL4o2AIQ8254RT88MnsDi",
                             Patronymic = ""
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Email = "director@global-tc.ru",
+                            FirstName = "Эльдар",
+                            LastName = "Сергутов",
+                            Password = "$2a$11$KUvUbYg79OvDjq9xFKw1Ge4AYboMse4xduI.ZD54vp28zkb4DjWfK",
+                            Patronymic = "Юрьевич"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Email = "wild@global-tc.ru",
+                            FirstName = "Полина",
+                            LastName = "Баландина",
+                            Password = "$2a$11$zA1ohkl1U6UGbkhUlNvtTexHkbQ7CtiFnHTSsBc4xz8a5BY8D9yDS",
+                            Patronymic = "Анатольевна"
                         });
                 });
 
@@ -589,7 +689,27 @@ namespace Logibooks.Core.Migrations
                         new
                         {
                             UserId = 1,
+                            RoleId = 1
+                        },
+                        new
+                        {
+                            UserId = 1,
                             RoleId = 2
+                        },
+                        new
+                        {
+                            UserId = 2,
+                            RoleId = 1
+                        },
+                        new
+                        {
+                            UserId = 2,
+                            RoleId = 2
+                        },
+                        new
+                        {
+                            UserId = 3,
+                            RoleId = 1
                         });
                 });
 
@@ -606,17 +726,29 @@ namespace Logibooks.Core.Migrations
 
             modelBuilder.Entity("Logibooks.Core.Models.Order", b =>
                 {
+                    b.HasOne("Logibooks.Core.Models.OrderCheckStatus", "CheckStatus")
+                        .WithMany()
+                        .HasForeignKey("CheckStatusId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Logibooks.Core.Models.OrderStatus", null)
+                        .WithMany("Orders")
+                        .HasForeignKey("OrderStatusId");
+
                     b.HasOne("Logibooks.Core.Models.Register", "Register")
                         .WithMany("Orders")
                         .HasForeignKey("RegisterId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Logibooks.Core.Models.OrderStatus", "Status")
+                    b.HasOne("Logibooks.Core.Models.OrderCheckStatus", "Status")
                         .WithMany("Orders")
                         .HasForeignKey("StatusId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("CheckStatus");
 
                     b.Navigation("Register");
 
@@ -645,6 +777,11 @@ namespace Logibooks.Core.Migrations
             modelBuilder.Entity("Logibooks.Core.Models.Country", b =>
                 {
                     b.Navigation("Companies");
+                });
+
+            modelBuilder.Entity("Logibooks.Core.Models.OrderCheckStatus", b =>
+                {
+                    b.Navigation("Orders");
                 });
 
             modelBuilder.Entity("Logibooks.Core.Models.OrderStatus", b =>
