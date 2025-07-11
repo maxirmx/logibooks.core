@@ -18,21 +18,17 @@ public class OrderStatusesController(
 {
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<OrderStatusDto>))]
-    [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     public async Task<ActionResult<IEnumerable<OrderStatusDto>>> GetStatuses()
     {
-        if (!await _db.CheckLogist(_curUserId)) return _403();
         var statuses = await _db.Statuses.AsNoTracking().OrderBy(s => s.Id).ToListAsync();
         return statuses.Select(s => new OrderStatusDto(s)).ToList();
     }
 
     [HttpGet("{id}")]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(OrderStatusDto))]
-    [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
     public async Task<ActionResult<OrderStatusDto>> GetStatus(int id)
     {
-        if (!await _db.CheckLogist(_curUserId)) return _403();
         var status = await _db.Statuses.AsNoTracking().FirstOrDefaultAsync(s => s.Id == id);
         if (status == null) return _404Object(id);
         return new OrderStatusDto(status);
@@ -41,7 +37,7 @@ public class OrderStatusesController(
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(Reference))]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
-    public async Task<ActionResult<OrderStatusDto>> CreateStatus(OrderStatusDto dto)
+    public async Task<ActionResult<Reference>> CreateStatus(OrderStatusDto dto)
     {
         if (!await _db.CheckAdmin(_curUserId)) return _403();
         var status = dto.ToModel();

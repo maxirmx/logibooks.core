@@ -1,17 +1,17 @@
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
-using NUnit.Framework;
-using Moq;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-
 using Logibooks.Core.Controllers;
 using Logibooks.Core.Data;
 using Logibooks.Core.Models;
 using Logibooks.Core.RestModels;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Moq;
+using NUnit.Framework;
+using NUnit.Framework.Legacy;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace Logibooks.Core.Tests.Controllers;
 
@@ -94,16 +94,6 @@ public class OrderStatusesControllerTests
     }
 
     [Test]
-    public async Task GetStatuses_ReturnsForbidden_ForUnknown()
-    {
-        SetCurrentUserId(99);
-        var result = await _controller.GetStatuses();
-        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
-        var obj = result.Result as ObjectResult;
-        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
-    }
-
-    [Test]
     public async Task CreateUpdateDelete_Work_ForAdmin()
     {
         SetCurrentUserId(1);
@@ -150,5 +140,87 @@ public class OrderStatusesControllerTests
         Assert.That(result, Is.TypeOf<ObjectResult>());
         var obj = result as ObjectResult;
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status409Conflict));
+    }
+
+    [Test]
+    public async Task GetStatus_ReturnsStatus_WhenLogistAndStatusExists()
+    {
+        // Arrange
+        SetCurrentUserId(2); // Logist
+        var status = new OrderStatus { Id = 3, Title = "Specific Status" };
+        _dbContext.Statuses.Add(status);
+        await _dbContext.SaveChangesAsync();
+
+        // Act
+        var result = await _controller.GetStatus(3);
+
+        // Assert
+        Assert.That(result.Value, Is.Not.Null);
+        Assert.That(result.Result, Is.Null);
+        var statusDto = result.Value;
+        Assert.That(statusDto!.Id, Is.EqualTo(3));
+        Assert.That(statusDto.Title, Is.EqualTo("Specific Status"));
+    }
+
+    [Test]
+    public async Task GetStatus_ReturnsStatus_WhenAdminAndStatusExists()
+    {
+        // Arrange
+        SetCurrentUserId(1); // Admin
+        var status = new OrderStatus { Id = 4, Title = "Admin Viewable Status" };
+        _dbContext.Statuses.Add(status);
+        await _dbContext.SaveChangesAsync();
+
+        // Act
+        var result = await _controller.GetStatus(4);
+
+        // Assert
+        Assert.That(result.Value, Is.Not.Null);
+        Assert.That(result.Result, Is.Null);
+        var statusDto = result.Value;
+        Assert.That(statusDto!.Id, Is.EqualTo(4));
+        Assert.That(statusDto.Title, Is.EqualTo("Admin Viewable Status"));
+    }
+
+    [Test]
+    public async Task GetStatus_ReturnsNotFound_WhenStatusDoesNotExist()
+    {
+        // Arrange
+        SetCurrentUserId(2); // Logist
+
+        // Act
+        var result = await _controller.GetStatus(999); // Non-existent ID
+
+        // Assert
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+        Assert.That(result.Value, Is.Null);
+
+        var errMsg = obj.Value as ErrMessage;
+        Assert.That(errMsg, Is.Not.Null);
+        StringAssert.Contains("999", errMsg!.Msg);
+    }
+
+    [Test]
+    public async Task GetStatus_VerifiesPropertiesOnReturnedDto()
+    {
+        // Arrange
+        SetCurrentUserId(2); // Logist
+        var status = new OrderStatus { Id = 6, Title = "Property Test Status" };
+        _dbContext.Statuses.Add(status);
+        await _dbContext.SaveChangesAsync();
+
+        // Act
+        var result = await _controller.GetStatus(6);
+
+        // Assert
+        Assert.That(result.Value, Is.Not.Null);
+        var statusDto = result.Value;
+
+        // Verify properties were mapped correctly
+        Assert.That(statusDto!.Id, Is.EqualTo(6));
+        Assert.That(statusDto.Title, Is.EqualTo("Property Test Status"));
+        Assert.That(statusDto.Name, Is.Empty); // Name is not set in the controller
     }
 }
