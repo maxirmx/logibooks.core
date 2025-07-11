@@ -364,6 +364,11 @@ namespace Logibooks.Core.Migrations
                 column: "check_status_id");
 
             migrationBuilder.CreateIndex(
+                name: "IX_orders_order_number",
+                table: "orders",
+                column: "order_number");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_orders_register_id_order_number",
                 table: "orders",
                 columns: new[] { "register_id", "order_number" });

@@ -34,7 +34,6 @@ namespace Logibooks.Core.Data
     {
         public AppDbContext(DbContextOptions<AppDbContext> options)
             : base(options) { }
-
         public DbSet<User> Users => Set<User>();
         public DbSet<Role> Roles => Set<Role>();
         public DbSet<UserRole> UserRoles => Set<UserRole>();
@@ -167,6 +166,9 @@ namespace Logibooks.Core.Data
                 .WithMany(s => s.Orders)
                 .HasForeignKey(o => o.CheckStatusId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Order>()
+                .HasIndex(o => new { o.OrderNumber });
 
             modelBuilder.Entity<Order>()
                 .HasIndex(o => new { o.RegisterId, o.OrderNumber });

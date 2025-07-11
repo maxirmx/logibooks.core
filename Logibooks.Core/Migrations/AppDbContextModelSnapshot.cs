@@ -464,6 +464,8 @@ namespace Logibooks.Core.Migrations
 
                     b.HasIndex("CheckStatusId");
 
+                    b.HasIndex("OrderNumber");
+
                     b.HasIndex("StatusId");
 
                     b.HasIndex("RegisterId", "OrderNumber");

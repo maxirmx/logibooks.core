@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Logibooks.Core.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250711192838_InitialCreate")]
+    [Migration("20250711211306_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -466,6 +466,8 @@ namespace Logibooks.Core.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CheckStatusId");
+
+                    b.HasIndex("OrderNumber");
 
                     b.HasIndex("StatusId");
 
