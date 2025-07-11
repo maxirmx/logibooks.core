@@ -99,6 +99,11 @@ public class LogibooksControllerPreBase(AppDbContext db, ILogger logger) : Contr
         return StatusCode(StatusCodes.Status409Conflict,
                           new ErrMessage { Msg = $"Исключение с таким кодом ТН ВЭД уже существует [код = {code}]" });
     }
+    protected ObjectResult _409OrderStatus()
+    {
+        return StatusCode(StatusCodes.Status409Conflict,
+                          new ErrMessage { Msg = $"Невозможно статус, на который ссылаются заказы" });
+    }
     protected ObjectResult _500Mapping(string fname)
     {
         return StatusCode(StatusCodes.Status500InternalServerError,
@@ -116,11 +121,6 @@ public class LogibooksControllerPreBase(AppDbContext db, ILogger logger) : Contr
                           new ErrMessage { Msg = "Ошибка при загрузке списка стран" });
     }
 
-    protected ObjectResult _409DeleteConflict(int id)
-    {
-        return StatusCode(StatusCodes.Status409Conflict,
-                          new ErrMessage { Msg = $"Невозможно удалить объект [id={id}]" });
-    }
 }
 
 public class LogibooksControllerBase : LogibooksControllerPreBase

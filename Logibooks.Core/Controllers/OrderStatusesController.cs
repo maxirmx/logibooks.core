@@ -85,7 +85,7 @@ public class OrderStatusesController(
         }
         catch (DbUpdateException)
         {
-            return _409DeleteConflict(id);
+            return _409OrderStatus();
         }
         return NoContent();
     }
