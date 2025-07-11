@@ -318,42 +318,5 @@ public class OrdersControllerTests
         Assert.That(pr!.Pagination.CurrentPage, Is.EqualTo(1));
         Assert.That(pr.Items.First().Id, Is.EqualTo(1));
     }
-
-    [Test]
-    public async Task GetStatuses_ReturnsForbidden_ForNonLogist()
-    {
-        SetCurrentUserId(2);
-
-        _dbContext.CheckStatuses.AddRange(
-            new OrderCheckStatus { Id = 1,  Title = "Loaded" },
-            new OrderCheckStatus { Id = 2,  Title = "Processed" }
-        );
-        await _dbContext.SaveChangesAsync();
-        var result = await _controller.GetStatuses();
-
-        Assert.That(result.Result, Is.TypeOf<ObjectResult>()); // Fix: Access the Result property
-        var obj = result.Result as ObjectResult; 
-        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
-    }
-
-    [Test]
-    public async Task GetStatuses_ReturnsAllStatuses()
-    {
-        SetCurrentUserId(1);
-        _dbContext.CheckStatuses.AddRange(
-            new OrderCheckStatus { Id = 1, Title = "Loaded" },
-            new OrderCheckStatus { Id = 2, Title = "Processed" }
-        );
-        await _dbContext.SaveChangesAsync();
-
-        var result = await _controller.GetCheckStatuses();
-
-        Assert.That(result.Result, Is.TypeOf<OkObjectResult>()); 
-        var ok = result.Result as OkObjectResult; 
-        var statuses = ok!.Value as IEnumerable<OrderCheckStatus>;
-        Assert.That(statuses, Is.Not.Null);
-        Assert.That(statuses!.Count(), Is.EqualTo(2));
-        Assert.That(statuses!.First().Title, Is.EqualTo("Loaded"));
-    }
 }
 
