@@ -136,9 +136,9 @@ public class RegistersControllerTests
     public async Task GetRegisters_ReturnsOrderCounts()
     {
         SetCurrentUserId(1);
-        _dbContext.Statuses.AddRange(
-            new OrderStatus { Id = 1, Name = "loaded", Title = "Loaded" },
-            new OrderStatus { Id = 2, Name = "processed", Title = "Processed" }
+        _dbContext.CheckStatuses.AddRange(
+            new OrderCheckStatus { Id = 1,  Title = "Loaded" },
+            new OrderCheckStatus { Id = 2,  Title = "Processed" }
         );
         var r1 = new Register { Id = 1, FileName = "r1.xlsx" };
         var r2 = new Register { Id = 2, FileName = "r2.xlsx" };
@@ -307,9 +307,9 @@ public class RegistersControllerTests
     public async Task GetRegister_ReturnsOrderCounts()
     {
         SetCurrentUserId(1);
-        _dbContext.Statuses.AddRange(
-            new OrderStatus { Id = 1, Name = "loaded", Title = "Loaded" },
-            new OrderStatus { Id = 2, Name = "processed", Title = "Processed" }
+        _dbContext.CheckStatuses.AddRange(
+            new OrderCheckStatus { Id = 1,  Title = "Loaded" },
+            new OrderCheckStatus { Id = 2,  Title = "Processed" }
         );
         var register = new Register { Id = 1, FileName = "reg.xlsx" };
         _dbContext.Registers.Add(register);
@@ -332,10 +332,10 @@ public class RegistersControllerTests
     public async Task GetRegister_ReturnsOrderCounts_WithMultipleStatusGroups()
     {
         SetCurrentUserId(1);
-        _dbContext.Statuses.AddRange(
-            new OrderStatus { Id = 1, Name = "loaded", Title = "Loaded" },
-            new OrderStatus { Id = 2, Name = "processed", Title = "Processed" },
-            new OrderStatus { Id = 3, Name = "delivered", Title = "Delivered" }
+        _dbContext.CheckStatuses.AddRange(
+            new OrderCheckStatus { Id = 1,  Title = "Loaded" },
+            new OrderCheckStatus { Id = 2,  Title = "Processed" },
+            new OrderCheckStatus { Id = 3,  Title = "Delivered" }
         );
         var register = new Register { Id = 1, FileName = "reg.xlsx" };
         _dbContext.Registers.Add(register);
@@ -873,11 +873,11 @@ public class RegistersControllerTests
         Assert.That(registersCount, Is.EqualTo(0), "No register should be created for unsupported file types");
     }
 
-    private async Task<IActionResult> InvokeProcessExcel(byte[] content, string fileName, string mappingFile = "register_mapping.yaml")
+    private async Task<IActionResult> InvokeProcessExcel(int companyId, byte[] content, string fileName, string mappingFile = "register_mapping.yaml")
     {
         return await (Task<IActionResult>)_processExcelMethod.Invoke(
             _controller,
-            [content, fileName, mappingFile])!;
+            [companyId, content, fileName, mappingFile])!;
     }
 
     [Test]
@@ -900,7 +900,7 @@ public class RegistersControllerTests
         }
 
         // Act
-        var result = await InvokeProcessExcel(excelContent, "test.xlsx", nonExistentMappingFile);
+        var result = await InvokeProcessExcel(1, excelContent, "test.xlsx", nonExistentMappingFile);
 
         // Assert
         Assert.That(result, Is.TypeOf<ObjectResult>());
@@ -914,7 +914,24 @@ public class RegistersControllerTests
     }
 
     [Test]
-    public async Task DeleteRegister_DeletesRegisterAndOrders_WhenUserIsLogist()
+    public async Task DeleteRegister_DeletesEmptyRegister_WhenUserIsLogist()
+    {
+        SetCurrentUserId(1); // Logist user
+
+        var register = new Register { Id = 1, FileName = "reg.xlsx" };
+
+        _dbContext.Registers.Add(register);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.DeleteRegister(1);
+
+        Assert.That(result, Is.TypeOf<NoContentResult>());
+        Assert.That(await _dbContext.Registers.FindAsync(1), Is.Null);
+        Assert.That(_dbContext.Orders.Any(o => o.RegisterId == 1), Is.False);
+    }
+
+    [Test]
+    public async Task DeleteRegister_FailToDeleteRegisterAndOrders_WhenUserIsLogist()
     {
         SetCurrentUserId(1); // Logist user
 
@@ -930,6 +947,10 @@ public class RegistersControllerTests
         Assert.That(result, Is.TypeOf<NoContentResult>());
         Assert.That(await _dbContext.Registers.FindAsync(1), Is.Null);
         Assert.That(_dbContext.Orders.Any(o => o.RegisterId == 1), Is.False);
+
+        // Assert.That(result, Is.TypeOf<ObjectResult>());
+        // var objResult = result as ObjectResult;
+        // Assert.That(objResult!.StatusCode, Is.EqualTo(StatusCodes.Status409Conflict));
     }
 
     [Test]
@@ -958,6 +979,46 @@ public class RegistersControllerTests
         Assert.That(result, Is.TypeOf<ObjectResult>());
         var obj = result as ObjectResult;
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+    }
+
+    [Test]
+    public async Task SetOrderStatuses_ReturnsNotFound_WhenRegisterMissing()
+    {
+        SetCurrentUserId(1);
+        _dbContext.Statuses.Add(new OrderStatus { Id = 1, Title = "S" });
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.SetOrderStatuses(99, 1);
+
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+    }
+
+    [Test]
+    public async Task SetOrderStatuses_ReturnsNotFound_WhenStatusMissing()
+    {
+        SetCurrentUserId(1);
+        var reg = new Register { Id = 1, FileName = "r.xlsx" };
+        _dbContext.Registers.Add(reg);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.SetOrderStatuses(1, 5);
+
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+    }
+
+    [Test]
+    public async Task SetOrderStatuses_ReturnsForbidden_ForNonLogist()
+    {
+        SetCurrentUserId(2); // admin but not logist
+        var result = await _controller.SetOrderStatuses(1, 1);
+
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
     }
 
     // Helper method to create mock IFormFile objects
@@ -1090,4 +1151,5 @@ public class ConvertValueToPropertyTypeTests
             .Invoke(_controller, new object?[] { "notaguid", type, "TestProp" });
         Assert.That(result, Is.EqualTo(Guid.Empty));
     }
+
 }

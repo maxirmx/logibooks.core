@@ -49,6 +49,7 @@ public class RegistersController(
 
     private readonly string[] allowedSortBy = ["id", "filename", "date", "orderstotal"];
     private readonly int maxPageSize = 100;
+    private readonly int idWBR = 2;
 
     [HttpGet("{id}")]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(RegisterViewItem))]
@@ -68,7 +69,7 @@ public class RegistersController(
         var register = await _db.Registers
             .AsNoTracking()
             .Where(r => r.Id == id)
-            .Select(r => new { r.Id, r.FileName, r.DTime })
+            .Select(r => new { r.Id, r.FileName, r.DTime, r.CompanyId })
             .FirstOrDefaultAsync();
 
         if (register == null)
@@ -85,6 +86,7 @@ public class RegistersController(
             Id = register.Id,
             FileName = register.FileName,
             Date = register.DTime,
+            CompanyId = register.CompanyId, 
             OrdersTotal = ordersByStatus.Values.Sum(),
             OrdersByStatus = ordersByStatus
         };
@@ -135,7 +137,6 @@ public class RegistersController(
             return _403();
         }
 
-        // Build base query for registers
         IQueryable<Register> baseQuery = _db.Registers.AsNoTracking();
 
         if (!string.IsNullOrWhiteSpace(search))
@@ -148,6 +149,7 @@ public class RegistersController(
             {
                 Id = r.Id,
                 FileName = r.FileName,
+                CompanyId = r.CompanyId,
                 Date = r.DTime,
                 OrdersTotal = r.Orders.Count()
             });
@@ -219,6 +221,8 @@ public class RegistersController(
     {
         _logger.LogDebug("UploadRegister called for {name} ({size} bytes)", file?.FileName, file?.Length);
 
+        int companyId = idWBR;
+
         var ok = await _db.CheckLogist(_curUserId);
         if (!ok)
         {
@@ -243,7 +247,7 @@ public class RegistersController(
                 using var ms = new MemoryStream();
                 await file.CopyToAsync(ms);
                 byte[] excelContent = ms.ToArray();
-                var result = await ProcessExcel(excelContent, file.FileName);
+                var result = await ProcessExcel(companyId, excelContent, file.FileName);
                 return result;
             }
             else if (fileExtension == ".zip" || fileExtension == ".rar")
@@ -278,7 +282,7 @@ public class RegistersController(
                     excelContent = entryStream.ToArray();
                 }
 
-                var result = await ProcessExcel(excelContent, excelFileName);
+                var result = await ProcessExcel(companyId, excelContent, excelFileName);
                 _logger.LogDebug("UploadRegister processed archive with Excel");
                 return result;
             }
@@ -320,9 +324,49 @@ public class RegistersController(
             return _404Register(id);
         }
 
+        // bool hasOrders = await _db.Orders.AnyAsync(r => r.RegisterId == id);
+        // if (hasOrders)
+        // {
+        //    return _409Register();
+        // }
+
         _db.Registers.Remove(register);
         await _db.SaveChangesAsync();
         _logger.LogDebug("DeleteRegister returning '204 No content'");
+        return NoContent();
+    }
+
+    [HttpPost("{id}/setorderstatuses")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
+    [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
+    public async Task<IActionResult> SetOrderStatuses(int id, int statusId)
+    {
+        _logger.LogDebug("SetOrderStatuses for registerId={id} statusId={statusId}", id, statusId);
+
+        if (!await _db.CheckLogist(_curUserId))
+        {
+            _logger.LogDebug("SetOrderStatuses returning '403 Forbidden'");
+            return _403();
+        }
+
+        if (!await _db.Registers.AnyAsync(r => r.Id == id))
+        {
+            _logger.LogDebug("SetOrderStatuses returning '404 Not Found' - register");
+            return _404Register(id);
+        }
+
+        if (!await _db.Statuses.AnyAsync(s => s.Id == statusId))
+        {
+            _logger.LogDebug("SetOrderStatuses returning '404 Not Found' - status");
+            return _404Status(statusId);
+        }
+
+        await _db.Orders
+            .Where(o => o.RegisterId == id)
+            .ExecuteUpdateAsync(s => s.SetProperty(o => o.StatusId, statusId));
+
+        _logger.LogDebug("SetOrderStatuses updated register {id}", id);
         return NoContent();
     }
 
@@ -343,6 +387,7 @@ public class RegistersController(
     }
 
     private async Task<IActionResult> ProcessExcel(
+        int companyId,
         byte[] content,
         string fileName, 
         string mappingFile = "register_mapping.yaml")
@@ -380,7 +425,7 @@ public class RegistersController(
             }
         }
 
-        var register = new Register { FileName = fileName };
+        var register = new Register { FileName = fileName, CompanyId = companyId };
         _db.Registers.Add(register);
         await _db.SaveChangesAsync();
 
@@ -391,7 +436,7 @@ public class RegistersController(
         for (int r = 1; r < table.Rows.Count; r++)
         {
             var row = table.Rows[r];
-            var order = new Order { RegisterId = register.Id, StatusId = 1 };
+            var order = new Order { RegisterId = register.Id, StatusId = 1, CheckStatusId = 1 };
             foreach (var kv in columnMap)
             {
                 var val = row[kv.Key]?.ToString();

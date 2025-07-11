@@ -41,7 +41,7 @@ public class FakeErrorHandler : HttpMessageHandler
 }
 
 [TestFixture]
-public class UpdateCountryCodesServiceTests
+public class UpdateCountriesServiceTests
 {
     private static IHttpClientFactory CreateHttpClientFactory(HttpMessageHandler handler)
     {
@@ -66,10 +66,10 @@ public class UpdateCountryCodesServiceTests
             .Options;
         using var ctx = new AppDbContext(options);
         var httpClientFactory = CreateHttpClientFactory(csv);
-        var svc = new UpdateCountryCodesService(ctx, NullLogger<UpdateCountryCodesService>.Instance, httpClientFactory);
+        var svc = new UpdateCountriesService(ctx, NullLogger<UpdateCountriesService>.Instance, httpClientFactory);
         await svc.RunAsync();
 
-        var cc = ctx.CountryCodes.Single();
+        var cc = ctx.Countries.Single();
         Assert.That(cc.IsoNumeric, Is.EqualTo(840));
         Assert.That(cc.IsoAlpha2, Is.EqualTo("US"));
         Assert.That(cc.NameEnShort, Is.EqualTo("United States"));
@@ -82,7 +82,7 @@ public class UpdateCountryCodesServiceTests
             .UseInMemoryDatabase($"cc_{Guid.NewGuid()}")
             .Options;
         using var ctx = new AppDbContext(options);
-        ctx.CountryCodes.Add(new CountryCode
+        ctx.Countries.Add(new Country
         {
             IsoNumeric = 840,
             IsoAlpha2 = "XX",
@@ -100,10 +100,10 @@ public class UpdateCountryCodesServiceTests
         var csv = "ISO3166-1-numeric,ISO3166-1-Alpha-2,UNTERM English Short,UNTERM English Formal,official_name_en,CLDR display name,UNTERM Russian Short,UNTERM Russian Formal,official_name_ru\n" +
                   "840,us,United States,United States of America,United States of America,United States,ÑØÀ,Ñîåäèí¸ííûå Øòàòû Àìåðèêè,Àìåðèêà";
         var httpClientFactory = CreateHttpClientFactory(csv);
-        var svc = new UpdateCountryCodesService(ctx, NullLogger<UpdateCountryCodesService>.Instance, httpClientFactory);
+        var svc = new UpdateCountriesService(ctx, NullLogger<UpdateCountriesService>.Instance, httpClientFactory);
         await svc.RunAsync();
 
-        var cc = ctx.CountryCodes.Single();
+        var cc = ctx.Countries.Single();
         Assert.That(cc.IsoAlpha2, Is.EqualTo("US"));
         Assert.That(cc.NameEnShort, Is.EqualTo("United States"));
         Assert.That(cc.LoadedAt, Is.Not.EqualTo(DateTime.MinValue));
@@ -116,7 +116,7 @@ public class UpdateCountryCodesServiceTests
             .UseInMemoryDatabase($"cc_{Guid.NewGuid()}")
             .Options;
         using var ctx = new AppDbContext(options);
-        ctx.CountryCodes.Add(new CountryCode
+        ctx.Countries.Add(new Country
         {
             IsoNumeric = 840,
             IsoAlpha2 = "XX",
@@ -135,12 +135,12 @@ public class UpdateCountryCodesServiceTests
                   "840,us,United States,United States of America,United States of America,United States,ÑØÀ,Ñîåäèí¸ííûå Øòàòû Àìåðèêè,Àìåðèêà\n" +
                   "124,ca,Canada,Canada,Canada,Canada,Êàíàäà,Êàíàäà,Êàíàäà";
         var httpClientFactory = CreateHttpClientFactory(csv);
-        var svc = new UpdateCountryCodesService(ctx, NullLogger<UpdateCountryCodesService>.Instance, httpClientFactory);
+        var svc = new UpdateCountriesService(ctx, NullLogger<UpdateCountriesService>.Instance, httpClientFactory);
         await svc.RunAsync();
 
-        Assert.That(ctx.CountryCodes.Count(), Is.EqualTo(2));
-        Assert.That(ctx.CountryCodes.Any(c => c.IsoNumeric == 124 && c.IsoAlpha2 == "CA"));
-        Assert.That(ctx.CountryCodes.Any(c => c.IsoNumeric == 840 && c.IsoAlpha2 == "US"));
+        Assert.That(ctx.Countries.Count(), Is.EqualTo(2));
+        Assert.That(ctx.Countries.Any(c => c.IsoNumeric == 124 && c.IsoAlpha2 == "CA"));
+        Assert.That(ctx.Countries.Any(c => c.IsoNumeric == 840 && c.IsoAlpha2 == "US"));
     }
 
     [Test]
@@ -153,10 +153,10 @@ public class UpdateCountryCodesServiceTests
             .Options;
         using var ctx = new AppDbContext(options);
         var httpClientFactory = CreateHttpClientFactory(csv);
-        var svc = new UpdateCountryCodesService(ctx, NullLogger<UpdateCountryCodesService>.Instance, httpClientFactory);
+        var svc = new UpdateCountriesService(ctx, NullLogger<UpdateCountriesService>.Instance, httpClientFactory);
         await svc.RunAsync();
 
-        var cc = ctx.CountryCodes.Single();
+        var cc = ctx.Countries.Single();
         Assert.That(cc.IsoAlpha2, Is.EqualTo("US"));
     }
 
@@ -169,10 +169,10 @@ public class UpdateCountryCodesServiceTests
             .Options;
         using var ctx = new AppDbContext(options);
         var httpClientFactory = CreateHttpClientFactory(csv);
-        var svc = new UpdateCountryCodesService(ctx, NullLogger<UpdateCountryCodesService>.Instance, httpClientFactory);
+        var svc = new UpdateCountriesService(ctx, NullLogger<UpdateCountriesService>.Instance, httpClientFactory);
         await svc.RunAsync();
 
-        Assert.That(ctx.CountryCodes.Count(), Is.EqualTo(0));
+        Assert.That(ctx.Countries.Count(), Is.EqualTo(0));
     }
 
     [Test]
@@ -185,7 +185,7 @@ public class UpdateCountryCodesServiceTests
             .Options;
         using var ctx = new AppDbContext(options);
         var httpClientFactory = CreateHttpClientFactory(csv);
-        var svc = new UpdateCountryCodesService(ctx, NullLogger<UpdateCountryCodesService>.Instance, httpClientFactory);
+        var svc = new UpdateCountriesService(ctx, NullLogger<UpdateCountriesService>.Instance, httpClientFactory);
 
         var cts = new CancellationTokenSource();
         cts.Cancel();
@@ -204,7 +204,7 @@ public class UpdateCountryCodesServiceTests
             .Options;
         using var ctx = new AppDbContext(options);
         var httpClientFactory = CreateHttpClientFactory(new FakeErrorHandler(HttpStatusCode.InternalServerError));
-        var svc = new UpdateCountryCodesService(ctx, NullLogger<UpdateCountryCodesService>.Instance, httpClientFactory);
+        var svc = new UpdateCountriesService(ctx, NullLogger<UpdateCountriesService>.Instance, httpClientFactory);
 
         Assert.That(async () => await svc.RunAsync(), Throws.InstanceOf<HttpRequestException>());
     }

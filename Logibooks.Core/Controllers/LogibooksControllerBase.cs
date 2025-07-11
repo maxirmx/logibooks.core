@@ -84,6 +84,16 @@ public class LogibooksControllerPreBase(AppDbContext db, ILogger logger) : Contr
         return StatusCode(StatusCodes.Status404NotFound,
                           new ErrMessage { Msg = $"Не удалось найти заказ [id={id}]" });
     }
+    protected ObjectResult _404OrderNumber(string number)
+    {
+        return StatusCode(StatusCodes.Status404NotFound,
+                          new ErrMessage { Msg = $"Не удалось найти заказ [номер={number}]" });
+    }
+    protected ObjectResult _404Status(int id)
+    {
+        return StatusCode(StatusCodes.Status404NotFound,
+                          new ErrMessage { Msg = $"Не удалось найти статус [id={id}]" });
+    }
     protected ObjectResult _409Email(string email)
     {
         return StatusCode(StatusCodes.Status409Conflict,
@@ -99,6 +109,27 @@ public class LogibooksControllerPreBase(AppDbContext db, ILogger logger) : Contr
         return StatusCode(StatusCodes.Status409Conflict,
                           new ErrMessage { Msg = $"Исключение с таким кодом ТН ВЭД уже существует [код = {code}]" });
     }
+    protected ObjectResult _409OrderStatus()
+    {
+        return StatusCode(StatusCodes.Status409Conflict,
+                          new ErrMessage { Msg = $"Невозможно удалить статус, на который ссылаются заказы" });
+    }
+    protected ObjectResult _409CompanyInn(string inn)
+    {
+        return StatusCode(StatusCodes.Status409Conflict,
+                          new ErrMessage { Msg = $"Компания с таким ИНН уже существует [ИНН = {inn}]" });
+    }
+    protected ObjectResult _409Company()
+    {
+        return StatusCode(StatusCodes.Status409Conflict,
+                          new ErrMessage { Msg = $"Невозможно удалить компанию, на которую ссылаются загруженные реестры" });
+    }
+    protected ObjectResult _409Register()
+    {
+        return StatusCode(StatusCodes.Status409Conflict,
+                          new ErrMessage { Msg = $"Невозможно удалить реестр, на который ссылаются заказы" });
+    }
+
     protected ObjectResult _500Mapping(string fname)
     {
         return StatusCode(StatusCodes.Status500InternalServerError,
@@ -115,6 +146,7 @@ public class LogibooksControllerPreBase(AppDbContext db, ILogger logger) : Contr
         return StatusCode(StatusCodes.Status500InternalServerError,
                           new ErrMessage { Msg = "Ошибка при загрузке списка стран" });
     }
+
 }
 
 public class LogibooksControllerBase : LogibooksControllerPreBase

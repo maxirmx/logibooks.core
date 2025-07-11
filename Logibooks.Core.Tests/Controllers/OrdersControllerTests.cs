@@ -320,40 +320,151 @@ public class OrdersControllerTests
     }
 
     [Test]
-    public async Task GetStatuses_ReturnsForbidden_ForNonLogist()
+    public async Task GetOrderStatus_ReturnsTitle_WhenExists()
     {
-        SetCurrentUserId(2);
-
-        _dbContext.Statuses.AddRange(
-            new OrderStatus { Id = 1, Name = "loaded", Title = "Loaded" },
-            new OrderStatus { Id = 2, Name = "processed", Title = "Processed" }
-        );
+        var status = new OrderStatus { Id = 1, Title = "Loaded" };
+        _dbContext.Statuses.Add(status);
+        var reg = new Register { Id = 1, FileName = "r.xlsx" };
+        var order = new Order { Id = 1, RegisterId = 1, StatusId = 1, OrderNumber = "A1" };
+        _dbContext.Registers.Add(reg);
+        _dbContext.Orders.Add(order);
         await _dbContext.SaveChangesAsync();
-        var result = await _controller.GetStatuses();
 
-        Assert.That(result.Result, Is.TypeOf<ObjectResult>()); // Fix: Access the Result property
-        var obj = result.Result as ObjectResult; 
-        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
+        var result = await _controller.GetOrderStatus("A1");
+
+        Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
+        var ok = result.Result as OkObjectResult;
+        Assert.That(ok!.Value, Is.EqualTo("Loaded"));
     }
 
     [Test]
-    public async Task GetStatuses_ReturnsAllStatuses()
+    public async Task GetOrderStatus_ReturnsNotFound_WhenMissing()
     {
-        SetCurrentUserId(1);
-        _dbContext.Statuses.AddRange(
-            new OrderStatus { Id = 1, Name = "loaded", Title = "Loaded" },
-            new OrderStatus { Id = 2, Name = "processed", Title = "Processed" }
-        );
+        var result = await _controller.GetOrderStatus("NO");
+
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+    }
+
+    [Test]
+    public async Task GetCheckStatuses_ReturnsAllCheckStatuses()
+    {
+        // Arrange
+        var statuses = new List<OrderCheckStatus>
+        {
+            new OrderCheckStatus { Id = 1, Title = "Loaded" },
+            new OrderCheckStatus { Id = 101, Title = "Problem" },
+            new OrderCheckStatus { Id = 201, Title = "Verified" }
+        };
+        _dbContext.CheckStatuses.AddRange(statuses);
         await _dbContext.SaveChangesAsync();
 
-        var result = await _controller.GetStatuses();
+        // Act
+        var result = await _controller.GetCheckStatuses();
 
-        Assert.That(result.Result, Is.TypeOf<OkObjectResult>()); // Fix: Access the Result property
-        var ok = result.Result as OkObjectResult; 
-        var statuses = ok!.Value as IEnumerable<OrderStatus>;
-        Assert.That(statuses, Is.Not.Null);
-        Assert.That(statuses!.Count(), Is.EqualTo(2));
-        Assert.That(statuses!.First().Name, Is.EqualTo("loaded"));
+        // Assert
+        Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
+
+        var okResult = result.Result as OkObjectResult;
+        Assert.That(okResult!.Value, Is.Not.Null);
+
+        var returnedStatuses = okResult.Value as IEnumerable<OrderCheckStatus>;
+        Assert.That(returnedStatuses, Is.Not.Null);
+        Assert.That(returnedStatuses!.Count(), Is.EqualTo(3));
+
+        if (returnedStatuses is null) return;
+
+        var statusList = returnedStatuses.ToList();
+        Assert.That(statusList[0].Id, Is.EqualTo(1));
+        Assert.That(statusList[1].Id, Is.EqualTo(101));
+        Assert.That(statusList[2].Id, Is.EqualTo(201));
+    }
+
+    [Test]
+    public async Task GetCheckStatuses_ReturnsEmptyList_WhenNoStatusesExist()
+    {
+        // Act
+        var result = await _controller.GetCheckStatuses();
+
+        // Assert
+        Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
+
+        var okResult = result.Result as OkObjectResult;
+        Assert.That(okResult!.Value, Is.Not.Null);
+
+        var returnedStatuses = okResult.Value as IEnumerable<OrderCheckStatus>;
+        Assert.That(returnedStatuses, Is.Not.Null);
+        Assert.That(returnedStatuses!.Count(), Is.EqualTo(0));
+    }
+
+    [Test]
+    public async Task GetCheckStatuses_OrdersStatusesByIdAscending()
+    {
+        // Arrange - add in non-sequential order
+        var statuses = new List<OrderCheckStatus>
+        {
+            new OrderCheckStatus { Id = 201, Title = "Verified" },
+            new OrderCheckStatus { Id = 1, Title = "Loaded" },
+            new OrderCheckStatus { Id = 101, Title = "Problem" }
+        };
+        _dbContext.CheckStatuses.AddRange(statuses);
+        await _dbContext.SaveChangesAsync();
+
+        // Act
+        var result = await _controller.GetCheckStatuses();
+
+        // Assert
+        var okResult = result.Result as OkObjectResult;
+        var returnedStatuses = okResult!.Value as IEnumerable<OrderCheckStatus>;
+        var statusList = returnedStatuses!.ToList();
+
+        // Verify ordering by Id
+        Assert.That(statusList[0].Id, Is.EqualTo(1));
+        Assert.That(statusList[1].Id, Is.EqualTo(101));
+        Assert.That(statusList[2].Id, Is.EqualTo(201));
+    }
+
+    [Test]
+    public async Task GetCheckStatuses_DoesNotRequireAuthorization()
+    {
+        // Arrange - don't set any user in HttpContext
+        // This ensures the method works without checking user roles
+        var statuses = new List<OrderCheckStatus>
+        {
+            new OrderCheckStatus { Id = 1, Title = "Status" }
+        };
+        _dbContext.CheckStatuses.AddRange(statuses);
+        await _dbContext.SaveChangesAsync();
+
+        // Act
+        var result = await _controller.GetCheckStatuses();
+
+        // Assert - should work without any auth checks
+        Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
+        var okResult = result.Result as OkObjectResult;
+        var returnedStatuses = okResult!.Value as IEnumerable<OrderCheckStatus>;
+        Assert.That(returnedStatuses!.Count(), Is.EqualTo(1));
+    }
+
+    [Test]
+    public async Task GetCheckStatuses_ReturnsCompleteOrderCheckStatusObjects()
+    {
+        // Arrange
+        var status = new OrderCheckStatus { Id = 42, Title = "Test Status" };
+        _dbContext.CheckStatuses.Add(status);
+        await _dbContext.SaveChangesAsync();
+
+        // Act
+        var result = await _controller.GetCheckStatuses();
+
+        // Assert
+        var okResult = result.Result as OkObjectResult;
+        var returnedStatuses = okResult!.Value as IEnumerable<OrderCheckStatus>;
+        var returnedStatus = returnedStatuses!.First();
+
+        // Verify all properties are returned correctly
+        Assert.That(returnedStatus.Id, Is.EqualTo(42));
+        Assert.That(returnedStatus.Title, Is.EqualTo("Test Status"));
     }
 }
-

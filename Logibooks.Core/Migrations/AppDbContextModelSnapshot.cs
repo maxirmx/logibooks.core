@@ -102,7 +102,91 @@ namespace Logibooks.Core.Migrations
                     b.ToTable("alta_items");
                 });
 
-            modelBuilder.Entity("Logibooks.Core.Models.CountryCode", b =>
+            modelBuilder.Entity("Logibooks.Core.Models.Company", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("City")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("city");
+
+                    b.Property<short>("CountryIsoNumeric")
+                        .HasColumnType("smallint")
+                        .HasColumnName("country_iso_numeric");
+
+                    b.Property<string>("Inn")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("inn");
+
+                    b.Property<string>("Kpp")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("kpp");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name");
+
+                    b.Property<string>("PostalCode")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("postal_code");
+
+                    b.Property<string>("ShortName")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("short_name");
+
+                    b.Property<string>("Street")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("street");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CountryIsoNumeric");
+
+                    b.HasIndex("Inn")
+                        .IsUnique();
+
+                    b.ToTable("companies");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            City = "Москва",
+                            CountryIsoNumeric = (short)643,
+                            Inn = "7704217370",
+                            Kpp = "997750001",
+                            Name = "ООО \"Интернет Решения\"",
+                            PostalCode = "123112",
+                            ShortName = "",
+                            Street = "Пресненская набережная д.10, пом.1, этаж 41, ком.6"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            City = "д. Коледино",
+                            CountryIsoNumeric = (short)643,
+                            Inn = "9714053621",
+                            Kpp = "507401001",
+                            Name = "",
+                            PostalCode = "",
+                            ShortName = "ООО \"РВБ\"",
+                            Street = "Индустриальный Парк Коледино, д.6, стр.1"
+                        });
+                });
+
+            modelBuilder.Entity("Logibooks.Core.Models.Country", b =>
                 {
                     b.Property<short>("IsoNumeric")
                         .ValueGeneratedOnAdd()
@@ -157,7 +241,22 @@ namespace Logibooks.Core.Migrations
 
                     b.HasKey("IsoNumeric");
 
-                    b.ToTable("country_codes");
+                    b.ToTable("countries");
+
+                    b.HasData(
+                        new
+                        {
+                            IsoNumeric = (short)643,
+                            IsoAlpha2 = "RU",
+                            LoadedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            NameEnCldr = "Rusia",
+                            NameEnFormal = "the Russian Federation",
+                            NameEnOfficial = "Russian Federation",
+                            NameEnShort = "Russian Federation (the)",
+                            NameRuFormal = "Российская Федерация",
+                            NameRuOfficial = "Российская Федерация",
+                            NameRuShort = "Российская Федерация"
+                        });
                 });
 
             modelBuilder.Entity("Logibooks.Core.Models.Order", b =>
@@ -184,6 +283,10 @@ namespace Logibooks.Core.Migrations
                     b.Property<string>("Category")
                         .HasColumnType("text")
                         .HasColumnName("category");
+
+                    b.Property<int>("CheckStatusId")
+                        .HasColumnType("integer")
+                        .HasColumnName("check_status_id");
 
                     b.Property<string>("Composition")
                         .HasColumnType("text")
@@ -359,13 +462,53 @@ namespace Logibooks.Core.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("RegisterId");
+                    b.HasIndex("CheckStatusId");
+
+                    b.HasIndex("OrderNumber");
 
                     b.HasIndex("StatusId");
+
+                    b.HasIndex("RegisterId", "OrderNumber");
 
                     b.HasIndex(new[] { "TnVed" }, "IX_orders_tn_ved");
 
                     b.ToTable("orders");
+                });
+
+            modelBuilder.Entity("Logibooks.Core.Models.OrderCheckStatus", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("title");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("check_statuses");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Title = "Загружен"
+                        },
+                        new
+                        {
+                            Id = 101,
+                            Title = "Проблема"
+                        },
+                        new
+                        {
+                            Id = 201,
+                            Title = "Проверен"
+                        });
                 });
 
             modelBuilder.Entity("Logibooks.Core.Models.OrderStatus", b =>
@@ -376,11 +519,6 @@ namespace Logibooks.Core.Migrations
                         .HasColumnName("id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("name");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -395,8 +533,7 @@ namespace Logibooks.Core.Migrations
                         new
                         {
                             Id = 1,
-                            Name = "loaded",
-                            Title = "Загружен"
+                            Title = "Не известен"
                         });
                 });
 
@@ -409,6 +546,10 @@ namespace Logibooks.Core.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<int>("CompanyId")
+                        .HasColumnType("integer")
+                        .HasColumnName("company_id");
+
                     b.Property<DateTime>("DTime")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("dtime");
@@ -419,6 +560,8 @@ namespace Logibooks.Core.Migrations
                         .HasColumnName("filename");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CompanyId");
 
                     b.ToTable("registers");
                 });
@@ -497,6 +640,9 @@ namespace Logibooks.Core.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Email")
+                        .IsUnique();
+
                     b.ToTable("users");
 
                     b.HasData(
@@ -508,6 +654,24 @@ namespace Logibooks.Core.Migrations
                             LastName = "Samsonov",
                             Password = "$2b$12$eOXzlwFzyGVERe0sNwFeJO5XnvwsjloUpL4o2AIQ8254RT88MnsDi",
                             Patronymic = ""
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Email = "director@global-tc.ru",
+                            FirstName = "Эльдар",
+                            LastName = "Сергутов",
+                            Password = "$2a$11$KUvUbYg79OvDjq9xFKw1Ge4AYboMse4xduI.ZD54vp28zkb4DjWfK",
+                            Patronymic = "Юрьевич"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Email = "wild@global-tc.ru",
+                            FirstName = "Полина",
+                            LastName = "Баландина",
+                            Password = "$2a$11$zA1ohkl1U6UGbkhUlNvtTexHkbQ7CtiFnHTSsBc4xz8a5BY8D9yDS",
+                            Patronymic = "Анатольевна"
                         });
                 });
 
@@ -531,12 +695,49 @@ namespace Logibooks.Core.Migrations
                         new
                         {
                             UserId = 1,
+                            RoleId = 1
+                        },
+                        new
+                        {
+                            UserId = 1,
                             RoleId = 2
+                        },
+                        new
+                        {
+                            UserId = 2,
+                            RoleId = 1
+                        },
+                        new
+                        {
+                            UserId = 2,
+                            RoleId = 2
+                        },
+                        new
+                        {
+                            UserId = 3,
+                            RoleId = 1
                         });
+                });
+
+            modelBuilder.Entity("Logibooks.Core.Models.Company", b =>
+                {
+                    b.HasOne("Logibooks.Core.Models.Country", "Country")
+                        .WithMany("Companies")
+                        .HasForeignKey("CountryIsoNumeric")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Country");
                 });
 
             modelBuilder.Entity("Logibooks.Core.Models.Order", b =>
                 {
+                    b.HasOne("Logibooks.Core.Models.OrderCheckStatus", "CheckStatus")
+                        .WithMany("Orders")
+                        .HasForeignKey("CheckStatusId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("Logibooks.Core.Models.Register", "Register")
                         .WithMany("Orders")
                         .HasForeignKey("RegisterId")
@@ -546,12 +747,25 @@ namespace Logibooks.Core.Migrations
                     b.HasOne("Logibooks.Core.Models.OrderStatus", "Status")
                         .WithMany("Orders")
                         .HasForeignKey("StatusId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("CheckStatus");
 
                     b.Navigation("Register");
 
                     b.Navigation("Status");
+                });
+
+            modelBuilder.Entity("Logibooks.Core.Models.Register", b =>
+                {
+                    b.HasOne("Logibooks.Core.Models.Company", "Company")
+                        .WithMany("Registers")
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Company");
                 });
 
             modelBuilder.Entity("Logibooks.Core.Models.UserRole", b =>
@@ -571,6 +785,21 @@ namespace Logibooks.Core.Migrations
                     b.Navigation("Role");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Logibooks.Core.Models.Company", b =>
+                {
+                    b.Navigation("Registers");
+                });
+
+            modelBuilder.Entity("Logibooks.Core.Models.Country", b =>
+                {
+                    b.Navigation("Companies");
+                });
+
+            modelBuilder.Entity("Logibooks.Core.Models.OrderCheckStatus", b =>
+                {
+                    b.Navigation("Orders");
                 });
 
             modelBuilder.Entity("Logibooks.Core.Models.OrderStatus", b =>
