@@ -1,17 +1,17 @@
+using Logibooks.Core.Controllers;
+using Logibooks.Core.Data;
+using Logibooks.Core.Models;
+using Logibooks.Core.RestModels;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
 using NUnit.Framework;
+using NUnit.Framework.Legacy;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Collections.Generic;
-
-using Logibooks.Core.Controllers;
-using Logibooks.Core.Data;
-using Logibooks.Core.Models;
-using Logibooks.Core.RestModels;
 
 namespace Logibooks.Core.Tests.Controllers;
 
@@ -137,6 +137,65 @@ public class CompaniesControllerTests
         Assert.That(res, Is.TypeOf<ObjectResult>());
         var obj = res as ObjectResult;
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
+    }
+
+    [Test]
+    public async Task DeleteCompany_DeletesCompany_WhenNoRegisters_AndUserIsAdmin()
+    {
+        SetCurrentUserId(1); // Admin
+        var company = new Company
+        {
+            Inn = "inn1",
+            Kpp = "kpp1",
+            Name = "TestCo",
+            ShortName = "TC",
+            CountryIsoNumeric = _country.IsoNumeric,
+            PostalCode = "12345",
+            City = "City",
+            Street = "Street"
+        };
+        _dbContext.Companies.Add(company);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.DeleteCompany(company.Id);
+
+        Assert.That(result, Is.TypeOf<NoContentResult>());
+        Assert.That(await _dbContext.Companies.FindAsync(company.Id), Is.Null);
+    }
+
+    [Test]
+    public async Task DeleteCompany_ReturnsConflict_WhenRegistersReferenceCompany_AndUserIsAdmin()
+    {
+        SetCurrentUserId(1); // Admin
+        var company = new Company
+        {
+            Inn = "inn2",
+            Kpp = "kpp2",
+            Name = "TestCo2",
+            ShortName = "TC2",
+            CountryIsoNumeric = _country.IsoNumeric,
+            PostalCode = "54321",
+            City = "City2",
+            Street = "Street2"
+        };
+        _dbContext.Companies.Add(company);
+        await _dbContext.SaveChangesAsync();
+
+        var register = new Register
+        {
+            CompanyId = company.Id,
+            Company = company,
+            FileName = "default_filename" 
+        };
+        _dbContext.Registers.Add(register);
+        await _dbContext.SaveChangesAsync();
+
+        var res = await _controller.DeleteCompany(company.Id);
+
+        Assert.That(res, Is.TypeOf<ObjectResult>());
+        var obj = res as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status409Conflict));
+        Assert.That(await _dbContext.Companies.FindAsync(company.Id), Is.Not.Null);
     }
 
     [Test]

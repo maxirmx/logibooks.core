@@ -36,13 +36,13 @@ public class OrderViewItem(Order order)
     public int RegisterId { get; set; } = order.RegisterId;
     public int StatusId { get; set; } = order.StatusId;
     public int CheckStatusId { get; set; } = order.CheckStatusId;
+    public int CompanyId { get; set; } = order.CheckStatusId;
     public int RowNumber { get; set; } = order.RowNumber;
     public string? OrderNumber { get; set; } = order.OrderNumber;
     public DateOnly? InvoiceDate { get; set; } = order.InvoiceDate;
     public string? Sticker { get; set; } = order.Sticker;
     public string? Shk { get; set; } = order.Shk;
     public string? StickerCode { get; set; } = order.StickerCode;
-    public string? ExtId { get; set; } = order.ExtId;
     public string? TnVed { get; set; } = order.TnVed;
     public string? SiteArticle { get; set; } = order.SiteArticle;
     public string? HeelHeight { get; set; } = order.HeelHeight;
@@ -77,10 +77,6 @@ public class OrderViewItem(Order order)
     public string? SupplierInn { get; set; } = order.SupplierInn;
     public string? Category { get; set; } = order.Category;
     public string? Subcategory { get; set; } = order.Subcategory;
-    public string? PersonalData { get; set; } = order.PersonalData;
-    public string? CustomsClearance { get; set; } = order.CustomsClearance;
-    public string? DutyPayment { get; set; } = order.DutyPayment;
-    public string? OtherReason { get; set; } = order.OtherReason;
 
     public override string ToString()
     {

@@ -126,8 +126,12 @@ namespace Logibooks.Core.Data
                 .HasOne(c => c.Country)
                 .WithMany(cn => cn.Companies)
                 .HasForeignKey(c => c.CountryIsoNumeric)
-                .HasPrincipalKey(cn => cn.IsoNumeric);
-            
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Company>()
+                .HasIndex(c => c.Inn)
+                .IsUnique();
+
             modelBuilder.Entity<UserRole>()
                 .HasOne(ur => ur.User)
                 .WithMany(u => u.UserRoles)
@@ -138,15 +142,29 @@ namespace Logibooks.Core.Data
                 .WithMany(r => r.UserRoles)
                 .HasForeignKey(ur => ur.RoleId);
 
+            modelBuilder.Entity<Register>()
+                .HasOne(o => o.Company)
+                .WithMany(r => r.Registers)
+                .HasForeignKey(o => o.CompanyId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             modelBuilder.Entity<Order>()
                 .HasOne(o => o.Register)
                 .WithMany(r => r.Orders)
-                .HasForeignKey(o => o.RegisterId);
+                .HasForeignKey(o => o.RegisterId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<Order>()
                 .HasOne(o => o.Status)
                 .WithMany(s => s.Orders)
-                .HasForeignKey(o => o.StatusId);
+                .HasForeignKey(o => o.StatusId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Order>()
+                .HasOne(o => o.CheckStatus)
+                .WithMany(s => s.Orders)
+                .HasForeignKey(o => o.CheckStatusId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<Role>().HasData(
                 new Role { Id = 1, Name = "logist", Title = "Логист" },

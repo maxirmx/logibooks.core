@@ -79,6 +79,13 @@ public class CompaniesController(
         if (!await _db.CheckAdmin(_curUserId)) return _403();
         var company = await _db.Companies.FindAsync(id);
         if (company == null) return _404Object(id);
+
+        bool hasRegisters = await _db.Registers.AnyAsync(r => r.CompanyId == id);
+        if (hasRegisters)
+        {
+            return _409Company();
+        }
+
         _db.Companies.Remove(company);
         await _db.SaveChangesAsync();
         return NoContent();

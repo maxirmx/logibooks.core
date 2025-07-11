@@ -24,6 +24,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace Logibooks.Core.Models;
 
@@ -36,5 +37,6 @@ public class OrderCheckStatus
     [Column("title")]
     public required string Title { get; set; }
 
+    [JsonIgnore]
     public ICollection<Order> Orders { get; set; } = new List<Order>();
 }

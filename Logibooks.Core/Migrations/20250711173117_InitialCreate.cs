@@ -83,20 +83,6 @@ namespace Logibooks.Core.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "registers",
-                columns: table => new
-                {
-                    id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    filename = table.Column<string>(type: "text", nullable: false),
-                    dtime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_registers", x => x.id);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "roles",
                 columns: table => new
                 {
@@ -163,7 +149,52 @@ namespace Logibooks.Core.Migrations
                         column: x => x.country_iso_numeric,
                         principalTable: "countries",
                         principalColumn: "iso_numeric",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "user_roles",
+                columns: table => new
+                {
+                    user_id = table.Column<int>(type: "integer", nullable: false),
+                    role_id = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_user_roles", x => new { x.user_id, x.role_id });
+                    table.ForeignKey(
+                        name: "FK_user_roles_roles_role_id",
+                        column: x => x.role_id,
+                        principalTable: "roles",
+                        principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_user_roles_users_user_id",
+                        column: x => x.user_id,
+                        principalTable: "users",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "registers",
+                columns: table => new
+                {
+                    id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    filename = table.Column<string>(type: "text", nullable: false),
+                    dtime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    company_id = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_registers", x => x.id);
+                    table.ForeignKey(
+                        name: "FK_registers_companies_company_id",
+                        column: x => x.company_id,
+                        principalTable: "companies",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -219,8 +250,7 @@ namespace Logibooks.Core.Migrations
                     personal_data = table.Column<string>(type: "text", nullable: true),
                     customs_clearance = table.Column<string>(type: "text", nullable: true),
                     duty_payment = table.Column<string>(type: "text", nullable: true),
-                    other_reason = table.Column<string>(type: "text", nullable: true),
-                    OrderStatusId = table.Column<int>(type: "integer", nullable: true)
+                    other_reason = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -230,48 +260,19 @@ namespace Logibooks.Core.Migrations
                         column: x => x.check_status_id,
                         principalTable: "check_statuses",
                         principalColumn: "id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_orders_check_statuses_status_id",
-                        column: x => x.status_id,
-                        principalTable: "check_statuses",
-                        principalColumn: "id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_orders_registers_register_id",
                         column: x => x.register_id,
                         principalTable: "registers",
                         principalColumn: "id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_orders_statuses_OrderStatusId",
-                        column: x => x.OrderStatusId,
+                        name: "FK_orders_statuses_status_id",
+                        column: x => x.status_id,
                         principalTable: "statuses",
-                        principalColumn: "id");
-                });
-
-            migrationBuilder.CreateTable(
-                name: "user_roles",
-                columns: table => new
-                {
-                    user_id = table.Column<int>(type: "integer", nullable: false),
-                    role_id = table.Column<int>(type: "integer", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_user_roles", x => new { x.user_id, x.role_id });
-                    table.ForeignKey(
-                        name: "FK_user_roles_roles_role_id",
-                        column: x => x.role_id,
-                        principalTable: "roles",
                         principalColumn: "id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_user_roles_users_user_id",
-                        column: x => x.user_id,
-                        principalTable: "users",
-                        principalColumn: "id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.InsertData(
@@ -352,14 +353,15 @@ namespace Logibooks.Core.Migrations
                 column: "country_iso_numeric");
 
             migrationBuilder.CreateIndex(
+                name: "IX_companies_inn",
+                table: "companies",
+                column: "inn",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_orders_check_status_id",
                 table: "orders",
                 column: "check_status_id");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_orders_OrderStatusId",
-                table: "orders",
-                column: "OrderStatusId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_orders_register_id",
@@ -377,6 +379,11 @@ namespace Logibooks.Core.Migrations
                 column: "tn_ved");
 
             migrationBuilder.CreateIndex(
+                name: "IX_registers_company_id",
+                table: "registers",
+                column: "company_id");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_user_roles_role_id",
                 table: "user_roles",
                 column: "role_id");
@@ -392,16 +399,10 @@ namespace Logibooks.Core.Migrations
                 name: "alta_items");
 
             migrationBuilder.DropTable(
-                name: "companies");
-
-            migrationBuilder.DropTable(
                 name: "orders");
 
             migrationBuilder.DropTable(
                 name: "user_roles");
-
-            migrationBuilder.DropTable(
-                name: "countries");
 
             migrationBuilder.DropTable(
                 name: "check_statuses");
@@ -417,6 +418,12 @@ namespace Logibooks.Core.Migrations
 
             migrationBuilder.DropTable(
                 name: "users");
+
+            migrationBuilder.DropTable(
+                name: "companies");
+
+            migrationBuilder.DropTable(
+                name: "countries");
         }
     }
 }

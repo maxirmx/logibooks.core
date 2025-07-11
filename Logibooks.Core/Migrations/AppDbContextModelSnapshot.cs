@@ -154,6 +154,9 @@ namespace Logibooks.Core.Migrations
 
                     b.HasIndex("CountryIsoNumeric");
 
+                    b.HasIndex("Inn")
+                        .IsUnique();
+
                     b.ToTable("companies");
 
                     b.HasData(
@@ -353,9 +356,6 @@ namespace Logibooks.Core.Migrations
                         .HasColumnType("text")
                         .HasColumnName("order_number");
 
-                    b.Property<int?>("OrderStatusId")
-                        .HasColumnType("integer");
-
                     b.Property<string>("OtherReason")
                         .HasColumnType("text")
                         .HasColumnName("other_reason");
@@ -464,8 +464,6 @@ namespace Logibooks.Core.Migrations
 
                     b.HasIndex("CheckStatusId");
 
-                    b.HasIndex("OrderStatusId");
-
                     b.HasIndex("RegisterId");
 
                     b.HasIndex("StatusId");
@@ -546,6 +544,10 @@ namespace Logibooks.Core.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<int>("CompanyId")
+                        .HasColumnType("integer")
+                        .HasColumnName("company_id");
+
                     b.Property<DateTime>("DTime")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("dtime");
@@ -556,6 +558,8 @@ namespace Logibooks.Core.Migrations
                         .HasColumnName("filename");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CompanyId");
 
                     b.ToTable("registers");
                 });
@@ -715,7 +719,7 @@ namespace Logibooks.Core.Migrations
                     b.HasOne("Logibooks.Core.Models.Country", "Country")
                         .WithMany("Companies")
                         .HasForeignKey("CountryIsoNumeric")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Country");
@@ -724,25 +728,21 @@ namespace Logibooks.Core.Migrations
             modelBuilder.Entity("Logibooks.Core.Models.Order", b =>
                 {
                     b.HasOne("Logibooks.Core.Models.OrderCheckStatus", "CheckStatus")
-                        .WithMany()
-                        .HasForeignKey("CheckStatusId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Logibooks.Core.Models.OrderStatus", null)
                         .WithMany("Orders")
-                        .HasForeignKey("OrderStatusId");
+                        .HasForeignKey("CheckStatusId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.HasOne("Logibooks.Core.Models.Register", "Register")
                         .WithMany("Orders")
                         .HasForeignKey("RegisterId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("Logibooks.Core.Models.OrderCheckStatus", "Status")
+                    b.HasOne("Logibooks.Core.Models.OrderStatus", "Status")
                         .WithMany("Orders")
                         .HasForeignKey("StatusId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("CheckStatus");
@@ -750,6 +750,17 @@ namespace Logibooks.Core.Migrations
                     b.Navigation("Register");
 
                     b.Navigation("Status");
+                });
+
+            modelBuilder.Entity("Logibooks.Core.Models.Register", b =>
+                {
+                    b.HasOne("Logibooks.Core.Models.Company", "Company")
+                        .WithMany("Registers")
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Company");
                 });
 
             modelBuilder.Entity("Logibooks.Core.Models.UserRole", b =>
@@ -769,6 +780,11 @@ namespace Logibooks.Core.Migrations
                     b.Navigation("Role");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Logibooks.Core.Models.Company", b =>
+                {
+                    b.Navigation("Registers");
                 });
 
             modelBuilder.Entity("Logibooks.Core.Models.Country", b =>

@@ -44,7 +44,7 @@ public class Order
 
     [Column("status_id")]
     public int StatusId { get; set; }
-    public OrderCheckStatus Status { get; set; } = null!;
+    public OrderStatus Status { get; set; } = null!;
 
     [Column("check_status_id")]
     public int CheckStatusId { get; set; }

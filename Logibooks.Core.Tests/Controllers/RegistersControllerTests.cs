@@ -914,7 +914,24 @@ public class RegistersControllerTests
     }
 
     [Test]
-    public async Task DeleteRegister_DeletesRegisterAndOrders_WhenUserIsLogist()
+    public async Task DeleteRegister_DeletesEmptyRegister_WhenUserIsLogist()
+    {
+        SetCurrentUserId(1); // Logist user
+
+        var register = new Register { Id = 1, FileName = "reg.xlsx" };
+
+        _dbContext.Registers.Add(register);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.DeleteRegister(1);
+
+        Assert.That(result, Is.TypeOf<NoContentResult>());
+        Assert.That(await _dbContext.Registers.FindAsync(1), Is.Null);
+        Assert.That(_dbContext.Orders.Any(o => o.RegisterId == 1), Is.False);
+    }
+
+    [Test]
+    public async Task DeleteRegister_FailToDeleteRegisterAndOrders_WhenUserIsLogist()
     {
         SetCurrentUserId(1); // Logist user
 
@@ -927,9 +944,9 @@ public class RegistersControllerTests
 
         var result = await _controller.DeleteRegister(1);
 
-        Assert.That(result, Is.TypeOf<NoContentResult>());
-        Assert.That(await _dbContext.Registers.FindAsync(1), Is.Null);
-        Assert.That(_dbContext.Orders.Any(o => o.RegisterId == 1), Is.False);
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var objResult = result as ObjectResult;
+        Assert.That(objResult!.StatusCode, Is.EqualTo(StatusCodes.Status409Conflict));
     }
 
     [Test]

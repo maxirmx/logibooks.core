@@ -40,6 +40,10 @@ public class Register
     [Column("dtime")]
     public DateTime DTime { get; set; } = DateTime.UtcNow;
 
+    [Column("company_id")]
+    public int CompanyId { get; set; }
+    public Company Company { get; set; } = null!;
+
     [JsonIgnore]
     public ICollection<Order> Orders { get; set; } = []; 
 }

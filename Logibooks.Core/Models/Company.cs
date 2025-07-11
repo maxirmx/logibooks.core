@@ -61,4 +61,7 @@ public class Company
     [Column("street")]
     public string Street { get; set; } = string.Empty;
 
+    [JsonIgnore]
+    public ICollection<Register> Registers { get; set; } = [];
+
 }
