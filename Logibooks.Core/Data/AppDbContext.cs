@@ -166,6 +166,9 @@ namespace Logibooks.Core.Data
                 .HasForeignKey(o => o.CheckStatusId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            modelBuilder.Entity<Order>()
+                .HasIndex(o => new { o.RegisterId, o.OrderNumber });
+            
             modelBuilder.Entity<Role>().HasData(
                 new Role { Id = 1, Name = "logist", Title = "Логист" },
                 new Role { Id = 2, Name = "administrator", Title = "Администратор" }
