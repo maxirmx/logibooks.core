@@ -214,17 +214,10 @@ public class OrdersController(
 
     [HttpGet("checkstatuses")]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<OrderCheckStatus>))]
-    [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     public async Task<ActionResult<IEnumerable<OrderCheckStatus>>> GetCheckStatuses()
     {
-        var ok = await _db.CheckLogist(_curUserId);
-        if (!ok)
-        {
-            _logger.LogDebug("GetCheckStatuses returning '403 Forbidden'");
-            return _403();
-        }
         var statuses = await _db.CheckStatuses.AsNoTracking().OrderBy(s => s.Id).ToListAsync();
-        _logger.LogDebug("GetStatuses returning {count} items", statuses.Count);
+        _logger.LogDebug("GetCheckStatuses returning {count} items", statuses.Count);
         return Ok(statuses);
     }
 }
