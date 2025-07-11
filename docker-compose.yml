@@ -68,5 +68,27 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
 
+  backup:
+    build:
+      context: ./Logibooks.Backup
+      dockerfile: Dockerfile
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: logibooks
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      BACKUP_DIR: /backups
+      RETENTION_DAYS: 7
+    volumes:
+      - backup_data:/backups
+      - backup_logs:/var/log
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
 volumes:
   pgdata:
+  backup_data:
+  backup_logs:
