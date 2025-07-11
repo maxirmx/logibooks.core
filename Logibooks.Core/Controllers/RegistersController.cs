@@ -49,6 +49,7 @@ public class RegistersController(
 
     private readonly string[] allowedSortBy = ["id", "filename", "date", "orderstotal"];
     private readonly int maxPageSize = 100;
+    private readonly int idWBR = 2;
 
     [HttpGet("{id}")]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(RegisterViewItem))]
@@ -220,6 +221,8 @@ public class RegistersController(
     {
         _logger.LogDebug("UploadRegister called for {name} ({size} bytes)", file?.FileName, file?.Length);
 
+        int companyId = idWBR;
+
         var ok = await _db.CheckLogist(_curUserId);
         if (!ok)
         {
@@ -244,7 +247,7 @@ public class RegistersController(
                 using var ms = new MemoryStream();
                 await file.CopyToAsync(ms);
                 byte[] excelContent = ms.ToArray();
-                var result = await ProcessExcel(excelContent, file.FileName);
+                var result = await ProcessExcel(companyId, excelContent, file.FileName);
                 return result;
             }
             else if (fileExtension == ".zip" || fileExtension == ".rar")
@@ -279,7 +282,7 @@ public class RegistersController(
                     excelContent = entryStream.ToArray();
                 }
 
-                var result = await ProcessExcel(excelContent, excelFileName);
+                var result = await ProcessExcel(companyId, excelContent, excelFileName);
                 _logger.LogDebug("UploadRegister processed archive with Excel");
                 return result;
             }
@@ -350,6 +353,7 @@ public class RegistersController(
     }
 
     private async Task<IActionResult> ProcessExcel(
+        int companyId,
         byte[] content,
         string fileName, 
         string mappingFile = "register_mapping.yaml")
@@ -387,7 +391,7 @@ public class RegistersController(
             }
         }
 
-        var register = new Register { FileName = fileName };
+        var register = new Register { FileName = fileName, CompanyId = companyId };
         _db.Registers.Add(register);
         await _db.SaveChangesAsync();
 
@@ -398,7 +402,7 @@ public class RegistersController(
         for (int r = 1; r < table.Rows.Count; r++)
         {
             var row = table.Rows[r];
-            var order = new Order { RegisterId = register.Id, StatusId = 1 };
+            var order = new Order { RegisterId = register.Id, StatusId = 1, CheckStatusId = 1 };
             foreach (var kv in columnMap)
             {
                 var val = row[kv.Key]?.ToString();

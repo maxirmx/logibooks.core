@@ -27,7 +27,6 @@ using Logibooks.Core.Models;
 using Logibooks.Core.RestModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.IO;
 
 namespace Logibooks.Core.Data
 {
