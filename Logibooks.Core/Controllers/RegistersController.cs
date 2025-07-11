@@ -68,7 +68,7 @@ public class RegistersController(
         var register = await _db.Registers
             .AsNoTracking()
             .Where(r => r.Id == id)
-            .Select(r => new { r.Id, r.FileName, r.DTime })
+            .Select(r => new { r.Id, r.FileName, r.DTime, r.CompanyId })
             .FirstOrDefaultAsync();
 
         if (register == null)
@@ -85,6 +85,7 @@ public class RegistersController(
             Id = register.Id,
             FileName = register.FileName,
             Date = register.DTime,
+            CompanyId = register.CompanyId, 
             OrdersTotal = ordersByStatus.Values.Sum(),
             OrdersByStatus = ordersByStatus
         };
@@ -135,7 +136,6 @@ public class RegistersController(
             return _403();
         }
 
-        // Build base query for registers
         IQueryable<Register> baseQuery = _db.Registers.AsNoTracking();
 
         if (!string.IsNullOrWhiteSpace(search))
@@ -148,6 +148,7 @@ public class RegistersController(
             {
                 Id = r.Id,
                 FileName = r.FileName,
+                CompanyId = r.CompanyId,
                 Date = r.DTime,
                 OrdersTotal = r.Orders.Count()
             });

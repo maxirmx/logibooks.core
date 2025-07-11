@@ -32,7 +32,6 @@ public class OrderUpdateItem
 {
     public int? StatusId { get; set; }
     public int? CheckStatusId { get; set; }
-    public int? CompanyId { get; set; }
     public int? RowNumber { get; set; }
     public string? OrderNumber { get; set; }
     public DateOnly? InvoiceDate { get; set; }

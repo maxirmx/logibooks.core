@@ -42,6 +42,8 @@ public class Register
 
     [Column("company_id")]
     public int CompanyId { get; set; }
+
+    [JsonIgnore]
     public Company Company { get; set; } = null!;
 
     [JsonIgnore]
