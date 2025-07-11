@@ -209,12 +209,23 @@ public class CompaniesControllerTests
     }
 
     [Test]
-    public async Task PostCompany_Works_ForNonAdmin()
+    public async Task PostCompany_Works_ForAdmin()
     {
-        SetCurrentUserId(2);
-        var dto = new CompanyDto { Inn="i", Kpp="k", Name="n", ShortName="sn", CountryIsoNumeric=840, PostalCode="p", City="c", Street="s" };
+        SetCurrentUserId(1);
+        var dto = new CompanyDto { Inn="i", Kpp="k", Name="n", ShortName="sn", CountryIsoNumeric=643, PostalCode="p", City="c", Street="s" };
         var created = await _controller.PostCompany(dto);
         Assert.That(created.Result, Is.TypeOf<CreatedAtActionResult>());
+    }
+
+    [Test]
+    public async Task PostCompany_Fails_ForNonAdmin()
+    {
+        SetCurrentUserId(2);
+        var dto = new CompanyDto { Inn = "i", Kpp = "k", Name = "n", ShortName = "sn", CountryIsoNumeric = 643, PostalCode = "p", City = "c", Street = "s" };
+        var res = await _controller.PostCompany(dto);
+        Assert.That(res.Result, Is.TypeOf<ObjectResult>());
+        var obj = res.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
     }
 
     [Test]
