@@ -318,5 +318,33 @@ public class OrdersControllerTests
         Assert.That(pr!.Pagination.CurrentPage, Is.EqualTo(1));
         Assert.That(pr.Items.First().Id, Is.EqualTo(1));
     }
+
+    [Test]
+    public async Task GetOrderStatus_ReturnsTitle_WhenExists()
+    {
+        var status = new OrderStatus { Id = 1, Title = "Loaded" };
+        _dbContext.Statuses.Add(status);
+        var reg = new Register { Id = 1, FileName = "r.xlsx" };
+        var order = new Order { Id = 1, RegisterId = 1, StatusId = 1, OrderNumber = "A1" };
+        _dbContext.Registers.Add(reg);
+        _dbContext.Orders.Add(order);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.GetOrderStatus("A1");
+
+        Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
+        var ok = result.Result as OkObjectResult;
+        Assert.That(ok!.Value, Is.EqualTo("Loaded"));
+    }
+
+    [Test]
+    public async Task GetOrderStatus_ReturnsNotFound_WhenMissing()
+    {
+        var result = await _controller.GetOrderStatus("NO");
+
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+    }
 }
 

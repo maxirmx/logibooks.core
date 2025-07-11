@@ -26,6 +26,7 @@
 using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
 
 using Logibooks.Core.Authorization;
 using Logibooks.Core.Data;
@@ -219,5 +220,27 @@ public class OrdersController(
         var statuses = await _db.CheckStatuses.AsNoTracking().OrderBy(s => s.Id).ToListAsync();
         _logger.LogDebug("GetCheckStatuses returning {count} items", statuses.Count);
         return Ok(statuses);
+    }
+
+    [HttpGet("orderstatus")]
+    [AllowAnonymous]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(string))]
+    [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
+    public async Task<ActionResult<string>> GetOrderStatus(string orderNumber)
+    {
+        _logger.LogDebug("GetOrderStatus for number={orderNumber}", orderNumber);
+
+        var statusTitle = await _db.Orders.AsNoTracking()
+            .Where(o => o.OrderNumber == orderNumber)
+            .Select(o => o.Status.Title)
+            .FirstOrDefaultAsync();
+
+        if (statusTitle == null)
+        {
+            _logger.LogDebug("GetOrderStatus returning '404 Not Found'");
+            return _404OrderNumber(orderNumber);
+        }
+
+        return Ok(statusTitle);
     }
 }

@@ -336,6 +336,40 @@ public class RegistersController(
         return NoContent();
     }
 
+    [HttpPost("{id}/setorderstatuses")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
+    [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
+    public async Task<IActionResult> SetOrderStatuses(int id, int statusId)
+    {
+        _logger.LogDebug("SetOrderStatuses for registerId={id} statusId={statusId}", id, statusId);
+
+        if (!await _db.CheckLogist(_curUserId))
+        {
+            _logger.LogDebug("SetOrderStatuses returning '403 Forbidden'");
+            return _403();
+        }
+
+        if (!await _db.Registers.AnyAsync(r => r.Id == id))
+        {
+            _logger.LogDebug("SetOrderStatuses returning '404 Not Found' - register");
+            return _404Register(id);
+        }
+
+        if (!await _db.Statuses.AnyAsync(s => s.Id == statusId))
+        {
+            _logger.LogDebug("SetOrderStatuses returning '404 Not Found' - status");
+            return _404Object(statusId);
+        }
+
+        await _db.Orders
+            .Where(o => o.RegisterId == id)
+            .ExecuteUpdateAsync(s => s.SetProperty(o => o.StatusId, statusId));
+
+        _logger.LogDebug("SetOrderStatuses updated register {id}", id);
+        return NoContent();
+    }
+
     private async Task<Dictionary<int, Dictionary<int, int>>> FetchOrdersStatsAsync(IEnumerable<int> registerIds)
     {
         var grouped = await _db.Orders
