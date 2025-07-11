@@ -52,7 +52,7 @@ builder.Services.AddAutoMapper(cfg => cfg.AddProfile<OrderMappingProfile>());
 builder.Services
     .Configure<AppSettings>(builder.Configuration.GetSection("AppSettings"))
     .AddScoped<IJwtUtils, JwtUtils>()
-    .AddScoped<IUpdateCountryCodesService, UpdateCountryCodesService>()
+    .AddScoped<IUpdateCountriesService, UpdateCountriesService>()
     .AddHttpContextAccessor()
     .AddControllers();
 
@@ -72,15 +72,15 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddQuartz(q =>
 {
-    var jobKey = new JobKey("UpdateCountryCodes");
-    q.AddJob<UpdateCountryCodesJob>(opts => opts.WithIdentity(jobKey));
+    var jobKey = new JobKey("UpdateCountries");
+    q.AddJob<UpdateCountriesJob>(opts => opts.WithIdentity(jobKey));
 
-    var cron = config["Jobs:UpdateCountryCodes"];
+    var cron = config["Jobs:UpdateCountries"];
     if (!string.IsNullOrWhiteSpace(cron))
     {
         q.AddTrigger(opts => opts
             .ForJob(jobKey)
-            .WithIdentity("UpdateCountryCodes-trigger")
+            .WithIdentity("UpdateCountries-trigger")
             .WithCronSchedule(cron));
     }
 });

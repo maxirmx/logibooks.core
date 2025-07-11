@@ -37,27 +37,27 @@ namespace Logibooks.Core.Controllers;
 [ApiController]
 [Authorize]
 [Route("api/[controller]")]
-public class CountryCodesController(
+public class CountriesController(
     IHttpContextAccessor httpContextAccessor,
     AppDbContext db,
-    IUpdateCountryCodesService service,
-    ILogger<CountryCodesController> logger) : LogibooksControllerBase(httpContextAccessor, db, logger)
+    IUpdateCountriesService service,
+    ILogger<CountriesController> logger) : LogibooksControllerBase(httpContextAccessor, db, logger)
 {
-    private readonly IUpdateCountryCodesService _service = service;
+    private readonly IUpdateCountriesService _service = service;
 
     [HttpGet]
-    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<CountryCodeDto>))]
-    public async Task<ActionResult<IEnumerable<CountryCodeDto>>> GetCodes()
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<CountryDto>))]
+    public async Task<ActionResult<IEnumerable<CountryDto>>> GetCodes()
     {
-        var codes = await _db.CountryCodes.AsNoTracking().ToListAsync();
-        return codes.Select(c => new CountryCodeDto(c)).ToList();
+        var codes = await _db.Countries.AsNoTracking().ToListAsync();
+        return codes.Select(c => new CountryDto(c)).ToList();
     }
 
     [HttpGet("compact")]
-    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<CountryCodeCompactDto>))]
-    public async Task<ActionResult<IEnumerable<CountryCodeCompactDto>>> GetCodesCompact()
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<CountryCompactDto>))]
+    public async Task<ActionResult<IEnumerable<CountryCompactDto>>> GetCodesCompact()
     {
-        var codes = await _db.CountryCodes.AsNoTracking()
+        var codes = await _db.Countries.AsNoTracking()
             .OrderBy(c =>
                 c.IsoAlpha2 == "RU" ? 0 :
                 c.IsoAlpha2 == "UZ" ? 1 :
@@ -66,18 +66,18 @@ public class CountryCodesController(
                 c.IsoAlpha2 == "TR" ? 4 :
                 int.MaxValue)
             .ThenBy(c => c.IsoNumeric)
-            .Select(c => new CountryCodeCompactDto(c))
+            .Select(c => new CountryCompactDto(c))
             .ToListAsync();
         return codes;
     }
 
     [HttpGet("{id}")]
-    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(CountryCodeDto))]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(CountryDto))]
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
-    public async Task<ActionResult<CountryCodeDto>> GetCode(short id)
+    public async Task<ActionResult<CountryDto>> GetCode(short id)
     {
-        var cc = await _db.CountryCodes.AsNoTracking().FirstOrDefaultAsync(c => c.IsoNumeric == id);
-        return cc == null ? _404Object(id) : new CountryCodeDto(cc);
+        var cc = await _db.Countries.AsNoTracking().FirstOrDefaultAsync(c => c.IsoNumeric == id);
+        return cc == null ? _404Object(id) : new CountryDto(cc);
     }
 
     [HttpPost("update")]

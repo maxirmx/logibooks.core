@@ -25,11 +25,12 @@
 
 using System;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace Logibooks.Core.Models;
 
-[Table("country_codes")]
-public class CountryCode
+[Table("countries")]
+public class Country
 {
     [Column("iso_numeric")]
     public short IsoNumeric { get; set; }
@@ -60,4 +61,8 @@ public class CountryCode
 
     [Column("loaded_at")]
     public DateTime LoadedAt { get; set; } = DateTime.UtcNow;
+
+    [JsonIgnore]
+    public ICollection<Company> Companies { get; set; } = [];
+
 }

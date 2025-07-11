@@ -318,6 +318,5 @@ public class OrdersControllerTests
         Assert.That(pr!.Pagination.CurrentPage, Is.EqualTo(1));
         Assert.That(pr.Items.First().Id, Is.EqualTo(1));
     }
-
 }
 

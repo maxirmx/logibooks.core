@@ -104,6 +104,22 @@ public class LogibooksControllerPreBase(AppDbContext db, ILogger logger) : Contr
         return StatusCode(StatusCodes.Status409Conflict,
                           new ErrMessage { Msg = $"Невозможно удалить статус, на который ссылаются заказы" });
     }
+    protected ObjectResult _409CompanyInn(string inn)
+    {
+        return StatusCode(StatusCodes.Status409Conflict,
+                          new ErrMessage { Msg = $"Компания с таким ИНН уже существует [ИНН = {inn}]" });
+    }
+    protected ObjectResult _409Company()
+    {
+        return StatusCode(StatusCodes.Status409Conflict,
+                          new ErrMessage { Msg = $"Невозможно удалить компанию, на которую ссылаются загруженные реестры" });
+    }
+    protected ObjectResult _409Register()
+    {
+        return StatusCode(StatusCodes.Status409Conflict,
+                          new ErrMessage { Msg = $"Невозможно удалить реестр, на который ссылаются заказы" });
+    }
+
     protected ObjectResult _500Mapping(string fname)
     {
         return StatusCode(StatusCodes.Status500InternalServerError,

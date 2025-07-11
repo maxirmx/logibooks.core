@@ -99,7 +99,6 @@ public class UsersController(
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(Reference))]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
-    [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status409Conflict, Type = typeof(ErrMessage))]
     public async Task<ActionResult<Reference>> PostUser(UserCreateItem user)
     {
@@ -117,41 +116,51 @@ public class UsersController(
             return _409Email(user.Email);
         }
 
-        string hashToStoreInDb = BCrypt.Net.BCrypt.HashPassword(user.Password);
-        user.Password = hashToStoreInDb;
-
-        User ur = new()
+        try
         {
-            FirstName = user.FirstName ?? "",
-            LastName = user.LastName ?? "",
-            Patronymic = user.Patronymic ?? "",
-            Email = user.Email,
-            Password = hashToStoreInDb,
-        };
+            string hashToStoreInDb = BCrypt.Net.BCrypt.HashPassword(user.Password);
 
-        _db.Users.Add(ur);
-        await _db.SaveChangesAsync(); // This assigns ur.Id
-
-        if (user.Roles != null && user.Roles.Count > 0)
-        {
-            var rolesInDb = _db.Roles.Where(r => user.Roles.Contains(r.Name)).ToList();
-            foreach (var role in rolesInDb)
+            User ur = new()
             {
-                _db.UserRoles.Add(new UserRole { UserId = ur.Id, RoleId = role.Id });
-            }
-            await _db.SaveChangesAsync(); // Save the user roles
-        }
+                FirstName = user.FirstName ?? "",
+                LastName = user.LastName ?? "",
+                Patronymic = user.Patronymic ?? "",
+                Email = user.Email,
+                Password = hashToStoreInDb,
+            };
 
-        var reference = new Reference { Id = ur.Id };
-        _logger.LogDebug("PostUser returning: {res}", reference.ToString());
-        return CreatedAtAction(nameof(PostUser), new { id = ur.Id }, reference);
+            _db.Users.Add(ur);
+            await _db.SaveChangesAsync(); // This assigns ur.Id
+
+            if (user.Roles != null && user.Roles.Count > 0)
+            {
+                var rolesInDb = _db.Roles.Where(r => user.Roles.Contains(r.Name)).ToList();
+                foreach (var role in rolesInDb)
+                {
+                    _db.UserRoles.Add(new UserRole { UserId = ur.Id, RoleId = role.Id });
+                }
+                await _db.SaveChangesAsync(); // Save the user roles
+            }
+
+            var reference = new Reference { Id = ur.Id };
+            _logger.LogDebug("PostUser returning: {res}", reference.ToString());
+            return CreatedAtAction(nameof(PostUser), new { id = ur.Id }, reference);
+        }
+        catch (DbUpdateException ex) when (ex.InnerException?.Message?.Contains("IX_users_email") == true)
+        {
+            // Handle database constraint violation (race condition case)
+            _logger.LogDebug("PostUser returning '409 Conflict' due to database constraint");
+            return _409Email(user.Email);
+        }
     }
+
 
     // PUT: api/users/5
     [HttpPut("{id}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
+    [ProducesResponseType(StatusCodes.Status409Conflict, Type = typeof(ErrMessage))]
     public async Task<IActionResult> PutUser(int id, UserUpdateItem update)
     {
         _logger.LogDebug("PutUser (update) for id={id} with {update}", id, update.ToString());
@@ -200,10 +209,19 @@ public class UsersController(
         if (update.Password != null) user.Password = BCrypt.Net.BCrypt.HashPassword(update.Password);
 
         _db.Entry(user).State = EntityState.Modified;
-        await _db.SaveChangesAsync();
-        
-        _logger.LogDebug("PutUser returning '204 No content'");
-        return NoContent();
+        try
+        {
+            await _db.SaveChangesAsync();
+
+            _logger.LogDebug("PutUser returning '204 No content'");
+            return NoContent();
+        }
+        catch (DbUpdateException ex) when (ex.InnerException?.Message?.Contains("IX_users_email") == true)
+        {
+            // Handle database constraint violation (race condition case)
+            _logger.LogDebug("PutUser returning '409 Conflict' due to database constraint");
+            return _409Email(update.Email ?? string.Empty);
+        }
     }
 
     // DELETE: api/users/5
