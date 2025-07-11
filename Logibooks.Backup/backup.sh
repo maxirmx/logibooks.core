@@ -1,9 +1,10 @@
-# backup/backup.sh
 #!/bin/bash
 
+# Disable job control to avoid setpgid issues
+set +m
 set -e
 
-# Configuration from environment variables
+# Rest of your backup script...
 DB_HOST=${DB_HOST:-db}
 DB_PORT=${DB_PORT:-5432}
 DB_NAME=${DB_NAME:-logibooks}
@@ -25,8 +26,8 @@ echo "Backup file: $BACKUP_FILE"
 # Set password for pg_dump
 export PGPASSWORD="$DB_PASSWORD"
 
-# Create backup
-if pg_dump -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f "$BACKUP_FILE" --verbose; then
+# Create backup with explicit options to avoid process group issues
+if timeout 3600 pg_dump -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f "$BACKUP_FILE" --verbose --no-password; then
     echo "Backup completed successfully: $BACKUP_FILE"
     
     # Compress the backup
