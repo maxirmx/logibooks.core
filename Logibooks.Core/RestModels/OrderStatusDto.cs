@@ -12,7 +12,6 @@ public class OrderStatusDto
     public OrderStatusDto(OrderStatus status)
     {
         Id = status.Id;
-        Name = status.Name;
         Title = status.Title;
     }
 
@@ -21,7 +20,6 @@ public class OrderStatusDto
         return new OrderStatus
         {
             Id = Id,
-            Name = Name,
             Title = Title
         };
     }

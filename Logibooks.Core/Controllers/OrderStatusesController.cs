@@ -61,7 +61,6 @@ public class OrderStatusesController(
         if (id != dto.Id) return BadRequest();
         var status = await _db.Statuses.FindAsync(id);
         if (status == null) return _404Object(id);
-        status.Name = dto.Name;
         status.Title = dto.Title;
         _db.Entry(status).State = EntityState.Modified;
         await _db.SaveChangesAsync();

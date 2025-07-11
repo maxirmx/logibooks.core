@@ -83,8 +83,8 @@ public class OrderStatusesControllerTests
     public async Task GetStatuses_ReturnsAll_ForLogist()
     {
         SetCurrentUserId(2);
-        _dbContext.Statuses.AddRange(new OrderStatus { Id = 1, Name = "loaded", Title = "Loaded" },
-                                     new OrderStatus { Id = 2, Name = "processed", Title = "Processed" });
+        _dbContext.Statuses.AddRange(new OrderStatus { Id = 1,  Title = "Loaded" },
+                                     new OrderStatus { Id = 2,  Title = "Processed" });
         await _dbContext.SaveChangesAsync();
 
         var result = await _controller.GetStatuses();
@@ -137,7 +137,7 @@ public class OrderStatusesControllerTests
     public async Task DeleteStatus_ReturnsConflict_WhenUsed()
     {
         SetCurrentUserId(1);
-        var status = new OrderStatus { Id = 5, Name = "used", Title = "Used" };
+        var status = new OrderStatus { Id = 5, Title = "Used" };
         var reg = new Register { Id = 1, FileName = "r" };
         var order = new Order { Id = 1, RegisterId = 1, StatusId = 5 };
         _dbContext.Statuses.Add(status);
