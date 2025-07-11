@@ -20,8 +20,8 @@ public class CompaniesController(
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<CompanyDto>))]
     public async Task<ActionResult<IEnumerable<CompanyDto>>> GetCompanies()
     {
-        var list = await _db.Companies.AsNoTracking().ToListAsync();
-        return list.Select(c => new CompanyDto(c)).ToList();
+        var list = await _db.Companies.Select(c => new CompanyDto(c)).ToListAsync();
+        return list;
     }
 
     [HttpGet("{id}")]
