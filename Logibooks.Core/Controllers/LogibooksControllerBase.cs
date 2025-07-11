@@ -115,6 +115,12 @@ public class LogibooksControllerPreBase(AppDbContext db, ILogger logger) : Contr
         return StatusCode(StatusCodes.Status500InternalServerError,
                           new ErrMessage { Msg = "Ошибка при загрузке списка стран" });
     }
+
+    protected ObjectResult _409DeleteConflict(int id)
+    {
+        return StatusCode(StatusCodes.Status409Conflict,
+                          new ErrMessage { Msg = $"Невозможно удалить объект [id={id}]" });
+    }
 }
 
 public class LogibooksControllerBase : LogibooksControllerPreBase
