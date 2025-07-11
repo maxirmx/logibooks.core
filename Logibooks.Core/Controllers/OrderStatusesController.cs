@@ -78,6 +78,13 @@ public class OrderStatusesController(
         if (!await _db.CheckAdmin(_curUserId)) return _403();
         var status = await _db.Statuses.FindAsync(id);
         if (status == null) return _404Object(id);
+
+        bool hasOrders = await _db.Orders.AnyAsync(r => r.StatusId == id);
+        if (hasOrders)
+        {
+            return _409OrderStatus();
+        }
+
         _db.Statuses.Remove(status);
         try
         {
