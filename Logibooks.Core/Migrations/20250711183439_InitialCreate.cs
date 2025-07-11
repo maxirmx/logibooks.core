@@ -387,6 +387,12 @@ namespace Logibooks.Core.Migrations
                 name: "IX_user_roles_role_id",
                 table: "user_roles",
                 column: "role_id");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_users_email",
+                table: "users",
+                column: "email",
+                unique: true);
         }
 
         /// <inheritdoc />

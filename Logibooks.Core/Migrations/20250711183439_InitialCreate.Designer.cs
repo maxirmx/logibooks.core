@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Logibooks.Core.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250711182313_InitialCreate")]
+    [Migration("20250711183439_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -640,6 +640,9 @@ namespace Logibooks.Core.Migrations
                         .HasColumnName("patronymic");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Email")
+                        .IsUnique();
 
                     b.ToTable("users");
 

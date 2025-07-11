@@ -142,6 +142,10 @@ namespace Logibooks.Core.Data
                 .WithMany(r => r.UserRoles)
                 .HasForeignKey(ur => ur.RoleId);
 
+            modelBuilder.Entity<User>()
+                .HasIndex(u => u.Email)
+                .IsUnique();
+
             modelBuilder.Entity<Register>()
                 .HasOne(o => o.Company)
                 .WithMany(r => r.Registers)

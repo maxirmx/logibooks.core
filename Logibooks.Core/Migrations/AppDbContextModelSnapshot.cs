@@ -638,6 +638,9 @@ namespace Logibooks.Core.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Email")
+                        .IsUnique();
+
                     b.ToTable("users");
 
                     b.HasData(
