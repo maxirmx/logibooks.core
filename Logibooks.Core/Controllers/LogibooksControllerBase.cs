@@ -99,6 +99,11 @@ public class LogibooksControllerPreBase(AppDbContext db, ILogger logger) : Contr
         return StatusCode(StatusCodes.Status409Conflict,
                           new ErrMessage { Msg = $"Исключение с таким кодом ТН ВЭД уже существует [код = {code}]" });
     }
+    protected ObjectResult _409CompanyInn(string inn)
+    {
+        return StatusCode(StatusCodes.Status409Conflict,
+                          new ErrMessage { Msg = $"Компания с таким ИНН уже существует [ИНН = {inn}]" });
+    }
     protected ObjectResult _409Company()
     {
         return StatusCode(StatusCodes.Status409Conflict,

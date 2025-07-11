@@ -216,4 +216,35 @@ public class CompaniesControllerTests
         var created = await _controller.PostCompany(dto);
         Assert.That(created.Result, Is.TypeOf<CreatedAtActionResult>());
     }
+
+    [Test]
+    public async Task PostCompany_ReturnsConflict_WhenInnAlreadyExists()
+    {
+        SetCurrentUserId(1);
+        var existing = new Company { Inn="123", Kpp="1", Name="ex", ShortName="ex", CountryIsoNumeric=_country.IsoNumeric, PostalCode="p", City="c", Street="s" };
+        _dbContext.Companies.Add(existing);
+        await _dbContext.SaveChangesAsync();
+
+        var dto = new CompanyDto { Inn="123", Kpp="2", Name="n", ShortName="sn", CountryIsoNumeric=_country.IsoNumeric, PostalCode="p2", City="c2", Street="s2" };
+        var res = await _controller.PostCompany(dto);
+        Assert.That(res.Result, Is.TypeOf<ObjectResult>());
+        var obj = res.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status409Conflict));
+    }
+
+    [Test]
+    public async Task PutCompany_ReturnsConflict_WhenInnAlreadyExists()
+    {
+        SetCurrentUserId(1);
+        var comp1 = new Company { Inn="inn1", Kpp="k1", Name="n1", ShortName="sn1", CountryIsoNumeric=_country.IsoNumeric, PostalCode="p1", City="c1", Street="s1" };
+        var comp2 = new Company { Inn="inn2", Kpp="k2", Name="n2", ShortName="sn2", CountryIsoNumeric=_country.IsoNumeric, PostalCode="p2", City="c2", Street="s2" };
+        _dbContext.Companies.AddRange(comp1, comp2);
+        await _dbContext.SaveChangesAsync();
+
+        var dto = new CompanyDto(comp2) { Inn = "inn1" };
+        var res = await _controller.PutCompany(comp2.Id, dto);
+        Assert.That(res, Is.TypeOf<ObjectResult>());
+        var obj = res as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status409Conflict));
+    }
 }

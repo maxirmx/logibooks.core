@@ -35,8 +35,13 @@ public class CompaniesController(
 
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(CompanyDto))]
+    [ProducesResponseType(StatusCodes.Status409Conflict, Type = typeof(ErrMessage))]
     public async Task<ActionResult<CompanyDto>> PostCompany(CompanyDto dto)
     {
+        if (await _db.Companies.AnyAsync(c => c.Inn == dto.Inn))
+        {
+            return _409CompanyInn(dto.Inn);
+        }
         var company = dto.ToModel();
         _db.Companies.Add(company);
         await _db.SaveChangesAsync();
@@ -48,6 +53,7 @@ public class CompaniesController(
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
+    [ProducesResponseType(StatusCodes.Status409Conflict, Type = typeof(ErrMessage))]
     public async Task<IActionResult> PutCompany(int id, CompanyDto dto)
     {
         if (!await _db.CheckAdmin(_curUserId)) return _403();
@@ -55,6 +61,11 @@ public class CompaniesController(
 
         var company = await _db.Companies.FindAsync(id);
         if (company == null) return _404Object(id);
+
+        if (company.Inn != dto.Inn && await _db.Companies.AnyAsync(c => c.Inn == dto.Inn))
+        {
+            return _409CompanyInn(dto.Inn);
+        }
 
         company.Inn = dto.Inn;
         company.Kpp = dto.Kpp;
