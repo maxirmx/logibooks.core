@@ -373,7 +373,8 @@ public class OrdersControllerTests
         Assert.That(returnedStatuses, Is.Not.Null);
         Assert.That(returnedStatuses!.Count(), Is.EqualTo(3));
 
-        // Verify ordering by Id
+        if (returnedStatuses is null) return;
+
         var statusList = returnedStatuses.ToList();
         Assert.That(statusList[0].Id, Is.EqualTo(1));
         Assert.That(statusList[1].Id, Is.EqualTo(101));

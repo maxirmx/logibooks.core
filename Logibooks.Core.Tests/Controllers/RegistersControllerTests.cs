@@ -981,6 +981,66 @@ public class RegistersControllerTests
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
     }
 
+    [Test]
+    public async Task SetOrderStatuses_UpdatesOrders()
+    {
+        SetCurrentUserId(1);
+        _dbContext.Statuses.AddRange(
+            new OrderStatus { Id = 1, Title = "Old" },
+            new OrderStatus { Id = 2, Title = "New" });
+        var reg = new Register { Id = 1, FileName = "r.xlsx" };
+        _dbContext.Registers.Add(reg);
+        _dbContext.Orders.AddRange(
+            new Order { Id = 1, RegisterId = 1, StatusId = 1 },
+            new Order { Id = 2, RegisterId = 1, StatusId = 1 });
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.SetOrderStatuses(1, 2);
+
+        Assert.That(result, Is.TypeOf<NoContentResult>());
+        Assert.That(_dbContext.Orders.All(o => o.StatusId == 2));
+    }
+
+    [Test]
+    public async Task SetOrderStatuses_ReturnsNotFound_WhenRegisterMissing()
+    {
+        SetCurrentUserId(1);
+        _dbContext.Statuses.Add(new OrderStatus { Id = 1, Title = "S" });
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.SetOrderStatuses(99, 1);
+
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+    }
+
+    [Test]
+    public async Task SetOrderStatuses_ReturnsNotFound_WhenStatusMissing()
+    {
+        SetCurrentUserId(1);
+        var reg = new Register { Id = 1, FileName = "r.xlsx" };
+        _dbContext.Registers.Add(reg);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.SetOrderStatuses(1, 5);
+
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+    }
+
+    [Test]
+    public async Task SetOrderStatuses_ReturnsForbidden_ForNonLogist()
+    {
+        SetCurrentUserId(2); // admin but not logist
+        var result = await _controller.SetOrderStatuses(1, 1);
+
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
+    }
+
     // Helper method to create mock IFormFile objects
     private static Mock<IFormFile> CreateMockFile(string fileName, string contentType, byte[] content)
     {
@@ -1112,63 +1172,4 @@ public class ConvertValueToPropertyTypeTests
         Assert.That(result, Is.EqualTo(Guid.Empty));
     }
 
-    [Test]
-    public async Task SetOrderStatuses_UpdatesOrders()
-    {
-        SetCurrentUserId(1);
-        _dbContext.Statuses.AddRange(
-            new OrderStatus { Id = 1, Title = "Old" },
-            new OrderStatus { Id = 2, Title = "New" });
-        var reg = new Register { Id = 1, FileName = "r.xlsx" };
-        _dbContext.Registers.Add(reg);
-        _dbContext.Orders.AddRange(
-            new Order { Id = 1, RegisterId = 1, StatusId = 1 },
-            new Order { Id = 2, RegisterId = 1, StatusId = 1 });
-        await _dbContext.SaveChangesAsync();
-
-        var result = await _controller.SetOrderStatuses(1, 2);
-
-        Assert.That(result, Is.TypeOf<NoContentResult>());
-        Assert.That(_dbContext.Orders.All(o => o.StatusId == 2));
-    }
-
-    [Test]
-    public async Task SetOrderStatuses_ReturnsNotFound_WhenRegisterMissing()
-    {
-        SetCurrentUserId(1);
-        _dbContext.Statuses.Add(new OrderStatus { Id = 1, Title = "S" });
-        await _dbContext.SaveChangesAsync();
-
-        var result = await _controller.SetOrderStatuses(99, 1);
-
-        Assert.That(result, Is.TypeOf<ObjectResult>());
-        var obj = result as ObjectResult;
-        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
-    }
-
-    [Test]
-    public async Task SetOrderStatuses_ReturnsNotFound_WhenStatusMissing()
-    {
-        SetCurrentUserId(1);
-        var reg = new Register { Id = 1, FileName = "r.xlsx" };
-        _dbContext.Registers.Add(reg);
-        await _dbContext.SaveChangesAsync();
-
-        var result = await _controller.SetOrderStatuses(1, 5);
-
-        Assert.That(result, Is.TypeOf<ObjectResult>());
-        var obj = result as ObjectResult;
-        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
-    }
-
-    [Test]
-    public async Task SetOrderStatuses_ReturnsForbidden_ForNonLogist()
-    {
-        SetCurrentUserId(2); // admin but not logist
-        var result = await _controller.SetOrderStatuses(1, 1);
-
-        Assert.That(result, Is.TypeOf<ObjectResult>());
-        var obj = result as ObjectResult;
-        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
-    }
 }
