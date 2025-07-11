@@ -28,24 +28,15 @@ using System.Text.Json.Serialization;
 
 namespace Logibooks.Core.Models;
 
-[Table("registers")]
-public class Register
+[Table("check_statuses")]
+public class OrderCheckStatus
 {
     [Column("id")]
     public int Id { get; set; }
 
-    [Column("filename")]
-    public required string FileName { get; set; }
-
-    [Column("dtime")]
-    public DateTime DTime { get; set; } = DateTime.UtcNow;
-
-    [Column("company_id")]
-    public int CompanyId { get; set; }
+    [Column("title")]
+    public required string Title { get; set; }
 
     [JsonIgnore]
-    public Company Company { get; set; } = null!;
-
-    [JsonIgnore]
-    public ICollection<Order> Orders { get; set; } = []; 
+    public ICollection<Order> Orders { get; set; } = new List<Order>();
 }

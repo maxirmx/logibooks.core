@@ -23,7 +23,6 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-using System;
 using System.Text.Json;
 using Logibooks.Core.Settings;
 
@@ -32,13 +31,13 @@ namespace Logibooks.Core.RestModels;
 public class OrderUpdateItem
 {
     public int? StatusId { get; set; }
+    public int? CheckStatusId { get; set; }
     public int? RowNumber { get; set; }
     public string? OrderNumber { get; set; }
     public DateOnly? InvoiceDate { get; set; }
     public string? Sticker { get; set; }
     public string? Shk { get; set; }
     public string? StickerCode { get; set; }
-    public string? ExtId { get; set; }
     public string? TnVed { get; set; }
     public string? SiteArticle { get; set; }
     public string? HeelHeight { get; set; }
@@ -73,10 +72,6 @@ public class OrderUpdateItem
     public string? SupplierInn { get; set; }
     public string? Category { get; set; }
     public string? Subcategory { get; set; }
-    public string? PersonalData { get; set; }
-    public string? CustomsClearance { get; set; }
-    public string? DutyPayment { get; set; }
-    public string? OtherReason { get; set; }
 
     public override string ToString()
     {

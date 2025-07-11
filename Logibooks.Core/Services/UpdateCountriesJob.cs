@@ -23,29 +23,44 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-using System.ComponentModel.DataAnnotations.Schema;
-using System.Text.Json.Serialization;
+using Quartz;
 
-namespace Logibooks.Core.Models;
+namespace Logibooks.Core.Services;
 
-[Table("registers")]
-public class Register
+public class UpdateCountriesJob(IUpdateCountriesService service, ILogger<UpdateCountriesJob> logger) : IJob
 {
-    [Column("id")]
-    public int Id { get; set; }
+    private readonly IUpdateCountriesService _service = service;
+    private readonly ILogger<UpdateCountriesJob> _logger = logger;
 
-    [Column("filename")]
-    public required string FileName { get; set; }
+    private static CancellationTokenSource? _prev;
+    private static readonly object _lock = new();
 
-    [Column("dtime")]
-    public DateTime DTime { get; set; } = DateTime.UtcNow;
+    public async Task Execute(IJobExecutionContext context)
+    {
+        CancellationTokenSource cts;
+        lock (_lock)
+        {
+            _prev?.Cancel();
+            cts = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken);
+            _prev = cts;
+        }
 
-    [Column("company_id")]
-    public int CompanyId { get; set; }
-
-    [JsonIgnore]
-    public Company Company { get; set; } = null!;
-
-    [JsonIgnore]
-    public ICollection<Order> Orders { get; set; } = []; 
+        _logger.LogInformation("Executing UpdateCountriesJob");
+        try
+        {
+            await _service.RunAsync(cts.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogInformation("UpdateCountriesJob was cancelled");
+        }
+        finally
+        {
+            cts.Dispose();
+            lock (_lock)
+            {
+                if (_prev == cts) _prev = null;
+            }
+        }
+    }
 }

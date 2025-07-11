@@ -35,7 +35,7 @@ public class CountryCodeTests
     public void LoadedAt_DefaultsToUtcNow()
     {
         var before = DateTime.UtcNow;
-        var cc = new CountryCode { IsoNumeric = 123, IsoAlpha2 = "AA" };
+        var cc = new Country { IsoNumeric = 123, IsoAlpha2 = "AA" };
         var after = DateTime.UtcNow;
         Assert.That(cc.LoadedAt, Is.GreaterThanOrEqualTo(before).And.LessThanOrEqualTo(after));
     }

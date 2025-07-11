@@ -32,14 +32,14 @@ using Logibooks.Core.Models;
 
 namespace Logibooks.Core.Services;
 
-public class UpdateCountryCodesService(
+public class UpdateCountriesService(
     AppDbContext db,
-    ILogger<UpdateCountryCodesService> logger,
+    ILogger<UpdateCountriesService> logger,
     IHttpClientFactory httpClientFactory)
-    : IUpdateCountryCodesService
+    : IUpdateCountriesService
 {
     private readonly AppDbContext _db = db;
-    private readonly ILogger<UpdateCountryCodesService> _logger = logger;
+    private readonly ILogger<UpdateCountriesService> _logger = logger;
     private readonly IHttpClientFactory _httpClientFactory = httpClientFactory;
 
     private const string DataHubCountryCodesUrl = "https://datahub.io/core/country-codes/r/country-codes.csv";
@@ -86,7 +86,7 @@ public class UpdateCountryCodesService(
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogError(ex, "Failed to download country codes from {Url}", DataHubCountryCodesUrl);
+            _logger.LogError(ex, "Failed to download country info from {Url}", DataHubCountryCodesUrl);
             throw;
         }
 
@@ -100,7 +100,7 @@ public class UpdateCountryCodesService(
         using var csv = new CsvReader(reader, config);
         var records = csv.GetRecords<CsvRecord>().ToList();
 
-        var existing = _db.CountryCodes
+        var existing = _db.Countries
             .ToDictionary(cc => cc.IsoNumeric);
 
         foreach (var record in records)
@@ -110,17 +110,17 @@ public class UpdateCountryCodesService(
             {
                 MapRecordToCountryCode(record, countryCode);
                 countryCode.IsoAlpha2 = record.IsoAlpha2;
-                _db.CountryCodes.Update(countryCode);
+                _db.Countries.Update(countryCode);
             }
             else
             {
-                var newCountryCode = new CountryCode
+                var newCountryCode = new Country
                 {
                     IsoNumeric = record.IsoNumeric,
                     IsoAlpha2 = record.IsoAlpha2 
                 };
                 MapRecordToCountryCode(record, newCountryCode);
-                _db.CountryCodes.Add(newCountryCode);
+                _db.Countries.Add(newCountryCode);
             }
         }
 
@@ -128,7 +128,7 @@ public class UpdateCountryCodesService(
         _logger.LogInformation("Loaded {Count} country codes", records.Count);
     }
 
-    private static void MapRecordToCountryCode(CsvRecord source, CountryCode target)
+    private static void MapRecordToCountryCode(CsvRecord source, Country target)
     {
         target.NameEnShort = source.NameEnShort;
         target.NameEnFormal = source.NameEnFormal;

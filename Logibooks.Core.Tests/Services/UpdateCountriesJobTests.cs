@@ -10,7 +10,7 @@ using Logibooks.Core.Services;
 
 namespace Logibooks.Core.Tests.Services;
 
-public class DummyUpdateService : IUpdateCountryCodesService
+public class DummyUpdateService : IUpdateCountriesService
 {
     public List<CancellationToken> Tokens { get; } = new();
     public TaskCompletionSource Started { get; } = new();
@@ -33,19 +33,19 @@ public class DummyUpdateService : IUpdateCountryCodesService
 }
 
 [TestFixture]
-public class UpdateCountryCodesJobTests
+public class UpdateCountriesJobTests
 {
     [Test]
     public async Task Execute_CancelsPreviousJob()
     {
         var service = new DummyUpdateService();
-        var job1 = new UpdateCountryCodesJob(service, NullLogger<UpdateCountryCodesJob>.Instance);
+        var job1 = new UpdateCountriesJob(service, NullLogger<UpdateCountriesJob>.Instance);
         var ctx1 = new Mock<IJobExecutionContext>();
         ctx1.Setup(c => c.CancellationToken).Returns(CancellationToken.None);
         var task1 = job1.Execute(ctx1.Object);
         await service.Started.Task; // first started
 
-        var job2 = new UpdateCountryCodesJob(service, NullLogger<UpdateCountryCodesJob>.Instance);
+        var job2 = new UpdateCountriesJob(service, NullLogger<UpdateCountriesJob>.Instance);
         var cts2 = new CancellationTokenSource();
         var ctx2 = new Mock<IJobExecutionContext>();
         ctx2.Setup(c => c.CancellationToken).Returns(cts2.Token);

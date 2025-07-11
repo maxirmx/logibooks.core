@@ -18,14 +18,14 @@ using System.Net.Http;
 namespace Logibooks.Core.Tests.Controllers;
 
 [TestFixture]
-public class CountryCodesControllerTests
+public class CountriesControllerTests
 {
 #pragma warning disable CS8618
     private AppDbContext _dbContext;
     private Mock<IHttpContextAccessor> _mockHttpContextAccessor;
-    private Mock<ILogger<CountryCodesController>> _mockLogger;
-    private Mock<IUpdateCountryCodesService> _mockService;
-    private CountryCodesController _controller;
+    private Mock<ILogger<CountriesController>> _mockLogger;
+    private Mock<IUpdateCountriesService> _mockService;
+    private CountriesController _controller;
     private Role _adminRole;
     private Role _userRole;
     private User _adminUser;
@@ -63,9 +63,9 @@ public class CountryCodesControllerTests
         _dbContext.SaveChanges();
 
         _mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
-        _mockLogger = new Mock<ILogger<CountryCodesController>>();
-        _mockService = new Mock<IUpdateCountryCodesService>();
-        _controller = new CountryCodesController(_mockHttpContextAccessor.Object, _dbContext, _mockService.Object, _mockLogger.Object);
+        _mockLogger = new Mock<ILogger<CountriesController>>();
+        _mockService = new Mock<IUpdateCountriesService>();
+        _controller = new CountriesController(_mockHttpContextAccessor.Object, _dbContext, _mockService.Object, _mockLogger.Object);
     }
 
     [TearDown]
@@ -80,7 +80,7 @@ public class CountryCodesControllerTests
         var ctx = new DefaultHttpContext();
         ctx.Items["UserId"] = id;
         _mockHttpContextAccessor.Setup(x => x.HttpContext).Returns(ctx);
-        _controller = new CountryCodesController(_mockHttpContextAccessor.Object, _dbContext, _mockService.Object, _mockLogger.Object);
+        _controller = new CountriesController(_mockHttpContextAccessor.Object, _dbContext, _mockService.Object, _mockLogger.Object);
     }
 
     [Test]
@@ -118,8 +118,8 @@ public class CountryCodesControllerTests
     public async Task GetCodes_ReturnsList_ForAnyUser()
     {
         SetCurrentUserId(2);
-        _dbContext.CountryCodes.AddRange(new CountryCode { IsoNumeric = 840, IsoAlpha2 = "US" },
-                                         new CountryCode { IsoNumeric = 124, IsoAlpha2 = "CA" });
+        _dbContext.Countries.AddRange(new Country { IsoNumeric = 840, IsoAlpha2 = "US" },
+                                         new Country { IsoNumeric = 124, IsoAlpha2 = "CA" });
         await _dbContext.SaveChangesAsync();
 
         var result = await _controller.GetCodes();
@@ -131,7 +131,7 @@ public class CountryCodesControllerTests
     public async Task GetCode_ReturnsRecord_ForAnyUser()
     {
         SetCurrentUserId(2);
-        _dbContext.CountryCodes.Add(new CountryCode { IsoNumeric = 840, IsoAlpha2 = "US" });
+        _dbContext.Countries.Add(new Country { IsoNumeric = 840, IsoAlpha2 = "US" });
         await _dbContext.SaveChangesAsync();
 
         var result = await _controller.GetCode(840);
@@ -143,14 +143,14 @@ public class CountryCodesControllerTests
     public async Task GetCodesCompact_OrdersAndSelectsProperly()
     {
         SetCurrentUserId(2);
-        _dbContext.CountryCodes.AddRange(
-            new CountryCode { IsoNumeric = 124, IsoAlpha2 = "CA", NameEnOfficial = "CA", NameRuOfficial = "CA" },
-            new CountryCode { IsoNumeric = 792, IsoAlpha2 = "TR", NameEnOfficial = "TR", NameRuOfficial = "TR" },
-            new CountryCode { IsoNumeric = 643, IsoAlpha2 = "RU", NameEnOfficial = "RU", NameRuOfficial = "RU" },
-            new CountryCode { IsoNumeric = 860, IsoAlpha2 = "UZ", NameEnOfficial = "UZ", NameRuOfficial = "UZ" },
-            new CountryCode { IsoNumeric = 31,  IsoAlpha2 = "AZ", NameEnOfficial = "AZ", NameRuOfficial = "AZ" },
-            new CountryCode { IsoNumeric = 398, IsoAlpha2 = "KZ", NameEnOfficial = "KZ", NameRuOfficial = "KZ" },
-            new CountryCode { IsoNumeric = 268, IsoAlpha2 = "GE", NameEnOfficial = "GE", NameRuOfficial = "GE" }
+        _dbContext.Countries.AddRange(
+            new Country { IsoNumeric = 124, IsoAlpha2 = "CA", NameEnOfficial = "CA", NameRuOfficial = "CA" },
+            new Country { IsoNumeric = 792, IsoAlpha2 = "TR", NameEnOfficial = "TR", NameRuOfficial = "TR" },
+            new Country { IsoNumeric = 643, IsoAlpha2 = "RU", NameEnOfficial = "RU", NameRuOfficial = "RU" },
+            new Country { IsoNumeric = 860, IsoAlpha2 = "UZ", NameEnOfficial = "UZ", NameRuOfficial = "UZ" },
+            new Country { IsoNumeric = 31,  IsoAlpha2 = "AZ", NameEnOfficial = "AZ", NameRuOfficial = "AZ" },
+            new Country { IsoNumeric = 398, IsoAlpha2 = "KZ", NameEnOfficial = "KZ", NameRuOfficial = "KZ" },
+            new Country { IsoNumeric = 268, IsoAlpha2 = "GE", NameEnOfficial = "GE", NameRuOfficial = "GE" }
         );
         await _dbContext.SaveChangesAsync();
 
