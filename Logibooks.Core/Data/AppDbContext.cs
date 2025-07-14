@@ -41,8 +41,6 @@ namespace Logibooks.Core.Data
         public DbSet<OrderStatus> Statuses => Set<OrderStatus>();
         public DbSet<OrderCheckStatus> CheckStatuses => Set<OrderCheckStatus>();
         public DbSet<Order> Orders => Set<Order>();
-        public DbSet<AltaItem> AltaItems => Set<AltaItem>();
-        public DbSet<AltaException> AltaExceptions => Set<AltaException>();
         public DbSet<Country> Countries => Set<Country>();
         public DbSet<Company> Companies => Set<Company>();
         public async Task<bool> CheckAdmin(int cuid)
@@ -105,8 +103,6 @@ namespace Logibooks.Core.Data
                 .Select(x => new UserViewItem(x))
                 .ToListAsync();
         }
-        public async Task<bool> AltaItemCodeExists(string code) => await AltaItems.AnyAsync(e => e.Code == code);
-        public async Task<bool> AltaExceptionCodeExists(string code) => await AltaExceptions.AnyAsync(e => e.Code == code);
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
