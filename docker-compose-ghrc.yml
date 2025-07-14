@@ -26,6 +26,7 @@
 services:
   db:
     image: postgres:17
+    restart: always
     environment:
       POSTGRES_DB: logibooks
       POSTGRES_USER: postgres
@@ -41,6 +42,7 @@ services:
 
   api:
     image: ghcr.io/maxirmx/logibooks.core:latest
+    restart: always
     ports:
       - "8085:8081"
     healthcheck:
@@ -62,6 +64,7 @@ services:
 
   ui:
     image: ghcr.io/maxirmx/logibooks.ui:latest
+    restart: always
     ports:
       - "8082:8082"
       - "8083:8083"

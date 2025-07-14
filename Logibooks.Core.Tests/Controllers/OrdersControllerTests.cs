@@ -320,42 +320,14 @@ public class OrdersControllerTests
     }
 
     [Test]
-    public async Task GetOrderStatus_ReturnsTitle_WhenExists()
-    {
-        var status = new OrderStatus { Id = 1, Title = "Loaded" };
-        _dbContext.Statuses.Add(status);
-        var reg = new Register { Id = 1, FileName = "r.xlsx" };
-        var order = new Order { Id = 1, RegisterId = 1, StatusId = 1, OrderNumber = "A1" };
-        _dbContext.Registers.Add(reg);
-        _dbContext.Orders.Add(order);
-        await _dbContext.SaveChangesAsync();
-
-        var result = await _controller.GetOrderStatus("A1");
-
-        Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
-        var ok = result.Result as OkObjectResult;
-        Assert.That(ok!.Value, Is.EqualTo("Loaded"));
-    }
-
-    [Test]
-    public async Task GetOrderStatus_ReturnsNotFound_WhenMissing()
-    {
-        var result = await _controller.GetOrderStatus("NO");
-
-        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
-        var obj = result.Result as ObjectResult;
-        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
-    }
-
-    [Test]
     public async Task GetCheckStatuses_ReturnsAllCheckStatuses()
     {
         // Arrange
         var statuses = new List<OrderCheckStatus>
         {
-            new OrderCheckStatus { Id = 1, Title = "Loaded" },
-            new OrderCheckStatus { Id = 101, Title = "Problem" },
-            new OrderCheckStatus { Id = 201, Title = "Verified" }
+            new() { Id = 1, Title = "Loaded" },
+            new() { Id = 101, Title = "Problem" },
+            new() { Id = 201, Title = "Verified" }
         };
         _dbContext.CheckStatuses.AddRange(statuses);
         await _dbContext.SaveChangesAsync();
@@ -404,9 +376,9 @@ public class OrdersControllerTests
         // Arrange - add in non-sequential order
         var statuses = new List<OrderCheckStatus>
         {
-            new OrderCheckStatus { Id = 201, Title = "Verified" },
-            new OrderCheckStatus { Id = 1, Title = "Loaded" },
-            new OrderCheckStatus { Id = 101, Title = "Problem" }
+            new() { Id = 201, Title = "Verified" },
+            new() { Id = 1, Title = "Loaded" },
+            new() { Id = 101, Title = "Problem" }
         };
         _dbContext.CheckStatuses.AddRange(statuses);
         await _dbContext.SaveChangesAsync();
@@ -466,5 +438,77 @@ public class OrdersControllerTests
         // Verify all properties are returned correctly
         Assert.That(returnedStatus.Id, Is.EqualTo(42));
         Assert.That(returnedStatus.Title, Is.EqualTo("Test Status"));
+    }
+
+    [Test]
+    public async Task GetOrderStatus_ReturnsStatusTitle_WhenOrderExists()
+    {
+        // Arrange
+        var reg = new Register { Id = 1, FileName = "r.xlsx" };
+        _dbContext.Registers.Add(reg);
+        var status = new OrderStatus { Id = 1, Title = "Test Status" };
+        var order = new Order { Shk = "12345678", RegisterId = 1, StatusId = 1, Status = status };
+        _dbContext.Statuses.Add(status);
+        _dbContext.Orders.Add(order);
+        await _dbContext.SaveChangesAsync();
+
+        // Act: Retrieve the order status for an existing order and verify the returned status title
+        var result = await _controller.GetOrderStatus("12345678");
+
+        Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
+        var ok = result.Result as OkObjectResult;
+        Assert.That(ok!.Value, Is.EqualTo("Test Status"));
+    }
+
+    [Test]
+    public async Task GetOrderStatus_ReturnsNotFound_WhenOrderDoesNotExist()
+    {
+        // Act
+        var result = await _controller.GetOrderStatus("nonexistent");
+
+        // Assert
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var objResult = result.Result as ObjectResult;
+        Assert.That(objResult!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+
+        var error = objResult.Value as ErrMessage;
+        Assert.That(error!.Msg, Does.Contain("nonexistent"));
+    }
+
+    [Test]
+    public async Task GetOrderStatusWorksWithoutAuthentication()
+    {
+        // Arrange
+        var reg = new Register { Id = 1, FileName = "r.xlsx" };
+        _dbContext.Registers.Add(reg);
+        var status = new OrderStatus { Id = 1, Title = "Available" };
+        var order = new Order { Shk = "ABC123", RegisterId = 1,  StatusId = 1, Status = status };
+        _dbContext.Statuses.Add(status);
+        _dbContext.Orders.Add(order);
+        await _dbContext.SaveChangesAsync();
+
+        // Don't set any user ID - this tests that [AllowAnonymous] works
+        var httpContext = new DefaultHttpContext();
+        _mockHttpContextAccessor.Setup(x => x.HttpContext).Returns(httpContext);
+
+        // Act
+        var result = await _controller.GetOrderStatus("ABC123");
+
+        // Assert
+        Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
+        var ok = result.Result as OkObjectResult;
+        Assert.That(ok!.Value, Is.EqualTo("Available"));
+    }
+
+    [Test]
+    public async Task GetOrderStatus_HandlesNullShk()
+    {
+        // Act
+        var result = await _controller.GetOrderStatus(null!);
+
+        // Assert
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var objResult = result.Result as ObjectResult;
+        Assert.That(objResult!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
     }
 }
