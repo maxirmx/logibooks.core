@@ -168,10 +168,8 @@ namespace Logibooks.Core.Data
                 .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<Order>()
-                .HasIndex(o => new { o.OrderNumber });
-
-            modelBuilder.Entity<Order>()
-                .HasIndex(o => new { o.RegisterId, o.OrderNumber });
+                .HasIndex(o => o.Shk)
+                .HasDatabaseName("IX_orders_shk");
             
             modelBuilder.Entity<Role>().HasData(
                 new Role { Id = 1, Name = "logist", Title = "Логист" },

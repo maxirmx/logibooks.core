@@ -230,7 +230,7 @@ public class OrdersController(
         _logger.LogDebug("GetOrderStatus for number={orderNumber}", orderNumber);
 
         var statusTitle = await _db.Orders.AsNoTracking()
-            .Where(o => o.OrderNumber == orderNumber)
+            .Where(o => o.Shk == orderNumber)
             .Select(o => o.Status.Title)
             .FirstOrDefaultAsync();
 
