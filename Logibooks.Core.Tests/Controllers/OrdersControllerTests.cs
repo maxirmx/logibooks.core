@@ -452,7 +452,7 @@ public class OrdersControllerTests
         _dbContext.Orders.Add(order);
         await _dbContext.SaveChangesAsync();
 
-        // Update the line causing the error by accessing the Value property correctly
+        // Act: Retrieve the order status for an existing order and verify the returned status title
         var result = await _controller.GetOrderStatus("12345678");
 
         Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
