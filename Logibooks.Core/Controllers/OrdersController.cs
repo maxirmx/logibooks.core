@@ -227,7 +227,7 @@ public class OrdersController(
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
     public async Task<ActionResult<string>> GetOrderStatus(string orderNumber)
     {
-        _logger.LogDebug("GetOrderStatus for number={orderNumber}", orderNumber);
+        _logger.LogDebug("GetOrderStatus for shk={orderNumber}", orderNumber);
 
         var statusTitle = await _db.Orders.AsNoTracking()
             .Where(o => o.Shk == orderNumber)
