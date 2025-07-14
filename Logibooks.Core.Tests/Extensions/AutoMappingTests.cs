@@ -103,16 +103,5 @@ public class AutoMapperIntegrationTests
         Assert.That(order.UnitPrice, Is.EqualTo(3.5m));
     }
 
-    [Test]
-    public void AutoMapper_MapsInvoiceDate()
-    {
-        var date = new DateOnly(2024, 6, 28);
-        var updateItem = new OrderUpdateItem { InvoiceDate = date };
-        var order = new Order();
-
-        _mapper.Map(updateItem, order);
-
-        Assert.That(order.InvoiceDate, Is.EqualTo(date));
-    }
 }
 

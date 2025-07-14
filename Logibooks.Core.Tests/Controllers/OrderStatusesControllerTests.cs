@@ -97,7 +97,7 @@ public class OrderStatusesControllerTests
     public async Task CreateUpdateDelete_Work_ForAdmin()
     {
         SetCurrentUserId(1);
-        var dto = new OrderStatusDto { Name = "new", Title = "New" };
+        var dto = new OrderStatusDto { Title = "New" };
         var created = await _controller.CreateStatus(dto);
         Assert.That(created.Result, Is.TypeOf<CreatedAtActionResult>());
         var createdDto = (created.Result as CreatedAtActionResult)!.Value as OrderStatusDto;
@@ -116,7 +116,7 @@ public class OrderStatusesControllerTests
     public async Task Create_ReturnsForbidden_ForNonAdmin()
     {
         SetCurrentUserId(2);
-        var dto = new OrderStatusDto { Name = "n", Title = "t" };
+        var dto = new OrderStatusDto { Title = "t" };
         var result = await _controller.CreateStatus(dto);
         Assert.That(result.Result, Is.TypeOf<ObjectResult>());
         var obj = result.Result as ObjectResult;
@@ -221,6 +221,6 @@ public class OrderStatusesControllerTests
         // Verify properties were mapped correctly
         Assert.That(statusDto!.Id, Is.EqualTo(6));
         Assert.That(statusDto.Title, Is.EqualTo("Property Test Status"));
-        Assert.That(statusDto.Name, Is.Empty); // Name is not set in the controller
+
     }
 }
