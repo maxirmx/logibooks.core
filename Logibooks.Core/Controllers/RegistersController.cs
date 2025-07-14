@@ -336,7 +336,7 @@ public class RegistersController(
         return NoContent();
     }
 
-    [HttpPost("{id}/setorderstatuses")]
+    [HttpPut("{id}/setorderstatuses/{statusId}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
