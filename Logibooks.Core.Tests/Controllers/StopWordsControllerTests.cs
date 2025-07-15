@@ -1,16 +1,44 @@
-using Logibooks.Core.Controllers;
-using Logibooks.Core.Data;
-using Logibooks.Core.Models;
-using Logibooks.Core.RestModels;
+// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
+// All rights reserved.
+// This file is a part of Logibooks Core application
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions
+// are met:
+// 1. Redistributions of source code must retain the above copyright
+// notice, this list of conditions and the following disclaimer.
+// 2. Redistributions in binary form must reproduce the above copyright
+// notice, this list of conditions and the following disclaimer in the
+// documentation and/or other materials provided with the distribution.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+// ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+// TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+// PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR CONTRIBUTORS
+// BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+// POSSIBILITY OF SUCH DAMAGE.
+
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Moq;
-using NUnit.Framework;
-using NUnit.Framework.Legacy;
+
 using System.Linq;
 using System.Threading.Tasks;
+
+using Moq;
+using NUnit.Framework;
+
+using Logibooks.Core.Controllers;
+using Logibooks.Core.Data;
+using Logibooks.Core.Models;
+using Logibooks.Core.RestModels;
+
 
 namespace Logibooks.Core.Tests.Controllers;
 
@@ -122,7 +150,7 @@ public class StopWordsControllerTests
     }
 
     [Test]
-    public async Task DeleteStopWord_ReturnsConflict_WhenUsed()
+    public async Task DeleteStopWord_AllowsCascadeDeletion_WhenUsed()
     {
         SetCurrentUserId(1);
         var word = new StopWord { Id = 5, Word = "used" };
@@ -137,9 +165,10 @@ public class StopWordsControllerTests
 
         var result = await _controller.DeleteStopWord(5);
 
-        Assert.That(result, Is.TypeOf<ObjectResult>());
-        var obj = result as ObjectResult;
-        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status409Conflict));
+        Assert.That(result, Is.TypeOf<NoContentResult>());
+        // Verify the link is also deleted
+        Assert.That(_dbContext.StopWord.Find(5), Is.Null);
+        Assert.That(_dbContext.Set<BaseOrderStopWord>().Any(x => x.StopWordId == 5), Is.False);
     }
 
     [Test]

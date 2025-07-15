@@ -389,6 +389,9 @@ namespace Logibooks.Core.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Word")
+                        .IsUnique();
+
                     b.ToTable("stop_words");
                 });
 

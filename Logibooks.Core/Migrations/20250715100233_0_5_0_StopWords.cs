@@ -46,13 +46,19 @@ namespace Logibooks.Core.Migrations
                         column: x => x.stop_word_id,
                         principalTable: "stop_words",
                         principalColumn: "id",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateIndex(
                 name: "IX_base_order_stop_words_stop_word_id",
                 table: "base_order_stop_words",
                 column: "stop_word_id");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_stop_words_word",
+                table: "stop_words",
+                column: "word",
+                unique: true);
         }
 
         /// <inheritdoc />
