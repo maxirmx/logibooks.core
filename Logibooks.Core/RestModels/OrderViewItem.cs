@@ -30,15 +30,14 @@ using Logibooks.Core.Settings;
 
 namespace Logibooks.Core.RestModels;
 
-public class OrderViewItem(BaseOrder order)
+public class OrderViewItem
 {
-    public int Id { get; set; } = order.Id;
-    public int RegisterId { get; set; } = order.RegisterId;
-    public int StatusId { get; set; } = order.StatusId;
-    public int CheckStatusId { get; set; } = order.CheckStatusId;
-    public string? Description { get; set; } = order.Description;
-    public string? TnVed { get; set; } = order.TnVed;
-
+    public int Id { get; set; }
+    public int RegisterId { get; set; }
+    public int StatusId { get; set; }
+    public int CheckStatusId { get; set; }
+    public string? Description { get; set; }
+    public string? TnVed { get; set; }
     public string? OrderNumber { get; set; }
     public string? Shk { get; set; }
     public string? ProductName { get; set; }
@@ -51,14 +50,18 @@ public class OrderViewItem(BaseOrder order)
     public string? RecipientName { get; set; }
     public string? RecipientInn { get; set; }
     public string? PassportNumber { get; set; }
-
     public string? PostingNumber { get; set; }
     public string? OzonId { get; set; }
 
-    public OrderViewItem() : this(null!) {}
+    public OrderViewItem() : this(null!) { }
 
     public OrderViewItem(BaseOrder order)
     {
+        if (order == null)
+        {
+            throw new ArgumentNullException(nameof(order));
+        }
+
         Id = order.Id;
         RegisterId = order.RegisterId;
         StatusId = order.StatusId;

@@ -175,9 +175,13 @@ namespace Logibooks.Core.Data
                 .HasValue<WbrOrder>(1)
                 .HasValue<OzonOrder>(2);
 
-            modelBuilder.Entity<WbrOrder>().HasQueryFilter(o => EF.Property<int>(o, "order_type") == 1);
-            modelBuilder.Entity<OzonOrder>().HasQueryFilter(o => EF.Property<int>(o, "order_type") == 2);
-          
+            // No filter needed at base level, discriminator handles filtering automatically
+            // modelBuilder.Entity<WbrOrder>().HasQueryFilter(o => o.OrderType == 1);
+            // modelBuilder.Entity<OzonOrder>().HasQueryFilter(o => o.OrderType == 2);
+
+            modelBuilder.Entity<BaseOrder>()
+                .HasQueryFilter(o => true); 
+
             modelBuilder.Entity<Role>().HasData(
                 new Role { Id = 1, Name = "logist", Title = "Логист" },
                 new Role { Id = 2, Name = "administrator", Title = "Администратор" }

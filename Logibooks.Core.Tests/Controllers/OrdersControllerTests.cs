@@ -122,7 +122,7 @@ public class OrdersControllerTests
     public async Task UpdateOrder_ChangesData()
     {
         SetCurrentUserId(1);
-        var register = new Register { Id = 1, FileName = "r.xlsx" };
+        var register = new Register { Id = 1, CompanyId = 1, FileName = "r.xlsx" };
         var order = new WbrOrder { Id = 2, RegisterId = 1, StatusId = 1, TnVed = "A" };
         _dbContext.Registers.Add(register);
         _dbContext.Orders.Add(order);
