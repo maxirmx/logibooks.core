@@ -189,6 +189,10 @@ namespace Logibooks.Core.Data
                 .WithMany(sw => sw.BaseOrderStopWords)
                 .HasForeignKey(bosw => bosw.StopWordId);
 
+            modelBuilder.Entity<StopWord>()
+                .HasIndex(sw => sw.Word)
+                .IsUnique();
+
             modelBuilder.Entity<Role>().HasData(
                 new Role { Id = 1, Name = "logist", Title = "Логист" },
                 new Role { Id = 2, Name = "administrator", Title = "Администратор" }
