@@ -52,15 +52,9 @@ public class OrderViewItem
     public string? PassportNumber { get; set; }
     public string? PostingNumber { get; set; }
     public string? OzonId { get; set; }
-
-    public OrderViewItem() : this(null!) { }
-
     public OrderViewItem(BaseOrder order)
     {
-        if (order == null)
-        {
-            throw new ArgumentNullException(nameof(order));
-        }
+        ArgumentNullException.ThrowIfNull(order);
 
         Id = order.Id;
         RegisterId = order.RegisterId;
