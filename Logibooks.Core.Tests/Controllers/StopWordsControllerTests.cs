@@ -256,4 +256,61 @@ public class StopWordsControllerTests
         var obj = result as ObjectResult;
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
     }
+    [Test]
+    public async Task GetStopWord_Returns404_WhenNotFound()
+    {
+        SetCurrentUserId(2); // Logist or any valid user
+                             // Do not add any StopWord with Id = 999
+        var result = await _controller.GetStopWord(999);
+
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj, Is.Not.Null);
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+        Assert.That(obj.Value, Is.InstanceOf<ErrMessage>());
+        var err = obj.Value as ErrMessage;
+        Assert.That(err!.Msg, Does.Contain("999"));
+    }
+    [Test]
+    public async Task PutStopWord_ReturnsBadRequest_WhenIdMismatch()
+    {
+        SetCurrentUserId(1); // Admin
+        var dto = new StopWordDto { Id = 123, Word = "word", ExactMatch = false };
+        var result = await _controller.PutStopWord(999, dto); // id != dto.Id
+
+        Assert.That(result, Is.TypeOf<BadRequestResult>());
+    }
+
+    [Test]
+    public async Task PutStopWord_Returns404_WhenWordNotFound()
+    {
+        SetCurrentUserId(1); // Admin
+        var dto = new StopWordDto { Id = 999, Word = "missing", ExactMatch = false };
+        var result = await _controller.PutStopWord(999, dto); // No such StopWord in DB
+
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+        Assert.That(obj.Value, Is.InstanceOf<ErrMessage>());
+        var err = obj.Value as ErrMessage;
+        Assert.That(err!.Msg, Does.Contain("999"));
+    }
+
+    [Test]
+    public async Task PutStopWord_Returns404_WhenStopWordNotFound()
+    {
+        SetCurrentUserId(1); // Admin user
+        var dto = new StopWordDto { Id = 999, Word = "missing", ExactMatch = false };
+        // Do not add a StopWord with Id = 999 to the database
+
+        var result = await _controller.PutStopWord(999, dto);
+
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj, Is.Not.Null);
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+        Assert.That(obj.Value, Is.InstanceOf<ErrMessage>());
+        var err = obj.Value as ErrMessage;
+        Assert.That(err!.Msg, Does.Contain("999"));
+    }
 }
