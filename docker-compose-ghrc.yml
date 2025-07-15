@@ -75,3 +75,30 @@ services:
       - ./certificate:/etc/nginx/certificate:ro
     environment:
       API_URL: https://logibooks.sw.consulting:8085/api
+
+  backup:
+    image: backup
+    build:
+      context: ./Logibooks.Backup
+      dockerfile: Dockerfile
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: logibooks
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      BACKUP_DIR: /backups
+      RETENTION_DAYS: 7
+    healthcheck:
+      test: ["CMD", "healthcheck.sh"]
+      interval: 1h
+      start_period: 5s
+    volumes:
+      - ./backup/data:/backups
+      - ./backup/logs:/var/log
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: always
+    init: true
+
