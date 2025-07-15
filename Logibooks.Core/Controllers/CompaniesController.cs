@@ -16,6 +16,10 @@ public class CompaniesController(
     AppDbContext db,
     ILogger<CompaniesController> logger) : LogibooksControllerBase(httpContextAccessor, db, logger)
 {
+
+    const int _companyOzon = 1; // Ozon company ID
+    const int _companyWBR = 2;  // WBR company ID
+
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<CompanyDto>))]
     public async Task<ActionResult<IEnumerable<CompanyDto>>> GetCompanies()
@@ -110,7 +114,7 @@ public class CompaniesController(
         var company = await _db.Companies.FindAsync(id);
         if (company == null) return _404Object(id);
 
-        bool hasRegisters = await _db.Registers.AnyAsync(r => r.CompanyId == id);
+        bool hasRegisters = id == _companyWBR || id == _companyOzon || await _db.Registers.AnyAsync(r => r.CompanyId == id);
         if (hasRegisters)
         {
             return _409Company();
