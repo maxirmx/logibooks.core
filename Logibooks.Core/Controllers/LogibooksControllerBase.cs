@@ -145,6 +145,16 @@ public class LogibooksControllerPreBase(AppDbContext db, ILogger logger) : Contr
         return StatusCode(StatusCodes.Status500InternalServerError,
                           new ErrMessage { Msg = "Ошибка при проверке заказа" });
     }
+    protected ObjectResult _500ValidateRegister()
+    {
+        return StatusCode(StatusCodes.Status500InternalServerError,
+                          new ErrMessage { Msg = "Ошибка при проверке реестра" });
+    }
+    protected ObjectResult _404Handle(Guid handleId)
+    {
+        return StatusCode(StatusCodes.Status404NotFound,
+                          new ErrMessage { Msg = $"Не удалось найти операцию проверки [id={handleId}]" });
+    }
 
 }
 

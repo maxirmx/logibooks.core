@@ -36,6 +36,7 @@ using Logibooks.Core.Controllers;
 using Logibooks.Core.Data;
 using Logibooks.Core.Models;
 using Logibooks.Core.RestModels;
+using Logibooks.Core.Services;
 using System.IO;
 using System.Threading;
 using System;
@@ -50,6 +51,7 @@ public class RegistersControllerTests
 #pragma warning disable CS8618
     private AppDbContext _dbContext;
     private Mock<IHttpContextAccessor> _mockHttpContextAccessor;
+    private Mock<IRegisterValidationService> _mockRegValidationService;
     private ILogger<RegistersController> _logger;
     private RegistersController _controller;
     private Role _logistRole;
@@ -97,8 +99,9 @@ public class RegistersControllerTests
         _dbContext.SaveChanges();
 
         _mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
+        _mockRegValidationService = new Mock<IRegisterValidationService>();
         _logger = new LoggerFactory().CreateLogger<RegistersController>();
-        _controller = new RegistersController(_mockHttpContextAccessor.Object, _dbContext, _logger);
+        _controller = new RegistersController(_mockHttpContextAccessor.Object, _dbContext, _logger, _mockRegValidationService.Object);
 
         _controllerType = typeof(RegistersController);
         _processExcelMethod = _controllerType.GetMethod("ProcessExcel",
@@ -119,7 +122,7 @@ public class RegistersControllerTests
         var ctx = new DefaultHttpContext();
         ctx.Items["UserId"] = id;
         _mockHttpContextAccessor.Setup(x => x.HttpContext).Returns(ctx);
-        _controller = new RegistersController(_mockHttpContextAccessor.Object, _dbContext, _logger);
+        _controller = new RegistersController(_mockHttpContextAccessor.Object, _dbContext, _logger, _mockRegValidationService.Object);
     }
 
     [Test]
@@ -1036,6 +1039,111 @@ public class RegistersControllerTests
 
         return mockFile;
     }
+
+    [Test]
+    public async Task ValidateRegister_RunsService_ForLogist()
+    {
+        SetCurrentUserId(1);
+        _dbContext.Registers.Add(new Register { Id = 5, FileName = "r.xlsx" });
+        await _dbContext.SaveChangesAsync();
+
+        var handle = Guid.NewGuid();
+        _mockRegValidationService.Setup(s => s.StartValidationAsync(5, It.IsAny<CancellationToken>())).ReturnsAsync(handle);
+
+        var result = await _controller.ValidateRegister(5);
+
+        _mockRegValidationService.Verify(s => s.StartValidationAsync(5, It.IsAny<CancellationToken>()), Times.Once);
+        Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
+        var ok = result.Result as OkObjectResult;
+        Assert.That(((GuidReference)ok!.Value!).Id, Is.EqualTo(handle));
+    }
+
+    [Test]
+    public async Task ValidateRegister_ReturnsForbidden_ForNonLogist()
+    {
+        SetCurrentUserId(2);
+        var result = await _controller.ValidateRegister(1);
+
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
+        _mockRegValidationService.Verify(s => s.StartValidationAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Test]
+    public async Task ValidateRegister_ReturnsNotFound_WhenMissing()
+    {
+        SetCurrentUserId(1);
+        var result = await _controller.ValidateRegister(99);
+
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+    }
+
+    [Test]
+    public async Task ValidateRegister_ReturnsServerError_OnException()
+    {
+        SetCurrentUserId(1);
+        _dbContext.Registers.Add(new Register { Id = 6, FileName = "r.xlsx" });
+        await _dbContext.SaveChangesAsync();
+
+        _mockRegValidationService.Setup(s => s.StartValidationAsync(6, It.IsAny<CancellationToken>())).ThrowsAsync(new Exception());
+
+        var result = await _controller.ValidateRegister(6);
+
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status500InternalServerError));
+    }
+
+    [Test]
+    public async Task GetValidationProgress_ReturnsData()
+    {
+        SetCurrentUserId(1);
+        var progress = new ValidationProgress { HandleId = Guid.NewGuid(), Total = 10, Processed = 5 };
+        _mockRegValidationService.Setup(s => s.GetProgress(progress.HandleId)).Returns(progress);
+
+        var result = await _controller.GetValidationProgress(progress.HandleId);
+
+        Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
+        var ok = result.Result as OkObjectResult;
+        Assert.That(ok!.Value, Is.EqualTo(progress));
+    }
+
+    [Test]
+    public async Task GetValidationProgress_ReturnsNotFound()
+    {
+        SetCurrentUserId(1);
+        var result = await _controller.GetValidationProgress(Guid.NewGuid());
+
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+    }
+
+    [Test]
+    public async Task CancelValidation_ReturnsNoContent()
+    {
+        SetCurrentUserId(1);
+        var handle = Guid.NewGuid();
+        _mockRegValidationService.Setup(s => s.CancelValidation(handle)).Returns(true);
+
+        var result = await _controller.CancelValidation(handle);
+
+        Assert.That(result, Is.TypeOf<NoContentResult>());
+    }
+
+    [Test]
+    public async Task CancelValidation_ReturnsNotFound()
+    {
+        SetCurrentUserId(1);
+        var result = await _controller.CancelValidation(Guid.NewGuid());
+
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+    }
 }
 
 [TestFixture]
@@ -1059,7 +1167,7 @@ public class ConvertValueToPropertyTypeTests
         // Create the controller instance with the valid AppDbContext
         _controller = (RegistersController)Activator.CreateInstance(
             typeof(RegistersController),
-            [new Mock<IHttpContextAccessor>().Object, dbContext, new Mock<ILogger<RegistersController>>().Object]
+            [new Mock<IHttpContextAccessor>().Object, dbContext, new Mock<ILogger<RegistersController>>().Object, new Mock<IRegisterValidationService>().Object]
         )!;
     }
 

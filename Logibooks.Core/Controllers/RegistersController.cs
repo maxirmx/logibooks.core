@@ -35,6 +35,7 @@ using Logibooks.Core.Data;
 using Logibooks.Core.Models;
 using Logibooks.Core.RestModels;
 using Logibooks.Core.Settings;
+using Logibooks.Core.Services;
 
 namespace Logibooks.Core.Controllers;
 
@@ -44,12 +45,14 @@ namespace Logibooks.Core.Controllers;
 public class RegistersController(
     IHttpContextAccessor httpContextAccessor,
     AppDbContext db,
-    ILogger<RegistersController> logger) : LogibooksControllerBase(httpContextAccessor, db, logger)
+    ILogger<RegistersController> logger,
+    IRegisterValidationService validationService) : LogibooksControllerBase(httpContextAccessor, db, logger)
 {
 
     private readonly string[] allowedSortBy = ["id", "filename", "date", "orderstotal"];
     private readonly int maxPageSize = 100;
     private readonly int idWBR = 2;
+    private readonly IRegisterValidationService _validationService = validationService;
 
     [HttpGet("{id}")]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(RegisterViewItem))]
@@ -367,6 +370,87 @@ public class RegistersController(
             .ExecuteUpdateAsync(s => s.SetProperty(o => o.StatusId, statusId));
 
         _logger.LogDebug("SetOrderStatuses updated register {id}", id);
+        return NoContent();
+    }
+
+    [HttpPost("{id}/validate")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(GuidReference))]
+    [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
+    [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(ErrMessage))]
+    public async Task<ActionResult<GuidReference>> ValidateRegister(int id)
+    {
+        _logger.LogDebug("ValidateRegister for id={id}", id);
+
+        if (!await _db.CheckLogist(_curUserId))
+        {
+            _logger.LogDebug("ValidateRegister returning '403 Forbidden'");
+            return _403();
+        }
+
+        if (!await _db.Registers.AnyAsync(r => r.Id == id))
+        {
+            _logger.LogDebug("ValidateRegister returning '404 Not Found'");
+            return _404Register(id);
+        }
+
+        try
+        {
+            var handle = await _validationService.StartValidationAsync(id);
+            return Ok(new GuidReference { Id = handle });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "ValidateRegister returning '500 Internal Server Error'");
+            return _500ValidateRegister();
+        }
+    }
+
+    [HttpGet("validate/{handleId}")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ValidationProgress))]
+    [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
+    [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
+    public async Task<ActionResult<ValidationProgress>> GetValidationProgress(Guid handleId)
+    {
+        _logger.LogDebug("GetValidationProgress for handle={handle}", handleId);
+
+        if (!await _db.CheckLogist(_curUserId))
+        {
+            _logger.LogDebug("GetValidationProgress returning '403 Forbidden'");
+            return _403();
+        }
+
+        var progress = _validationService.GetProgress(handleId);
+        if (progress == null)
+        {
+            _logger.LogDebug("GetValidationProgress returning '404 Not Found'");
+            return _404Handle(handleId);
+        }
+
+        return Ok(progress);
+    }
+
+    [HttpDelete("validate/{handleId}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
+    [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
+    public async Task<IActionResult> CancelValidation(Guid handleId)
+    {
+        _logger.LogDebug("CancelValidation for handle={handle}", handleId);
+
+        if (!await _db.CheckLogist(_curUserId))
+        {
+            _logger.LogDebug("CancelValidation returning '403 Forbidden'");
+            return _403();
+        }
+
+        var ok = _validationService.CancelValidation(handleId);
+        if (!ok)
+        {
+            _logger.LogDebug("CancelValidation returning '404 Not Found'");
+            return _404Handle(handleId);
+        }
+
         return NoContent();
     }
 
