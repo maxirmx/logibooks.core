@@ -13,7 +13,7 @@ RUN chmod +x /usr/local/bin/backup.sh &&      \
     chmod +x /usr/local/bin/healthcheck.sh && \
     dos2unix /usr/local/bin/healthcheck.sh && \
     dos2unix /etc/crontabs/root            && \
-    RUN mkdir -p /backups
+    mkdir -p /backups
 
 # Start cron daemon
 CMD ["crond", "-f", "-d", "8"]
