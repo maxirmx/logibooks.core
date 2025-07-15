@@ -54,7 +54,7 @@ builder.Services
     .AddScoped<IJwtUtils, JwtUtils>()
     .AddScoped<IUpdateCountriesService, UpdateCountriesService>()
     .AddScoped<IOrderValidationService, OrderValidationService>()
-    .AddSingleton<IRegisterValidationService, RegisterValidationService>()
+    .AddScoped<IRegisterValidationService, RegisterValidationService>()
     .AddHttpContextAccessor()
     .AddControllers();
 

@@ -18,15 +18,14 @@ public class RegisterValidationService(AppDbContext db, IOrderValidationService 
         public int RegisterId { get; }
         public int Total { get; set; }
         public int Processed;
-        public bool Completed;
-        public bool Canceled;
+        public bool Finished;
         public string? Error;
         public CancellationTokenSource Cts { get; } = new();
         public ValidationProcess(int regId) { RegisterId = regId; }
     }
 
-    private readonly ConcurrentDictionary<int, ValidationProcess> _byRegister = new();
-    private readonly ConcurrentDictionary<Guid, ValidationProcess> _byHandle = new();
+    private static readonly ConcurrentDictionary<int, ValidationProcess> _byRegister = new();
+    private static readonly ConcurrentDictionary<Guid, ValidationProcess> _byHandle = new();
 
     public async Task<Guid> StartValidationAsync(int registerId, CancellationToken cancellationToken = default)
     {
@@ -55,7 +54,7 @@ public class RegisterValidationService(AppDbContext db, IOrderValidationService 
                 {
                     if (process.Cts.IsCancellationRequested)
                     {
-                        process.Canceled = true;
+                        process.Finished = true;
                         break;
                     }
                     var order = await _db.Orders.FindAsync([id], cancellationToken: process.Cts.Token);
@@ -65,8 +64,6 @@ public class RegisterValidationService(AppDbContext db, IOrderValidationService 
                     }
                     process.Processed++;
                 }
-                if (!process.Canceled)
-                    process.Completed = true;
             }
             catch (Exception ex)
             {
@@ -76,6 +73,7 @@ public class RegisterValidationService(AppDbContext db, IOrderValidationService 
             finally
             {
                 _byRegister.TryRemove(registerId, out _);
+                _byHandle.TryRemove(process.HandleId, out _);
             }
         });
 
@@ -91,12 +89,18 @@ public class RegisterValidationService(AppDbContext db, IOrderValidationService 
                 HandleId = handleId,
                 Total = proc.Total,
                 Processed = proc.Processed,
-                Completed = proc.Completed,
-                Canceled = proc.Canceled,
+                Finished = proc.Finished,
                 Error = proc.Error
             };
         }
-        return null;
+        return new ValidationProgress
+        {
+            HandleId = handleId,
+            Total = -1,
+            Processed = -1,
+            Finished = true,
+            Error = null
+        };
     }
 
     public bool CancelValidation(Guid handleId)
@@ -104,7 +108,7 @@ public class RegisterValidationService(AppDbContext db, IOrderValidationService 
         if (_byHandle.TryGetValue(handleId, out var proc))
         {
             proc.Cts.Cancel();
-            proc.Canceled = true;
+            proc.Finished = true;
             return true;
         }
         return false;

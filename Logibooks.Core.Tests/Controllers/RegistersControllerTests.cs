@@ -1144,6 +1144,32 @@ public class RegistersControllerTests
         var obj = result as ObjectResult;
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
     }
+
+    [Test]
+    public async Task GetValidationProgress_ReturnsForbidden_ForNonLogist()
+    {
+        SetCurrentUserId(2); // Admin user, not logist
+        var handle = Guid.NewGuid();
+        var result = await _controller.GetValidationProgress(handle);
+
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
+        _mockRegValidationService.Verify(s => s.GetProgress(It.IsAny<Guid>()), Times.Never);
+    }
+
+    [Test]
+    public async Task CancelValidation_ReturnsForbidden_ForNonLogist()
+    {
+        SetCurrentUserId(2); // Admin user, not logist
+        var handle = Guid.NewGuid();
+        var result = await _controller.CancelValidation(handle);
+
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
+        _mockRegValidationService.Verify(s => s.CancelValidation(It.IsAny<Guid>()), Times.Never);
+    }
 }
 
 [TestFixture]

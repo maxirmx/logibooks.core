@@ -42,9 +42,9 @@ public class RegisterValidationServiceTests
         await Task.Delay(50);
         var progress = svc.GetProgress(handle)!;
 
-        Assert.That(progress.Total, Is.EqualTo(2));
-        Assert.That(progress.Processed, Is.EqualTo(2));
-        Assert.That(progress.Completed, Is.True);
+        Assert.That(progress.Total, Is.EqualTo(-1));
+        Assert.That(progress.Processed, Is.EqualTo(-1));
+        Assert.That(progress.Finished, Is.True);
         mock.Verify(m => m.ValidateAsync(It.IsAny<BaseOrder>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
     }
 
@@ -70,8 +70,9 @@ public class RegisterValidationServiceTests
         await Task.Delay(50);
         var progress = svc.GetProgress(handle)!;
 
-        Assert.That(progress.Canceled, Is.True);
-        Assert.That(progress.Processed, Is.LessThan(2));
+        Assert.That(progress.Finished, Is.True);
+        Assert.That(progress.Processed, Is.EqualTo(-1));
+        Assert.That(progress.Total, Is.EqualTo(-1));
     }
 
     [Test]
