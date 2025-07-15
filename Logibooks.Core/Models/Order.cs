@@ -31,6 +31,7 @@ namespace Logibooks.Core.Models;
 
 [Table("orders")]
 [Index(nameof(TnVed), Name = "IX_orders_tn_ved")]
+[Index(nameof(Shk), Name = "IX_orders_shk")]
 public class Order
 {
     [Column("id")]

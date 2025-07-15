@@ -162,11 +162,7 @@ namespace Logibooks.Core.Data
                 .WithMany(s => s.Orders)
                 .HasForeignKey(o => o.CheckStatusId)
                 .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<Order>()
-                .HasIndex(o => o.Shk)
-                .HasDatabaseName("IX_orders_shk");
-            
+          
             modelBuilder.Entity<Role>().HasData(
                 new Role { Id = 1, Name = "logist", Title = "Логист" },
                 new Role { Id = 2, Name = "administrator", Title = "Администратор" }
