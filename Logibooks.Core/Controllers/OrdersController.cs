@@ -88,7 +88,7 @@ public class OrdersController(
             return _403();
         }
 
-        var order = await _db.Orders.FindAsync(id);
+        var order = await _db.WbrOrders.FindAsync(id);
         if (order == null)
         {
             _logger.LogDebug("UpdateOrder returning '404 Not Found'");
@@ -151,7 +151,7 @@ public class OrdersController(
             return _403();
         }
 
-        IQueryable<Order> query = _db.Orders.AsNoTracking().Where(o => o.RegisterId == registerId);
+        IQueryable<BaseOrder> query = _db.Orders.AsNoTracking().Where(o => o.RegisterId == registerId);
 
         if (statusId != null)
         {
@@ -229,7 +229,7 @@ public class OrdersController(
     {
         _logger.LogDebug("GetOrderStatus for shk={orderNumber}", orderNumber);
 
-        var statusTitle = await _db.Orders.AsNoTracking()
+        var statusTitle = await _db.WbrOrders.AsNoTracking()
             .Where(o => o.Shk == orderNumber)
             .Select(o => o.Status.Title)
             .FirstOrDefaultAsync();

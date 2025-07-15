@@ -432,15 +432,15 @@ public class RegistersController(
         Reference reference = new() { Id = register.Id };
 
 
-        var orders = new List<Order>();
+        var orders = new List<WbrOrder>();
         for (int r = 1; r < table.Rows.Count; r++)
         {
             var row = table.Rows[r];
-            var order = new Order { RegisterId = register.Id, StatusId = 1, CheckStatusId = 1 };
+            var order = new WbrOrder { RegisterId = register.Id, StatusId = 1, CheckStatusId = 1 };
             foreach (var kv in columnMap)
             {
                 var val = row[kv.Key]?.ToString();
-                var propInfo = typeof(Order).GetProperty(kv.Value);
+                var propInfo = typeof(WbrOrder).GetProperty(kv.Value);
                 if (propInfo != null)
                 {
                     if (propInfo != null && val != null)
