@@ -262,17 +262,17 @@ namespace Logibooks.Core.Migrations
                         new
                         {
                             Id = 1,
-                            Title = "Загружен"
+                            Title = "Не проверен"
                         },
                         new
                         {
                             Id = 101,
-                            Title = "Проблема"
+                            Title = "Выявлены проблемы"
                         },
                         new
                         {
                             Id = 201,
-                            Title = "Проверен"
+                            Title = "Не выявлено проблем"
                         });
                 });
 

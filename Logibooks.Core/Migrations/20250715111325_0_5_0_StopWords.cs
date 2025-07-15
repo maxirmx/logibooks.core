@@ -49,6 +49,27 @@ namespace Logibooks.Core.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
+            migrationBuilder.UpdateData(
+                table: "check_statuses",
+                keyColumn: "id",
+                keyValue: 1,
+                column: "title",
+                value: "Не проверен");
+
+            migrationBuilder.UpdateData(
+                table: "check_statuses",
+                keyColumn: "id",
+                keyValue: 101,
+                column: "title",
+                value: "Выявлены проблемы");
+
+            migrationBuilder.UpdateData(
+                table: "check_statuses",
+                keyColumn: "id",
+                keyValue: 201,
+                column: "title",
+                value: "Не выявлено проблем");
+
             migrationBuilder.CreateIndex(
                 name: "IX_base_order_stop_words_stop_word_id",
                 table: "base_order_stop_words",
@@ -69,6 +90,27 @@ namespace Logibooks.Core.Migrations
 
             migrationBuilder.DropTable(
                 name: "stop_words");
+
+            migrationBuilder.UpdateData(
+                table: "check_statuses",
+                keyColumn: "id",
+                keyValue: 1,
+                column: "title",
+                value: "Загружен");
+
+            migrationBuilder.UpdateData(
+                table: "check_statuses",
+                keyColumn: "id",
+                keyValue: 101,
+                column: "title",
+                value: "Проблема");
+
+            migrationBuilder.UpdateData(
+                table: "check_statuses",
+                keyColumn: "id",
+                keyValue: 201,
+                column: "title",
+                value: "Проверен");
         }
     }
 }
