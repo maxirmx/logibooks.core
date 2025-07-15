@@ -30,7 +30,6 @@ using Logibooks.Core.Services;
 using Logibooks.Core.Data;
 using Logibooks.Core.RestModels;
 using Microsoft.EntityFrameworkCore;
-using System.Net.Http;
 
 namespace Logibooks.Core.Controllers;
 
