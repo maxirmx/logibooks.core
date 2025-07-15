@@ -259,7 +259,7 @@ namespace Logibooks.Core.Migrations
                         });
                 });
 
-            modelBuilder.Entity("Logibooks.Core.Models.Order", b =>
+            modelBuilder.Entity("Logibooks.Core.Models.BaseOrder", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -448,6 +448,11 @@ namespace Logibooks.Core.Migrations
                         .HasColumnType("text")
                         .HasColumnName("tn_ved");
 
+                    b.Property<int>("OrderType")
+                        .HasColumnType("integer")
+                        .HasColumnName("order_type")
+                        .HasComputedColumnSql("(SELECT company_id FROM registers r WHERE r.id = register_id)", stored: true);
+
                     b.Property<string>("Unit")
                         .HasColumnType("text")
                         .HasColumnName("unit");
@@ -474,6 +479,10 @@ namespace Logibooks.Core.Migrations
                     b.HasIndex(new[] { "TnVed" }, "IX_orders_tn_ved");
 
                     b.ToTable("orders");
+
+                    b.HasDiscriminator<int>("order_type")
+                        .HasValue<Logibooks.Core.Models.WbrOrder>(1)
+                        .HasValue<Logibooks.Core.Models.OzonOrder>(2);
                 });
 
             modelBuilder.Entity("Logibooks.Core.Models.OrderCheckStatus", b =>
@@ -731,7 +740,7 @@ namespace Logibooks.Core.Migrations
                     b.Navigation("Country");
                 });
 
-            modelBuilder.Entity("Logibooks.Core.Models.Order", b =>
+            modelBuilder.Entity("Logibooks.Core.Models.BaseOrder", b =>
                 {
                     b.HasOne("Logibooks.Core.Models.OrderCheckStatus", "CheckStatus")
                         .WithMany("Orders")

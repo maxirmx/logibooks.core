@@ -40,7 +40,9 @@ namespace Logibooks.Core.Data
         public DbSet<Register> Registers => Set<Register>();
         public DbSet<OrderStatus> Statuses => Set<OrderStatus>();
         public DbSet<OrderCheckStatus> CheckStatuses => Set<OrderCheckStatus>();
-        public DbSet<Order> Orders => Set<Order>();
+        public DbSet<BaseOrder> Orders => Set<BaseOrder>();
+        public DbSet<WbrOrder> WbrOrders => Set<WbrOrder>();
+        public DbSet<OzonOrder> OzonOrders => Set<OzonOrder>();
         public DbSet<Country> Countries => Set<Country>();
         public DbSet<Company> Companies => Set<Company>();
         public async Task<bool> CheckAdmin(int cuid)
@@ -146,23 +148,40 @@ namespace Logibooks.Core.Data
                 .HasForeignKey(o => o.CompanyId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            modelBuilder.Entity<Order>()
+            modelBuilder.Entity<BaseOrder>()
                 .HasOne(o => o.Register)
                 .WithMany(r => r.Orders)
                 .HasForeignKey(o => o.RegisterId);
 
-            modelBuilder.Entity<Order>()
+            modelBuilder.Entity<BaseOrder>()
                 .HasOne(o => o.Status)
                 .WithMany(s => s.Orders)
                 .HasForeignKey(o => o.StatusId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            modelBuilder.Entity<Order>()
+            modelBuilder.Entity<BaseOrder>()
                 .HasOne(o => o.CheckStatus)
                 .WithMany(s => s.Orders)
                 .HasForeignKey(o => o.CheckStatusId)
                 .OnDelete(DeleteBehavior.Restrict);
-          
+
+            modelBuilder.Entity<BaseOrder>()
+                .Property(o => o.OrderType)
+                .HasColumnName("order_type")
+                .HasComputedColumnSql("(SELECT company_id FROM registers r WHERE r.id = register_id)", stored: true);
+
+            modelBuilder.Entity<BaseOrder>()
+                .HasDiscriminator<int>("order_type")
+                .HasValue<WbrOrder>(1)
+                .HasValue<OzonOrder>(2);
+
+            // No filter needed at base level, discriminator handles filtering automatically
+            // modelBuilder.Entity<WbrOrder>().HasQueryFilter(o => o.OrderType == 1);
+            // modelBuilder.Entity<OzonOrder>().HasQueryFilter(o => o.OrderType == 2);
+
+            modelBuilder.Entity<BaseOrder>()
+                .HasQueryFilter(o => true); 
+
             modelBuilder.Entity<Role>().HasData(
                 new Role { Id = 1, Name = "logist", Title = "Логист" },
                 new Role { Id = 2, Name = "administrator", Title = "Администратор" }

@@ -144,9 +144,9 @@ public class RegistersControllerTests
         var r2 = new Register { Id = 2, FileName = "r2.xlsx" };
         _dbContext.Registers.AddRange(r1, r2);
         _dbContext.Orders.AddRange(
-            new Order { Id = 1, RegisterId = 1, StatusId = 1 },
-            new Order { Id = 2, RegisterId = 1, StatusId = 2 },
-            new Order { Id = 3, RegisterId = 2, StatusId = 2 }
+            new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1 },
+            new WbrOrder { Id = 2, RegisterId = 1, StatusId = 2 },
+            new WbrOrder { Id = 3, RegisterId = 2, StatusId = 2 }
         );
         await _dbContext.SaveChangesAsync();
 
@@ -264,12 +264,12 @@ public class RegistersControllerTests
             new Register { Id = 4, FileName = "r4.xlsx" }
         );
         _dbContext.Orders.AddRange(
-            new Order { RegisterId = 1, StatusId = 1 },
-            new Order { RegisterId = 2, StatusId = 1 },
-            new Order { RegisterId = 2, StatusId = 1 },
-            new Order { RegisterId = 3, StatusId = 1 },
-            new Order { RegisterId = 3, StatusId = 1 },
-            new Order { RegisterId = 3, StatusId = 1 }
+            new WbrOrder { RegisterId = 1, StatusId = 1 },
+            new WbrOrder { RegisterId = 2, StatusId = 1 },
+            new WbrOrder { RegisterId = 2, StatusId = 1 },
+            new WbrOrder { RegisterId = 3, StatusId = 1 },
+            new WbrOrder { RegisterId = 3, StatusId = 1 },
+            new WbrOrder { RegisterId = 3, StatusId = 1 }
         );
         await _dbContext.SaveChangesAsync();
 
@@ -314,9 +314,9 @@ public class RegistersControllerTests
         var register = new Register { Id = 1, FileName = "reg.xlsx" };
         _dbContext.Registers.Add(register);
         _dbContext.Orders.AddRange(
-            new Order { Id = 1, RegisterId = 1, StatusId = 1 },
-            new Order { Id = 2, RegisterId = 1, StatusId = 2 },
-            new Order { Id = 3, RegisterId = 1, StatusId = 1 }
+            new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1 },
+            new WbrOrder { Id = 2, RegisterId = 1, StatusId = 2 },
+            new WbrOrder { Id = 3, RegisterId = 1, StatusId = 1 }
         );
         await _dbContext.SaveChangesAsync();
 
@@ -340,10 +340,10 @@ public class RegistersControllerTests
         var register = new Register { Id = 1, FileName = "reg.xlsx" };
         _dbContext.Registers.Add(register);
         _dbContext.Orders.AddRange(
-            new Order { Id = 1, RegisterId = 1, StatusId = 1 },
-            new Order { Id = 2, RegisterId = 1, StatusId = 2 },
-            new Order { Id = 3, RegisterId = 1, StatusId = 3 },
-            new Order { Id = 4, RegisterId = 1, StatusId = 3 }
+            new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1 },
+            new WbrOrder { Id = 2, RegisterId = 1, StatusId = 2 },
+            new WbrOrder { Id = 3, RegisterId = 1, StatusId = 3 },
+            new WbrOrder { Id = 4, RegisterId = 1, StatusId = 3 }
         );
         await _dbContext.SaveChangesAsync();
 
@@ -936,8 +936,8 @@ public class RegistersControllerTests
         SetCurrentUserId(1); // Logist user
 
         var register = new Register { Id = 1, FileName = "reg.xlsx" };
-        var order1 = new Order { Id = 1, RegisterId = 1, StatusId = 1 };
-        var order2 = new Order { Id = 2, RegisterId = 1, StatusId = 1 };
+        var order1 = new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1 };
+        var order2 = new WbrOrder { Id = 2, RegisterId = 1, StatusId = 1 };
         _dbContext.Registers.Add(register);
         _dbContext.Orders.AddRange(order1, order2);
         await _dbContext.SaveChangesAsync();
