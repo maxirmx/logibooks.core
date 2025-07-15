@@ -217,4 +217,43 @@ public class StopWordsControllerTests
         var obj = result as ObjectResult;
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status409Conflict));
     }
+
+    [Test]
+    public async Task Update_ReturnsForbidden_ForNonAdmin()
+    {
+        // Arrange: create a stop word as admin
+        SetCurrentUserId(1);
+        var word = new StopWord { Id = 100, Word = "editme", ExactMatch = false };
+        _dbContext.StopWord.Add(word);
+        await _dbContext.SaveChangesAsync();
+
+        // Act: try to update as non-admin
+        SetCurrentUserId(2);
+        var dto = new StopWordDto { Id = 100, Word = "edited", ExactMatch = true };
+        var result = await _controller.PutStopWord(100, dto);
+
+        // Assert
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
+    }
+
+    [Test]
+    public async Task Delete_ReturnsForbidden_ForNonAdmin()
+    {
+        // Arrange: create a stop word as admin
+        SetCurrentUserId(1);
+        var word = new StopWord { Id = 101, Word = "deleteme", ExactMatch = false };
+        _dbContext.StopWord.Add(word);
+        await _dbContext.SaveChangesAsync();
+
+        // Act: try to delete as non-admin
+        SetCurrentUserId(2);
+        var result = await _controller.DeleteStopWord(101);
+
+        // Assert
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
+    }
 }
