@@ -30,52 +30,60 @@ using Logibooks.Core.Settings;
 
 namespace Logibooks.Core.RestModels;
 
-public class OrderViewItem(Order order)
+public class OrderViewItem
 {
-    public int Id { get; set; } = order.Id;
-    public int RegisterId { get; set; } = order.RegisterId;
-    public int StatusId { get; set; } = order.StatusId;
-    public int CheckStatusId { get; set; } = order.CheckStatusId;
-    // public int RowNumber { get; set; } = order.RowNumber;
-    public string? OrderNumber { get; set; } = order.OrderNumber;
-    //public DateOnly? InvoiceDate { get; set; } = order.InvoiceDate;
-    //public string? Sticker { get; set; } = order.Sticker;
-    public string? Shk { get; set; } = order.Shk;
-    //public string? StickerCode { get; set; } = order.StickerCode;
-    public string? TnVed { get; set; } = order.TnVed;
-    //public string? SiteArticle { get; set; } = order.SiteArticle;
-    //public string? HeelHeight { get; set; } = order.HeelHeight;
-    //public string? Size { get; set; } = order.Size;
-    public string? ProductName { get; set; } = order.ProductName;
-    //public string? Description { get; set; } = order.Description;
-    //public string? Gender { get; set; } = order.Gender;
-    //public string? Brand { get; set; } = order.Brand;
-    //public string? FabricType { get; set; } = order.FabricType;
-    //public string? Composition { get; set; } = order.Composition;
-    //public string? Lining { get; set; } = order.Lining;
-    //public string? Insole { get; set; } = order.Insole;
-    //public string? Sole { get; set; } = order.Sole;
-    public string? Country { get; set; } = order.Country;
-    //public string? FactoryAddress { get; set; } = order.FactoryAddress;
-    //public string? Unit { get; set; } = order.Unit;
-    public decimal? WeightKg { get; set; } = order.WeightKg;
-    public decimal? Quantity { get; set; } = order.Quantity;
-    public decimal? UnitPrice { get; set; } = order.UnitPrice;
-    public string? Currency { get; set; } = order.Currency;
-    //public string? Barcode { get; set; } = order.Barcode;
-    //public string? Declaration { get; set; } = order.Declaration;
-    public string? ProductLink { get; set; } = order.ProductLink;
-    public string? RecipientName { get; set; } = order.RecipientName;
-    public string? RecipientInn { get; set; } = order.RecipientInn;
-    public string? PassportNumber { get; set; } = order.PassportNumber;
-    //public string? Pinfl { get; set; } = order.Pinfl;
-    //public string? RecipientAddress { get; set; } = order.RecipientAddress;
-    //public string? ContactPhone { get; set; } = order.ContactPhone;
-    //public string? BoxNumber { get; set; } = order.BoxNumber;
-    //public string? Supplier { get; set; } = order.Supplier;
-    //public string? SupplierInn { get; set; } = order.SupplierInn;
-    //public string? Category { get; set; } = order.Category;
-    //public string? Subcategory { get; set; } = order.Subcategory;
+    public int Id { get; set; }
+    public int RegisterId { get; set; }
+    public int StatusId { get; set; }
+    public int CheckStatusId { get; set; }
+    public string? Description { get; set; }
+    public string? TnVed { get; set; }
+    public string? OrderNumber { get; set; }
+    public string? Shk { get; set; }
+    public string? ProductName { get; set; }
+    public string? Country { get; set; }
+    public decimal? WeightKg { get; set; }
+    public decimal? Quantity { get; set; }
+    public decimal? UnitPrice { get; set; }
+    public string? Currency { get; set; }
+    public string? ProductLink { get; set; }
+    public string? RecipientName { get; set; }
+    public string? RecipientInn { get; set; }
+    public string? PassportNumber { get; set; }
+    public string? PostingNumber { get; set; }
+    public string? OzonId { get; set; }
+    public OrderViewItem(BaseOrder order)
+    {
+        ArgumentNullException.ThrowIfNull(order);
+
+        Id = order.Id;
+        RegisterId = order.RegisterId;
+        StatusId = order.StatusId;
+        CheckStatusId = order.CheckStatusId;
+        Description = order.Description;
+        TnVed = order.TnVed;
+
+        if (order is WbrOrder wbr)
+        {
+            OrderNumber = wbr.OrderNumber;
+            Shk = wbr.Shk;
+            ProductName = wbr.ProductName;
+            Country = wbr.Country;
+            WeightKg = wbr.WeightKg;
+            Quantity = wbr.Quantity;
+            UnitPrice = wbr.UnitPrice;
+            Currency = wbr.Currency;
+            ProductLink = wbr.ProductLink;
+            RecipientName = wbr.RecipientName;
+            RecipientInn = wbr.RecipientInn;
+            PassportNumber = wbr.PassportNumber;
+        }
+        else if (order is OzonOrder ozon)
+        {
+            PostingNumber = ozon.PostingNumber;
+            OzonId = ozon.OzonId;
+        }
+    }
 
     public override string ToString()
     {

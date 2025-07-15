@@ -38,5 +38,5 @@ public class OrderStatus
     public required string Title { get; set; }
 
     [JsonIgnore]
-    public ICollection<Order> Orders { get; set; } = new List<Order>();
+    public ICollection<BaseOrder> Orders { get; set; } = new List<BaseOrder>();
 }

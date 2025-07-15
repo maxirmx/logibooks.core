@@ -1,17 +1,43 @@
-using Logibooks.Core.Controllers;
-using Logibooks.Core.Data;
-using Logibooks.Core.Models;
-using Logibooks.Core.RestModels;
+// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
+// All rights reserved.
+// This file is a part of Logibooks Core application
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions
+// are met:
+// 1. Redistributions of source code must retain the above copyright
+// notice, this list of conditions and the following disclaimer.
+// 2. Redistributions in binary form must reproduce the above copyright
+// notice, this list of conditions and the following disclaimer in the
+// documentation and/or other materials provided with the distribution.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+// ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+// TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+// PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR CONTRIBUTORS
+// BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+// POSSIBILITY OF SUCH DAMAGE.
+
+using System.Linq;
+using System.Threading.Tasks;
+
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+
 using Moq;
 using NUnit.Framework;
-using NUnit.Framework.Legacy;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+
+using Logibooks.Core.Controllers;
+using Logibooks.Core.Data;
+using Logibooks.Core.Models;
+using Logibooks.Core.RestModels;
 
 namespace Logibooks.Core.Tests.Controllers;
 
@@ -85,29 +111,67 @@ public class CompaniesControllerTests
     [Test]
     public async Task CrudOperations_Work_ForAdmin()
     {
-        SetCurrentUserId(1);
-        var dto = new CompanyDto { Inn = "1", Kpp = "2", Name = "N", ShortName = "SN", CountryIsoNumeric = 840, PostalCode = "p", City = "c", Street = "s" };
-        var created = await _controller.PostCompany(dto);
-        var createdDto = (created.Result as CreatedAtActionResult)!.Value as CompanyDto;
-        int id = createdDto!.Id;
+        SetCurrentUserId(1); // Admin user
 
-        var get = await _controller.GetCompany(id);
-        Assert.That(get.Value!.Name, Is.EqualTo("N"));
+        // Create three companies
+        var dto1 = new CompanyDto { Inn = "111", Kpp = "111", Name = "Ozon", ShortName = "Ozon", CountryIsoNumeric = 840, PostalCode = "p1", City = "c1", Street = "s1" };
+        var dto2 = new CompanyDto { Inn = "222", Kpp = "222", Name = "WBR", ShortName = "WBR", CountryIsoNumeric = 840, PostalCode = "p2", City = "c2", Street = "s2" };
+        var dto3 = new CompanyDto { Inn = "333", Kpp = "333", Name = "Temp", ShortName = "Temp", CountryIsoNumeric = 840, PostalCode = "p3", City = "c3", Street = "s3" };
 
-        dto.Id = id;
-        dto.Name = "N2";
-        var update = await _controller.PutCompany(id, dto);
+        // Add first company
+        var created1 = await _controller.PostCompany(dto1);
+        var createdDto1 = (created1.Result as CreatedAtActionResult)!.Value as CompanyDto;
+        Assert.That(createdDto1!.Id, Is.EqualTo(1));
+
+        // Add second company
+        var created2 = await _controller.PostCompany(dto2);
+        var createdDto2 = (created2.Result as CreatedAtActionResult)!.Value as CompanyDto;
+        Assert.That(createdDto2!.Id, Is.EqualTo(2));
+
+        // Add third company
+        var created3 = await _controller.PostCompany(dto3);
+        var createdDto3 = (created3.Result as CreatedAtActionResult)!.Value as CompanyDto;
+        Assert.That(createdDto3!.Id, Is.EqualTo(3));
+
+        // Test GET for company with ID 1
+        var get = await _controller.GetCompany(1);
+        Assert.That(get.Value!.Name, Is.EqualTo("Ozon"));
+
+        // Test PUT for company with ID 1
+        dto1.Id = 1;
+        dto1.Name = "Ozon Updated";
+        var update = await _controller.PutCompany(1, dto1);
         Assert.That(update, Is.TypeOf<NoContentResult>());
 
-        var updated = await _controller.GetCompany(id);
-        Assert.That(updated.Value!.Name, Is.EqualTo("N2"));
+        // Verify the update was successful
+        var updated = await _controller.GetCompany(1);
+        Assert.That(updated.Value!.Name, Is.EqualTo("Ozon Updated"));
 
+        // Verify all companies are in the list
         var list = await _controller.GetCompanies();
-        Assert.That(list.Value!.Any(c => c.Id == id));
+        Assert.That(list.Value!.Count(), Is.EqualTo(3));
+        Assert.That(list.Value!.Any(c => c.Id == 1));
+        Assert.That(list.Value!.Any(c => c.Id == 2));
+        Assert.That(list.Value!.Any(c => c.Id == 3));
 
-        var del = await _controller.DeleteCompany(id);
-        Assert.That(del, Is.TypeOf<NoContentResult>());
-        Assert.That(await _dbContext.Companies.FindAsync(id), Is.Null);
+        // Test DELETE for company with ID 1 (should fail)
+        var del1 = await _controller.DeleteCompany(1);
+        Assert.That(del1, Is.TypeOf<ObjectResult>());
+        var objResult1 = del1 as ObjectResult;
+        Assert.That(objResult1!.StatusCode, Is.EqualTo(StatusCodes.Status409Conflict));
+        Assert.That(await _dbContext.Companies.FindAsync(1), Is.Not.Null);
+
+        // Test DELETE for company with ID 2 (should fail)
+        var del2 = await _controller.DeleteCompany(2);
+        Assert.That(del2, Is.TypeOf<ObjectResult>());
+        var objResult2 = del2 as ObjectResult;
+        Assert.That(objResult2!.StatusCode, Is.EqualTo(StatusCodes.Status409Conflict));
+        Assert.That(await _dbContext.Companies.FindAsync(2), Is.Not.Null);
+
+        // Test DELETE for company with ID 3 (should succeed)
+        var del3 = await _controller.DeleteCompany(3);
+        Assert.That(del3, Is.TypeOf<NoContentResult>());
+        Assert.That(await _dbContext.Companies.FindAsync(3), Is.Null);
     }
 
     [Test]
@@ -137,30 +201,6 @@ public class CompaniesControllerTests
         Assert.That(res, Is.TypeOf<ObjectResult>());
         var obj = res as ObjectResult;
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
-    }
-
-    [Test]
-    public async Task DeleteCompany_DeletesCompany_WhenNoRegisters_AndUserIsAdmin()
-    {
-        SetCurrentUserId(1); // Admin
-        var company = new Company
-        {
-            Inn = "inn1",
-            Kpp = "kpp1",
-            Name = "TestCo",
-            ShortName = "TC",
-            CountryIsoNumeric = _country.IsoNumeric,
-            PostalCode = "12345",
-            City = "City",
-            Street = "Street"
-        };
-        _dbContext.Companies.Add(company);
-        await _dbContext.SaveChangesAsync();
-
-        var result = await _controller.DeleteCompany(company.Id);
-
-        Assert.That(result, Is.TypeOf<NoContentResult>());
-        Assert.That(await _dbContext.Companies.FindAsync(company.Id), Is.Null);
     }
 
     [Test]
