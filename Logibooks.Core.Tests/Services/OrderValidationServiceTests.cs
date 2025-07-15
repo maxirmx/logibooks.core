@@ -65,7 +65,7 @@ public class OrderValidationServiceTests
         Assert.That(ctx.Set<BaseOrderStopWord>().Count(), Is.EqualTo(1));
         var link = ctx.Set<BaseOrderStopWord>().Single();
         Assert.That(link.StopWordId, Is.EqualTo(2));
-        Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo(201));
+        Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo(101));
     }
 
     [Test]
@@ -81,7 +81,7 @@ public class OrderValidationServiceTests
         await svc.ValidateAsync(order);
 
         Assert.That(ctx.Set<BaseOrderStopWord>().Any(), Is.False);
-        Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo(1));
+        Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo(201));
     }
 
     [Test]
@@ -97,5 +97,6 @@ public class OrderValidationServiceTests
         await svc.ValidateAsync(order);
 
         Assert.That(ctx.Set<BaseOrderStopWord>().Single().StopWordId, Is.EqualTo(5));
+        Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo(101));
     }
 }

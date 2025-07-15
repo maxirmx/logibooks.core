@@ -38,6 +38,8 @@ public class OrderValidationService(AppDbContext db) : IOrderValidationService
         // remove existing links for this order
         var existing = _db.Set<BaseOrderStopWord>().Where(l => l.BaseOrderId == order.Id);
         _db.Set<BaseOrderStopWord>().RemoveRange(existing);
+        order.CheckStatusId = 1;
+        await _db.SaveChangesAsync(cancellationToken);
 
         var description = order.Description ?? string.Empty;
 
@@ -58,7 +60,11 @@ public class OrderValidationService(AppDbContext db) : IOrderValidationService
         if (links.Count > 0)
         {
             _db.AddRange(links);
-            order.CheckStatusId = 201;
+            order.CheckStatusId = 101;
+        }
+        else
+        {
+            order.CheckStatusId = 201; // no stop words found, set to normal status
         }
 
         await _db.SaveChangesAsync(cancellationToken);
