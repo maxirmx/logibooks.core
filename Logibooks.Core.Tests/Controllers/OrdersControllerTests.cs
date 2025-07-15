@@ -86,8 +86,7 @@ public class OrdersControllerTests
         _mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
         _logger = new LoggerFactory().CreateLogger<OrdersController>();
         _mockValidationService = new Mock<IOrderValidationService>();
-        var mockMapper = new Mock<IMapper>();
-        _controller = new OrdersController(_mockHttpContextAccessor.Object, _dbContext, _logger, mockMapper.Object, _mockValidationService.Object);
+        _controller = CreateController();
     }
 
     [TearDown]
@@ -97,13 +96,18 @@ public class OrdersControllerTests
         _dbContext.Dispose();
     }
 
+    private OrdersController CreateController()
+    {
+        var mockMapper = new Mock<IMapper>();
+        return new OrdersController(_mockHttpContextAccessor.Object, _dbContext, _logger, mockMapper.Object, _mockValidationService.Object);
+    }
+
     private void SetCurrentUserId(int id)
     {
         var ctx = new DefaultHttpContext();
         ctx.Items["UserId"] = id;
         _mockHttpContextAccessor.Setup(x => x.HttpContext).Returns(ctx);
-        var mockMapper = new Mock<IMapper>();
-        _controller = new OrdersController(_mockHttpContextAccessor.Object, _dbContext, _logger, mockMapper.Object, _mockValidationService.Object);
+        _controller = CreateController();
     }
 
     [Test]
