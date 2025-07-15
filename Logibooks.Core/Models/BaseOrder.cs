@@ -31,4 +31,5 @@ public abstract class BaseOrder
     [Column("tn_ved")]
     public string? TnVed { get; set; }
 
+    public ICollection<BaseOrderStopWord> BaseOrderStopWords { get; set; } = new List<BaseOrderStopWord>();
 }
