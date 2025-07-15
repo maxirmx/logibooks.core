@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Logibooks.Core.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250715100233_0_5_0_StopWords")]
+    [Migration("20250715111325_0_5_0_StopWords")]
     partial class _0_5_0_StopWords
     {
         /// <inheritdoc />
@@ -265,17 +265,17 @@ namespace Logibooks.Core.Migrations
                         new
                         {
                             Id = 1,
-                            Title = "Загружен"
+                            Title = "Не проверен"
                         },
                         new
                         {
                             Id = 101,
-                            Title = "Проблема"
+                            Title = "Выявлены проблемы"
                         },
                         new
                         {
                             Id = 201,
-                            Title = "Проверен"
+                            Title = "Не выявлено проблем"
                         });
                 });
 

@@ -203,9 +203,9 @@ namespace Logibooks.Core.Data
             );
 
             modelBuilder.Entity<OrderCheckStatus>().HasData(
-                new OrderCheckStatus { Id = 1, Title = "Загружен" },
-                new OrderCheckStatus { Id = 101, Title = "Проблема" },
-                new OrderCheckStatus { Id = 201, Title = "Проверен" }
+                new OrderCheckStatus { Id = 1, Title = "Не проверен" },
+                new OrderCheckStatus { Id = 101, Title = "Выявлены проблемы" },
+                new OrderCheckStatus { Id = 201, Title = "Не выявлено проблем" }
             );
 
             modelBuilder.Entity<User>().HasData(
