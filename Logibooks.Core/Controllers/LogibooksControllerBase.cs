@@ -119,6 +119,16 @@ public class LogibooksControllerPreBase(AppDbContext db, ILogger logger) : Contr
         return StatusCode(StatusCodes.Status409Conflict,
                           new ErrMessage { Msg = $"Невозможно удалить реестр, на который ссылаются заказы" });
     }
+    protected ObjectResult _409StopWord(string word)
+    {
+        return StatusCode(StatusCodes.Status409Conflict,
+                          new ErrMessage { Msg = $"Стоп-слово уже существует [слово = {word}]" });
+    }
+    protected ObjectResult _409StopWordUsed()
+    {
+        return StatusCode(StatusCodes.Status409Conflict,
+                          new ErrMessage { Msg = $"Невозможно удалить стоп-слово, на которое ссылаются заказы" });
+    }
 
     protected ObjectResult _500Mapping(string fname)
     {
