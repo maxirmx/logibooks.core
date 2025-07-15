@@ -184,4 +184,37 @@ public class StopWordsControllerTests
         Assert.That(result.Value, Is.Not.Null);
         Assert.That(result.Value!.Word, Is.EqualTo("find"));
     }
+
+    [Test]
+    public async Task Create_ReturnsConflict_WhenWordAlreadyExists()
+    {
+        SetCurrentUserId(1); // Admin
+        var existing = new StopWord { Id = 10, Word = "duplicate", ExactMatch = false };
+        _dbContext.StopWord.Add(existing);
+        await _dbContext.SaveChangesAsync();
+
+        var dto = new StopWordDto { Word = "duplicate", ExactMatch = false };
+        var result = await _controller.PostStopWord(dto);
+
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status409Conflict));
+    }
+
+    [Test]
+    public async Task Edit_ReturnsConflict_WhenChangingToExistingWord()
+    {
+        SetCurrentUserId(1); // Admin
+        var word1 = new StopWord { Id = 11, Word = "first", ExactMatch = false };
+        var word2 = new StopWord { Id = 12, Word = "second", ExactMatch = false };
+        _dbContext.StopWord.AddRange(word1, word2);
+        await _dbContext.SaveChangesAsync();
+
+        var dto = new StopWordDto { Id = 11, Word = "second", ExactMatch = false };
+        var result = await _controller.PutStopWord(11, dto);
+
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status409Conflict));
+    }
 }
