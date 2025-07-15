@@ -119,7 +119,11 @@ public class LogibooksControllerPreBase(AppDbContext db, ILogger logger) : Contr
         return StatusCode(StatusCodes.Status409Conflict,
                           new ErrMessage { Msg = $"Невозможно удалить реестр, на который ссылаются заказы" });
     }
-
+    protected ObjectResult _409StopWord(string word)
+    {
+        return StatusCode(StatusCodes.Status409Conflict,
+                          new ErrMessage { Msg = $"Стоп-слово уже существует [слово = {word}]" });
+    }
     protected ObjectResult _500Mapping(string fname)
     {
         return StatusCode(StatusCodes.Status500InternalServerError,
@@ -135,6 +139,21 @@ public class LogibooksControllerPreBase(AppDbContext db, ILogger logger) : Contr
     {
         return StatusCode(StatusCodes.Status500InternalServerError,
                           new ErrMessage { Msg = "Ошибка при загрузке списка стран" });
+    }
+    protected ObjectResult _500ValidateOrder()
+    {
+        return StatusCode(StatusCodes.Status500InternalServerError,
+                          new ErrMessage { Msg = "Ошибка при проверке заказа" });
+    }
+    protected ObjectResult _500ValidateRegister()
+    {
+        return StatusCode(StatusCodes.Status500InternalServerError,
+                          new ErrMessage { Msg = "Ошибка при проверке реестра" });
+    }
+    protected ObjectResult _404Handle(Guid handleId)
+    {
+        return StatusCode(StatusCodes.Status404NotFound,
+                          new ErrMessage { Msg = $"Не удалось найти операцию проверки [id={handleId}]" });
     }
 
 }

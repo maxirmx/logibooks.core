@@ -23,9 +23,10 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-namespace Logibooks.Core;
-
-public static class VersionInfo
+namespace Logibooks.Core.Models;
+public enum OrderCheckStatusCode
 {
-    public const string AppVersion = "0.5.0";
+    NotChecked = 1,
+    HasIssues = 101,
+    NoIssues = 201
 }

@@ -23,9 +23,31 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-namespace Logibooks.Core;
+namespace Logibooks.Core.RestModels;
 
-public static class VersionInfo
+using Logibooks.Core.Models;
+
+public class StopWordDto
 {
-    public const string AppVersion = "0.5.0";
+    public int Id { get; set; }
+    public string Word { get; set; } = string.Empty;
+    public bool ExactMatch { get; set; }
+
+    public StopWordDto() {}
+    public StopWordDto(StopWord sw)
+    {
+        Id = sw.Id;
+        Word = sw.Word;
+        ExactMatch = sw.ExactMatch;
+    }
+
+    public StopWord ToModel()
+    {
+        return new StopWord
+        {
+            Id = Id,
+            Word = Word,
+            ExactMatch = ExactMatch
+        };
+    }
 }

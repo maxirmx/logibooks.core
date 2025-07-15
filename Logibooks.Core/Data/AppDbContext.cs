@@ -45,6 +45,7 @@ namespace Logibooks.Core.Data
         public DbSet<OzonOrder> OzonOrders => Set<OzonOrder>();
         public DbSet<Country> Countries => Set<Country>();
         public DbSet<Company> Companies => Set<Company>();
+        public DbSet<StopWord> StopWord => Set<StopWord>();
         public async Task<bool> CheckAdmin(int cuid)
         {
             var user = await Users
@@ -175,6 +176,22 @@ namespace Logibooks.Core.Data
             modelBuilder.Entity<OzonOrder>()
                 .HasBaseType<BaseOrder>();
 
+            modelBuilder.Entity<BaseOrderStopWord>()
+                .HasKey(bosw => new { bosw.BaseOrderId, bosw.StopWordId });
+
+            modelBuilder.Entity<BaseOrderStopWord>()
+                .HasOne(bosw => bosw.BaseOrder)
+                .WithMany(bo => bo.BaseOrderStopWords)
+                .HasForeignKey(bosw => bosw.BaseOrderId);
+
+            modelBuilder.Entity<BaseOrderStopWord>()
+                .HasOne(bosw => bosw.StopWord)
+                .WithMany(sw => sw.BaseOrderStopWords)
+                .HasForeignKey(bosw => bosw.StopWordId);
+
+            modelBuilder.Entity<StopWord>()
+                .HasIndex(sw => sw.Word)
+                .IsUnique();
 
             modelBuilder.Entity<Role>().HasData(
                 new Role { Id = 1, Name = "logist", Title = "Логист" },
@@ -186,9 +203,9 @@ namespace Logibooks.Core.Data
             );
 
             modelBuilder.Entity<OrderCheckStatus>().HasData(
-                new OrderCheckStatus { Id = 1, Title = "Загружен" },
-                new OrderCheckStatus { Id = 101, Title = "Проблема" },
-                new OrderCheckStatus { Id = 201, Title = "Проверен" }
+                new OrderCheckStatus { Id = 1, Title = "Не проверен" },
+                new OrderCheckStatus { Id = 101, Title = "Выявлены проблемы" },
+                new OrderCheckStatus { Id = 201, Title = "Не выявлено проблем" }
             );
 
             modelBuilder.Entity<User>().HasData(

@@ -23,9 +23,18 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-namespace Logibooks.Core;
+using System.ComponentModel.DataAnnotations.Schema;
 
-public static class VersionInfo
+namespace Logibooks.Core.Models;
+
+[Table("base_order_stop_words")]
+public class BaseOrderStopWord
 {
-    public const string AppVersion = "0.5.0";
+    [Column("base_order_id")]
+    public int BaseOrderId { get; set; }
+    public BaseOrder BaseOrder { get; set; } = null!;
+
+    [Column("stop_word_id")]
+    public int StopWordId { get; set; }
+    public StopWord StopWord { get; set; } = null!;
 }

@@ -23,9 +23,11 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-namespace Logibooks.Core;
+using Logibooks.Core.Models;
 
-public static class VersionInfo
+namespace Logibooks.Core.Services;
+
+public interface IOrderValidationService
 {
-    public const string AppVersion = "0.5.0";
+    Task ValidateAsync(BaseOrder order, CancellationToken cancellationToken = default);
 }

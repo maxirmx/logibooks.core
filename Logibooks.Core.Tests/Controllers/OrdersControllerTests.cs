@@ -23,7 +23,9 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+using System;
 using System.Threading.Tasks;
+using System.Threading;
 using System.Linq;
 
 using Microsoft.AspNetCore.Http;
@@ -40,6 +42,7 @@ using Logibooks.Core.Models;
 using Logibooks.Core.RestModels;
 using AutoMapper;
 using System.Collections.Generic;
+using Logibooks.Core.Services;
 
 namespace Logibooks.Core.Tests.Controllers;
 
@@ -49,6 +52,7 @@ public class OrdersControllerTests
 #pragma warning disable CS8618
     private AppDbContext _dbContext;
     private Mock<IHttpContextAccessor> _mockHttpContextAccessor;
+    private Mock<IOrderValidationService> _mockValidationService;
     private ILogger<OrdersController> _logger;
     private OrdersController _controller;
     private Role _logistRole;
@@ -81,8 +85,8 @@ public class OrdersControllerTests
 
         _mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
         _logger = new LoggerFactory().CreateLogger<OrdersController>();
-        var mockMapper = new Mock<IMapper>(); // Add this line to mock the IMapper dependency  
-        _controller = new OrdersController(_mockHttpContextAccessor.Object, _dbContext, _logger, mockMapper.Object); // Pass the mockMapper.Object  
+        _mockValidationService = new Mock<IOrderValidationService>();
+        _controller = CreateController();
     }
 
     [TearDown]
@@ -92,13 +96,18 @@ public class OrdersControllerTests
         _dbContext.Dispose();
     }
 
+    private OrdersController CreateController()
+    {
+        var mockMapper = new Mock<IMapper>();
+        return new OrdersController(_mockHttpContextAccessor.Object, _dbContext, _logger, mockMapper.Object, _mockValidationService.Object);
+    }
+
     private void SetCurrentUserId(int id)
     {
         var ctx = new DefaultHttpContext();
         ctx.Items["UserId"] = id;
         _mockHttpContextAccessor.Setup(x => x.HttpContext).Returns(ctx);
-        var mockMapper = new Mock<IMapper>();
-        _controller = new OrdersController(_mockHttpContextAccessor.Object, _dbContext, _logger, mockMapper.Object);
+        _controller = CreateController();
     }
 
     [Test]
@@ -142,7 +151,7 @@ public class OrdersControllerTests
             });
 
         // Create a new controller instance with the properly configured mock
-        _controller = new OrdersController(_mockHttpContextAccessor.Object, _dbContext, _logger, mockMapper.Object);
+        _controller = new OrdersController(_mockHttpContextAccessor.Object, _dbContext, _logger, mockMapper.Object, _mockValidationService.Object);
 
         var result = await _controller.UpdateOrder(2, updated);
 
@@ -510,5 +519,64 @@ public class OrdersControllerTests
         Assert.That(result.Result, Is.TypeOf<ObjectResult>());
         var objResult = result.Result as ObjectResult;
         Assert.That(objResult!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+    }
+
+    [Test]
+    public async Task ValidateOrder_RunsService_ForLogist()
+    {
+        SetCurrentUserId(1);
+        var register = new Register { Id = 10, FileName = "r.xlsx" };
+        var order = new WbrOrder { Id = 10, RegisterId = 10, StatusId = 1 };
+        _dbContext.Registers.Add(register);
+        _dbContext.Orders.Add(order);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.ValidateOrder(10);
+
+        _mockValidationService.Verify(s => s.ValidateAsync(order, It.IsAny<CancellationToken>()), Times.Once);
+        Assert.That(result, Is.TypeOf<NoContentResult>());
+    }
+
+    [Test]
+    public async Task ValidateOrder_ReturnsForbidden_ForNonLogist()
+    {
+        SetCurrentUserId(99);
+        var result = await _controller.ValidateOrder(1);
+
+        _mockValidationService.Verify(s => s.ValidateAsync(It.IsAny<BaseOrder>(), It.IsAny<CancellationToken>()), Times.Never);
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
+    }
+
+    [Test]
+    public async Task ValidateOrder_ReturnsNotFound_WhenMissing()
+    {
+        SetCurrentUserId(1);
+        var result = await _controller.ValidateOrder(99);
+
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+        _mockValidationService.Verify(s => s.ValidateAsync(It.IsAny<BaseOrder>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Test]
+    public async Task ValidateOrder_ReturnsServerError_OnException()
+    {
+        SetCurrentUserId(1);
+        var register = new Register { Id = 20, FileName = "r.xlsx" };
+        var order = new WbrOrder { Id = 20, RegisterId = 20, StatusId = 1 };
+        _dbContext.Registers.Add(register);
+        _dbContext.Orders.Add(order);
+        await _dbContext.SaveChangesAsync();
+
+        _mockValidationService.Setup(s => s.ValidateAsync(order, It.IsAny<CancellationToken>())).ThrowsAsync(new Exception());
+
+        var result = await _controller.ValidateOrder(20);
+
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status500InternalServerError));
     }
 }

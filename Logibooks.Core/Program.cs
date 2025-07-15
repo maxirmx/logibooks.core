@@ -53,6 +53,8 @@ builder.Services
     .Configure<AppSettings>(builder.Configuration.GetSection("AppSettings"))
     .AddScoped<IJwtUtils, JwtUtils>()
     .AddScoped<IUpdateCountriesService, UpdateCountriesService>()
+    .AddScoped<IOrderValidationService, OrderValidationService>()
+    .AddScoped<IRegisterValidationService, RegisterValidationService>()
     .AddHttpContextAccessor()
     .AddControllers();
 
