@@ -165,22 +165,16 @@ namespace Logibooks.Core.Data
                 .HasForeignKey(o => o.CheckStatusId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            modelBuilder.Entity<BaseOrder>()
-                .Property(o => o.OrderType)
-                .HasColumnName("order_type")
-                .HasComputedColumnSql("(SELECT company_id FROM registers r WHERE r.id = register_id)", stored: true);
+            modelBuilder.Entity<BaseOrder>().ToTable("base_orders");
+            modelBuilder.Entity<WbrOrder>().ToTable("wbr_orders");
+            modelBuilder.Entity<OzonOrder>().ToTable("ozon_orders");
 
-            modelBuilder.Entity<BaseOrder>()
-                .HasDiscriminator<int>("order_type")
-                .HasValue<WbrOrder>(1)
-                .HasValue<OzonOrder>(2);
+            modelBuilder.Entity<WbrOrder>()
+                .HasBaseType<BaseOrder>();
 
-            // No filter needed at base level, discriminator handles filtering automatically
-            // modelBuilder.Entity<WbrOrder>().HasQueryFilter(o => o.OrderType == 1);
-            // modelBuilder.Entity<OzonOrder>().HasQueryFilter(o => o.OrderType == 2);
+            modelBuilder.Entity<OzonOrder>()
+                .HasBaseType<BaseOrder>();
 
-            modelBuilder.Entity<BaseOrder>()
-                .HasQueryFilter(o => true); 
 
             modelBuilder.Entity<Role>().HasData(
                 new Role { Id = 1, Name = "logist", Title = "Логист" },

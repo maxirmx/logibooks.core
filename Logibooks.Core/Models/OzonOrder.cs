@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Logibooks.Core.Models;
 
+[Table("ozon_orders")]
 public class OzonOrder : BaseOrder
 {
     [Column("posting_number")]

@@ -4,8 +4,8 @@ using System.Text.Json.Serialization;
 
 namespace Logibooks.Core.Models;
 
-[Table("orders")]
-[Index(nameof(TnVed), Name = "IX_orders_tn_ved")]
+[Table("base_orders")]
+[Index(nameof(TnVed), Name = "IX_base_orders_tn_ved")]
 public abstract class BaseOrder
 {
     [Column("id")]
@@ -31,6 +31,4 @@ public abstract class BaseOrder
     [Column("tn_ved")]
     public string? TnVed { get; set; }
 
-    [Column("order_type")]
-    public int OrderType { get; private set; }
 }

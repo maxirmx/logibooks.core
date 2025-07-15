@@ -3,7 +3,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Logibooks.Core.Models;
 
-[Index(nameof(Shk), Name = "IX_orders_shk")]
+[Table("wbr_orders")]
+[Index(nameof(Shk), Name = "IX_wbr_orders_shk")]
 public class WbrOrder : BaseOrder
 {
     [Column("row_number")]
