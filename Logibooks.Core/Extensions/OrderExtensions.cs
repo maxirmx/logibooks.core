@@ -31,7 +31,7 @@ namespace Logibooks.Core.Extensions;
 
 public static class OrderExtensions
 {
-    public static void UpdateFrom(this Order order, OrderUpdateItem updateItem, IMapper mapper)
+public static void UpdateFrom(this BaseOrder order, OrderUpdateItem updateItem, IMapper mapper)
     {
         mapper.Map(updateItem, order);
     }

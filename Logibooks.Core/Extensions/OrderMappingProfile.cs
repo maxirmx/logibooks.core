@@ -33,7 +33,7 @@ public class OrderMappingProfile : Profile
 {
     public OrderMappingProfile()
     {
-        CreateMap<OrderUpdateItem, Order>()
+        CreateMap<OrderUpdateItem, BaseOrder>()
             .ForMember(dest => dest.Id, opt => opt.Ignore())
             .ForMember(dest => dest.RegisterId, opt => opt.Ignore())
             .ForMember(dest => dest.Register, opt => opt.Ignore())

@@ -151,7 +151,7 @@ public class OrdersController(
             return _403();
         }
 
-        IQueryable<Order> query = _db.Orders.AsNoTracking().Where(o => o.RegisterId == registerId);
+        IQueryable<BaseOrder> query = _db.Orders.AsNoTracking().Where(o => o.RegisterId == registerId);
 
         if (statusId != null)
         {

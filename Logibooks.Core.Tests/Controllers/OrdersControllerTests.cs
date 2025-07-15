@@ -106,7 +106,7 @@ public class OrdersControllerTests
     {
         SetCurrentUserId(1);
         var register = new Register { Id = 1, FileName = "r.xlsx" };
-        var order = new Order { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "A" };
+        var order = new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "A" };
         _dbContext.Registers.Add(register);
         _dbContext.Orders.Add(order);
         await _dbContext.SaveChangesAsync();
@@ -123,7 +123,7 @@ public class OrdersControllerTests
     {
         SetCurrentUserId(1);
         var register = new Register { Id = 1, FileName = "r.xlsx" };
-        var order = new Order { Id = 2, RegisterId = 1, StatusId = 1, TnVed = "A" };
+        var order = new WbrOrder { Id = 2, RegisterId = 1, StatusId = 1, TnVed = "A" };
         _dbContext.Registers.Add(register);
         _dbContext.Orders.Add(order);
         await _dbContext.SaveChangesAsync();
@@ -132,8 +132,8 @@ public class OrdersControllerTests
 
         // Configure the mock to perform the actual mapping
         var mockMapper = new Mock<IMapper>();
-        mockMapper.Setup(m => m.Map(It.IsAny<OrderUpdateItem>(), It.IsAny<Order>()))
-            .Callback<OrderUpdateItem, Order>((src, dest) =>
+        mockMapper.Setup(m => m.Map(It.IsAny<OrderUpdateItem>(), It.IsAny<WbrOrder>()))
+            .Callback<OrderUpdateItem, WbrOrder>((src, dest) =>
             {
                 // Simulate the AutoMapper behavior - only update non-null values
                 if (src.StatusId.HasValue) dest.StatusId = src.StatusId.Value;
@@ -160,9 +160,9 @@ public class OrdersControllerTests
         var reg = new Register { Id = 1, FileName = "r.xlsx" };
         _dbContext.Registers.Add(reg);
         _dbContext.Orders.AddRange(
-            new Order { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "B" },
-            new Order { Id = 2, RegisterId = 1, StatusId = 2, TnVed = "A" },
-            new Order { Id = 3, RegisterId = 1, StatusId = 2, TnVed = "B" }
+            new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "B" },
+            new WbrOrder { Id = 2, RegisterId = 1, StatusId = 2, TnVed = "A" },
+            new WbrOrder { Id = 3, RegisterId = 1, StatusId = 2, TnVed = "B" }
         );
         await _dbContext.SaveChangesAsync();
 
@@ -285,8 +285,8 @@ public class OrdersControllerTests
         var reg = new Register { Id = 1, FileName = "r.xlsx" };
         _dbContext.Registers.Add(reg);
         _dbContext.Orders.AddRange(
-            new Order { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "A" },
-            new Order { Id = 2, RegisterId = 1, StatusId = 1, TnVed = "B" }
+            new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "A" },
+            new WbrOrder { Id = 2, RegisterId = 1, StatusId = 1, TnVed = "B" }
         );
         await _dbContext.SaveChangesAsync();
 
@@ -307,7 +307,7 @@ public class OrdersControllerTests
         _dbContext.Registers.Add(reg);
         for (int i = 1; i <= 6; i++)
         {
-            _dbContext.Orders.Add(new Order { Id = i, RegisterId = 1, StatusId = 1, TnVed = "A" });
+            _dbContext.Orders.Add(new WbrOrder { Id = i, RegisterId = 1, StatusId = 1, TnVed = "A" });
         }
         await _dbContext.SaveChangesAsync();
 
@@ -447,7 +447,7 @@ public class OrdersControllerTests
         var reg = new Register { Id = 1, FileName = "r.xlsx" };
         _dbContext.Registers.Add(reg);
         var status = new OrderStatus { Id = 1, Title = "Test Status" };
-        var order = new Order { Shk = "12345678", RegisterId = 1, StatusId = 1, Status = status };
+        var order = new WbrOrder { Shk = "12345678", RegisterId = 1, StatusId = 1, Status = status };
         _dbContext.Statuses.Add(status);
         _dbContext.Orders.Add(order);
         await _dbContext.SaveChangesAsync();
@@ -482,7 +482,7 @@ public class OrdersControllerTests
         var reg = new Register { Id = 1, FileName = "r.xlsx" };
         _dbContext.Registers.Add(reg);
         var status = new OrderStatus { Id = 1, Title = "Available" };
-        var order = new Order { Shk = "ABC123", RegisterId = 1,  StatusId = 1, Status = status };
+        var order = new WbrOrder { Shk = "ABC123", RegisterId = 1,  StatusId = 1, Status = status };
         _dbContext.Statuses.Add(status);
         _dbContext.Orders.Add(order);
         await _dbContext.SaveChangesAsync();

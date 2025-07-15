@@ -47,5 +47,5 @@ public class Register
     public Company Company { get; set; } = null!;
 
     [JsonIgnore]
-    public ICollection<Order> Orders { get; set; } = []; 
+    public ICollection<BaseOrder> Orders { get; set; } = [];
 }
