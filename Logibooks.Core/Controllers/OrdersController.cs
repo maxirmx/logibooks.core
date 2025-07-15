@@ -32,6 +32,7 @@ using Logibooks.Core.Data;
 using Logibooks.Core.Extensions;
 using Logibooks.Core.Models;
 using Logibooks.Core.RestModels;
+using Logibooks.Core.Services;
 
 namespace Logibooks.Core.Controllers;
 
@@ -42,10 +43,12 @@ public class OrdersController(
     IHttpContextAccessor httpContextAccessor,
     AppDbContext db,
     ILogger<OrdersController> logger,
-    IMapper mapper) : LogibooksControllerBase(httpContextAccessor, db, logger)
+    IMapper mapper,
+    IOrderValidationService validationService) : LogibooksControllerBase(httpContextAccessor, db, logger)
 {
     private const int MaxPageSize = 1000;
     private readonly IMapper _mapper = mapper;
+    private readonly IOrderValidationService _validationService = validationService;
 
     [HttpGet("{id}")]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(OrderViewItem))]
@@ -209,6 +212,41 @@ public class OrdersController(
 
         _logger.LogDebug("GetOrders returning {count} items", items.Count);
         return Ok(result);
+    }
+
+    [HttpPost("{id}/validate")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
+    [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(ErrMessage))]
+    public async Task<IActionResult> ValidateOrder(int id)
+    {
+        _logger.LogDebug("ValidateOrder for id={id}", id);
+
+        if (!await _db.CheckLogist(_curUserId))
+        {
+            _logger.LogDebug("ValidateOrder returning '403 Forbidden'");
+            return _403();
+        }
+
+        var order = await _db.Orders.FindAsync(id);
+        if (order == null)
+        {
+            _logger.LogDebug("ValidateOrder returning '404 Not Found'");
+            return _404Order(id);
+        }
+
+        try
+        {
+            await _validationService.ValidateAsync(order);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "ValidateOrder returning '500 Internal Server Error'");
+            return _500ValidateOrder();
+        }
+
+        return NoContent();
     }
 
 

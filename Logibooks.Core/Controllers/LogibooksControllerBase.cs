@@ -140,6 +140,11 @@ public class LogibooksControllerPreBase(AppDbContext db, ILogger logger) : Contr
         return StatusCode(StatusCodes.Status500InternalServerError,
                           new ErrMessage { Msg = "Ошибка при загрузке списка стран" });
     }
+    protected ObjectResult _500ValidateOrder()
+    {
+        return StatusCode(StatusCodes.Status500InternalServerError,
+                          new ErrMessage { Msg = "Ошибка при проверке заказа" });
+    }
 
 }
 
