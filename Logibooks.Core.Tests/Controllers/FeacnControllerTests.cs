@@ -115,4 +115,62 @@ public class FeacnControllerTests
         Assert.That(dto.Prefixes.Count, Is.EqualTo(1));
         Assert.That(dto.Exceptions.Count, Is.EqualTo(1));
     }
+
+    [Test]
+    public async Task GetAll_ReturnsServerError_OnException()
+    {
+        SetCurrentUserId(2);
+        _dbContext.Dispose();
+
+        var result = await _controller.GetAll();
+
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status500InternalServerError));
+    }
+
+    [Test]
+    public async Task GetAllOrders_ReturnsOrders()
+    {
+        SetCurrentUserId(2);
+        _dbContext.FEACNOrders.Add(new FEACNOrder { Id = 1, Number = 1 });
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.GetAllOrders();
+
+        Assert.That(result.Value, Is.Not.Null);
+        Assert.That(result.Value!.Count(), Is.EqualTo(1));
+    }
+
+    [Test]
+    public async Task GetPrefixes_ReturnsPrefixesForOrder()
+    {
+        SetCurrentUserId(2);
+        var order = new FEACNOrder { Id = 1, Number = 1 };
+        _dbContext.FEACNOrders.Add(order);
+        _dbContext.FEACNPrefixes.Add(new FEACNPrefix { Id = 2, Code = "12", FeacnOrderId = 1, FeacnOrder = order });
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.GetPrefixes(1);
+
+        Assert.That(result.Value, Is.Not.Null);
+        Assert.That(result.Value!.Count(), Is.EqualTo(1));
+    }
+
+    [Test]
+    public async Task GetPrefixException_ReturnsExceptionsForPrefix()
+    {
+        SetCurrentUserId(2);
+        var order = new FEACNOrder { Id = 1, Number = 1 };
+        var prefix = new FEACNPrefix { Id = 2, Code = "12", FeacnOrderId = 1, FeacnOrder = order };
+        _dbContext.FEACNOrders.Add(order);
+        _dbContext.FEACNPrefixes.Add(prefix);
+        _dbContext.FEACNPrefixExceptions.Add(new FEACNPrefixException { Id = 3, Code = "12a", FeacnPrefixId = 2, FeacnPrefix = prefix });
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.GetPrefixException(2);
+
+        Assert.That(result.Value, Is.Not.Null);
+        Assert.That(result.Value!.Count(), Is.EqualTo(1));
+    }
 }
