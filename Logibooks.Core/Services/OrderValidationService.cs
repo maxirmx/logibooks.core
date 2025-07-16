@@ -43,7 +43,7 @@ public class OrderValidationService(AppDbContext db) : IOrderValidationService
 
         var description = order.Description ?? string.Empty;
 
-        var words = await _db.StopWord.AsNoTracking()
+        var words = await _db.StopWords.AsNoTracking()
             .Where(sw => sw.ExactMatch)
             .ToListAsync(cancellationToken);
 
