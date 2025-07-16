@@ -45,7 +45,7 @@ namespace Logibooks.Core.Data
         public DbSet<OzonOrder> OzonOrders => Set<OzonOrder>();
         public DbSet<Country> Countries => Set<Country>();
         public DbSet<Company> Companies => Set<Company>();
-        public DbSet<StopWord> StopWord => Set<StopWord>();
+        public DbSet<StopWord> StopWords => Set<StopWord>();
         public async Task<bool> CheckAdmin(int cuid)
         {
             var user = await Users

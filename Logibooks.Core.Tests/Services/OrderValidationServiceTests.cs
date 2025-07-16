@@ -52,7 +52,7 @@ public class OrderValidationServiceTests
         using var ctx = CreateContext();
         var order = new WbrOrder { Id = 1, RegisterId = 1, CheckStatusId = 1, Description = "This is SPAM" };
         ctx.Orders.Add(order);
-        ctx.StopWord.AddRange(
+        ctx.StopWords.AddRange(
             new StopWord { Id = 2, Word = "spam", ExactMatch = true },
             new StopWord { Id = 3, Word = "other", ExactMatch = true }
         );
@@ -74,7 +74,7 @@ public class OrderValidationServiceTests
         using var ctx = CreateContext();
         var order = new WbrOrder { Id = 1, RegisterId = 1, CheckStatusId = 1, Description = "clean" };
         ctx.Orders.Add(order);
-        ctx.StopWord.Add(new StopWord { Id = 2, Word = "spam", ExactMatch = true });
+        ctx.StopWords.Add(new StopWord { Id = 2, Word = "spam", ExactMatch = true });
         await ctx.SaveChangesAsync();
 
         var svc = new OrderValidationService(ctx);
@@ -90,7 +90,7 @@ public class OrderValidationServiceTests
         using var ctx = CreateContext();
         var order = new WbrOrder { Id = 1, RegisterId = 1, CheckStatusId = 1, Description = "bad WORD" };
         ctx.Orders.Add(order);
-        ctx.StopWord.Add(new StopWord { Id = 5, Word = "word", ExactMatch = true });
+        ctx.StopWords.Add(new StopWord { Id = 5, Word = "word", ExactMatch = true });
         await ctx.SaveChangesAsync();
 
         var svc = new OrderValidationService(ctx);
