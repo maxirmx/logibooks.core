@@ -86,12 +86,9 @@ public class OrderViewItem
             OzonId = ozon.OzonId;
         }
 
-        if (order.BaseOrderStopWords?.Any() == true)
-        {
-            StopWords = order.BaseOrderStopWords
-                .Select(bosw => new StopWordDto(bosw.StopWord))
-                .ToList();
-        }
+        StopWords = order.BaseOrderStopWords?
+            .Select(bosw => new StopWordDto(bosw.StopWord))
+            .ToList() ?? new List<StopWordDto>();
     }
 
     public override string ToString()
