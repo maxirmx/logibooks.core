@@ -32,4 +32,6 @@ public abstract class BaseOrder
     public string? TnVed { get; set; }
 
     public ICollection<BaseOrderStopWord> BaseOrderStopWords { get; set; } = new List<BaseOrderStopWord>();
+
+    public ICollection<BaseOrderFeacnPrefix> BaseOrderFeacnPrefixes { get; set; } = new List<BaseOrderFeacnPrefix>();
 }

@@ -46,6 +46,10 @@ namespace Logibooks.Core.Data
         public DbSet<Country> Countries => Set<Country>();
         public DbSet<Company> Companies => Set<Company>();
         public DbSet<StopWord> StopWord => Set<StopWord>();
+        public DbSet<FEACNOrder> FEACNOrders => Set<FEACNOrder>();
+        public DbSet<FEACNPrefix> FEACNPrefixes => Set<FEACNPrefix>();
+        public DbSet<FEACNPrefixException> FEACNPrefixExceptions => Set<FEACNPrefixException>();
+        public DbSet<BaseOrderFeacnPrefix> BaseOrderFeacnPrefixes => Set<BaseOrderFeacnPrefix>();
         public async Task<bool> CheckAdmin(int cuid)
         {
             var user = await Users
@@ -188,6 +192,29 @@ namespace Logibooks.Core.Data
                 .HasOne(bosw => bosw.StopWord)
                 .WithMany(sw => sw.BaseOrderStopWords)
                 .HasForeignKey(bosw => bosw.StopWordId);
+
+            modelBuilder.Entity<BaseOrderFeacnPrefix>()
+                .HasKey(bofp => new { bofp.BaseOrderId, bofp.FeacnPrefixId });
+
+            modelBuilder.Entity<BaseOrderFeacnPrefix>()
+                .HasOne(bofp => bofp.BaseOrder)
+                .WithMany(bo => bo.BaseOrderFeacnPrefixes)
+                .HasForeignKey(bofp => bofp.BaseOrderId);
+
+            modelBuilder.Entity<BaseOrderFeacnPrefix>()
+                .HasOne(bofp => bofp.FeacnPrefix)
+                .WithMany(fp => fp.BaseOrderFeacnPrefixes)
+                .HasForeignKey(bofp => bofp.FeacnPrefixId);
+
+            modelBuilder.Entity<FEACNPrefix>()
+                .HasOne(fp => fp.FeacnOrder)
+                .WithMany(fo => fo.FeacnPrefixes)
+                .HasForeignKey(fp => fp.FeacnOrderId);
+
+            modelBuilder.Entity<FEACNPrefixException>()
+                .HasOne(e => e.FeacnPrefix)
+                .WithMany(p => p.FeacnPrefixExceptions)
+                .HasForeignKey(e => e.FeacnPrefixId);
 
             modelBuilder.Entity<StopWord>()
                 .HasIndex(sw => sw.Word)
