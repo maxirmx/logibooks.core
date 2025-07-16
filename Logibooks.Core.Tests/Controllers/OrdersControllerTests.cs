@@ -116,8 +116,12 @@ public class OrdersControllerTests
         SetCurrentUserId(1);
         var register = new Register { Id = 1, FileName = "r.xlsx" };
         var order = new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "A" };
+        var sw = new StopWord { Id = 5, Word = "bad" };
+        var link = new BaseOrderStopWord { BaseOrderId = 1, StopWordId = 5, BaseOrder = order, StopWord = sw };
         _dbContext.Registers.Add(register);
         _dbContext.Orders.Add(order);
+        _dbContext.StopWords.Add(sw);
+        _dbContext.Add(link);
         await _dbContext.SaveChangesAsync();
 
         var result = await _controller.GetOrder(1);
@@ -125,6 +129,8 @@ public class OrdersControllerTests
         Assert.That(result.Value, Is.Not.Null);
         Assert.That(result.Value, Is.InstanceOf<OrderViewItem>());
         Assert.That(result.Value!.Id, Is.EqualTo(1));
+        Assert.That(result.Value.StopWords.Count, Is.EqualTo(1));
+        Assert.That(result.Value.StopWords.First().Word, Is.EqualTo("bad"));
     }
 
     [Test]
@@ -181,6 +187,28 @@ public class OrdersControllerTests
 
         Assert.That(pr!.Items.Count(), Is.EqualTo(1));
         Assert.That(pr.Items.First().Id, Is.EqualTo(3));
+    }
+
+    [Test]
+    public async Task GetOrders_ReturnsStopWords()
+    {
+        SetCurrentUserId(1);
+        var reg = new Register { Id = 1, FileName = "r.xlsx" };
+        var sw = new StopWord { Id = 7, Word = "foo" };
+        var o1 = new WbrOrder { Id = 10, RegisterId = 1, StatusId = 1 };
+        var link = new BaseOrderStopWord { BaseOrderId = 10, StopWordId = 7, BaseOrder = o1, StopWord = sw };
+        _dbContext.Registers.Add(reg);
+        _dbContext.StopWords.Add(sw);
+        _dbContext.Orders.Add(o1);
+        _dbContext.Add(link);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.GetOrders(registerId: 1);
+        var ok = result.Result as OkObjectResult;
+        var pr = ok!.Value as PagedResult<OrderViewItem>;
+
+        Assert.That(pr!.Items.First().StopWords.Count, Is.EqualTo(1));
+        Assert.That(pr.Items.First().StopWords.First().Word, Is.EqualTo("foo"));
     }
 
     [Test]
