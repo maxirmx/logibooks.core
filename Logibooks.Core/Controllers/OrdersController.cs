@@ -65,7 +65,10 @@ public class OrdersController(
             return _403();
         }
 
-        var order = await _db.Orders.AsNoTracking().FirstOrDefaultAsync(o => o.Id == id);
+        var order = await _db.Orders.AsNoTracking()
+            .Include(o => o.BaseOrderStopWords)
+                .ThenInclude(bosw => bosw.StopWord)
+            .FirstOrDefaultAsync(o => o.Id == id);
         if (order == null)
         {
             _logger.LogDebug("GetOrder returning '404 Not Found'");
@@ -154,7 +157,10 @@ public class OrdersController(
             return _403();
         }
 
-        IQueryable<BaseOrder> query = _db.Orders.AsNoTracking().Where(o => o.RegisterId == registerId);
+        IQueryable<BaseOrder> query = _db.Orders.AsNoTracking()
+            .Include(o => o.BaseOrderStopWords)
+                .ThenInclude(bosw => bosw.StopWord)
+            .Where(o => o.RegisterId == registerId);
 
         if (statusId != null)
         {

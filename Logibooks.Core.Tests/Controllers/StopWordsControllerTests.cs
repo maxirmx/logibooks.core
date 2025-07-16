@@ -110,7 +110,7 @@ public class StopWordsControllerTests
     public async Task GetStopWords_ReturnsAll_ForLogist()
     {
         SetCurrentUserId(2);
-        _dbContext.StopWord.AddRange(new StopWord { Id = 1, Word = "a" }, new StopWord { Id = 2, Word = "b" });
+        _dbContext.StopWords.AddRange(new StopWord { Id = 1, Word = "a" }, new StopWord { Id = 2, Word = "b" });
         await _dbContext.SaveChangesAsync();
 
         var result = await _controller.GetStopWords();
@@ -157,7 +157,7 @@ public class StopWordsControllerTests
         var reg = new Register { Id = 1, FileName = "r" };
         var order = new WbrOrder { Id = 1, RegisterId = 1 };
         var link = new BaseOrderStopWord { BaseOrderId = 1, StopWordId = 5, BaseOrder = order, StopWord = word };
-        _dbContext.StopWord.Add(word);
+        _dbContext.StopWords.Add(word);
         _dbContext.Registers.Add(reg);
         _dbContext.Orders.Add(order);
         _dbContext.Add(link);
@@ -167,7 +167,7 @@ public class StopWordsControllerTests
 
         Assert.That(result, Is.TypeOf<NoContentResult>());
         // Verify the link is also deleted
-        Assert.That(_dbContext.StopWord.Find(5), Is.Null);
+        Assert.That(_dbContext.StopWords.Find(5), Is.Null);
         Assert.That(_dbContext.Set<BaseOrderStopWord>().Any(x => x.StopWordId == 5), Is.False);
     }
 
@@ -176,7 +176,7 @@ public class StopWordsControllerTests
     {
         SetCurrentUserId(2);
         var word = new StopWord { Id = 6, Word = "find" };
-        _dbContext.StopWord.Add(word);
+        _dbContext.StopWords.Add(word);
         await _dbContext.SaveChangesAsync();
 
         var result = await _controller.GetStopWord(6);
@@ -190,7 +190,7 @@ public class StopWordsControllerTests
     {
         SetCurrentUserId(1); // Admin
         var existing = new StopWord { Id = 10, Word = "duplicate", ExactMatch = false };
-        _dbContext.StopWord.Add(existing);
+        _dbContext.StopWords.Add(existing);
         await _dbContext.SaveChangesAsync();
 
         var dto = new StopWordDto { Word = "duplicate", ExactMatch = false };
@@ -207,7 +207,7 @@ public class StopWordsControllerTests
         SetCurrentUserId(1); // Admin
         var word1 = new StopWord { Id = 11, Word = "first", ExactMatch = false };
         var word2 = new StopWord { Id = 12, Word = "second", ExactMatch = false };
-        _dbContext.StopWord.AddRange(word1, word2);
+        _dbContext.StopWords.AddRange(word1, word2);
         await _dbContext.SaveChangesAsync();
 
         var dto = new StopWordDto { Id = 11, Word = "second", ExactMatch = false };
@@ -224,7 +224,7 @@ public class StopWordsControllerTests
         // Arrange: create a stop word as admin
         SetCurrentUserId(1);
         var word = new StopWord { Id = 100, Word = "editme", ExactMatch = false };
-        _dbContext.StopWord.Add(word);
+        _dbContext.StopWords.Add(word);
         await _dbContext.SaveChangesAsync();
 
         // Act: try to update as non-admin
@@ -244,7 +244,7 @@ public class StopWordsControllerTests
         // Arrange: create a stop word as admin
         SetCurrentUserId(1);
         var word = new StopWord { Id = 101, Word = "deleteme", ExactMatch = false };
-        _dbContext.StopWord.Add(word);
+        _dbContext.StopWords.Add(word);
         await _dbContext.SaveChangesAsync();
 
         // Act: try to delete as non-admin

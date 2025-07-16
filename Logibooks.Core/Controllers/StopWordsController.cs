@@ -44,7 +44,7 @@ public class StopWordsController(
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<StopWordDto>))]
     public async Task<ActionResult<IEnumerable<StopWordDto>>> GetStopWords()
     {
-        var words = await _db.StopWord.AsNoTracking().OrderBy(w => w.Id).ToListAsync();
+        var words = await _db.StopWords.AsNoTracking().OrderBy(w => w.Id).ToListAsync();
         return words.Select(w => new StopWordDto(w)).ToList();
     }
 
@@ -53,7 +53,7 @@ public class StopWordsController(
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
     public async Task<ActionResult<StopWordDto>> GetStopWord(int id)
     {
-        var word = await _db.StopWord.AsNoTracking().FirstOrDefaultAsync(w => w.Id == id);
+        var word = await _db.StopWords.AsNoTracking().FirstOrDefaultAsync(w => w.Id == id);
         return word == null ? _404Object(id) : new StopWordDto(word);
     }
 
@@ -64,12 +64,12 @@ public class StopWordsController(
     public async Task<ActionResult<StopWordDto>> PostStopWord(StopWordDto dto)
     {
         if (!await _db.CheckAdmin(_curUserId)) return _403();
-        if (await _db.StopWord.AnyAsync(sw => sw.Word.ToLower() == dto.Word.ToLower()))
+        if (await _db.StopWords.AnyAsync(sw => sw.Word.ToLower() == dto.Word.ToLower()))
         {
             return _409StopWord(dto.Word);
         }
         var sw = dto.ToModel();
-        _db.StopWord.Add(sw);
+        _db.StopWords.Add(sw);
         try
         {
             await _db.SaveChangesAsync();
@@ -92,10 +92,10 @@ public class StopWordsController(
     {
         if (!await _db.CheckAdmin(_curUserId)) return _403();
         if (id != dto.Id) return BadRequest();
-        var sw = await _db.StopWord.FindAsync(id);
+        var sw = await _db.StopWords.FindAsync(id);
         if (sw == null) return _404Object(id);
         if (!sw.Word.Equals(dto.Word, StringComparison.OrdinalIgnoreCase) &&
-            await _db.StopWord.AnyAsync(w => w.Word.ToLower() == dto.Word.ToLower()))
+            await _db.StopWords.AnyAsync(w => w.Word.ToLower() == dto.Word.ToLower()))
         {
             return _409StopWord(dto.Word);
         }
@@ -122,10 +122,10 @@ public class StopWordsController(
     public async Task<IActionResult> DeleteStopWord(int id)
     {
         if (!await _db.CheckAdmin(_curUserId)) return _403();
-        var sw = await _db.StopWord.FindAsync(id);
+        var sw = await _db.StopWords.FindAsync(id);
         if (sw == null) return _404Object(id);
 
-        _db.StopWord.Remove(sw);
+        _db.StopWords.Remove(sw);
         await _db.SaveChangesAsync();
         return NoContent();
     }
