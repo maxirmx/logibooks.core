@@ -129,8 +129,8 @@ public class OrdersControllerTests
         Assert.That(result.Value, Is.Not.Null);
         Assert.That(result.Value, Is.InstanceOf<OrderViewItem>());
         Assert.That(result.Value!.Id, Is.EqualTo(1));
-        Assert.That(result.Value.StopWords.Count, Is.EqualTo(1));
-        Assert.That(result.Value.StopWords.First().Word, Is.EqualTo("bad"));
+        Assert.That(result.Value.StopWordIds.Count, Is.EqualTo(1));
+        Assert.That(result.Value.StopWordIds.First(), Is.EqualTo(5));
     }
 
     [Test]
@@ -207,8 +207,8 @@ public class OrdersControllerTests
         var ok = result.Result as OkObjectResult;
         var pr = ok!.Value as PagedResult<OrderViewItem>;
 
-        Assert.That(pr!.Items.First().StopWords.Count, Is.EqualTo(1));
-        Assert.That(pr.Items.First().StopWords.First().Word, Is.EqualTo("foo"));
+        Assert.That(pr!.Items.First().StopWordIds.Count, Is.EqualTo(1));
+        Assert.That(pr.Items.First().StopWordIds.First(), Is.EqualTo(7));
     }
 
     [Test]

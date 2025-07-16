@@ -67,7 +67,6 @@ public class OrdersController(
 
         var order = await _db.Orders.AsNoTracking()
             .Include(o => o.BaseOrderStopWords)
-                .ThenInclude(bosw => bosw.StopWord)
             .FirstOrDefaultAsync(o => o.Id == id);
         if (order == null)
         {
@@ -159,7 +158,6 @@ public class OrdersController(
 
         IQueryable<BaseOrder> query = _db.Orders.AsNoTracking()
             .Include(o => o.BaseOrderStopWords)
-                .ThenInclude(bosw => bosw.StopWord)
             .Where(o => o.RegisterId == registerId);
 
         if (statusId != null)

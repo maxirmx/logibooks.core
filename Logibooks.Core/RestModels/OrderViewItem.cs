@@ -53,7 +53,8 @@ public class OrderViewItem
     public string? PassportNumber { get; set; }
     public string? PostingNumber { get; set; }
     public string? OzonId { get; set; }
-    public ICollection<StopWordDto> StopWords { get; set; } = new List<StopWordDto>();
+    public List<int> StopWordIds { get; set; } = new();
+
     public OrderViewItem(BaseOrder order)
     {
         ArgumentNullException.ThrowIfNull(order);
@@ -86,9 +87,9 @@ public class OrderViewItem
             OzonId = ozon.OzonId;
         }
 
-        StopWords = order.BaseOrderStopWords?
-            .Select(bosw => new StopWordDto(bosw.StopWord))
-            .ToList() ?? new List<StopWordDto>();
+        StopWordIds = order.BaseOrderStopWords?
+            .Select(bosw => bosw.StopWordId)
+            .ToList() ?? new List<int>();
     }
 
     public override string ToString()
