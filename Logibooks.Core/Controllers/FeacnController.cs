@@ -56,32 +56,59 @@ public class FeacnController(
 
     [HttpGet("orders")]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<FeacnOrderDto>))]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(ErrMessage))]
     public async Task<ActionResult<IEnumerable<FeacnOrderDto>>> GetAllOrders()
     {
-        var orders = await FetchAndConvertAsync(_db.FEACNOrders, null, o => new FeacnOrderDto(o));
-        return orders;
+        try
+        {
+            var orders = await FetchAndConvertAsync(_db.FEACNOrders, null, o => new FeacnOrderDto(o));
+            return orders;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "GetAllOrders returning '500 Internal Server Error'");
+            return _500UploadFeacn();
+        }
     }
 
     [HttpGet("orders/{orderId}/prefixes")]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<FeacnPrefixDto>))]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(ErrMessage))]
     public async Task<ActionResult<IEnumerable<FeacnPrefixDto>>> GetPrefixes(int orderId)
     {
-        var prefixes = await FetchAndConvertAsync(
-            _db.FEACNPrefixes,
-            p => p.FeacnOrderId == orderId,
-            p => new FeacnPrefixDto(p));
-        return prefixes;
+        try
+        {
+            var prefixes = await FetchAndConvertAsync(
+                _db.FEACNPrefixes,
+                p => p.FeacnOrderId == orderId,
+                p => new FeacnPrefixDto(p));
+            return prefixes;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "GetPrefixes returning '500 Internal Server Error'");
+            return _500UploadFeacn();
+        }
     }
 
     [HttpGet("prefixes/{prefixId}/exceptions")]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<FeacnPrefixExceptionDto>))]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(ErrMessage))]
     public async Task<ActionResult<IEnumerable<FeacnPrefixExceptionDto>>> GetPrefixException(int prefixId)
     {
-        var exceptions = await FetchAndConvertAsync(
-            _db.FEACNPrefixExceptions,
-            e => e.FeacnPrefixId == prefixId,
-            e => new FeacnPrefixExceptionDto(e));
-        return exceptions;
+        try
+        {
+            var exceptions = await FetchAndConvertAsync(
+                _db.FEACNPrefixExceptions,
+                e => e.FeacnPrefixId == prefixId,
+                e => new FeacnPrefixExceptionDto(e));
+            return exceptions;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "GetPrefixException returning '500 Internal Server Error'");
+            return _500UploadFeacn();
+        }
     }
 
     [HttpPost("update")]
