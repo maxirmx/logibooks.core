@@ -89,7 +89,7 @@ public class OrderViewItem
 
         StopWordIds = order.BaseOrderStopWords?
             .Select(bosw => bosw.StopWordId)
-            .ToList() ?? new List<int>();
+            .ToList() ?? new();
     }
 
     public override string ToString()
