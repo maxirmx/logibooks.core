@@ -25,6 +25,7 @@
 
 using System;
 using System.Text.Json;
+using System.Linq;
 using Logibooks.Core.Models;
 using Logibooks.Core.Settings;
 
@@ -52,6 +53,7 @@ public class OrderViewItem
     public string? PassportNumber { get; set; }
     public string? PostingNumber { get; set; }
     public string? OzonId { get; set; }
+    public ICollection<StopWordDto> StopWords { get; set; } = new List<StopWordDto>();
     public OrderViewItem(BaseOrder order)
     {
         ArgumentNullException.ThrowIfNull(order);
@@ -82,6 +84,13 @@ public class OrderViewItem
         {
             PostingNumber = ozon.PostingNumber;
             OzonId = ozon.OzonId;
+        }
+
+        if (order.BaseOrderStopWords?.Any() == true)
+        {
+            StopWords = order.BaseOrderStopWords
+                .Select(bosw => new StopWordDto(bosw.StopWord))
+                .ToList();
         }
     }
 
