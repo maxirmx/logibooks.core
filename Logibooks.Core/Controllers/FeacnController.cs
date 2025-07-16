@@ -40,34 +40,48 @@ public class FeacnController(
         }
     }
 
+    private async Task<List<TDto>> FetchAndConvertAsync<TEntity, TDto>(
+        IQueryable<TEntity> query,
+        Expression<Func<TEntity, bool>>? filter,
+        Func<TEntity, TDto> convertToDto)
+        where TEntity : class
+    {
+        if (filter != null)
+        {
+            query = query.Where(filter);
+        }
+        var entities = await query.AsNoTracking().OrderBy(e => EF.Property<object>(e, "Id")).ToListAsync();
+        return entities.Select(convertToDto).ToList();
+    }
+
     [HttpGet("orders")]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<FeacnOrderDto>))]
     public async Task<ActionResult<IEnumerable<FeacnOrderDto>>> GetAllOrders()
     {
-        var orders = await _db.FEACNOrders.AsNoTracking().OrderBy(o => o.Id).ToListAsync();
-        return orders.Select(o => new FeacnOrderDto(o)).ToList();
+        var orders = await FetchAndConvertAsync(_db.FEACNOrders, null, o => new FeacnOrderDto(o));
+        return orders;
     }
 
     [HttpGet("orders/{orderId}/prefixes")]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<FeacnPrefixDto>))]
     public async Task<ActionResult<IEnumerable<FeacnPrefixDto>>> GetPrefixes(int orderId)
     {
-        var prefixes = await _db.FEACNPrefixes.AsNoTracking()
-            .Where(p => p.FeacnOrderId == orderId)
-            .OrderBy(p => p.Id)
-            .ToListAsync();
-        return prefixes.Select(p => new FeacnPrefixDto(p)).ToList();
+        var prefixes = await FetchAndConvertAsync(
+            _db.FEACNPrefixes,
+            p => p.FeacnOrderId == orderId,
+            p => new FeacnPrefixDto(p));
+        return prefixes;
     }
 
     [HttpGet("prefixes/{prefixId}/exceptions")]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<FeacnPrefixExceptionDto>))]
     public async Task<ActionResult<IEnumerable<FeacnPrefixExceptionDto>>> GetPrefixException(int prefixId)
     {
-        var exceptions = await _db.FEACNPrefixExceptions.AsNoTracking()
-            .Where(e => e.FeacnPrefixId == prefixId)
-            .OrderBy(e => e.Id)
-            .ToListAsync();
-        return exceptions.Select(e => new FeacnPrefixExceptionDto(e)).ToList();
+        var exceptions = await FetchAndConvertAsync(
+            _db.FEACNPrefixExceptions,
+            e => e.FeacnPrefixId == prefixId,
+            e => new FeacnPrefixExceptionDto(e));
+        return exceptions;
     }
 
     [HttpPost("update")]
