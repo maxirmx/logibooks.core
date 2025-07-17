@@ -9,7 +9,7 @@ public sealed class MorphSearchService : IMorphSearchService
     private readonly Regex _tokenRegex = new("\\p{L}+", RegexOptions.Compiled);
     private readonly Dictionary<string, HashSet<int>> _lemmaToIds = new(StringComparer.OrdinalIgnoreCase);
 
-    public Task<IReadOnlyList<string>> InitializeAsync(IEnumerable<SearchKeyword> keywords, CancellationToken cancellationToken = default)
+    public Task<IReadOnlyList<string>> InitializeAsync(IEnumerable<SearchKeyword> keywords)
     {
         _lemmaToIds.Clear();
         var list = keywords.ToList();
@@ -29,7 +29,7 @@ public sealed class MorphSearchService : IMorphSearchService
         return Task.FromResult<IReadOnlyList<string>>(result);
     }
 
-    public Task<IReadOnlyCollection<int>> CheckTextAsync(string text, CancellationToken cancellationToken = default)
+    public Task<IReadOnlyCollection<int>> CheckTextAsync(string text)
     {
         var tokens = _tokenRegex.Matches(text).Select(m => m.Value);
         var lemmas = _morph.Parse(tokens);
