@@ -12,7 +12,7 @@
 // documentation and/or other materials provided with the distribution.
 //
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-// ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+// 'AS IS' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
 // TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
 // PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR CONTRIBUTORS
 // BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -29,11 +29,15 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Logibooks.Core.Services;
 
-public class OrderValidationService(AppDbContext db) : IOrderValidationService
+public class OrderValidationService(AppDbContext db, IMorphologySearchService morphService) : IOrderValidationService
 {
     private readonly AppDbContext _db = db;
+    private readonly IMorphologySearchService _morphService = morphService;
 
-    public async Task ValidateAsync(BaseOrder order, CancellationToken cancellationToken = default)
+    public async Task ValidateAsync(
+        BaseOrder order,
+        MorphologyContext? context = null,
+        CancellationToken cancellationToken = default)
     {
         // remove existing links for this order
         var existing = _db.Set<BaseOrderStopWord>().Where(l => l.BaseOrderId == order.Id);
@@ -43,17 +47,25 @@ public class OrderValidationService(AppDbContext db) : IOrderValidationService
 
         var productName = order.ProductName ?? string.Empty;
 
-        var words = await _db.StopWords.AsNoTracking()
-            .Where(sw => sw.ExactMatch)
-            .ToListAsync(cancellationToken);
+        // Use database-appropriate case-insensitive matching
+        var matchingWords = await GetMatchingStopWords(productName, cancellationToken);
 
         var links = new List<BaseOrderStopWord>();
-        foreach (var sw in words)
+        var existingStopWordIds = new HashSet<int>();
+
+        foreach (var sw in matchingWords)
         {
-            if (!string.IsNullOrEmpty(sw.Word) &&
-                productName.Contains(sw.Word, StringComparison.OrdinalIgnoreCase))
+            links.Add(new BaseOrderStopWord { BaseOrderId = order.Id, StopWordId = sw.Id });
+            existingStopWordIds.Add(sw.Id);
+        }
+
+        if (context != null)
+        {
+            var ids = _morphService.CheckText(context, productName);
+            foreach (var id in ids)
             {
-                links.Add(new BaseOrderStopWord { BaseOrderId = order.Id, StopWordId = sw.Id });
+                if (existingStopWordIds.Add(id)) // HashSet.Add returns false if already exists
+                    links.Add(new BaseOrderStopWord { BaseOrderId = order.Id, StopWordId = id });
             }
         }
 
@@ -64,9 +76,35 @@ public class OrderValidationService(AppDbContext db) : IOrderValidationService
         }
         else
         {
-            order.CheckStatusId = (int)OrderCheckStatusCode.NoIssues; // no stop words found, set to normal status
+            order.CheckStatusId = (int)OrderCheckStatusCode.NoIssues; 
         }
 
         await _db.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task<List<StopWord>> GetMatchingStopWords(string productName, CancellationToken cancellationToken)
+    {
+        var isPostgreSQL = _db.Database.ProviderName == "Npgsql.EntityFrameworkCore.PostgreSQL";
+
+        if (isPostgreSQL)
+        {
+            // Use PostgreSQL's case-insensitive ILike for optimal performance
+            // Check if productName contains the stop word
+            return await _db.StopWords.AsNoTracking()
+                .Where(sw => sw.ExactMatch && !string.IsNullOrEmpty(sw.Word) && 
+                             EF.Functions.ILike(productName, $"%{sw.Word}%"))
+                .ToListAsync(cancellationToken);
+        }
+        else
+        {
+            // Fallback for other providers (like InMemory for tests)
+            // Load all exact match stop words and filter in memory for case-insensitive matching
+            var allWords = await _db.StopWords.AsNoTracking()
+                .Where(sw => sw.ExactMatch && !string.IsNullOrEmpty(sw.Word))
+                .ToListAsync(cancellationToken);
+
+            return allWords.Where(sw => productName.Contains(sw.Word, StringComparison.OrdinalIgnoreCase))
+                          .ToList();
+        }
     }
 }

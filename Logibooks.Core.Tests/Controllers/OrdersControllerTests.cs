@@ -12,7 +12,7 @@
 // documentation and/or other materials provided with the distribution.
 //
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-// ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+// 'AS IS' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
 // TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
 // PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR CONTRIBUTORS
 // BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -53,6 +53,7 @@ public class OrdersControllerTests
     private AppDbContext _dbContext;
     private Mock<IHttpContextAccessor> _mockHttpContextAccessor;
     private Mock<IOrderValidationService> _mockValidationService;
+    private IMorphologySearchService _morphologyService;
     private ILogger<OrdersController> _logger;
     private OrdersController _controller;
     private Role _logistRole;
@@ -86,6 +87,7 @@ public class OrdersControllerTests
         _mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
         _logger = new LoggerFactory().CreateLogger<OrdersController>();
         _mockValidationService = new Mock<IOrderValidationService>();
+        _morphologyService = new MorphologySearchService();
         _controller = CreateController();
     }
 
@@ -99,7 +101,7 @@ public class OrdersControllerTests
     private OrdersController CreateController()
     {
         var mockMapper = new Mock<IMapper>();
-        return new OrdersController(_mockHttpContextAccessor.Object, _dbContext, _logger, mockMapper.Object, _mockValidationService.Object);
+        return new OrdersController(_mockHttpContextAccessor.Object, _dbContext, _logger, mockMapper.Object, _mockValidationService.Object, _morphologyService);
     }
 
     private void SetCurrentUserId(int id)
@@ -156,8 +158,14 @@ public class OrdersControllerTests
                 // Add other properties as needed for testing
             });
 
-        // Create a new controller instance with the properly configured mock
-        _controller = new OrdersController(_mockHttpContextAccessor.Object, _dbContext, _logger, mockMapper.Object, _mockValidationService.Object);
+        _controller = new OrdersController(
+            _mockHttpContextAccessor.Object,
+            _dbContext,
+            _logger,
+            mockMapper.Object,
+            _mockValidationService.Object,
+            _morphologyService // Add this parameter
+        );
 
         var result = await _controller.UpdateOrder(2, updated);
 
@@ -561,7 +569,7 @@ public class OrdersControllerTests
 
         var result = await _controller.ValidateOrder(10);
 
-        _mockValidationService.Verify(s => s.ValidateAsync(order, It.IsAny<CancellationToken>()), Times.Once);
+        _mockValidationService.Verify(s => s.ValidateAsync(order, It.IsAny<MorphologyContext?>(), It.IsAny<CancellationToken>()), Times.Once);
         Assert.That(result, Is.TypeOf<NoContentResult>());
     }
 
@@ -571,7 +579,7 @@ public class OrdersControllerTests
         SetCurrentUserId(99);
         var result = await _controller.ValidateOrder(1);
 
-        _mockValidationService.Verify(s => s.ValidateAsync(It.IsAny<BaseOrder>(), It.IsAny<CancellationToken>()), Times.Never);
+        _mockValidationService.Verify(s => s.ValidateAsync(It.IsAny<BaseOrder>(), It.IsAny<MorphologyContext?>(), It.IsAny<CancellationToken>()), Times.Never);
         Assert.That(result, Is.TypeOf<ObjectResult>());
         var obj = result as ObjectResult;
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
@@ -586,7 +594,7 @@ public class OrdersControllerTests
         Assert.That(result, Is.TypeOf<ObjectResult>());
         var obj = result as ObjectResult;
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
-        _mockValidationService.Verify(s => s.ValidateAsync(It.IsAny<BaseOrder>(), It.IsAny<CancellationToken>()), Times.Never);
+        _mockValidationService.Verify(s => s.ValidateAsync(It.IsAny<BaseOrder>(), It.IsAny<MorphologyContext?>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Test]
@@ -599,7 +607,7 @@ public class OrdersControllerTests
         _dbContext.Orders.Add(order);
         await _dbContext.SaveChangesAsync();
 
-        _mockValidationService.Setup(s => s.ValidateAsync(order, It.IsAny<CancellationToken>())).ThrowsAsync(new Exception());
+        _mockValidationService.Setup(s => s.ValidateAsync(order, It.IsAny<MorphologyContext?>(), It.IsAny<CancellationToken>())).ThrowsAsync(new Exception());
 
         var result = await _controller.ValidateOrder(20);
 
