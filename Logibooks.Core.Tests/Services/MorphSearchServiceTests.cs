@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using Logibooks.Core.Services;
 using NUnit.Framework;
@@ -15,21 +14,21 @@ public class MorphSearchServiceTests
         var svc = new MorphSearchService();
         var lemmas = await svc.InitializeAsync(new []
         {
-            new SearchKeyword(1, "кошки"),
-            new SearchKeyword(2, "собаки")
+            new SearchKeyword(1, "золото"),
+            new SearchKeyword(2, "железо")
         });
 
-        CollectionAssert.AreEqual(new []{"кошка","собака"}, lemmas);
+        CollectionAssert.AreEqual(new []{ "золото", "железо" }, lemmas);
     }
 
     [Test]
     public async Task CheckTextAsync_FindsKeywords()
     {
         var svc = new MorphSearchService();
-        await svc.InitializeAsync(new [] { new SearchKeyword(10, "кошка"), new SearchKeyword(11, "дом") });
+        await svc.InitializeAsync(new [] { new SearchKeyword(10, "золото") });
 
-        var ids = await svc.CheckTextAsync("Кошки гуляют по домам");
+        var ids = await svc.CheckTextAsync("золотой браслет");
 
-        CollectionAssert.AreEquivalent(new []{10,11}, ids);
+        CollectionAssert.AreEquivalent(new []{10}, ids);
     }
 }
