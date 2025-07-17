@@ -49,11 +49,11 @@ public class RegisterValidationServiceTests
         await ctx.SaveChangesAsync();
 
         var mock = new Mock<IOrderValidationService>();
-        mock.Setup(m => m.ValidateAsync(It.IsAny<BaseOrder>(), It.IsAny<CancellationToken>()))
+        mock.Setup(m => m.ValidateAsync(It.IsAny<BaseOrder>(), It.IsAny<MorphologyContext?>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
         var logger = new LoggerFactory().CreateLogger<RegisterValidationService>();
         var scopeFactory = CreateMockScopeFactory(ctx, mock.Object);
-        var svc = new RegisterValidationService(ctx, scopeFactory, logger);
+        var svc = new RegisterValidationService(ctx, scopeFactory, logger, new MorphologySearchService());
 
         var handle = await svc.StartValidationAsync(1);
         await Task.Delay(100); // Give more time for background task
@@ -62,7 +62,7 @@ public class RegisterValidationServiceTests
         Assert.That(progress.Total, Is.EqualTo(-1));
         Assert.That(progress.Processed, Is.EqualTo(-1));
         Assert.That(progress.Finished, Is.True);
-        mock.Verify(m => m.ValidateAsync(It.IsAny<BaseOrder>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
+        mock.Verify(m => m.ValidateAsync(It.IsAny<BaseOrder>(), It.IsAny<MorphologyContext?>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
     }
 
     [Test]
@@ -77,11 +77,11 @@ public class RegisterValidationServiceTests
 
         var tcs = new TaskCompletionSource();
         var mock = new Mock<IOrderValidationService>();
-        mock.Setup(m => m.ValidateAsync(It.IsAny<BaseOrder>(), It.IsAny<CancellationToken>()))
+        mock.Setup(m => m.ValidateAsync(It.IsAny<BaseOrder>(), It.IsAny<MorphologyContext?>(), It.IsAny<CancellationToken>()))
             .Returns(async () => { await Task.Delay(20); tcs.TrySetResult(); });
         var logger = new LoggerFactory().CreateLogger<RegisterValidationService>();
         var scopeFactory = CreateMockScopeFactory(ctx, mock.Object);
-        var svc = new RegisterValidationService(ctx, scopeFactory, logger);
+        var svc = new RegisterValidationService(ctx, scopeFactory, logger, new MorphologySearchService());
 
         var handle = await svc.StartValidationAsync(2);
         svc.CancelValidation(handle);
@@ -103,7 +103,7 @@ public class RegisterValidationServiceTests
         var mock = new Mock<IOrderValidationService>();
         var logger = new LoggerFactory().CreateLogger<RegisterValidationService>();
         var scopeFactory = CreateMockScopeFactory(ctx, mock.Object);
-        var svc = new RegisterValidationService(ctx, scopeFactory, logger);
+        var svc = new RegisterValidationService(ctx, scopeFactory, logger, new MorphologySearchService());
 
         var h1 = await svc.StartValidationAsync(3);
         var h2 = await svc.StartValidationAsync(3);
@@ -129,7 +129,7 @@ public class RegisterValidationServiceTests
         mockScopeFactory.Setup(f => f.CreateScope()).Returns(mockScope.Object);
 
         var logger = new LoggerFactory().CreateLogger<RegisterValidationService>();
-        var svc = new RegisterValidationService(ctx, mockScopeFactory.Object, logger);
+        var svc = new RegisterValidationService(ctx, mockScopeFactory.Object, logger, new MorphologySearchService());
 
         var handle = await svc.StartValidationAsync(10);
 

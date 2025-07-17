@@ -23,44 +23,18 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-using Quartz;
-
 namespace Logibooks.Core.Services;
 
-public class UpdateCountriesJob(IUpdateCountriesService service, ILogger<UpdateCountriesJob> logger) : IJob
+using System.Collections.Generic;
+using Logibooks.Core.Models;
+
+public interface IMorphologySearchService
 {
-    private readonly IUpdateCountriesService _service = service;
-    private readonly ILogger<UpdateCountriesJob> _logger = logger;
+    MorphologyContext InitializeContext(IEnumerable<StopWord> stopWords);
+    IEnumerable<int> CheckText(MorphologyContext context, string text);
+}
 
-    private static CancellationTokenSource? _prev;
-    private static readonly object _lock = new();
-
-    public async Task Execute(IJobExecutionContext context)
-    {
-        CancellationTokenSource cts;
-        lock (_lock)
-        {
-            _prev?.Cancel();
-            cts = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken);
-            _prev = cts;
-        }
-
-        _logger.LogInformation("Executing UpdateCountriesJob");
-        try
-        {
-            await _service.RunAsync(cts.Token);
-        }
-        catch (OperationCanceledException)
-        {
-            _logger.LogInformation("UpdateCountriesJob was cancelled");
-        }
-        finally
-        {
-            cts.Dispose();
-            lock (_lock)
-            {
-                if (_prev == cts) _prev = null;
-            }
-        }
-    }
+public class MorphologyContext
+{
+    internal Dictionary<Pullenti.Semantic.Utils.DerivateGroup, HashSet<int>> Groups { get; } = new();
 }
