@@ -55,6 +55,7 @@ builder.Services
     .AddScoped<IUpdateCountriesService, UpdateCountriesService>()
     .AddScoped<IOrderValidationService, OrderValidationService>()
     .AddScoped<IRegisterValidationService, RegisterValidationService>()
+    .AddSingleton<IMorphologySearchService, MorphologySearchService>()
     .AddHttpContextAccessor()
     .AddControllers();
 
