@@ -8,6 +8,7 @@ using Logibooks.Core.Models;
 
 public class MorphologySearchService : IMorphologySearchService
 {
+    private static readonly Regex WordRegex = new Regex(@"\p{L}+", RegexOptions.Compiled);
     static MorphologySearchService()
     {
         MorphologyService.Initialize(Pullenti.Morph.MorphLang.RU);
@@ -40,7 +41,7 @@ public class MorphologySearchService : IMorphologySearchService
     public IEnumerable<int> CheckText(MorphologyContext context, string text)
     {
         var result = new HashSet<int>();
-        foreach (Match m in Regex.Matches(text ?? string.Empty, @"\p{L}+"))
+        foreach (Match m in WordRegex.Matches(text ?? string.Empty))
         {
             var tokenGroups = DerivateService.FindDerivates(m.Value.ToUpperInvariant(), true, null);
             if (tokenGroups == null)
