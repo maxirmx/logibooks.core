@@ -31,7 +31,7 @@ public sealed class MorphSearchService : IMorphSearchService
 
     public Task<IReadOnlyCollection<int>> CheckTextAsync(string text, CancellationToken cancellationToken = default)
     {
-        var tokens = _tokenRegex.Matches(text).Select(m => m.Value).ToArray();
+        var tokens = _tokenRegex.Matches(text).Select(m => m.Value);
         var lemmas = _morph.Parse(tokens);
         var result = new HashSet<int>();
         foreach (var info in lemmas)
