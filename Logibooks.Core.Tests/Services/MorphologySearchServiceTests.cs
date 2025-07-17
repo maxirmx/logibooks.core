@@ -1,3 +1,28 @@
+// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
+// All rights reserved.
+// This file is a part of Logibooks Core application
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions
+// are met:
+// 1. Redistributions of source code must retain the above copyright
+// notice, this list of conditions and the following disclaimer.
+// 2. Redistributions in binary form must reproduce the above copyright
+// notice, this list of conditions and the following disclaimer in the
+// documentation and/or other materials provided with the distribution.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+// 'AS IS' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+// TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+// PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR CONTRIBUTORS
+// BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+// POSSIBILITY OF SUCH DAMAGE.
+
 using NUnit.Framework;
 using System.Linq;
 using Logibooks.Core.Models;
@@ -9,7 +34,9 @@ namespace Logibooks.Core.Tests.Services;
 [TestFixture]
 public class MorphologySearchServiceTests
 {
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
     private MorphologySearchService _service;
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
 
     [SetUp]
     public void Setup()
@@ -21,7 +48,7 @@ public class MorphologySearchServiceTests
     public void CheckText_FindsDerivativeMatch()
     {
         var sw = new StopWord { Id = 1, Word = "золото" };
-        var ctx = _service.InitializeContext(new[] { sw });
+        var ctx = _service.InitializeContext([sw]);
         var res = _service.CheckText(ctx, "золотой браслет и алюминиевый слиток");
         Assert.That(res.Contains(1));
     }
@@ -30,7 +57,7 @@ public class MorphologySearchServiceTests
     public void InitializeContext_HandlesSingleStopWord()
     {
         var sw = new StopWord { Id = 1, Word = "дом" };
-        var ctx = _service.InitializeContext(new[] { sw });
+        var ctx = _service.InitializeContext([sw]);
         
         Assert.That(ctx, Is.Not.Null);
         // Test that context was properly initialized by checking if it can find derivatives
@@ -61,7 +88,7 @@ public class MorphologySearchServiceTests
     [Test]
     public void InitializeContext_HandlesEmptyCollection()
     {
-        var ctx = _service.InitializeContext(new List<StopWord>());
+        var ctx = _service.InitializeContext([]);
         
         Assert.That(ctx, Is.Not.Null);
         // Test empty context by verifying no matches are found
@@ -93,9 +120,9 @@ public class MorphologySearchServiceTests
     public void CheckText_HandlesNullText()
     {
         var sw = new StopWord { Id = 1, Word = "золото" };
-        var ctx = _service.InitializeContext(new[] { sw });
+        var ctx = _service.InitializeContext([sw]);
         
-        var result = _service.CheckText(ctx, null);
+        var result = _service.CheckText(ctx, null!);
         
         Assert.That(result, Is.Not.Null);
         Assert.That(result, Is.Empty);
@@ -105,7 +132,7 @@ public class MorphologySearchServiceTests
     public void CheckText_HandlesEmptyText()
     {
         var sw = new StopWord { Id = 1, Word = "золото" };
-        var ctx = _service.InitializeContext(new[] { sw });
+        var ctx = _service.InitializeContext([sw]);
         
         var result = _service.CheckText(ctx, "");
         
@@ -117,7 +144,7 @@ public class MorphologySearchServiceTests
     public void CheckText_HandlesWhitespaceOnlyText()
     {
         var sw = new StopWord { Id = 1, Word = "золото" };
-        var ctx = _service.InitializeContext(new[] { sw });
+        var ctx = _service.InitializeContext([sw]);
         
         var result = _service.CheckText(ctx, "   \t\n  ");
         
@@ -145,7 +172,7 @@ public class MorphologySearchServiceTests
     public void CheckText_CaseInsensitive()
     {
         var sw = new StopWord { Id = 1, Word = "дом" };
-        var ctx = _service.InitializeContext(new[] { sw });
+        var ctx = _service.InitializeContext([sw]);
         
         var result1 = _service.CheckText(ctx, "большой ДОМ");
         var result2 = _service.CheckText(ctx, "домашний уют");
@@ -160,7 +187,7 @@ public class MorphologySearchServiceTests
     public void CheckText_NoMatchesForUnrelatedText()
     {
         var sw = new StopWord { Id = 1, Word = "золото" };
-        var ctx = _service.InitializeContext(new[] { sw });
+        var ctx = _service.InitializeContext([sw]);
         
         var result = _service.CheckText(ctx, "красивый автомобиль и зелёная трава");
         
@@ -171,7 +198,7 @@ public class MorphologySearchServiceTests
     public void CheckText_HandlesTextWithPunctuation()
     {
         var sw = new StopWord { Id = 1, Word = "дом" };
-        var ctx = _service.InitializeContext(new[] { sw });
+        var ctx = _service.InitializeContext([sw]);
         
         var result = _service.CheckText(ctx, "Это домашний, уютный и тёплый дом!");
         
@@ -182,7 +209,7 @@ public class MorphologySearchServiceTests
     public void CheckText_HandlesMixedLanguages()
     {
         var sw = new StopWord { Id = 1, Word = "дом" };
-        var ctx = _service.InitializeContext(new[] { sw });
+        var ctx = _service.InitializeContext([sw]);
         
         var result = _service.CheckText(ctx, "My beautiful домик is very nice house");
         
@@ -199,7 +226,7 @@ public class MorphologySearchServiceTests
     public void CheckText_MorphologicalDerivatives(string stopWord, string testText, bool shouldMatch)
     {
         var sw = new StopWord { Id = 1, Word = stopWord };
-        var ctx = _service.InitializeContext(new[] { sw });
+        var ctx = _service.InitializeContext([sw]);
         
         var result = _service.CheckText(ctx, testText);
         
@@ -217,7 +244,7 @@ public class MorphologySearchServiceTests
     public void CheckText_ReturnsUniqueIds()
     {
         var sw = new StopWord { Id = 1, Word = "дом" };
-        var ctx = _service.InitializeContext(new[] { sw });
+        var ctx = _service.InitializeContext([sw]);
         
         var result = _service.CheckText(ctx, "домашний дом и домик").ToList();
         
@@ -229,7 +256,7 @@ public class MorphologySearchServiceTests
     public void CheckText_HandlesLongText()
     {
         var sw = new StopWord { Id = 1, Word = "дом" };
-        var ctx = _service.InitializeContext(new[] { sw });
+        var ctx = _service.InitializeContext([sw]);
         
         var longText = string.Join(" ", Enumerable.Repeat("Это очень длинный текст с множеством слов", 100)) 
                       + " и один домашний предмет";
@@ -242,7 +269,7 @@ public class MorphologySearchServiceTests
     [Test]
     public void CheckText_WithEmptyContext()
     {
-        var ctx = _service.InitializeContext(new List<StopWord>());
+        var ctx = _service.InitializeContext([]);
         
         var result = _service.CheckText(ctx, "любой текст с любыми словами");
         
@@ -270,7 +297,7 @@ public class MorphologySearchServiceTests
     public void CheckText_HandlesSpecialCharacters()
     {
         var sw = new StopWord { Id = 1, Word = "дом" };
-        var ctx = _service.InitializeContext(new[] { sw });
+        var ctx = _service.InitializeContext([sw]);
         
         var result = _service.CheckText(ctx, "дом@example.com и домик#123 плюс дом$");
         
@@ -300,7 +327,7 @@ public class MorphologySearchServiceTests
     public void CheckText_FindsExactMatch()
     {
         var sw = new StopWord { Id = 1, Word = "золото" };
-        var ctx = _service.InitializeContext(new[] { sw });
+        var ctx = _service.InitializeContext([sw]);
         
         var result = _service.CheckText(ctx, "чистое золото");
         
@@ -311,7 +338,7 @@ public class MorphologySearchServiceTests
     public void CheckText_HandlesVeryShortWords()
     {
         var sw = new StopWord { Id = 1, Word = "я" };
-        var ctx = _service.InitializeContext(new[] { sw });
+        var ctx = _service.InitializeContext([sw]);
         
         var result = _service.CheckText(ctx, "я иду домой");
         

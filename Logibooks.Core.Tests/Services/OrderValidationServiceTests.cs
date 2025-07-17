@@ -112,7 +112,7 @@ public class OrderValidationServiceTests
         await ctx.SaveChangesAsync();
 
         var morph = new MorphologySearchService();
-        var context = morph.InitializeContext(new[] { sw });
+        var context = morph.InitializeContext([sw]);
         var svc = new OrderValidationService(ctx, morph);
         await svc.ValidateAsync(order, context);
 
@@ -148,7 +148,7 @@ public class OrderValidationServiceTests
         var foundIds = links.Select(l => l.StopWordId).OrderBy(id => id).ToList();
         
         Assert.That(links.Count, Is.EqualTo(2), "Should find exactly 2 matches");
-        Assert.That(foundIds, Is.EquivalentTo(new[] { 10, 20 }), "Should find both exact and morphology matches");
+        Assert.That(foundIds, Is.EquivalentTo([10, 20]), "Should find both exact and morphology matches");
         Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)OrderCheckStatusCode.HasIssues));
     }
 
@@ -178,7 +178,7 @@ public class OrderValidationServiceTests
         // Both stopwords have same root but different ExactMatch flags
         // Both should be found, no deduplication should occur as they have different IDs
         Assert.That(links.Count, Is.EqualTo(2), "Should find both stopword entries");
-        Assert.That(foundIds, Is.EquivalentTo(new[] { 15, 25 }), "Should find both variants");
+        Assert.That(foundIds, Is.EquivalentTo([15, 25]), "Should find both variants");
         Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)OrderCheckStatusCode.HasIssues));
     }
 
@@ -208,7 +208,7 @@ public class OrderValidationServiceTests
         var foundIds = links.Select(l => l.StopWordId).OrderBy(id => id).ToList();
         
         Assert.That(links.Count, Is.EqualTo(2), "Should find exactly 2 morphology matches");
-        Assert.That(foundIds, Is.EquivalentTo(new[] { 50, 60 }), "Should find home and book derivatives");
+        Assert.That(foundIds, Is.EquivalentTo([50, 60]), "Should find home and book derivatives");
         Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)OrderCheckStatusCode.HasIssues));
     }
 
@@ -238,7 +238,7 @@ public class OrderValidationServiceTests
         var foundIds = links.Select(l => l.StopWordId).OrderBy(id => id).ToList();
         
         Assert.That(links.Count, Is.EqualTo(2), "Should find exactly 2 exact matches");
-        Assert.That(foundIds, Is.EquivalentTo(new[] { 80, 90 }), "Should find spam and virus");
+        Assert.That(foundIds, Is.EquivalentTo([80, 90]), "Should find spam and virus");
         Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)OrderCheckStatusCode.HasIssues));
     }
 
@@ -306,7 +306,7 @@ public class OrderValidationServiceTests
         var foundIds = links.Select(l => l.StopWordId).OrderBy(id => id).ToList();
         
         Assert.That(links.Count, Is.EqualTo(3), "Should find exactly 3 matches from large set");
-        Assert.That(foundIds, Is.EquivalentTo(new[] { 250, 350, 360 }), "Should find spam, gold, and home matches");
+        Assert.That(foundIds, Is.EquivalentTo([250, 350, 360]), "Should find spam, gold, and home matches");
         Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)OrderCheckStatusCode.HasIssues));
     }
 
@@ -337,7 +337,7 @@ public class OrderValidationServiceTests
         var foundIds = links.Select(l => l.StopWordId).OrderBy(id => id).ToList();
         
         Assert.That(links.Count, Is.EqualTo(4), "Should find all 4 stopword variants");
-        Assert.That(foundIds, Is.EquivalentTo(new[] { 400, 410, 420, 430 }), "Should find all variants");
+        Assert.That(foundIds, Is.EquivalentTo([400, 410, 420, 430]), "Should find all variants");
         Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)OrderCheckStatusCode.HasIssues));
     }
 
@@ -365,7 +365,7 @@ public class OrderValidationServiceTests
         var foundIds = links.Select(l => l.StopWordId).OrderBy(id => id).ToList();
         
         Assert.That(links.Count, Is.EqualTo(2), "Should find both case-insensitive matches");
-        Assert.That(foundIds, Is.EquivalentTo(new[] { 500, 510 }), "Should handle case variations");
+        Assert.That(foundIds, Is.EquivalentTo([500, 510]), "Should handle case variations");
         Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)OrderCheckStatusCode.HasIssues));
     }
 
