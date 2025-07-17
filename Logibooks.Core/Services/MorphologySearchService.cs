@@ -8,7 +8,7 @@ using Logibooks.Core.Models;
 
 public class MorphologySearchService : IMorphologySearchService
 {
-    private static readonly Regex WordRegex = new Regex(@"\p{L}+", RegexOptions.Compiled);
+    private static readonly Regex WordRegex = new Regex(@"\p{L}+", RegexOptions.Compiled | RegexOptions.CultureInvariant);
     static MorphologySearchService()
     {
         MorphologyService.Initialize(Pullenti.Morph.MorphLang.RU);
