@@ -936,7 +936,7 @@
 									"    pm.response.to.have.status(200);",
 									"});",
 									"",
-									"pm.test(\"Your test name\", function () {",
+									"pm.test(\"RegisterId is correct\", function () {",
 									"    var jsonData = pm.response.json();",
 									"    pm.expect(jsonData.id).to.eql(pm.collectionVariables.get(\"RegisterId\"));",
 									"});",
@@ -959,6 +959,87 @@
 							"path": [
 								"registers",
 								"{{RegisterId}}"
+							]
+						},
+						"description": "This is a GET request and it is used to \"get\" data from an endpoint. There is no request body for a GET request, but you can use query parameters to help specify the resource you want data on (e.g., in this request, we have `id=1`).\n\nA successful GET response will have a `200 OK` status, and should include some kind of response body - for example, HTML web content or JSON data."
+					},
+					"response": []
+				},
+				{
+					"name": "Validate register",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"// Check that the response is JSON",
+									"pm.test(\"Response is JSON\", function () {",
+									"    pm.response.to.be.json;",
+									"});",
+									"",
+									"// Store the 'id' field from the response as a collection variable if it exists and is not empty",
+									"const response = pm.response.json();",
+									"if (response.id && response.id !== '') {",
+									"    pm.collectionVariables.set(\"ValidationRequestGuid\", response.id);",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/registers/{{RegisterId}}/validate",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"registers",
+								"{{RegisterId}}",
+								"validate"
+							]
+						},
+						"description": "This is a GET request and it is used to \"get\" data from an endpoint. There is no request body for a GET request, but you can use query parameters to help specify the resource you want data on (e.g., in this request, we have `id=1`).\n\nA successful GET response will have a `200 OK` status, and should include some kind of response body - for example, HTML web content or JSON data."
+					},
+					"response": []
+				},
+				{
+					"name": "Query validation status",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/registers/validate/{{ValidationRequestGuid}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"registers",
+								"validate",
+								"{{ValidationRequestGuid}}"
 							]
 						},
 						"description": "This is a GET request and it is used to \"get\" data from an endpoint. There is no request body for a GET request, but you can use query parameters to help specify the resource you want data on (e.g., in this request, we have `id=1`).\n\nA successful GET response will have a `200 OK` status, and should include some kind of response body - for example, HTML web content or JSON data."
@@ -1613,6 +1694,10 @@
 		},
 		{
 			"key": "RegisterId",
+			"value": ""
+		},
+		{
+			"key": "ValidationRequestGuid",
 			"value": ""
 		}
 	]
