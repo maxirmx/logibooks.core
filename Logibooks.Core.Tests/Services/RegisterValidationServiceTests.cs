@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
 using NUnit.Framework;
@@ -22,6 +23,21 @@ public class RegisterValidationServiceTests
         return new AppDbContext(options);
     }
 
+    private static IServiceProvider CreateMockServiceProvider(AppDbContext dbContext, IOrderValidationService orderValidationService)
+    {
+        var mockServiceProvider = new Mock<IServiceProvider>();
+        var mockScope = new Mock<IServiceScope>();
+        var mockScopeFactory = new Mock<IServiceScopeFactory>();
+
+        mockScope.Setup(s => s.ServiceProvider.GetService(typeof(AppDbContext))).Returns(dbContext);
+        mockScope.Setup(s => s.ServiceProvider.GetService(typeof(IOrderValidationService))).Returns(orderValidationService);
+
+        mockScopeFactory.Setup(f => f.CreateScope()).Returns(mockScope.Object);
+        mockServiceProvider.Setup(p => p.GetService(typeof(IServiceScopeFactory))).Returns(mockScopeFactory.Object);
+
+        return mockServiceProvider.Object;
+    }
+
     [Test]
     public async Task StartValidationAsync_RunsValidationForAllOrders()
     {
@@ -36,10 +52,11 @@ public class RegisterValidationServiceTests
         mock.Setup(m => m.ValidateAsync(It.IsAny<BaseOrder>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
         var logger = new LoggerFactory().CreateLogger<RegisterValidationService>();
-        var svc = new RegisterValidationService(ctx, mock.Object, logger);
+        var serviceProvider = CreateMockServiceProvider(ctx, mock.Object);
+        var svc = new RegisterValidationService(ctx, serviceProvider, logger);
 
         var handle = await svc.StartValidationAsync(1);
-        await Task.Delay(50);
+        await Task.Delay(100); // Give more time for background task
         var progress = svc.GetProgress(handle)!;
 
         Assert.That(progress.Total, Is.EqualTo(-1));
@@ -63,11 +80,12 @@ public class RegisterValidationServiceTests
         mock.Setup(m => m.ValidateAsync(It.IsAny<BaseOrder>(), It.IsAny<CancellationToken>()))
             .Returns(async () => { await Task.Delay(20); tcs.TrySetResult(); });
         var logger = new LoggerFactory().CreateLogger<RegisterValidationService>();
-        var svc = new RegisterValidationService(ctx, mock.Object, logger);
+        var serviceProvider = CreateMockServiceProvider(ctx, mock.Object);
+        var svc = new RegisterValidationService(ctx, serviceProvider, logger);
 
         var handle = await svc.StartValidationAsync(2);
         svc.CancelValidation(handle);
-        await Task.Delay(50);
+        await Task.Delay(100); // Give more time for cancellation
         var progress = svc.GetProgress(handle)!;
 
         Assert.That(progress.Finished, Is.True);
@@ -84,7 +102,8 @@ public class RegisterValidationServiceTests
 
         var mock = new Mock<IOrderValidationService>();
         var logger = new LoggerFactory().CreateLogger<RegisterValidationService>();
-        var svc = new RegisterValidationService(ctx, mock.Object, logger);
+        var serviceProvider = CreateMockServiceProvider(ctx, mock.Object);
+        var svc = new RegisterValidationService(ctx, serviceProvider, logger);
 
         var h1 = await svc.StartValidationAsync(3);
         var h2 = await svc.StartValidationAsync(3);

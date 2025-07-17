@@ -1,15 +1,18 @@
 using System.Collections.Concurrent;
 using Logibooks.Core.Data;
-using Logibooks.Core.Models;
 using Logibooks.Core.RestModels;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Logibooks.Core.Services;
 
-public class RegisterValidationService(AppDbContext db, IOrderValidationService orderSvc, ILogger<RegisterValidationService> logger) : IRegisterValidationService
+public class RegisterValidationService(
+    AppDbContext db, 
+    IServiceProvider serviceProvider,
+    ILogger<RegisterValidationService> logger) : IRegisterValidationService
 {
     private readonly AppDbContext _db = db;
-    private readonly IOrderValidationService _orderSvc = orderSvc;
+    private readonly IServiceProvider _serviceProvider = serviceProvider;
     private readonly ILogger<RegisterValidationService> _logger = logger;
 
     private class ValidationProcess
@@ -48,6 +51,19 @@ public class RegisterValidationService(AppDbContext db, IOrderValidationService 
 
         _ = Task.Run(async () =>
         {
+            using var scope = _serviceProvider.CreateScope();
+            var scopedDb = scope.ServiceProvider.GetService(typeof(AppDbContext)) as AppDbContext;
+            var scopedOrderSvc = scope.ServiceProvider.GetService(typeof(IOrderValidationService)) as IOrderValidationService;
+
+            if (scopedDb == null || scopedOrderSvc == null)
+            {
+                process.Error = "Failed to resolve required services";
+                process.Finished = true;
+                _byRegister.TryRemove(registerId, out _);
+                _byHandle.TryRemove(process.HandleId, out _);
+                return;
+            }
+
             try
             {
                 foreach (var id in orders)
@@ -57,10 +73,10 @@ public class RegisterValidationService(AppDbContext db, IOrderValidationService 
                         process.Finished = true;
                         break;
                     }
-                    var order = await _db.Orders.FindAsync([id], cancellationToken: process.Cts.Token);
+                    var order = await scopedDb.Orders.FindAsync([id], cancellationToken: process.Cts.Token);
                     if (order != null)
                     {
-                        await _orderSvc.ValidateAsync(order, process.Cts.Token);
+                        await scopedOrderSvc.ValidateAsync(order, process.Cts.Token);
                     }
                     process.Processed++;
                 }
@@ -72,6 +88,7 @@ public class RegisterValidationService(AppDbContext db, IOrderValidationService 
             }
             finally
             {
+                process.Finished = true;
                 _byRegister.TryRemove(registerId, out _);
                 _byHandle.TryRemove(process.HandleId, out _);
             }
