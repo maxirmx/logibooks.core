@@ -7,11 +7,17 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Logibooks.Core.Migrations
 {
     /// <inheritdoc />
-    public partial class _0_5_0_OrdersHierarchy : Migration
+    public partial class _0_5_0_OrdersHierarchy_and_StopWords : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropTable(
+                name: "alta_exceptions");
+
+            migrationBuilder.DropTable(
+                name: "alta_items");
+
             migrationBuilder.CreateTable(
                 name: "base_orders",
                 columns: table => new
@@ -21,7 +27,7 @@ namespace Logibooks.Core.Migrations
                     register_id = table.Column<int>(type: "integer", nullable: false),
                     status_id = table.Column<int>(type: "integer", nullable: false),
                     check_status_id = table.Column<int>(type: "integer", nullable: false),
-                    description = table.Column<string>(type: "text", nullable: true),
+                    product_name = table.Column<string>(type: "text", nullable: true),
                     tn_ved = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
@@ -45,6 +51,20 @@ namespace Logibooks.Core.Migrations
                         principalTable: "statuses",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "stop_words",
+                columns: table => new
+                {
+                    id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    word = table.Column<string>(type: "text", nullable: false),
+                    exact_match = table.Column<bool>(type: "boolean", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_stop_words", x => x.id);
                 });
 
             migrationBuilder.CreateTable(
@@ -81,7 +101,7 @@ namespace Logibooks.Core.Migrations
                     site_article = table.Column<string>(type: "text", nullable: true),
                     heel_height = table.Column<string>(type: "text", nullable: true),
                     size = table.Column<string>(type: "text", nullable: true),
-                    product_name = table.Column<string>(type: "text", nullable: true),
+                    description = table.Column<string>(type: "text", nullable: true),
                     gender = table.Column<string>(type: "text", nullable: true),
                     brand = table.Column<string>(type: "text", nullable: true),
                     fabric_type = table.Column<string>(type: "text", nullable: true),
@@ -126,6 +146,90 @@ namespace Logibooks.Core.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
+            migrationBuilder.CreateTable(
+                name: "base_order_stop_words",
+                columns: table => new
+                {
+                    base_order_id = table.Column<int>(type: "integer", nullable: false),
+                    stop_word_id = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_base_order_stop_words", x => new { x.base_order_id, x.stop_word_id });
+                    table.ForeignKey(
+                        name: "FK_base_order_stop_words_base_orders_base_order_id",
+                        column: x => x.base_order_id,
+                        principalTable: "base_orders",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_base_order_stop_words_stop_words_stop_word_id",
+                        column: x => x.stop_word_id,
+                        principalTable: "stop_words",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            // Migrate data from the original orders table to the new TPT structure
+            migrationBuilder.Sql(@"
+                -- First, copy the base fields to base_orders table
+                INSERT INTO base_orders (id, register_id, status_id, check_status_id, product_name, tn_ved)
+                SELECT id, register_id, status_id, check_status_id, product_name, tn_ved
+                FROM orders;
+
+                -- Next, copy all WBR-specific fields to the wbr_orders table
+                INSERT INTO wbr_orders (
+                    id, row_number, order_number, invoice_date, sticker, shk, sticker_code, ext_id,
+                    site_article, heel_height, size, description, gender, brand, fabric_type,
+                    composition, lining, insole, sole, country, factory_address, unit,
+                    weight_kg, quantity, unit_price, currency, barcode, declaration,
+                    product_link, recipient_name, recipient_inn, passport_number, pinfl,
+                    recipient_address, contact_phone, box_number, supplier, supplier_inn,
+                    category, subcategory, personal_data, customs_clearance, duty_payment, other_reason
+                )
+                SELECT 
+                    id, row_number, order_number, invoice_date, sticker, shk, sticker_code, ext_id,
+                    site_article, heel_height, size, description, gender, brand, fabric_type,
+                    composition, lining, insole, sole, country, factory_address, unit,
+                    weight_kg, quantity, unit_price, currency, barcode, declaration,
+                    product_link, recipient_name, recipient_inn, passport_number, pinfl,
+                    recipient_address, contact_phone, box_number, supplier, supplier_inn,
+                    category, subcategory, personal_data, customs_clearance, duty_payment, other_reason
+                FROM orders;
+
+                -- Make sure sequence is properly updated to account for existing IDs
+                SELECT setval('base_orders_id_seq', (SELECT COALESCE(MAX(id), 0) + 1 FROM base_orders), false);
+            ");
+
+            migrationBuilder.DropTable(
+                name: "orders");
+
+            migrationBuilder.UpdateData(
+                table: "check_statuses",
+                keyColumn: "id",
+                keyValue: 1,
+                column: "title",
+                value: "Не проверен");
+
+            migrationBuilder.UpdateData(
+                table: "check_statuses",
+                keyColumn: "id",
+                keyValue: 101,
+                column: "title",
+                value: "Выявлены проблемы");
+
+            migrationBuilder.UpdateData(
+                table: "check_statuses",
+                keyColumn: "id",
+                keyValue: 201,
+                column: "title",
+                value: "Не выявлено проблем");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_base_order_stop_words_stop_word_id",
+                table: "base_order_stop_words",
+                column: "stop_word_id");
+
             migrationBuilder.CreateIndex(
                 name: "IX_base_orders_check_status_id",
                 table: "base_orders",
@@ -147,54 +251,26 @@ namespace Logibooks.Core.Migrations
                 column: "tn_ved");
 
             migrationBuilder.CreateIndex(
+                name: "IX_stop_words_word",
+                table: "stop_words",
+                column: "word",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_wbr_orders_shk",
                 table: "wbr_orders",
                 column: "shk");
-
-            // Migrate data from the original orders table to the new TPT structure
-            migrationBuilder.Sql(@"
-                -- First, copy the base fields to base_orders table
-                INSERT INTO base_orders (id, register_id, status_id, check_status_id, description, tn_ved)
-                SELECT id, register_id, status_id, check_status_id, description, tn_ved
-                FROM orders;
-
-                -- Next, copy all WBR-specific fields to the wbr_orders table
-                INSERT INTO wbr_orders (
-                    id, row_number, order_number, invoice_date, sticker, shk, sticker_code, ext_id,
-                    site_article, heel_height, size, product_name, gender, brand, fabric_type,
-                    composition, lining, insole, sole, country, factory_address, unit,
-                    weight_kg, quantity, unit_price, currency, barcode, declaration,
-                    product_link, recipient_name, recipient_inn, passport_number, pinfl,
-                    recipient_address, contact_phone, box_number, supplier, supplier_inn,
-                    category, subcategory, personal_data, customs_clearance, duty_payment, other_reason
-                )
-                SELECT 
-                    id, row_number, order_number, invoice_date, sticker, shk, sticker_code, ext_id,
-                    site_article, heel_height, size, product_name, gender, brand, fabric_type,
-                    composition, lining, insole, sole, country, factory_address, unit,
-                    weight_kg, quantity, unit_price, currency, barcode, declaration,
-                    product_link, recipient_name, recipient_inn, passport_number, pinfl,
-                    recipient_address, contact_phone, box_number, supplier, supplier_inn,
-                    category, subcategory, personal_data, customs_clearance, duty_payment, other_reason
-                FROM orders;
-
-                -- Make sure sequence is properly updated to account for existing IDs
-                SELECT setval('base_orders_id_seq', (SELECT COALESCE(MAX(id), 0) + 1 FROM base_orders), false);
-            ");
-
-            migrationBuilder.DropTable(
-                name: "alta_exceptions");
-
-            migrationBuilder.DropTable(
-                name: "alta_items");
-
-            migrationBuilder.DropTable(
-                name: "orders");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropTable(
+                name: "base_order_stop_words");
+
+            migrationBuilder.DropTable(
+                name: "stop_words");
+
             migrationBuilder.CreateTable(
                 name: "alta_exceptions",
                 columns: table => new
@@ -307,6 +383,27 @@ namespace Logibooks.Core.Migrations
                         onDelete: ReferentialAction.Restrict);
                 });
 
+            migrationBuilder.UpdateData(
+                table: "check_statuses",
+                keyColumn: "id",
+                keyValue: 1,
+                column: "title",
+                value: "Загружен");
+
+            migrationBuilder.UpdateData(
+                table: "check_statuses",
+                keyColumn: "id",
+                keyValue: 101,
+                column: "title",
+                value: "Проблема");
+
+            migrationBuilder.UpdateData(
+                table: "check_statuses",
+                keyColumn: "id",
+                keyValue: 201,
+                column: "title",
+                value: "Проверен");
+
             migrationBuilder.CreateIndex(
                 name: "IX_alta_exceptions_code",
                 table: "alta_exceptions",
@@ -348,9 +445,9 @@ namespace Logibooks.Core.Migrations
             migrationBuilder.Sql(@"
                 -- Copy data from the TPT structure back to the original orders table
                 INSERT INTO orders (
-                    id, register_id, status_id, check_status_id, description, tn_ved,
+                    id, register_id, status_id, check_status_id, product_name, tn_ved,
                     row_number, order_number, invoice_date, sticker, shk, sticker_code, ext_id,
-                    site_article, heel_height, size, product_name, gender, brand, fabric_type,
+                    site_article, heel_height, size, description, gender, brand, fabric_type,
                     composition, lining, insole, sole, country, factory_address, unit,
                     weight_kg, quantity, unit_price, currency, barcode, declaration,
                     product_link, recipient_name, recipient_inn, passport_number, pinfl,
@@ -358,9 +455,9 @@ namespace Logibooks.Core.Migrations
                     category, subcategory, personal_data, customs_clearance, duty_payment, other_reason
                 )
                 SELECT 
-                    b.id, b.register_id, b.status_id, b.check_status_id, b.description, b.tn_ved,
+                    b.id, b.register_id, b.status_id, b.check_status_id, b.product_name, b.tn_ved,
                     w.row_number, w.order_number, w.invoice_date, w.sticker, w.shk, w.sticker_code, w.ext_id,
-                    w.site_article, w.heel_height, w.size, w.product_name, w.gender, w.brand, w.fabric_type,
+                    w.site_article, w.heel_height, w.size, w.description, w.gender, w.brand, w.fabric_type,
                     w.composition, w.lining, w.insole, w.sole, w.country, w.factory_address, w.unit,
                     w.weight_kg, w.quantity, w.unit_price, w.currency, w.barcode, w.declaration,
                     w.product_link, w.recipient_name, w.recipient_inn, w.passport_number, w.pinfl,
@@ -370,7 +467,6 @@ namespace Logibooks.Core.Migrations
                 JOIN wbr_orders w ON b.id = w.id;
             ");
 
-            // Finally drop the new tables
             migrationBuilder.DropTable(
                 name: "ozon_orders");
 
@@ -379,6 +475,7 @@ namespace Logibooks.Core.Migrations
 
             migrationBuilder.DropTable(
                 name: "base_orders");
+
         }
     }
 }

@@ -37,8 +37,8 @@ public class WbrOrder : BaseOrder
     [Column("size")]
     public string? Size { get; set; }
 
-    [Column("product_name")]
-    public string? ProductName { get; set; }
+    [Column("description")]
+    public string? Description { get; set; }
 
     [Column("gender")]
     public string? Gender { get; set; }

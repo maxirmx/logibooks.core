@@ -25,8 +25,8 @@ public abstract class BaseOrder
     public int CheckStatusId { get; set; }
     public OrderCheckStatus CheckStatus { get; set; } = null!;
 
-    [Column("description")]
-    public string? Description { get; set; }
+    [Column("product_name")]
+    public string? ProductName { get; set; }
 
     [Column("tn_ved")]
     public string? TnVed { get; set; }

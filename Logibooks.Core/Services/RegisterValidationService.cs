@@ -1,15 +1,42 @@
+// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
+// All rights reserved.
+// This file is a part of Logibooks Core application
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions
+// are met:
+// 1. Redistributions of source code must retain the above copyright
+// notice, this list of conditions and the following disclaimer.
+// 2. Redistributions in binary form must reproduce the above copyright
+// notice, this list of conditions and the following disclaimer in the
+// documentation and/or other materials provided with the distribution.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+// ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+// TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+// PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR CONTRIBUTORS
+// BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+// POSSIBILITY OF SUCH DAMAGE.
+
 using System.Collections.Concurrent;
 using Logibooks.Core.Data;
-using Logibooks.Core.Models;
 using Logibooks.Core.RestModels;
 using Microsoft.EntityFrameworkCore;
 
 namespace Logibooks.Core.Services;
 
-public class RegisterValidationService(AppDbContext db, IOrderValidationService orderSvc, ILogger<RegisterValidationService> logger) : IRegisterValidationService
+public class RegisterValidationService(
+    AppDbContext db, 
+    IServiceScopeFactory scopeFactory,
+    ILogger<RegisterValidationService> logger) : IRegisterValidationService
 {
     private readonly AppDbContext _db = db;
-    private readonly IOrderValidationService _orderSvc = orderSvc;
+    private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
     private readonly ILogger<RegisterValidationService> _logger = logger;
 
     private class ValidationProcess
@@ -48,6 +75,19 @@ public class RegisterValidationService(AppDbContext db, IOrderValidationService 
 
         _ = Task.Run(async () =>
         {
+            using var scope = _scopeFactory.CreateScope();
+            var scopedDb = scope.ServiceProvider.GetService(typeof(AppDbContext)) as AppDbContext;
+            var scopedOrderSvc = scope.ServiceProvider.GetService(typeof(IOrderValidationService)) as IOrderValidationService;
+
+            if (scopedDb == null || scopedOrderSvc == null)
+            {
+                process.Error = "Failed to resolve required services";
+                process.Finished = true;
+                _byRegister.TryRemove(registerId, out _);
+                _byHandle.TryRemove(process.HandleId, out _);
+                return;
+            }
+
             try
             {
                 foreach (var id in orders)
@@ -57,10 +97,10 @@ public class RegisterValidationService(AppDbContext db, IOrderValidationService 
                         process.Finished = true;
                         break;
                     }
-                    var order = await _db.Orders.FindAsync([id], cancellationToken: process.Cts.Token);
+                    var order = await scopedDb.Orders.FindAsync([id], cancellationToken: process.Cts.Token);
                     if (order != null)
                     {
-                        await _orderSvc.ValidateAsync(order, process.Cts.Token);
+                        await scopedOrderSvc.ValidateAsync(order, process.Cts.Token);
                     }
                     process.Processed++;
                 }
@@ -72,6 +112,7 @@ public class RegisterValidationService(AppDbContext db, IOrderValidationService 
             }
             finally
             {
+                process.Finished = true;
                 _byRegister.TryRemove(registerId, out _);
                 _byHandle.TryRemove(process.HandleId, out _);
             }
