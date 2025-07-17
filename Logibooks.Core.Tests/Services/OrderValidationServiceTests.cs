@@ -23,16 +23,15 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-using System.Linq;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-
-using Microsoft.EntityFrameworkCore;
-using NUnit.Framework;
-
 using Logibooks.Core.Data;
 using Logibooks.Core.Models;
 using Logibooks.Core.Services;
+using Microsoft.EntityFrameworkCore;
+using NUnit.Framework;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace Logibooks.Core.Tests.Services;
 
@@ -551,4 +550,31 @@ public class OrderValidationServiceTests
         Assert.That(context.ExactMatchStopWords.All(sw => sw.ExactMatch), Is.True);
     }
 
+    [Test]
+    public async Task ValidateAsync_ProductNameIsEmpty_SetsNoIssuesAndNoLinks()
+    {
+        using var ctx = new AppDbContext(
+            new DbContextOptionsBuilder<AppDbContext>()
+                .UseInMemoryDatabase($"ov_empty_{Guid.NewGuid()}")
+                .Options);
+
+        // Arrange: order with empty ProductName
+        var order = new WbrOrder { Id = 1, RegisterId = 1, ProductName = "" };
+        ctx.Orders.Add(order);
+        // Add some stop words (should not match since ProductName is empty)
+        ctx.StopWords.AddRange(
+            new StopWord { Id = 1, Word = "spam", ExactMatch = true },
+            new StopWord { Id = 2, Word = "malware", ExactMatch = true }
+        );
+        await ctx.SaveChangesAsync();
+
+        var svc = new OrderValidationService(ctx, new MorphologySearchService());
+
+        // Act
+        await svc.ValidateAsync(order);
+
+        // Assert: no links, status is NoIssues
+        Assert.That(ctx.Set<BaseOrderStopWord>().Any(), Is.False);
+        Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)OrderCheckStatusCode.NoIssues));
+    }
 }
