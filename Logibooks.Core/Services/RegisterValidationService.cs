@@ -31,13 +31,15 @@ using Microsoft.EntityFrameworkCore;
 namespace Logibooks.Core.Services;
 
 public class RegisterValidationService(
-    AppDbContext db, 
+    AppDbContext db,
     IServiceScopeFactory scopeFactory,
-    ILogger<RegisterValidationService> logger) : IRegisterValidationService
+    ILogger<RegisterValidationService> logger,
+    IMorphologySearchService morphologyService) : IRegisterValidationService
 {
     private readonly AppDbContext _db = db;
     private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
     private readonly ILogger<RegisterValidationService> _logger = logger;
+    private readonly IMorphologySearchService _morphologyService = morphologyService;
 
     private class ValidationProcess
     {
@@ -65,6 +67,11 @@ public class RegisterValidationService(
             .Where(o => o.RegisterId == registerId)
             .Select(o => o.Id)
             .ToListAsync(cancellationToken);
+
+        var stopWords = await _db.StopWords.AsNoTracking()
+            .Where(sw => !sw.ExactMatch)
+            .ToListAsync(cancellationToken);
+        var context = _morphologyService.InitializeContext(stopWords);
 
         var process = new ValidationProcess(registerId) { Total = orders.Count };
         if (!_byRegister.TryAdd(registerId, process))
@@ -100,7 +107,7 @@ public class RegisterValidationService(
                     var order = await scopedDb.Orders.FindAsync([id], cancellationToken: process.Cts.Token);
                     if (order != null)
                     {
-                        await scopedOrderSvc.ValidateAsync(order, process.Cts.Token);
+                        await scopedOrderSvc.ValidateAsync(order, context, process.Cts.Token);
                     }
                     process.Processed++;
                 }

@@ -29,5 +29,7 @@ namespace Logibooks.Core.Services;
 
 public interface IOrderValidationService
 {
-    Task ValidateAsync(BaseOrder order, CancellationToken cancellationToken = default);
+    Task ValidateAsync(BaseOrder order,
+        MorphologyContext? context = null,
+        CancellationToken cancellationToken = default);
 }

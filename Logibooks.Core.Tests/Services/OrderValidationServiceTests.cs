@@ -59,7 +59,7 @@ public class OrderValidationServiceTests
         ctx.Set<BaseOrderStopWord>().Add(new BaseOrderStopWord { BaseOrderId = 1, StopWordId = 99 });
         await ctx.SaveChangesAsync();
 
-        var svc = new OrderValidationService(ctx);
+        var svc = new OrderValidationService(ctx, new MorphologySearchService());
         await svc.ValidateAsync(order);
 
         Assert.That(ctx.Set<BaseOrderStopWord>().Count(), Is.EqualTo(1));
@@ -77,7 +77,7 @@ public class OrderValidationServiceTests
         ctx.StopWords.Add(new StopWord { Id = 2, Word = "spam", ExactMatch = true });
         await ctx.SaveChangesAsync();
 
-        var svc = new OrderValidationService(ctx);
+        var svc = new OrderValidationService(ctx, new MorphologySearchService());
         await svc.ValidateAsync(order);
 
         Assert.That(ctx.Set<BaseOrderStopWord>().Any(), Is.False);
@@ -93,10 +93,30 @@ public class OrderValidationServiceTests
         ctx.StopWords.Add(new StopWord { Id = 5, Word = "word", ExactMatch = true });
         await ctx.SaveChangesAsync();
 
-        var svc = new OrderValidationService(ctx);
+        var svc = new OrderValidationService(ctx, new MorphologySearchService());
         await svc.ValidateAsync(order);
 
         Assert.That(ctx.Set<BaseOrderStopWord>().Single().StopWordId, Is.EqualTo(5));
+        Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo(101));
+    }
+
+    [Test]
+    public async Task ValidateAsync_UsesMorphologyContext()
+    {
+        using var ctx = CreateContext();
+        var order = new WbrOrder { Id = 1, RegisterId = 1, CheckStatusId = 1, ProductName = "золотой браслет" };
+        ctx.Orders.Add(order);
+        var sw = new StopWord { Id = 7, Word = "золото", ExactMatch = false };
+        ctx.StopWords.Add(sw);
+        await ctx.SaveChangesAsync();
+
+        var morph = new MorphologySearchService();
+        var context = morph.InitializeContext(new[] { sw });
+        var svc = new OrderValidationService(ctx, morph);
+        await svc.ValidateAsync(order, context);
+
+        var link = ctx.Set<BaseOrderStopWord>().Single();
+        Assert.That(link.StopWordId, Is.EqualTo(7));
         Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo(101));
     }
 }

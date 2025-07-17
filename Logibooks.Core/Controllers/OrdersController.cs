@@ -44,11 +44,13 @@ public class OrdersController(
     AppDbContext db,
     ILogger<OrdersController> logger,
     IMapper mapper,
-    IOrderValidationService validationService) : LogibooksControllerBase(httpContextAccessor, db, logger)
+    IOrderValidationService validationService,
+    IMorphologySearchService morphologyService) : LogibooksControllerBase(httpContextAccessor, db, logger)
 {
     private const int MaxPageSize = 1000;
     private readonly IMapper _mapper = mapper;
     private readonly IOrderValidationService _validationService = validationService;
+    private readonly IMorphologySearchService _morphologyService = morphologyService;
 
     [HttpGet("{id}")]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(OrderViewItem))]
@@ -68,6 +70,7 @@ public class OrdersController(
         var order = await _db.Orders.AsNoTracking()
             .Include(o => o.BaseOrderStopWords)
             .FirstOrDefaultAsync(o => o.Id == id);
+
         if (order == null)
         {
             _logger.LogDebug("GetOrder returning '404 Not Found'");
@@ -242,7 +245,11 @@ public class OrdersController(
 
         try
         {
-            await _validationService.ValidateAsync(order);
+            var stopWords = await _db.StopWords.AsNoTracking()
+                .Where(sw => !sw.ExactMatch)
+                .ToListAsync();
+            var context = _morphologyService.InitializeContext(stopWords);
+            await _validationService.ValidateAsync(order, context);
         }
         catch (Exception ex)
         {
