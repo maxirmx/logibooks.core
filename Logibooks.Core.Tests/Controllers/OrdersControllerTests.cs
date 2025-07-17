@@ -569,7 +569,12 @@ public class OrdersControllerTests
 
         var result = await _controller.ValidateOrder(10);
 
-        _mockValidationService.Verify(s => s.ValidateAsync(order, It.IsAny<MorphologyContext?>(), It.IsAny<CancellationToken>()), Times.Once);
+        _mockValidationService.Verify(s => s.ValidateAsync(
+            order, 
+            It.IsAny<MorphologyContext?>(),
+            It.IsAny<StopWordsContext?>(),
+            It.IsAny<CancellationToken>()), 
+            Times.Once);
         Assert.That(result, Is.TypeOf<NoContentResult>());
     }
 
@@ -579,7 +584,12 @@ public class OrdersControllerTests
         SetCurrentUserId(99);
         var result = await _controller.ValidateOrder(1);
 
-        _mockValidationService.Verify(s => s.ValidateAsync(It.IsAny<BaseOrder>(), It.IsAny<MorphologyContext?>(), It.IsAny<CancellationToken>()), Times.Never);
+        _mockValidationService.Verify(s => s.ValidateAsync(
+            It.IsAny<BaseOrder>(),
+            It.IsAny<MorphologyContext?>(),
+            It.IsAny<StopWordsContext?>(),
+            It.IsAny<CancellationToken>()), 
+            Times.Never);
         Assert.That(result, Is.TypeOf<ObjectResult>());
         var obj = result as ObjectResult;
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
@@ -594,7 +604,12 @@ public class OrdersControllerTests
         Assert.That(result, Is.TypeOf<ObjectResult>());
         var obj = result as ObjectResult;
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
-        _mockValidationService.Verify(s => s.ValidateAsync(It.IsAny<BaseOrder>(), It.IsAny<MorphologyContext?>(), It.IsAny<CancellationToken>()), Times.Never);
+        _mockValidationService.Verify(s => s.ValidateAsync(
+            It.IsAny<BaseOrder>(),
+            It.IsAny<MorphologyContext?>(),
+            It.IsAny<StopWordsContext?>(),
+            It.IsAny<CancellationToken>()), 
+            Times.Never);
     }
 
     [Test]
@@ -607,7 +622,11 @@ public class OrdersControllerTests
         _dbContext.Orders.Add(order);
         await _dbContext.SaveChangesAsync();
 
-        _mockValidationService.Setup(s => s.ValidateAsync(order, It.IsAny<MorphologyContext?>(), It.IsAny<CancellationToken>())).ThrowsAsync(new Exception());
+        _mockValidationService.Setup(s => s.ValidateAsync(
+            order,
+            It.IsAny<MorphologyContext?>(),
+            It.IsAny<StopWordsContext?>(),
+            It.IsAny<CancellationToken>())).ThrowsAsync(new Exception());
 
         var result = await _controller.ValidateOrder(20);
 

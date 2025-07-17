@@ -23,16 +23,15 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-using System.Linq;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-
-using Microsoft.EntityFrameworkCore;
-using NUnit.Framework;
-
 using Logibooks.Core.Data;
 using Logibooks.Core.Models;
 using Logibooks.Core.Services;
+using Microsoft.EntityFrameworkCore;
+using NUnit.Framework;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace Logibooks.Core.Tests.Services;
 
@@ -112,7 +111,7 @@ public class OrderValidationServiceTests
         await ctx.SaveChangesAsync();
 
         var morph = new MorphologySearchService();
-        var context = morph.InitializeContext([sw]);
+        var context = morph.InitializeContext(new[] { sw });
         var svc = new OrderValidationService(ctx, morph);
         await svc.ValidateAsync(order, context);
 
@@ -148,7 +147,7 @@ public class OrderValidationServiceTests
         var foundIds = links.Select(l => l.StopWordId).OrderBy(id => id).ToList();
         
         Assert.That(links.Count, Is.EqualTo(2), "Should find exactly 2 matches");
-        Assert.That(foundIds, Is.EquivalentTo([10, 20]), "Should find both exact and morphology matches");
+        Assert.That(foundIds, Is.EquivalentTo(new[] { 10, 20 }), "Should find both exact and morphology matches");
         Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)OrderCheckStatusCode.HasIssues));
     }
 
@@ -178,7 +177,7 @@ public class OrderValidationServiceTests
         // Both stopwords have same root but different ExactMatch flags
         // Both should be found, no deduplication should occur as they have different IDs
         Assert.That(links.Count, Is.EqualTo(2), "Should find both stopword entries");
-        Assert.That(foundIds, Is.EquivalentTo([15, 25]), "Should find both variants");
+        Assert.That(foundIds, Is.EquivalentTo(new[] { 15, 25 }), "Should find both variants");
         Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)OrderCheckStatusCode.HasIssues));
     }
 
@@ -208,7 +207,7 @@ public class OrderValidationServiceTests
         var foundIds = links.Select(l => l.StopWordId).OrderBy(id => id).ToList();
         
         Assert.That(links.Count, Is.EqualTo(2), "Should find exactly 2 morphology matches");
-        Assert.That(foundIds, Is.EquivalentTo([50, 60]), "Should find home and book derivatives");
+        Assert.That(foundIds, Is.EquivalentTo(new[] { 50, 60 }), "Should find home and book derivatives");
         Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)OrderCheckStatusCode.HasIssues));
     }
 
@@ -238,7 +237,7 @@ public class OrderValidationServiceTests
         var foundIds = links.Select(l => l.StopWordId).OrderBy(id => id).ToList();
         
         Assert.That(links.Count, Is.EqualTo(2), "Should find exactly 2 exact matches");
-        Assert.That(foundIds, Is.EquivalentTo([80, 90]), "Should find spam and virus");
+        Assert.That(foundIds, Is.EquivalentTo(new[] { 80, 90 }), "Should find spam and virus");
         Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)OrderCheckStatusCode.HasIssues));
     }
 
@@ -306,7 +305,7 @@ public class OrderValidationServiceTests
         var foundIds = links.Select(l => l.StopWordId).OrderBy(id => id).ToList();
         
         Assert.That(links.Count, Is.EqualTo(3), "Should find exactly 3 matches from large set");
-        Assert.That(foundIds, Is.EquivalentTo([250, 350, 360]), "Should find spam, gold, and home matches");
+        Assert.That(foundIds, Is.EquivalentTo(new[] { 250, 350, 360 }), "Should find spam, gold, and home matches");
         Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)OrderCheckStatusCode.HasIssues));
     }
 
@@ -337,7 +336,7 @@ public class OrderValidationServiceTests
         var foundIds = links.Select(l => l.StopWordId).OrderBy(id => id).ToList();
         
         Assert.That(links.Count, Is.EqualTo(4), "Should find all 4 stopword variants");
-        Assert.That(foundIds, Is.EquivalentTo([400, 410, 420, 430]), "Should find all variants");
+        Assert.That(foundIds, Is.EquivalentTo(new[] { 400, 410, 420, 430 }), "Should find all variants");
         Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)OrderCheckStatusCode.HasIssues));
     }
 
@@ -365,7 +364,7 @@ public class OrderValidationServiceTests
         var foundIds = links.Select(l => l.StopWordId).OrderBy(id => id).ToList();
         
         Assert.That(links.Count, Is.EqualTo(2), "Should find both case-insensitive matches");
-        Assert.That(foundIds, Is.EquivalentTo([500, 510]), "Should handle case variations");
+        Assert.That(foundIds, Is.EquivalentTo(new[] { 500, 510 }), "Should handle case variations");
         Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)OrderCheckStatusCode.HasIssues));
     }
 
@@ -451,5 +450,131 @@ public class OrderValidationServiceTests
         Assert.That(links.Count, Is.EqualTo(1), "Should replace existing links");
         Assert.That(links.Single().StopWordId, Is.EqualTo(800), "Should have new link only");
         Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)OrderCheckStatusCode.HasIssues));
+    }
+
+    // ========== INITIALIZESTOPWORDSCONTEXT TESTS ==========
+
+    [Test]
+    public void InitializeStopWordsContext_WithEmptyCollection_ReturnsEmptyContext()
+    {
+        // Arrange
+        using var ctx = CreateContext();
+        var svc = new OrderValidationService(ctx, new MorphologySearchService());
+        var emptyStopWords = new StopWord[0];
+
+        // Act
+        var context = svc.InitializeStopWordsContext(emptyStopWords);
+
+        // Assert
+        Assert.That(context, Is.Not.Null);
+        Assert.That(context.ExactMatchStopWords, Is.Not.Null);
+        Assert.That(context.ExactMatchStopWords, Is.Empty);
+        Assert.That(context.ExactMatchStopWords.Count, Is.EqualTo(0));
+    }
+
+    [Test]
+    public void InitializeStopWordsContext_WithOnlyExactMatchWords_AddsAllWords()
+    {
+        // Arrange
+        using var ctx = CreateContext();
+        var svc = new OrderValidationService(ctx, new MorphologySearchService());
+        var stopWords = new[]
+        {
+            new StopWord { Id = 1, Word = "spam", ExactMatch = true },
+            new StopWord { Id = 2, Word = "virus", ExactMatch = true },
+            new StopWord { Id = 3, Word = "malware", ExactMatch = true }
+        };
+
+        // Act
+        var context = svc.InitializeStopWordsContext(stopWords);
+
+        // Assert
+        Assert.That(context, Is.Not.Null);
+        Assert.That(context.ExactMatchStopWords.Count, Is.EqualTo(3));
+        Assert.That(context.ExactMatchStopWords.Any(sw => sw.Word == "spam"), Is.True);
+        Assert.That(context.ExactMatchStopWords.Any(sw => sw.Word == "virus"), Is.True);
+        Assert.That(context.ExactMatchStopWords.Any(sw => sw.Word == "malware"), Is.True);
+        Assert.That(context.ExactMatchStopWords.All(sw => sw.ExactMatch), Is.True);
+    }
+
+    [Test]
+    public void InitializeStopWordsContext_WithOnlyNonExactMatchWords_ReturnsEmptyContext()
+    {
+        // Arrange
+        using var ctx = CreateContext();
+        var svc = new OrderValidationService(ctx, new MorphologySearchService());
+        var stopWords = new[]
+        {
+            new StopWord { Id = 1, Word = "золото", ExactMatch = false },
+            new StopWord { Id = 2, Word = "дом", ExactMatch = false },
+            new StopWord { Id = 3, Word = "книга", ExactMatch = false }
+        };
+
+        // Act
+        var context = svc.InitializeStopWordsContext(stopWords);
+
+        // Assert
+        Assert.That(context, Is.Not.Null);
+        Assert.That(context.ExactMatchStopWords, Is.Empty);
+    }
+
+    [Test]
+    public void InitializeStopWordsContext_WithMixedExactMatchFlags_OnlyAddsExactMatchWords()
+    {
+        // Arrange
+        using var ctx = CreateContext();
+        var svc = new OrderValidationService(ctx, new MorphologySearchService());
+        var stopWords = new[]
+        {
+            new StopWord { Id = 1, Word = "spam", ExactMatch = true },       // Should be included
+            new StopWord { Id = 2, Word = "золото", ExactMatch = false },    // Should NOT be included
+            new StopWord { Id = 3, Word = "virus", ExactMatch = true },      // Should be included
+            new StopWord { Id = 4, Word = "дом", ExactMatch = false },       // Should NOT be included
+            new StopWord { Id = 5, Word = "malware", ExactMatch = true }     // Should be included
+        };
+
+        // Act
+        var context = svc.InitializeStopWordsContext(stopWords);
+
+        // Assert
+        Assert.That(context, Is.Not.Null);
+        Assert.That(context.ExactMatchStopWords.Count, Is.EqualTo(3));
+        
+        var exactMatchWords = context.ExactMatchStopWords.Select(sw => sw.Word).ToList();
+        Assert.That(exactMatchWords, Contains.Item("spam"));
+        Assert.That(exactMatchWords, Contains.Item("virus"));
+        Assert.That(exactMatchWords, Contains.Item("malware"));
+        Assert.That(exactMatchWords, Does.Not.Contain("золото"));
+        Assert.That(exactMatchWords, Does.Not.Contain("дом"));
+        
+        Assert.That(context.ExactMatchStopWords.All(sw => sw.ExactMatch), Is.True);
+    }
+
+    [Test]
+    public async Task ValidateAsync_ProductNameIsEmpty_SetsNoIssuesAndNoLinks()
+    {
+        using var ctx = new AppDbContext(
+            new DbContextOptionsBuilder<AppDbContext>()
+                .UseInMemoryDatabase($"ov_empty_{Guid.NewGuid()}")
+                .Options);
+
+        // Arrange: order with empty ProductName
+        var order = new WbrOrder { Id = 1, RegisterId = 1, ProductName = "" };
+        ctx.Orders.Add(order);
+        // Add some stop words (should not match since ProductName is empty)
+        ctx.StopWords.AddRange(
+            new StopWord { Id = 1, Word = "spam", ExactMatch = true },
+            new StopWord { Id = 2, Word = "malware", ExactMatch = true }
+        );
+        await ctx.SaveChangesAsync();
+
+        var svc = new OrderValidationService(ctx, new MorphologySearchService());
+
+        // Act
+        await svc.ValidateAsync(order);
+
+        // Assert: no links, status is NoIssues
+        Assert.That(ctx.Set<BaseOrderStopWord>().Any(), Is.False);
+        Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)OrderCheckStatusCode.NoIssues));
     }
 }

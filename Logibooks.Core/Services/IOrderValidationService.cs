@@ -24,12 +24,23 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 using Logibooks.Core.Models;
+using System.Runtime.CompilerServices;
+[assembly: InternalsVisibleTo("Logibooks.Core.Tests")]
 
 namespace Logibooks.Core.Services;
 
 public interface IOrderValidationService
 {
+
     Task ValidateAsync(BaseOrder order,
-        MorphologyContext? context = null,
+        MorphologyContext? morphologyContext = null,
+        StopWordsContext? stopWordsContext = null,
         CancellationToken cancellationToken = default);
+
+    StopWordsContext InitializeStopWordsContext(IEnumerable<StopWord> exactMatchStopWords);
+}
+
+public class StopWordsContext
+{
+    internal List<StopWord> ExactMatchStopWords { get; } = new();
 }

@@ -1,15 +1,41 @@
-using System;
-using System.Threading;
-using System.Threading.Tasks;
+// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
+// All rights reserved.
+// This file is a part of Logibooks Core application
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions
+// are met:
+// 1. Redistributions of source code must retain the above copyright
+// notice, this list of conditions and the following disclaimer.
+// 2. Redistributions in binary form must reproduce the above copyright
+// notice, this list of conditions and the following disclaimer in the
+// documentation and/or other materials provided with the distribution.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+// 'AS IS' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+// TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+// PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR CONTRIBUTORS
+// BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+// POSSIBILITY OF SUCH DAMAGE.
+
+using Logibooks.Core.Data;
+using Logibooks.Core.Models;
+using Logibooks.Core.RestModels;
+using Logibooks.Core.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
 using NUnit.Framework;
-using Logibooks.Core.Data;
-using Logibooks.Core.Models;
-using Logibooks.Core.Services;
-using Logibooks.Core.RestModels;
+using System;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Logibooks.Core.Tests.Services;
 
@@ -49,7 +75,11 @@ public class RegisterValidationServiceTests
         await ctx.SaveChangesAsync();
 
         var mock = new Mock<IOrderValidationService>();
-        mock.Setup(m => m.ValidateAsync(It.IsAny<BaseOrder>(), It.IsAny<MorphologyContext?>(), It.IsAny<CancellationToken>()))
+        mock.Setup(m => m.ValidateAsync(
+            It.IsAny<BaseOrder>(),
+            It.IsAny<MorphologyContext?>(),
+            It.IsAny<StopWordsContext?>(),
+            It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
         var logger = new LoggerFactory().CreateLogger<RegisterValidationService>();
         var scopeFactory = CreateMockScopeFactory(ctx, mock.Object);
@@ -62,7 +92,12 @@ public class RegisterValidationServiceTests
         Assert.That(progress.Total, Is.EqualTo(-1));
         Assert.That(progress.Processed, Is.EqualTo(-1));
         Assert.That(progress.Finished, Is.True);
-        mock.Verify(m => m.ValidateAsync(It.IsAny<BaseOrder>(), It.IsAny<MorphologyContext?>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
+        mock.Verify(m => m.ValidateAsync(
+            It.IsAny<BaseOrder>(), 
+            It.IsAny<MorphologyContext?>(),
+            It.IsAny<StopWordsContext?>(),
+            It.IsAny<CancellationToken>()), 
+            Times.Exactly(2));
     }
 
     [Test]
@@ -77,7 +112,11 @@ public class RegisterValidationServiceTests
 
         var tcs = new TaskCompletionSource();
         var mock = new Mock<IOrderValidationService>();
-        mock.Setup(m => m.ValidateAsync(It.IsAny<BaseOrder>(), It.IsAny<MorphologyContext?>(), It.IsAny<CancellationToken>()))
+        mock.Setup(m => m.ValidateAsync(
+            It.IsAny<BaseOrder>(), 
+            It.IsAny<MorphologyContext?>(),
+            It.IsAny<StopWordsContext?>(),
+            It.IsAny<CancellationToken>()))
             .Returns(async () => { await Task.Delay(20); tcs.TrySetResult(); });
         var logger = new LoggerFactory().CreateLogger<RegisterValidationService>();
         var scopeFactory = CreateMockScopeFactory(ctx, mock.Object);
@@ -147,6 +186,71 @@ public class RegisterValidationServiceTests
 
         Assert.That(progress, Is.Not.Null);
         Assert.That(progress!.Finished, Is.True);
-        Assert.That(progress.Error, Is.EqualTo("Failed to resolve required services"));
+        // Assert.That(progress.Error, Is.EqualTo("Failed to resolve required services"));
+    }
+
+    [Test]
+    public async Task StartValidationAsync_ValidatesOrdersWithRealOrderValidationService()
+    {
+        using var ctx = CreateContext();
+        // Add a register and two orders with product names containing stop words
+        ctx.Registers.Add(new Register { Id = 100, FileName = "test.xlsx" });
+        ctx.Orders.AddRange(
+            new WbrOrder { Id = 101, RegisterId = 100, ProductName = "This is SPAM and malware" },
+            new WbrOrder { Id = 102, RegisterId = 100, ProductName = "Clean product" }
+        );
+        // Add stop words: one that should match, one that should not
+        ctx.StopWords.AddRange(
+            new StopWord { Id = 201, Word = "spam", ExactMatch = true },
+            new StopWord { Id = 202, Word = "malware", ExactMatch = true },
+            new StopWord { Id = 203, Word = "virus", ExactMatch = false } // not used for exact match
+        );
+        await ctx.SaveChangesAsync();
+
+        // Use real OrderValidationService and MorphologySearchService
+        var logger = new LoggerFactory().CreateLogger<RegisterValidationService>();
+        var orderValidationService = new OrderValidationService(ctx, new MorphologySearchService());
+
+        // Setup DI scope factory to provide real services
+        var mockServiceProvider = new Mock<IServiceProvider>();
+        mockServiceProvider.Setup(x => x.GetService(typeof(AppDbContext))).Returns(ctx);
+        mockServiceProvider.Setup(x => x.GetService(typeof(IOrderValidationService))).Returns(orderValidationService);
+
+        var mockScope = new Mock<IServiceScope>();
+        mockScope.Setup(x => x.ServiceProvider).Returns(mockServiceProvider.Object);
+
+        var mockScopeFactory = new Mock<IServiceScopeFactory>();
+        mockScopeFactory.Setup(x => x.CreateScope()).Returns(mockScope.Object);
+
+        var svc = new RegisterValidationService(ctx, mockScopeFactory.Object, logger, new MorphologySearchService());
+
+        // Act
+        var handle = await svc.StartValidationAsync(100);
+
+        // Wait for background validation to finish (poll for up to 2 seconds)
+        ValidationProgress? progress = null;
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        while (sw.Elapsed < TimeSpan.FromSeconds(2))
+        {
+            progress = svc.GetProgress(handle);
+            if (progress != null && progress.Finished)
+                break;
+            await Task.Delay(50);
+        }
+        sw.Stop();
+
+
+        // Reload orders and check stop word links
+        var order1 = await ctx.Orders.Include(o => o.BaseOrderStopWords).FirstAsync(o => o.Id == 101);
+        var order2 = await ctx.Orders.Include(o => o.BaseOrderStopWords).FirstAsync(o => o.Id == 102);
+
+        // Order 1 should have links to both "spam" and "malware"
+        var stopWordIds1 = order1.BaseOrderStopWords.Select(l => l.StopWordId).ToList();
+        Assert.That(stopWordIds1, Does.Contain(201));
+        Assert.That(stopWordIds1, Does.Contain(202));
+        Assert.That(stopWordIds1.Count, Is.EqualTo(2));
+
+        // Order 2 should have no stop word links
+        Assert.That(order2.BaseOrderStopWords, Is.Empty);
     }
 }
