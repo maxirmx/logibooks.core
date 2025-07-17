@@ -96,7 +96,7 @@ public class MorphologySearchService : IMorphologySearchService
                 
             // Get the normal form first, then find derivatives
             var normalForm = GetNormalForm(m.Value);
-            var tokenGroups = DerivateService.FindDerivates(normalForm, true, null);
+            var tokenGroups = DerivateService.FindDerivates(normalForm, true, Pullenti.Morph.MorphLang.RU);
             if (tokenGroups == null || !tokenGroups.Any())
                 continue;
                 
