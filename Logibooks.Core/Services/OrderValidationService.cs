@@ -84,27 +84,13 @@ public class OrderValidationService(AppDbContext db, IMorphologySearchService mo
 
     private async Task<List<StopWord>> GetMatchingStopWords(string productName, CancellationToken cancellationToken)
     {
-        var isPostgreSQL = _db.Database.ProviderName == "Npgsql.EntityFrameworkCore.PostgreSQL";
+        if (string.IsNullOrEmpty(productName))
+            return [];
 
-        if (isPostgreSQL)
-        {
-            // Use PostgreSQL's case-insensitive ILike for optimal performance
-            // Check if productName contains the stop word
-            return await _db.StopWords.AsNoTracking()
-                .Where(sw => sw.ExactMatch && !string.IsNullOrEmpty(sw.Word) && 
-                             EF.Functions.ILike(productName, $"%{sw.Word}%"))
-                .ToListAsync(cancellationToken);
-        }
-        else
-        {
-            // Fallback for other providers (like InMemory for tests)
-            // Load all exact match stop words and filter in memory for case-insensitive matching
-            var allWords = await _db.StopWords.AsNoTracking()
-                .Where(sw => sw.ExactMatch && !string.IsNullOrEmpty(sw.Word))
-                .ToListAsync(cancellationToken);
-
-            return allWords.Where(sw => productName.Contains(sw.Word, StringComparison.OrdinalIgnoreCase))
-                          .ToList();
-        }
+        return await _db.StopWords.AsNoTracking()
+            .Where(sw => sw.ExactMatch &&
+                         !string.IsNullOrEmpty(sw.Word) &&
+                         EF.Functions.Like(productName, $"%{sw.Word}%"))
+            .ToListAsync(cancellationToken);
     }
 }
