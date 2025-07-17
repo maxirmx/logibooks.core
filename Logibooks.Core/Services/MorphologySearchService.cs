@@ -27,6 +27,7 @@ namespace Logibooks.Core.Services;
 
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
+using System.Linq;
 using Pullenti.Morph;
 using Pullenti.Semantic.Utils;
 using Logibooks.Core.Models;
@@ -34,10 +35,20 @@ using Logibooks.Core.Models;
 public class MorphologySearchService : IMorphologySearchService
 {
     private static readonly Regex WordRegex = new Regex(@"\p{L}+", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+    
     static MorphologySearchService()
     {
         MorphologyService.Initialize(Pullenti.Morph.MorphLang.RU);
         DerivateService.Initialize(Pullenti.Morph.MorphLang.RU);
+    }
+
+    private static string GetNormalForm(string word)
+    {
+        if (string.IsNullOrWhiteSpace(word))
+            return word;
+            
+        var morphs = MorphologyService.GetAllWordforms(word.ToUpperInvariant(), Pullenti.Morph.MorphLang.RU);
+        return morphs.Count > 0 ? morphs.First().NormalCase.ToUpperInvariant() : word.ToUpperInvariant();
     }
 
     public MorphologyContext InitializeContext(IEnumerable<StopWord> stopWords)
@@ -47,11 +58,18 @@ public class MorphologySearchService : IMorphologySearchService
         {
             if (string.IsNullOrWhiteSpace(sw.Word))
                 continue;
-            var groups = DerivateService.FindDerivates(sw.Word.ToUpperInvariant(), true, null);
-            if (groups == null)
+                
+            // Get the normal form first, then find derivatives
+            var normalForm = GetNormalForm(sw.Word);
+            var groups = DerivateService.FindDerivates(normalForm, true, Pullenti.Morph.MorphLang.RU);
+            if (groups == null || !groups.Any())
                 continue;
+                
             foreach (var g in groups)
             {
+                if (g == null)
+                    continue;
+                    
                 if (!context.Groups.TryGetValue(g, out var ids))
                 {
                     ids = new HashSet<int>();
@@ -65,16 +83,32 @@ public class MorphologySearchService : IMorphologySearchService
 
     public IEnumerable<int> CheckText(MorphologyContext context, string text)
     {
+        if (context?.Groups == null || !context.Groups.Any())
+            return Enumerable.Empty<int>();
+            
         var result = new HashSet<int>();
-        foreach (Match m in WordRegex.Matches(text ?? string.Empty))
+        var matches = WordRegex.Matches(text ?? string.Empty);
+        
+        foreach (Match m in matches)
         {
-            var tokenGroups = DerivateService.FindDerivates(m.Value.ToUpperInvariant(), true, null);
-            if (tokenGroups == null)
+            if (string.IsNullOrWhiteSpace(m.Value))
                 continue;
+                
+            // Get the normal form first, then find derivatives
+            var normalForm = GetNormalForm(m.Value);
+            var tokenGroups = DerivateService.FindDerivates(normalForm, true, null);
+            if (tokenGroups == null || !tokenGroups.Any())
+                continue;
+                
             foreach (var g in tokenGroups)
             {
+                if (g == null)
+                    continue;
+                    
                 if (context.Groups.TryGetValue(g, out var ids))
+                {
                     result.UnionWith(ids);
+                }
             }
         }
         return result;

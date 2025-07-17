@@ -89,9 +89,10 @@ public class OrderValidationService(AppDbContext db, IMorphologySearchService mo
         if (isPostgreSQL)
         {
             // Use PostgreSQL's case-insensitive ILike for optimal performance
+            // Check if productName contains the stop word
             return await _db.StopWords.AsNoTracking()
                 .Where(sw => sw.ExactMatch && !string.IsNullOrEmpty(sw.Word) && 
-                             EF.Functions.ILike(sw.Word, $"%{productName}%"))
+                             EF.Functions.ILike(productName, $"%{sw.Word}%"))
                 .ToListAsync(cancellationToken);
         }
         else

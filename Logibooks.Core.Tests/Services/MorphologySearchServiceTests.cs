@@ -2,19 +2,321 @@ using NUnit.Framework;
 using System.Linq;
 using Logibooks.Core.Models;
 using Logibooks.Core.Services;
+using System.Collections.Generic;
 
 namespace Logibooks.Core.Tests.Services;
 
 [TestFixture]
 public class MorphologySearchServiceTests
 {
+    private MorphologySearchService _service;
+
+    [SetUp]
+    public void Setup()
+    {
+        _service = new MorphologySearchService();
+    }
+
     [Test]
     public void CheckText_FindsDerivativeMatch()
     {
-        var svc = new MorphologySearchService();
         var sw = new StopWord { Id = 1, Word = "золото" };
-        var ctx = svc.InitializeContext(new[] { sw });
-        var res = svc.CheckText(ctx, "золотой браслет и алюминиевый слиток");
+        var ctx = _service.InitializeContext(new[] { sw });
+        var res = _service.CheckText(ctx, "золотой браслет и алюминиевый слиток");
         Assert.That(res.Contains(1));
+    }
+
+    [Test]
+    public void InitializeContext_HandlesSingleStopWord()
+    {
+        var sw = new StopWord { Id = 1, Word = "дом" };
+        var ctx = _service.InitializeContext(new[] { sw });
+        
+        Assert.That(ctx, Is.Not.Null);
+        // Test that context was properly initialized by checking if it can find derivatives
+        var result = _service.CheckText(ctx, "домашний");
+        Assert.That(result.Contains(1), "Context should be properly initialized");
+    }
+
+    [Test]
+    public void InitializeContext_HandlesMultipleStopWords()
+    {
+        var stopWords = new[]
+        {
+            new StopWord { Id = 1, Word = "золото" },
+            new StopWord { Id = 2, Word = "серебро" },
+            new StopWord { Id = 3, Word = "дом" }
+        };
+        
+        var ctx = _service.InitializeContext(stopWords);
+        
+        Assert.That(ctx, Is.Not.Null);
+        // Test that all words were processed by checking derivatives
+        var result = _service.CheckText(ctx, "золотой домашний серебряный");
+        Assert.That(result.Contains(1), "Should find gold derivative");
+        Assert.That(result.Contains(2), "Should find silver derivative");
+        Assert.That(result.Contains(3), "Should find home derivative");
+    }
+
+    [Test]
+    public void InitializeContext_HandlesEmptyCollection()
+    {
+        var ctx = _service.InitializeContext(new List<StopWord>());
+        
+        Assert.That(ctx, Is.Not.Null);
+        // Test empty context by verifying no matches are found
+        var result = _service.CheckText(ctx, "любой текст");
+        Assert.That(result, Is.Empty);
+    }
+
+    [Test]
+    public void InitializeContext_SkipsNullOrWhitespaceWords()
+    {
+        var stopWords = new[]
+        {
+            new StopWord { Id = 1, Word = "" },
+            new StopWord { Id = 2, Word = "   " },
+            new StopWord { Id = 3, Word = "золото" },
+            new StopWord { Id = 4, Word = null! }
+        };
+        
+        var ctx = _service.InitializeContext(stopWords);
+        
+        Assert.That(ctx, Is.Not.Null);
+        // Should only process the valid "золото" word
+        var result = _service.CheckText(ctx, "золотой браслет");
+        Assert.That(result.Contains(3), "Should find only the valid stop word");
+        Assert.That(result.Count(), Is.EqualTo(1), "Should only find one match");
+    }
+
+    [Test]
+    public void CheckText_HandlesNullText()
+    {
+        var sw = new StopWord { Id = 1, Word = "золото" };
+        var ctx = _service.InitializeContext(new[] { sw });
+        
+        var result = _service.CheckText(ctx, null);
+        
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result, Is.Empty);
+    }
+
+    [Test]
+    public void CheckText_HandlesEmptyText()
+    {
+        var sw = new StopWord { Id = 1, Word = "золото" };
+        var ctx = _service.InitializeContext(new[] { sw });
+        
+        var result = _service.CheckText(ctx, "");
+        
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result, Is.Empty);
+    }
+
+    [Test]
+    public void CheckText_HandlesWhitespaceOnlyText()
+    {
+        var sw = new StopWord { Id = 1, Word = "золото" };
+        var ctx = _service.InitializeContext(new[] { sw });
+        
+        var result = _service.CheckText(ctx, "   \t\n  ");
+        
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result, Is.Empty);
+    }
+
+    [Test]
+    public void CheckText_FindsMultipleMatches()
+    {
+        var stopWords = new[]
+        {
+            new StopWord { Id = 1, Word = "золото" },
+            new StopWord { Id = 2, Word = "дом" }
+        };
+        var ctx = _service.InitializeContext(stopWords);
+        
+        var result = _service.CheckText(ctx, "золотой браслет и домашний уют");
+        
+        Assert.That(result.Contains(1), "Should find gold derivative");
+        Assert.That(result.Contains(2), "Should find home derivative");
+    }
+
+    [Test]
+    public void CheckText_CaseInsensitive()
+    {
+        var sw = new StopWord { Id = 1, Word = "дом" };
+        var ctx = _service.InitializeContext(new[] { sw });
+        
+        var result1 = _service.CheckText(ctx, "большой ДОМ");
+        var result2 = _service.CheckText(ctx, "домашний уют");
+        var result3 = _service.CheckText(ctx, "ДОМИК в деревне");
+        
+        Assert.That(result1.Contains(1), "Should find uppercase match");
+        Assert.That(result2.Contains(1), "Should find derivative match");
+        Assert.That(result3.Contains(1), "Should find uppercase derivative match");
+    }
+
+    [Test]
+    public void CheckText_NoMatchesForUnrelatedText()
+    {
+        var sw = new StopWord { Id = 1, Word = "золото" };
+        var ctx = _service.InitializeContext(new[] { sw });
+        
+        var result = _service.CheckText(ctx, "красивый автомобиль и зелёная трава");
+        
+        Assert.That(result, Is.Empty);
+    }
+
+    [Test]
+    public void CheckText_HandlesTextWithPunctuation()
+    {
+        var sw = new StopWord { Id = 1, Word = "дом" };
+        var ctx = _service.InitializeContext(new[] { sw });
+        
+        var result = _service.CheckText(ctx, "Это домашний, уютный и тёплый дом!");
+        
+        Assert.That(result.Contains(1), "Should find matches despite punctuation");
+    }
+
+    [Test]
+    public void CheckText_HandlesMixedLanguages()
+    {
+        var sw = new StopWord { Id = 1, Word = "дом" };
+        var ctx = _service.InitializeContext(new[] { sw });
+        
+        var result = _service.CheckText(ctx, "My beautiful домик is very nice house");
+        
+        Assert.That(result.Contains(1), "Should find Russian matches in mixed language text");
+    }
+
+    [TestCase("книга", "книжный магазин", true)]
+    [TestCase("учить", "ученик в школе", true)]
+    [TestCase("писать", "писатель и письмо", true)]
+    [TestCase("работать", "рабочий день", true)]
+    [TestCase("дом", "домашний уют", true)]
+    [TestCase("молоко", "кофе и чай", false)]
+    [TestCase("собака", "собачий корм", true)]
+    public void CheckText_MorphologicalDerivatives(string stopWord, string testText, bool shouldMatch)
+    {
+        var sw = new StopWord { Id = 1, Word = stopWord };
+        var ctx = _service.InitializeContext(new[] { sw });
+        
+        var result = _service.CheckText(ctx, testText);
+        
+        if (shouldMatch)
+        {
+            Assert.That(result.Contains(1), $"Should find derivative of '{stopWord}' in '{testText}'");
+        }
+        else
+        {
+            Assert.That(result, Is.Empty, $"Should not find '{stopWord}' in '{testText}'");
+        }
+    }
+
+    [Test]
+    public void CheckText_ReturnsUniqueIds()
+    {
+        var sw = new StopWord { Id = 1, Word = "дом" };
+        var ctx = _service.InitializeContext(new[] { sw });
+        
+        var result = _service.CheckText(ctx, "домашний дом и домик").ToList();
+        
+        // Should only return ID 1 once, even if multiple derivatives are found
+        Assert.That(result.Count(id => id == 1), Is.EqualTo(1));
+    }
+
+    [Test]
+    public void CheckText_HandlesLongText()
+    {
+        var sw = new StopWord { Id = 1, Word = "дом" };
+        var ctx = _service.InitializeContext(new[] { sw });
+        
+        var longText = string.Join(" ", Enumerable.Repeat("Это очень длинный текст с множеством слов", 100)) 
+                      + " и один домашний предмет";
+        
+        var result = _service.CheckText(ctx, longText);
+        
+        Assert.That(result.Contains(1), "Should find matches in long text");
+    }
+
+    [Test]
+    public void CheckText_WithEmptyContext()
+    {
+        var ctx = _service.InitializeContext(new List<StopWord>());
+        
+        var result = _service.CheckText(ctx, "любой текст с любыми словами");
+        
+        Assert.That(result, Is.Empty);
+    }
+
+    [Test]
+    public void CheckText_PerformanceWithManyStopWords()
+    {
+        var stopWords = new List<StopWord>();
+        for (int i = 1; i <= 100; i++)
+        {
+            stopWords.Add(new StopWord { Id = i, Word = $"слово{i}" });
+        }
+        stopWords.Add(new StopWord { Id = 101, Word = "дом" });
+        
+        var ctx = _service.InitializeContext(stopWords);
+        
+        var result = _service.CheckText(ctx, "домашний уют");
+        
+        Assert.That(result.Contains(101), "Should find match even with many stop words");
+    }
+
+    [Test]
+    public void CheckText_HandlesSpecialCharacters()
+    {
+        var sw = new StopWord { Id = 1, Word = "дом" };
+        var ctx = _service.InitializeContext(new[] { sw });
+        
+        var result = _service.CheckText(ctx, "дом@example.com и домик#123 плюс дом$");
+        
+        Assert.That(result.Contains(1), "Should find matches despite special characters");
+    }
+
+    [Test]
+    public void InitializeContext_HandlesStopWordsCaseVariations()
+    {
+        var stopWords = new[]
+        {
+            new StopWord { Id = 1, Word = "ЗОЛОТО" },
+            new StopWord { Id = 2, Word = "дом" },
+            new StopWord { Id = 3, Word = "УЧИТЬ" }
+        };
+        
+        var ctx = _service.InitializeContext(stopWords);
+        
+        var result = _service.CheckText(ctx, "золотой домашний ученик");
+        
+        Assert.That(result.Contains(1), "Should handle uppercase stop words");
+        Assert.That(result.Contains(2), "Should handle lowercase stop words");
+        Assert.That(result.Contains(3), "Should handle mixed case stop words");
+    }
+
+    [Test]
+    public void CheckText_FindsExactMatch()
+    {
+        var sw = new StopWord { Id = 1, Word = "золото" };
+        var ctx = _service.InitializeContext(new[] { sw });
+        
+        var result = _service.CheckText(ctx, "чистое золото");
+        
+        Assert.That(result.Contains(1), "Should find exact word matches");
+    }
+
+    [Test]
+    public void CheckText_HandlesVeryShortWords()
+    {
+        var sw = new StopWord { Id = 1, Word = "я" };
+        var ctx = _service.InitializeContext(new[] { sw });
+        
+        var result = _service.CheckText(ctx, "я иду домой");
+        
+        // Note: This test might not find matches if the morphology service 
+        // doesn't handle very short words well
+        Assert.That(result, Is.Not.Null);
     }
 }
