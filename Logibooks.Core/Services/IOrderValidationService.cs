@@ -29,7 +29,16 @@ namespace Logibooks.Core.Services;
 
 public interface IOrderValidationService
 {
+
     Task ValidateAsync(BaseOrder order,
-        MorphologyContext? context = null,
+        MorphologyContext? morphologyContext = null,
+        StopWordsContext? stopWordContext = null,
         CancellationToken cancellationToken = default);
+
+    StopWordsContext InitializeStopWordsContext(IEnumerable<StopWord> exactMatchStopWords);
+}
+
+public class StopWordsContext
+{
+    internal List<StopWord> ExactMatchStopWords { get; } = new();
 }

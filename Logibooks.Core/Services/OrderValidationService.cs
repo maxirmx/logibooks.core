@@ -34,9 +34,11 @@ public class OrderValidationService(AppDbContext db, IMorphologySearchService mo
     private readonly AppDbContext _db = db;
     private readonly IMorphologySearchService _morphService = morphService;
 
+
     public async Task ValidateAsync(
         BaseOrder order,
-        MorphologyContext? context = null,
+        MorphologyContext? morphologyContext = null,
+        StopWordsContext? stopWordContext = null,
         CancellationToken cancellationToken = default)
     {
         // remove existing links for this order
@@ -47,8 +49,16 @@ public class OrderValidationService(AppDbContext db, IMorphologySearchService mo
 
         var productName = order.ProductName ?? string.Empty;
 
-        // Use database-appropriate case-insensitive matching
-        var matchingWords = await GetMatchingStopWords(productName, cancellationToken);
+        // Use pre-loaded stop words from context or load from database
+        List<StopWord> matchingWords;
+        if (stopWordContext != null)
+        {
+            matchingWords = GetMatchingStopWordsFromContext(productName, stopWordContext);
+        }
+        else
+        {
+            matchingWords = await GetMatchingStopWords(productName, cancellationToken);
+        }
 
         var links = new List<BaseOrderStopWord>();
         var existingStopWordIds = new HashSet<int>();
@@ -59,9 +69,9 @@ public class OrderValidationService(AppDbContext db, IMorphologySearchService mo
             existingStopWordIds.Add(sw.Id);
         }
 
-        if (context != null)
+        if (morphologyContext != null)
         {
-            var ids = _morphService.CheckText(context, productName);
+            var ids = _morphService.CheckText(morphologyContext, productName);
             foreach (var id in ids)
             {
                 if (existingStopWordIds.Add(id)) // HashSet.Add returns false if already exists
@@ -82,15 +92,42 @@ public class OrderValidationService(AppDbContext db, IMorphologySearchService mo
         await _db.SaveChangesAsync(cancellationToken);
     }
 
+    public StopWordsContext InitializeStopWordContext(IEnumerable<StopWord> exactMatchStopWords)
+    {
+        var context = new StopWordsContext();
+        context.ExactMatchStopWords.AddRange(exactMatchStopWords.Where(sw => sw.ExactMatch));
+        return context;
+    }
+
+    private List<StopWord> GetMatchingStopWordsFromContext(string productName, StopWordsContext context)
+    {
+        if (string.IsNullOrEmpty(productName))
+            return [];
+
+        return context.ExactMatchStopWords
+            .Where(sw => !string.IsNullOrEmpty(sw.Word) && 
+                         productName.Contains(sw.Word, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+    }
+
     private async Task<List<StopWord>> GetMatchingStopWords(string productName, CancellationToken cancellationToken)
     {
         if (string.IsNullOrEmpty(productName))
             return [];
 
-        return await _db.StopWords.AsNoTracking()
-            .Where(sw => sw.ExactMatch &&
-                         !string.IsNullOrEmpty(sw.Word) &&
-                         EF.Functions.Like(productName, $"%{sw.Word}%"))
+        // Load all exact match stop words and filter in memory for case-insensitive matching
+        var allWords = await _db.StopWords.AsNoTracking()
+            .Where(sw => sw.ExactMatch && !string.IsNullOrEmpty(sw.Word))
             .ToListAsync(cancellationToken);
+
+        return allWords.Where(sw => productName.Contains(sw.Word, StringComparison.OrdinalIgnoreCase))
+                      .ToList();
+    }
+
+    public StopWordsContext InitializeStopWordsContext(IEnumerable<StopWord> exactMatchStopWords)
+    {
+        var context = new StopWordsContext();
+        context.ExactMatchStopWords.AddRange(exactMatchStopWords.Where(sw => sw.ExactMatch));
+        return context;
     }
 }
