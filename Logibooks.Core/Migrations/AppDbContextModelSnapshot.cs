@@ -35,9 +35,9 @@ namespace Logibooks.Core.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("check_status_id");
 
-                    b.Property<string>("Description")
+                    b.Property<string>("ProductName")
                         .HasColumnType("text")
-                        .HasColumnName("description");
+                        .HasColumnName("product_name");
 
                     b.Property<int>("RegisterId")
                         .HasColumnType("integer")
@@ -569,6 +569,10 @@ namespace Logibooks.Core.Migrations
                         .HasColumnType("text")
                         .HasColumnName("declaration");
 
+                    b.Property<string>("Description")
+                        .HasColumnType("text")
+                        .HasColumnName("description");
+
                     b.Property<string>("DutyPayment")
                         .HasColumnType("text")
                         .HasColumnName("duty_payment");
@@ -628,10 +632,6 @@ namespace Logibooks.Core.Migrations
                     b.Property<string>("ProductLink")
                         .HasColumnType("text")
                         .HasColumnName("product_link");
-
-                    b.Property<string>("ProductName")
-                        .HasColumnType("text")
-                        .HasColumnName("product_name");
 
                     b.Property<decimal?>("Quantity")
                         .HasColumnType("numeric(10,3)")

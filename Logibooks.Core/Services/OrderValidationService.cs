@@ -41,7 +41,7 @@ public class OrderValidationService(AppDbContext db) : IOrderValidationService
         order.CheckStatusId = (int)OrderCheckStatusCode.NotChecked;
         await _db.SaveChangesAsync(cancellationToken);
 
-        var description = order.Description ?? string.Empty;
+        var productName = order.ProductName ?? string.Empty;
 
         var words = await _db.StopWords.AsNoTracking()
             .Where(sw => sw.ExactMatch)
@@ -51,7 +51,7 @@ public class OrderValidationService(AppDbContext db) : IOrderValidationService
         foreach (var sw in words)
         {
             if (!string.IsNullOrEmpty(sw.Word) &&
-                description.Contains(sw.Word, StringComparison.OrdinalIgnoreCase))
+                productName.Contains(sw.Word, StringComparison.OrdinalIgnoreCase))
             {
                 links.Add(new BaseOrderStopWord { BaseOrderId = order.Id, StopWordId = sw.Id });
             }

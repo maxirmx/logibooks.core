@@ -50,7 +50,7 @@ public class OrderValidationServiceTests
     public async Task ValidateAsync_AddsLinksAndUpdatesStatus()
     {
         using var ctx = CreateContext();
-        var order = new WbrOrder { Id = 1, RegisterId = 1, CheckStatusId = 1, Description = "This is SPAM" };
+        var order = new WbrOrder { Id = 1, RegisterId = 1, CheckStatusId = 1, ProductName = "This is SPAM" };
         ctx.Orders.Add(order);
         ctx.StopWords.AddRange(
             new StopWord { Id = 2, Word = "spam", ExactMatch = true },
@@ -72,7 +72,7 @@ public class OrderValidationServiceTests
     public async Task ValidateAsync_NoMatch_DoesNothing()
     {
         using var ctx = CreateContext();
-        var order = new WbrOrder { Id = 1, RegisterId = 1, CheckStatusId = 1, Description = "clean" };
+        var order = new WbrOrder { Id = 1, RegisterId = 1, CheckStatusId = 1, ProductName = "clean" };
         ctx.Orders.Add(order);
         ctx.StopWords.Add(new StopWord { Id = 2, Word = "spam", ExactMatch = true });
         await ctx.SaveChangesAsync();
@@ -88,7 +88,7 @@ public class OrderValidationServiceTests
     public async Task ValidateAsync_IgnoresCase()
     {
         using var ctx = CreateContext();
-        var order = new WbrOrder { Id = 1, RegisterId = 1, CheckStatusId = 1, Description = "bad WORD" };
+        var order = new WbrOrder { Id = 1, RegisterId = 1, CheckStatusId = 1, ProductName = "bad WORD" };
         ctx.Orders.Add(order);
         ctx.StopWords.Add(new StopWord { Id = 5, Word = "word", ExactMatch = true });
         await ctx.SaveChangesAsync();

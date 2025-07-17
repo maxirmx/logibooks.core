@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Logibooks.Core.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250715081748_0_5_0_OrdersHierarchy")]
-    partial class _0_5_0_OrdersHierarchy
+    [Migration("20250717084709_0_5_0_OrdersHierarchy_and_StopWords")]
+    partial class _0_5_0_OrdersHierarchy_and_StopWords
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -38,9 +38,9 @@ namespace Logibooks.Core.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("check_status_id");
 
-                    b.Property<string>("Description")
+                    b.Property<string>("ProductName")
                         .HasColumnType("text")
-                        .HasColumnName("description");
+                        .HasColumnName("product_name");
 
                     b.Property<int>("RegisterId")
                         .HasColumnType("integer")
@@ -67,6 +67,23 @@ namespace Logibooks.Core.Migrations
                     b.ToTable("base_orders", (string)null);
 
                     b.UseTptMappingStrategy();
+                });
+
+            modelBuilder.Entity("Logibooks.Core.Models.BaseOrderStopWord", b =>
+                {
+                    b.Property<int>("BaseOrderId")
+                        .HasColumnType("integer")
+                        .HasColumnName("base_order_id");
+
+                    b.Property<int>("StopWordId")
+                        .HasColumnType("integer")
+                        .HasColumnName("stop_word_id");
+
+                    b.HasKey("BaseOrderId", "StopWordId");
+
+                    b.HasIndex("StopWordId");
+
+                    b.ToTable("base_order_stop_words");
                 });
 
             modelBuilder.Entity("Logibooks.Core.Models.Company", b =>
@@ -248,17 +265,17 @@ namespace Logibooks.Core.Migrations
                         new
                         {
                             Id = 1,
-                            Title = "Загружен"
+                            Title = "Не проверен"
                         },
                         new
                         {
                             Id = 101,
-                            Title = "Проблема"
+                            Title = "Выявлены проблемы"
                         },
                         new
                         {
                             Id = 201,
-                            Title = "Проверен"
+                            Title = "Не выявлено проблем"
                         });
                 });
 
@@ -353,6 +370,32 @@ namespace Logibooks.Core.Migrations
                             Name = "administrator",
                             Title = "Администратор"
                         });
+                });
+
+            modelBuilder.Entity("Logibooks.Core.Models.StopWord", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("ExactMatch")
+                        .HasColumnType("boolean")
+                        .HasColumnName("exact_match");
+
+                    b.Property<string>("Word")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("word");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Word")
+                        .IsUnique();
+
+                    b.ToTable("stop_words");
                 });
 
             modelBuilder.Entity("Logibooks.Core.Models.User", b =>
@@ -529,6 +572,10 @@ namespace Logibooks.Core.Migrations
                         .HasColumnType("text")
                         .HasColumnName("declaration");
 
+                    b.Property<string>("Description")
+                        .HasColumnType("text")
+                        .HasColumnName("description");
+
                     b.Property<string>("DutyPayment")
                         .HasColumnType("text")
                         .HasColumnName("duty_payment");
@@ -588,10 +635,6 @@ namespace Logibooks.Core.Migrations
                     b.Property<string>("ProductLink")
                         .HasColumnType("text")
                         .HasColumnName("product_link");
-
-                    b.Property<string>("ProductName")
-                        .HasColumnType("text")
-                        .HasColumnName("product_name");
 
                     b.Property<decimal?>("Quantity")
                         .HasColumnType("numeric(10,3)")
@@ -693,6 +736,25 @@ namespace Logibooks.Core.Migrations
                     b.Navigation("Status");
                 });
 
+            modelBuilder.Entity("Logibooks.Core.Models.BaseOrderStopWord", b =>
+                {
+                    b.HasOne("Logibooks.Core.Models.BaseOrder", "BaseOrder")
+                        .WithMany("BaseOrderStopWords")
+                        .HasForeignKey("BaseOrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Logibooks.Core.Models.StopWord", "StopWord")
+                        .WithMany("BaseOrderStopWords")
+                        .HasForeignKey("StopWordId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("BaseOrder");
+
+                    b.Navigation("StopWord");
+                });
+
             modelBuilder.Entity("Logibooks.Core.Models.Company", b =>
                 {
                     b.HasOne("Logibooks.Core.Models.Country", "Country")
@@ -752,6 +814,11 @@ namespace Logibooks.Core.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Logibooks.Core.Models.BaseOrder", b =>
+                {
+                    b.Navigation("BaseOrderStopWords");
+                });
+
             modelBuilder.Entity("Logibooks.Core.Models.Company", b =>
                 {
                     b.Navigation("Registers");
@@ -780,6 +847,11 @@ namespace Logibooks.Core.Migrations
             modelBuilder.Entity("Logibooks.Core.Models.Role", b =>
                 {
                     b.Navigation("UserRoles");
+                });
+
+            modelBuilder.Entity("Logibooks.Core.Models.StopWord", b =>
+                {
+                    b.Navigation("BaseOrderStopWords");
                 });
 
             modelBuilder.Entity("Logibooks.Core.Models.User", b =>

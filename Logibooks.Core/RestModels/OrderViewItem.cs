@@ -37,11 +37,11 @@ public class OrderViewItem
     public int RegisterId { get; set; }
     public int StatusId { get; set; }
     public int CheckStatusId { get; set; }
-    public string? Description { get; set; }
+    public string? ProductName { get; set; }
     public string? TnVed { get; set; }
     public string? OrderNumber { get; set; }
     public string? Shk { get; set; }
-    public string? ProductName { get; set; }
+    public string? Description { get; set; }
     public string? Country { get; set; }
     public decimal? WeightKg { get; set; }
     public decimal? Quantity { get; set; }
@@ -63,14 +63,14 @@ public class OrderViewItem
         RegisterId = order.RegisterId;
         StatusId = order.StatusId;
         CheckStatusId = order.CheckStatusId;
-        Description = order.Description;
+        ProductName = order.ProductName;
         TnVed = order.TnVed;
 
         if (order is WbrOrder wbr)
         {
             OrderNumber = wbr.OrderNumber;
             Shk = wbr.Shk;
-            ProductName = wbr.ProductName;
+            Description = wbr.Description;
             Country = wbr.Country;
             WeightKg = wbr.WeightKg;
             Quantity = wbr.Quantity;
