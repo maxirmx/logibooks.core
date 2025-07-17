@@ -9,6 +9,7 @@ using NUnit.Framework;
 using Logibooks.Core.Data;
 using Logibooks.Core.Models;
 using Logibooks.Core.Services;
+using Logibooks.Core.RestModels;
 
 namespace Logibooks.Core.Tests.Services;
 
@@ -23,7 +24,7 @@ public class RegisterValidationServiceTests
         return new AppDbContext(options);
     }
 
-    private static IServiceProvider CreateMockServiceProvider(AppDbContext dbContext, IOrderValidationService orderValidationService)
+    private static IServiceScopeFactory CreateMockScopeFactory(AppDbContext dbContext, IOrderValidationService orderValidationService)
     {
         var mockServiceProvider = new Mock<IServiceProvider>();
         var mockScope = new Mock<IServiceScope>();
@@ -33,9 +34,8 @@ public class RegisterValidationServiceTests
         mockScope.Setup(s => s.ServiceProvider.GetService(typeof(IOrderValidationService))).Returns(orderValidationService);
 
         mockScopeFactory.Setup(f => f.CreateScope()).Returns(mockScope.Object);
-        mockServiceProvider.Setup(p => p.GetService(typeof(IServiceScopeFactory))).Returns(mockScopeFactory.Object);
 
-        return mockServiceProvider.Object;
+        return mockScopeFactory.Object;
     }
 
     [Test]
@@ -52,8 +52,8 @@ public class RegisterValidationServiceTests
         mock.Setup(m => m.ValidateAsync(It.IsAny<BaseOrder>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
         var logger = new LoggerFactory().CreateLogger<RegisterValidationService>();
-        var serviceProvider = CreateMockServiceProvider(ctx, mock.Object);
-        var svc = new RegisterValidationService(ctx, serviceProvider, logger);
+        var scopeFactory = CreateMockScopeFactory(ctx, mock.Object);
+        var svc = new RegisterValidationService(ctx, scopeFactory, logger);
 
         var handle = await svc.StartValidationAsync(1);
         await Task.Delay(100); // Give more time for background task
@@ -80,8 +80,8 @@ public class RegisterValidationServiceTests
         mock.Setup(m => m.ValidateAsync(It.IsAny<BaseOrder>(), It.IsAny<CancellationToken>()))
             .Returns(async () => { await Task.Delay(20); tcs.TrySetResult(); });
         var logger = new LoggerFactory().CreateLogger<RegisterValidationService>();
-        var serviceProvider = CreateMockServiceProvider(ctx, mock.Object);
-        var svc = new RegisterValidationService(ctx, serviceProvider, logger);
+        var scopeFactory = CreateMockScopeFactory(ctx, mock.Object);
+        var svc = new RegisterValidationService(ctx, scopeFactory, logger);
 
         var handle = await svc.StartValidationAsync(2);
         svc.CancelValidation(handle);
@@ -102,12 +102,51 @@ public class RegisterValidationServiceTests
 
         var mock = new Mock<IOrderValidationService>();
         var logger = new LoggerFactory().CreateLogger<RegisterValidationService>();
-        var serviceProvider = CreateMockServiceProvider(ctx, mock.Object);
-        var svc = new RegisterValidationService(ctx, serviceProvider, logger);
+        var scopeFactory = CreateMockScopeFactory(ctx, mock.Object);
+        var svc = new RegisterValidationService(ctx, scopeFactory, logger);
 
         var h1 = await svc.StartValidationAsync(3);
         var h2 = await svc.StartValidationAsync(3);
 
         Assert.That(h1, Is.EqualTo(h2));
+    }
+
+    [Test]
+    public async Task StartValidationAsync_SetsError_WhenScopedServicesNotResolved()
+    {
+        using var ctx = CreateContext();
+        ctx.Registers.Add(new Register { Id = 10, FileName = "r.xlsx" });
+        await ctx.SaveChangesAsync();
+
+        // Mock scope returns null for both services
+        var mockScope = new Mock<IServiceScope>();
+        var mockServiceProvider = new Mock<IServiceProvider>();
+        mockServiceProvider.Setup(sp => sp.GetService(typeof(AppDbContext))).Returns(null!);
+        mockServiceProvider.Setup(sp => sp.GetService(typeof(IOrderValidationService))).Returns(null!);
+        mockScope.Setup(s => s.ServiceProvider).Returns(mockServiceProvider.Object);
+
+        var mockScopeFactory = new Mock<IServiceScopeFactory>();
+        mockScopeFactory.Setup(f => f.CreateScope()).Returns(mockScope.Object);
+
+        var logger = new LoggerFactory().CreateLogger<RegisterValidationService>();
+        var svc = new RegisterValidationService(ctx, mockScopeFactory.Object, logger);
+
+        var handle = await svc.StartValidationAsync(10);
+
+        // Poll for progress until error is set or timeout
+        ValidationProgress? progress = null;
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        while (sw.Elapsed < TimeSpan.FromSeconds(2))
+        {
+            progress = svc.GetProgress(handle);
+            if (progress != null && progress.Error != null)
+                break;
+            await Task.Delay(20);
+        }
+        sw.Stop();
+
+        Assert.That(progress, Is.Not.Null);
+        Assert.That(progress!.Finished, Is.True);
+        Assert.That(progress.Error, Is.EqualTo("Failed to resolve required services"));
     }
 }
