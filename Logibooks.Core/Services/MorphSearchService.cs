@@ -3,9 +3,33 @@ using DeepMorphy;
 
 namespace Logibooks.Core.Services;
 
-public sealed class MorphSearchService : IMorphSearchService
+public sealed class MorphSearchService : IMorphSearchService, IDisposable
 {
     private readonly MorphAnalyzer _morph = new(withLemmatization: true);
+    private bool _disposed = false;
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    private void Dispose(bool disposing)
+    {
+        if (!_disposed)
+        {
+            if (disposing)
+            {
+                _morph?.Dispose();
+            }
+            _disposed = true;
+        }
+    }
+
+    ~MorphSearchService()
+    {
+        Dispose(false);
+    }
     private readonly Regex _tokenRegex = new("\\p{L}+", RegexOptions.Compiled);
     private readonly Dictionary<string, HashSet<int>> _lemmaToIds = new(StringComparer.OrdinalIgnoreCase);
 
