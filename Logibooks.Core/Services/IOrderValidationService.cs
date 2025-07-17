@@ -24,6 +24,8 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 using Logibooks.Core.Models;
+using System.Runtime.CompilerServices;
+[assembly: InternalsVisibleTo("Logibooks.Core.Tests")]
 
 namespace Logibooks.Core.Services;
 
@@ -32,7 +34,7 @@ public interface IOrderValidationService
 
     Task ValidateAsync(BaseOrder order,
         MorphologyContext? morphologyContext = null,
-        StopWordsContext? stopWordContext = null,
+        StopWordsContext? stopWordsContext = null,
         CancellationToken cancellationToken = default);
 
     StopWordsContext InitializeStopWordsContext(IEnumerable<StopWord> exactMatchStopWords);

@@ -38,7 +38,7 @@ public class OrderValidationService(AppDbContext db, IMorphologySearchService mo
     public async Task ValidateAsync(
         BaseOrder order,
         MorphologyContext? morphologyContext = null,
-        StopWordsContext? stopWordContext = null,
+        StopWordsContext? stopWordsContext = null,
         CancellationToken cancellationToken = default)
     {
         // remove existing links for this order
@@ -51,9 +51,9 @@ public class OrderValidationService(AppDbContext db, IMorphologySearchService mo
 
         // Use pre-loaded stop words from context or load from database
         List<StopWord> matchingWords;
-        if (stopWordContext != null)
+        if (stopWordsContext != null)
         {
-            matchingWords = GetMatchingStopWordsFromContext(productName, stopWordContext);
+            matchingWords = GetMatchingStopWordsFromContext(productName, stopWordsContext);
         }
         else
         {
@@ -90,13 +90,6 @@ public class OrderValidationService(AppDbContext db, IMorphologySearchService mo
         }
 
         await _db.SaveChangesAsync(cancellationToken);
-    }
-
-    public StopWordsContext InitializeStopWordContext(IEnumerable<StopWord> exactMatchStopWords)
-    {
-        var context = new StopWordsContext();
-        context.ExactMatchStopWords.AddRange(exactMatchStopWords.Where(sw => sw.ExactMatch));
-        return context;
     }
 
     private List<StopWord> GetMatchingStopWordsFromContext(string productName, StopWordsContext context)
