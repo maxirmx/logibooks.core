@@ -31,9 +31,6 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using NUnit.Framework;
 using Quartz;
-using Logibooks.Core.Data;
-using Microsoft.EntityFrameworkCore;
-using System.Net.Http;
 using Logibooks.Core.Services;
 
 namespace Logibooks.Core.Tests.Services;
@@ -60,17 +57,6 @@ public class DummyUpdateFeacnCodesService : IUpdateFeacnCodesService
     }
 }
 
-public class HttpMessageHandlerStub : HttpMessageHandler
-{
-    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-    {
-        var response = new HttpResponseMessage(System.Net.HttpStatusCode.OK)
-        {
-            Content = new StringContent("<html></html>")
-        };
-        return Task.FromResult(response);
-    }
-}
 
 [TestFixture]
 public class UpdateFeacnCodesJobTests
@@ -79,19 +65,13 @@ public class UpdateFeacnCodesJobTests
     public async Task Execute_CancelsPreviousJob()
     {
         var service = new DummyUpdateFeacnCodesService();
-        var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseInMemoryDatabase($"feacn_job_test_{Guid.NewGuid()}")
-            .Options;
-        await using var db = new AppDbContext(options);
-        var httpFactory = new Mock<IHttpClientFactory>();
-        httpFactory.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(new HttpClient(new HttpMessageHandlerStub()));
-        var job1 = new UpdateFeacnCodesJob(db, httpFactory.Object, service, NullLogger<UpdateFeacnCodesJob>.Instance);
+        var job1 = new UpdateFeacnCodesJob(service, NullLogger<UpdateFeacnCodesJob>.Instance);
         var ctx1 = new Mock<IJobExecutionContext>();
         ctx1.Setup(c => c.CancellationToken).Returns(CancellationToken.None);
         var task1 = job1.Execute(ctx1.Object);
         await service.Started.Task; // first started
 
-        var job2 = new UpdateFeacnCodesJob(db, httpFactory.Object, service, NullLogger<UpdateFeacnCodesJob>.Instance);
+        var job2 = new UpdateFeacnCodesJob(service, NullLogger<UpdateFeacnCodesJob>.Instance);
         var cts2 = new CancellationTokenSource();
         var ctx2 = new Mock<IJobExecutionContext>();
         ctx2.Setup(c => c.CancellationToken).Returns(cts2.Token);
