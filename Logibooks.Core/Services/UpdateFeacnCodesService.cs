@@ -67,7 +67,7 @@ public class UpdateFeacnCodesService(
         if (rows == null) yield break;
         foreach (var row in rows)
         {
-            var cells = row.SelectNodes("th|td")?.Select(c => (HtmlEntity.DeEntitize(c.InnerText) ?? string.Empty).Trim()).ToArray();
+            var cells = row.SelectNodes("th|td")?.Select(c => (HtmlEntity.DeEntitize(c.InnerText) ?? String.Empty).Trim()).ToArray();
             if (cells == null || cells.Length == 0) continue;
             yield return cells;
         }
@@ -86,7 +86,9 @@ public class UpdateFeacnCodesService(
 
         foreach (var order in orders)
         {
-            var url = order.Url!;
+            if (order.Url is null) continue;
+
+            string url = order.Url;
             string html;
             try
             {
@@ -146,28 +148,51 @@ public class UpdateFeacnCodesService(
         var extracted = await ExtractAsync(cancellationToken);
         _logger.LogInformation("Extracted {Count} FEACN rows", extracted.Count);
 
-        foreach (var grp in extracted.GroupBy(r => r.OrderId))
+        if (extracted.Count == 0)
         {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            var existing = await _db.FeacnPrefixes
-                .Where(p => p.FeacnOrderId == grp.Key)
-                .ToListAsync(cancellationToken);
-            _db.FeacnPrefixes.RemoveRange(existing);
-
-            foreach (var row in grp)
-            {
-                var prefix = new FeacnPrefix
-                {
-                    FeacnOrderId = grp.Key,
-                    Code = row.Code,
-                    Description = row.Name,
-                    Comment = row.Comment
-                };
-                _db.FeacnPrefixes.Add(prefix);
-            }
+            _logger.LogInformation("No FEACN rows to process");
+            return;
         }
 
-        await _db.SaveChangesAsync(cancellationToken);
+        // Batch operation: fetch all existing prefixes in one query to avoid N+1 queries
+        var orderIds = extracted.Select(r => r.OrderId).Distinct().ToList();
+        var existingPrefixes = await _db.FeacnPrefixes
+            .Where(p => orderIds.Contains(p.FeacnOrderId))
+            .ToListAsync(cancellationToken);
+
+        // Use a transaction for atomicity and better performance
+        using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            // Remove all existing prefixes for these orders
+            if (existingPrefixes.Count > 0)
+            {
+                _db.FeacnPrefixes.RemoveRange(existingPrefixes);
+                _logger.LogInformation("Removing {Count} existing FEACN prefixes", existingPrefixes.Count);
+            }
+
+            // Add new prefixes using batch operation
+            var newPrefixes = extracted.Select(row => new FeacnPrefix
+            {
+                FeacnOrderId = row.OrderId,
+                Code = row.Code,
+                Description = row.Name,
+                Comment = row.Comment
+            }).ToList();
+
+            _db.FeacnPrefixes.AddRange(newPrefixes);
+            _logger.LogInformation("Adding {Count} new FEACN prefixes", newPrefixes.Count);
+
+            await _db.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+            
+            _logger.LogInformation("Successfully updated FEACN prefixes for {OrderCount} orders", orderIds.Count);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating FEACN prefixes, rolling back transaction");
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
     }
 }
