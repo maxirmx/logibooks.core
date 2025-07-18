@@ -29,6 +29,7 @@ using Microsoft.EntityFrameworkCore;
 using Logibooks.Core.Authorization;
 using Logibooks.Core.Data;
 using Logibooks.Core.RestModels;
+using Logibooks.Core.Services;
 using System.Linq.Expressions;
 
 namespace Logibooks.Core.Controllers;
@@ -42,8 +43,10 @@ namespace Logibooks.Core.Controllers;
 public class FeacnController(
     IHttpContextAccessor httpContextAccessor,
     AppDbContext db,
+    IUpdateFeacnCodesService service,
     ILogger<FeacnController> logger) : LogibooksControllerBase(httpContextAccessor, db, logger)
 {
+    private readonly IUpdateFeacnCodesService _service = service;
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(FeacnDataDto))]
     public async Task<ActionResult<FeacnDataDto>> GetAll()
@@ -110,6 +113,7 @@ public class FeacnController(
     public async Task<IActionResult> Update()
     {
         if (!await _db.CheckAdmin(_curUserId)) return _403();
+        await _service.UpdateAsync();
         return NoContent();
     }
 }

@@ -34,7 +34,9 @@ using NUnit.Framework;
 using Logibooks.Core.Controllers;
 using Logibooks.Core.Data;
 using Logibooks.Core.Models;
+using Logibooks.Core.Services;
 using System;
+using System.Threading;
 
 namespace Logibooks.Core.Tests.Controllers;
 
@@ -44,6 +46,7 @@ public class FeacnControllerTests
 #pragma warning disable CS8618
     private AppDbContext _dbContext;
     private Mock<IHttpContextAccessor> _mockHttpContextAccessor;
+    private Mock<IUpdateFeacnCodesService> _mockService;
     private ILogger<FeacnController> _logger;
     private FeacnController _controller;
     private Role _adminRole;
@@ -83,8 +86,9 @@ public class FeacnControllerTests
         _dbContext.SaveChanges();
 
         _mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
+        _mockService = new Mock<IUpdateFeacnCodesService>();
         _logger = new LoggerFactory().CreateLogger<FeacnController>();
-        _controller = new FeacnController(_mockHttpContextAccessor.Object, _dbContext, _logger);
+        _controller = new FeacnController(_mockHttpContextAccessor.Object, _dbContext, _mockService.Object, _logger);
     }
 
     [TearDown]
@@ -109,7 +113,7 @@ public class FeacnControllerTests
         var ctx = new DefaultHttpContext();
         ctx.Items["UserId"] = id;
         _mockHttpContextAccessor.Setup(x => x.HttpContext).Returns(ctx);
-        _controller = new FeacnController(_mockHttpContextAccessor.Object, _dbContext, _logger);
+        _controller = new FeacnController(_mockHttpContextAccessor.Object, _dbContext, _mockService.Object, _logger);
     }
 
     [Test]
@@ -127,6 +131,7 @@ public class FeacnControllerTests
     {
         SetCurrentUserId(1);
         var result = await _controller.Update();
+        _mockService.Verify(s => s.UpdateAsync(It.IsAny<CancellationToken>()), Times.Once);
         Assert.That(result, Is.TypeOf<NoContentResult>());
     }
 
