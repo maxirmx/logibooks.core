@@ -72,7 +72,7 @@ public class UpdateFeacnCodesJob(
         if (rows == null) yield break;
         foreach (var row in rows)
         {
-            var cells = row.SelectNodes("th|td")?.Select(c => HtmlEntity.DeEntitize(c.InnerText).Trim()).ToArray();
+            var cells = row.SelectNodes("th|td")?.Select(c => (HtmlEntity.DeEntitize(c.InnerText) ?? String.Empty).Trim()).ToArray();
             if (cells == null || cells.Length == 0) continue;
             yield return cells;
         }
@@ -156,7 +156,7 @@ public class UpdateFeacnCodesJob(
         {
             var extracted = await ExtractAsync(cts.Token);
             _logger.LogInformation("Extracted {Count} FEACN rows", extracted.Count);
-            await _service.UpdateAsync(cts.Token);
+            await _service.RunAsync(cts.Token);
         }
         catch (OperationCanceledException)
         {

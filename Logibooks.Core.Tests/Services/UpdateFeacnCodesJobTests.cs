@@ -44,7 +44,7 @@ public class DummyUpdateFeacnCodesService : IUpdateFeacnCodesService
     public TaskCompletionSource Started { get; } = new();
     public TaskCompletionSource Cancelled { get; } = new();
 
-    public async Task UpdateAsync(CancellationToken cancellationToken = default)
+    public async Task RunAsync(CancellationToken cancellationToken = default)
     {
         Tokens.Add(cancellationToken);
         Started.TrySetResult();
@@ -84,7 +84,7 @@ public class UpdateFeacnCodesJobTests
             .Options;
         await using var db = new AppDbContext(options);
         var httpFactory = new Mock<IHttpClientFactory>();
-        httpFactory.Setup(f => f.CreateClient(It.IsAny<string?>())).Returns(new HttpClient(new HttpMessageHandlerStub()));
+        httpFactory.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(new HttpClient(new HttpMessageHandlerStub()));
         var job1 = new UpdateFeacnCodesJob(db, httpFactory.Object, service, NullLogger<UpdateFeacnCodesJob>.Instance);
         var ctx1 = new Mock<IJobExecutionContext>();
         ctx1.Setup(c => c.CancellationToken).Returns(CancellationToken.None);

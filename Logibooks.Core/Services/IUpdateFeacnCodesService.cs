@@ -27,5 +27,5 @@ namespace Logibooks.Core.Services;
 
 public interface IUpdateFeacnCodesService
 {
-    Task UpdateAsync(CancellationToken cancellationToken = default);
+    Task RunAsync(CancellationToken cancellationToken = default);
 }

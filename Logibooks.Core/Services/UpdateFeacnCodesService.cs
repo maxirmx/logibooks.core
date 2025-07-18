@@ -32,9 +32,9 @@ public class UpdateFeacnCodesService(AppDbContext db, ILogger<UpdateFeacnCodesSe
     private readonly AppDbContext _db = db;
     private readonly ILogger<UpdateFeacnCodesService> _logger = logger;
 
-    public Task UpdateAsync(CancellationToken cancellationToken = default)
+    public Task RunAsync(CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("UpdateFeacnCodesService.UpdateAsync stub called");
+        _logger.LogInformation("UpdateFeacnCodesService.RunAsync stub called");
         cancellationToken.ThrowIfCancellationRequested();
         return Task.CompletedTask;
     }
