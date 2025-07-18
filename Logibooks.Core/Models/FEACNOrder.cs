@@ -42,10 +42,10 @@ public class FeacnOrder
     {
         get => string.IsNullOrEmpty(_url) ? null : $"https://www.alta.ru/tamdoc/{_url}/";
         set => _url = value;
-    }
+    } 
 
     [Column("comment")]
     public string? Comment { get; set; }
 
-    public ICollection<FeacnPrefix> FeacnPrefixes { get; set; } = new List<FeacnPrefix>();
+    public ICollection<FeacnPrefix> FeacnPrefixes { get; set; } = [];
 }

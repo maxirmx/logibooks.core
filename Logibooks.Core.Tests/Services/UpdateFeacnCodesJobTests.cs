@@ -41,7 +41,7 @@ public class DummyUpdateFeacnCodesService : IUpdateFeacnCodesService
     public TaskCompletionSource Started { get; } = new();
     public TaskCompletionSource Cancelled { get; } = new();
 
-    public async Task UpdateAsync(CancellationToken cancellationToken = default)
+    public async Task RunAsync(CancellationToken cancellationToken = default)
     {
         Tokens.Add(cancellationToken);
         Started.TrySetResult();
@@ -56,6 +56,7 @@ public class DummyUpdateFeacnCodesService : IUpdateFeacnCodesService
         }
     }
 }
+
 
 [TestFixture]
 public class UpdateFeacnCodesJobTests
