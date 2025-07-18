@@ -56,7 +56,8 @@ public class UpdateFeacnCodesService(
         var text = cell.Trim().ToLowerInvariant();
         foreach (var s in SkipStarts)
         {
-            if (text.StartsWith(s)) return true;
+            var lowerS = s.ToLowerInvariant();
+            if (text.StartsWith(lowerS)) return true;
         }
         return false;
     }
