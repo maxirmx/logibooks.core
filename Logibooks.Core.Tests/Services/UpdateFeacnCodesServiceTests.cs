@@ -1,4 +1,4 @@
-// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
+п»ї// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
 // All rights reserved.
 // This file is a part of Logibooks Core application
 //
@@ -23,25 +23,26 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-using Logibooks.Core.Data;
-using Logibooks.Core.Models;
-using Logibooks.Core.Services;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Diagnostics;
-using Microsoft.EntityFrameworkCore.InMemory;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Moq;
-using Moq.Protected;
-using NUnit.Framework;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+using Moq;
+using Moq.Protected;
+using NUnit.Framework;
+
+using Logibooks.Core.Data;
+using Logibooks.Core.Models;
+using Logibooks.Core.Services;
 
 namespace Logibooks.Core.Tests.Services;
 
@@ -331,10 +332,10 @@ public class UpdateFeacnCodesServiceTests
         var htmlContent = @"
             <table>
                 <tr><td>212143</td><td>Valid Product</td></tr>
-                <tr><td>позиция исключена</td><td>Excluded Product</td></tr>
-                <tr><td>(позиция введена</td><td>Introduced Product</td></tr>
-                <tr><td>(введено постановлением правительства</td><td>Government Product</td></tr>
-                <tr><td>наименование товара</td><td>Product Name Header</td></tr>
+                <tr><td>РїРѕР·РёС†РёСЏ РёСЃРєР»СЋС‡РµРЅР°</td><td>12.12.2022ct</td></tr>
+                <tr><td>(РїРѕР·РёС†РёСЏ РІРІРµРґРµРЅР°</td><td>12.12.2022/td></tr>
+                <tr><td>(РІРІРµРґРµРЅРѕ РїРѕСЃС‚Р°РЅРѕРІР»РµРЅРёРµРј РїСЂР°РІРёС‚РµР»СЊСЃС‚РІР°</td><td>Government Product</td></tr>
+                <tr><td>РЅР°РёРјРµРЅРѕРІР°РЅРёРµ С‚РѕРІР°СЂР°</td><td>Product Name Header</td></tr>
             </table>";
 
         SetupHttpResponse("https://www.alta.ru/tamdoc/test-url/", htmlContent);
