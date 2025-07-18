@@ -47,21 +47,6 @@ public class FeacnController(
     ILogger<FeacnController> logger) : LogibooksControllerBase(httpContextAccessor, db, logger)
 {
     private readonly IUpdateFeacnCodesService _service = service;
-    [HttpGet]
-    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(FeacnDataDto))]
-    public async Task<ActionResult<FeacnDataDto>> GetAll()
-    {
-        var orders = await _db.FeacnOrders.AsNoTracking().OrderBy(o => o.Id).ToListAsync();
-        var prefixes = await _db.FeacnPrefixes.AsNoTracking().OrderBy(p => p.Id).ToListAsync();
-        var exceptions = await _db.FeacnPrefixExceptions.AsNoTracking().OrderBy(e => e.Id).ToListAsync();
-        var dto = new FeacnDataDto
-        {
-            Orders = orders.Select(o => new FeacnOrderDto(o)).ToList(),
-            Prefixes = prefixes.Select(p => new FeacnPrefixDto(p)).ToList(),
-            Exceptions = exceptions.Select(e => new FeacnPrefixExceptionDto(e)).ToList()
-        };
-        return dto;
-    }
 
     private async Task<List<TDto>> FetchAndConvertAsync<TEntity, TDto>(
         IQueryable<TEntity> query,
@@ -89,23 +74,16 @@ public class FeacnController(
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<FeacnPrefixDto>))]
     public async Task<ActionResult<IEnumerable<FeacnPrefixDto>>> GetPrefixes(int orderId)
     {
-        var prefixes = await FetchAndConvertAsync(
-            _db.FeacnPrefixes,
-            p => p.FeacnOrderId == orderId,
-            p => new FeacnPrefixDto(p));
+        var prefixes = await _db.FeacnPrefixes
+            .AsNoTracking()
+            .Include(p => p.FeacnPrefixExceptions)
+            .Where(p => p.FeacnOrderId == orderId)
+            .OrderBy(p => p.Id)
+            .Select(p => new FeacnPrefixDto(p))
+            .ToListAsync();
         return prefixes;
     }
 
-    [HttpGet("prefixes/{prefixId}/exceptions")]
-    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<FeacnPrefixExceptionDto>))]
-    public async Task<ActionResult<IEnumerable<FeacnPrefixExceptionDto>>> GetPrefixException(int prefixId)
-    {
-        var exceptions = await FetchAndConvertAsync(
-            _db.FeacnPrefixExceptions,
-            e => e.FeacnPrefixId == prefixId,
-            e => new FeacnPrefixExceptionDto(e));
-        return exceptions;
-    }
 
     [HttpPost("update")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
