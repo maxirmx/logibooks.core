@@ -32,7 +32,6 @@ public class FeacnOrderDto
     public int Id { get; set; }
     public string Title { get; set; } = string.Empty;
     public string? Url { get; set; }
-    public string? Comment { get; set; }
 
     public FeacnOrderDto() { }
     public FeacnOrderDto(FeacnOrder o)
@@ -40,6 +39,5 @@ public class FeacnOrderDto
         Id = o.Id;
         Title = o.Title;
         Url = o.Url;
-        Comment = o.Comment;
     }
 }
