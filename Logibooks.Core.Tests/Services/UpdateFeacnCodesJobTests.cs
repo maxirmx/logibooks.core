@@ -35,7 +35,7 @@ using Logibooks.Core.Services;
 
 namespace Logibooks.Core.Tests.Services;
 
-public class DummyFeacnUpdateService : IFeacnUpdateService
+public class DummyUpdateFeacnCodesService : IUpdateFeacnCodesService
 {
     public List<CancellationToken> Tokens { get; } = new();
     public TaskCompletionSource Started { get; } = new();
@@ -58,19 +58,19 @@ public class DummyFeacnUpdateService : IFeacnUpdateService
 }
 
 [TestFixture]
-public class FeacnUpdateJobTests
+public class UpdateFeacnCodesJobTests
 {
     [Test]
     public async Task Execute_CancelsPreviousJob()
     {
-        var service = new DummyFeacnUpdateService();
-        var job1 = new FeacnUpdateJob(service, NullLogger<FeacnUpdateJob>.Instance);
+        var service = new DummyUpdateFeacnCodesService();
+        var job1 = new UpdateFeacnCodesJob(service, NullLogger<UpdateFeacnCodesJob>.Instance);
         var ctx1 = new Mock<IJobExecutionContext>();
         ctx1.Setup(c => c.CancellationToken).Returns(CancellationToken.None);
         var task1 = job1.Execute(ctx1.Object);
         await service.Started.Task; // first started
 
-        var job2 = new FeacnUpdateJob(service, NullLogger<FeacnUpdateJob>.Instance);
+        var job2 = new UpdateFeacnCodesJob(service, NullLogger<UpdateFeacnCodesJob>.Instance);
         var cts2 = new CancellationTokenSource();
         var ctx2 = new Mock<IJobExecutionContext>();
         ctx2.Setup(c => c.CancellationToken).Returns(cts2.Token);

@@ -46,7 +46,7 @@ public class FeacnControllerTests
 #pragma warning disable CS8618
     private AppDbContext _dbContext;
     private Mock<IHttpContextAccessor> _mockHttpContextAccessor;
-    private Mock<IFeacnUpdateService> _mockService;
+    private Mock<IUpdateFeacnCodesService> _mockService;
     private ILogger<FeacnController> _logger;
     private FeacnController _controller;
     private Role _adminRole;
@@ -86,7 +86,7 @@ public class FeacnControllerTests
         _dbContext.SaveChanges();
 
         _mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
-        _mockService = new Mock<IFeacnUpdateService>();
+        _mockService = new Mock<IUpdateFeacnCodesService>();
         _logger = new LoggerFactory().CreateLogger<FeacnController>();
         _controller = new FeacnController(_mockHttpContextAccessor.Object, _dbContext, _mockService.Object, _logger);
     }

@@ -43,10 +43,10 @@ namespace Logibooks.Core.Controllers;
 public class FeacnController(
     IHttpContextAccessor httpContextAccessor,
     AppDbContext db,
-    IFeacnUpdateService service,
+    IUpdateFeacnCodesService service,
     ILogger<FeacnController> logger) : LogibooksControllerBase(httpContextAccessor, db, logger)
 {
-    private readonly IFeacnUpdateService _service = service;
+    private readonly IUpdateFeacnCodesService _service = service;
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(FeacnDataDto))]
     public async Task<ActionResult<FeacnDataDto>> GetAll()

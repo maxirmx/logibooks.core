@@ -23,44 +23,19 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-using Quartz;
+using Logibooks.Core.Data;
 
 namespace Logibooks.Core.Services;
 
-public class FeacnUpdateJob(IFeacnUpdateService service, ILogger<FeacnUpdateJob> logger) : IJob
+public class UpdateFeacnCodesService(AppDbContext db, ILogger<UpdateFeacnCodesService> logger) : IUpdateFeacnCodesService
 {
-    private readonly IFeacnUpdateService _service = service;
-    private readonly ILogger<FeacnUpdateJob> _logger = logger;
+    private readonly AppDbContext _db = db;
+    private readonly ILogger<UpdateFeacnCodesService> _logger = logger;
 
-    private static CancellationTokenSource? _prev;
-    private static readonly object _lock = new();
-
-    public async Task Execute(IJobExecutionContext context)
+    public Task UpdateAsync(CancellationToken cancellationToken = default)
     {
-        CancellationTokenSource cts;
-        lock (_lock)
-        {
-            _prev?.Cancel();
-            cts = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken);
-            _prev = cts;
-        }
-
-        _logger.LogInformation("Executing FeacnUpdateJob");
-        try
-        {
-            await _service.UpdateAsync(cts.Token);
-        }
-        catch (OperationCanceledException)
-        {
-            _logger.LogInformation("FeacnUpdateJob was cancelled");
-        }
-        finally
-        {
-            cts.Dispose();
-            lock (_lock)
-            {
-                if (_prev == cts) _prev = null;
-            }
-        }
+        _logger.LogInformation("UpdateFeacnCodesService.UpdateAsync stub called");
+        cancellationToken.ThrowIfCancellationRequested();
+        return Task.CompletedTask;
     }
 }

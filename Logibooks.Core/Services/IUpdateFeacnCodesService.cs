@@ -23,19 +23,9 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-using Logibooks.Core.Data;
-
 namespace Logibooks.Core.Services;
 
-public class FeacnUpdateService(AppDbContext db, ILogger<FeacnUpdateService> logger) : IFeacnUpdateService
+public interface IUpdateFeacnCodesService
 {
-    private readonly AppDbContext _db = db;
-    private readonly ILogger<FeacnUpdateService> _logger = logger;
-
-    public Task UpdateAsync(CancellationToken cancellationToken = default)
-    {
-        _logger.LogInformation("FeacnUpdateService.UpdateAsync stub called");
-        cancellationToken.ThrowIfCancellationRequested();
-        return Task.CompletedTask;
-    }
+    Task UpdateAsync(CancellationToken cancellationToken = default);
 }
