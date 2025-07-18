@@ -34,6 +34,7 @@ using NUnit.Framework;
 using Logibooks.Core.Controllers;
 using Logibooks.Core.Data;
 using Logibooks.Core.Models;
+using System;
 
 namespace Logibooks.Core.Tests.Controllers;
 
@@ -89,8 +90,19 @@ public class FeacnControllerTests
     [TearDown]
     public void TearDown()
     {
-        _dbContext.Database.EnsureDeleted();
-        _dbContext.Dispose();
+        if (_dbContext != null)
+        {
+            try
+            {
+                _dbContext.Database.EnsureDeleted();
+                _dbContext.Dispose();
+            }
+            catch (ObjectDisposedException)
+            {
+                // Already disposed, ignore
+            }
+            _dbContext = null;
+        }
     }
 
     private void SetCurrentUserId(int id)
