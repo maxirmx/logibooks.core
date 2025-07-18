@@ -54,6 +54,7 @@ builder.Services
     .Configure<AppSettings>(builder.Configuration.GetSection("AppSettings"))
     .AddScoped<IJwtUtils, JwtUtils>()
     .AddScoped<IUpdateCountriesService, UpdateCountriesService>()
+    .AddScoped<IFeacnUpdateService, FeacnUpdateService>()
     .AddScoped<IOrderValidationService, OrderValidationService>()
     .AddScoped<IRegisterValidationService, RegisterValidationService>()
     .AddSingleton<IMorphologySearchService, MorphologySearchService>()
@@ -87,6 +88,18 @@ builder.Services.AddQuartz(q =>
             .ForJob(jobKey)
             .WithIdentity("UpdateCountries-trigger")
             .WithCronSchedule(cron));
+    }
+
+    var feacnJobKey = new JobKey("FeacnUpdate");
+    q.AddJob<FeacnUpdateJob>(opts => opts.WithIdentity(feacnJobKey));
+
+    var feacnCron = config["Jobs:FeacnUpdate"];
+    if (!string.IsNullOrWhiteSpace(feacnCron))
+    {
+        q.AddTrigger(opts => opts
+            .ForJob(feacnJobKey)
+            .WithIdentity("FeacnUpdate-trigger")
+            .WithCronSchedule(feacnCron));
     }
 });
 builder.Services.AddQuartzHostedService(options => options.WaitForJobsToComplete = true);
