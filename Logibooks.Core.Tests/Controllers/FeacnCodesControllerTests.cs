@@ -41,14 +41,14 @@ using System.Threading;
 namespace Logibooks.Core.Tests.Controllers;
 
 [TestFixture]
-public class FeacnControllerTests
+public class FeacnCodesControllerTests
 {
 #pragma warning disable CS8618
     private AppDbContext _dbContext;
     private Mock<IHttpContextAccessor> _mockHttpContextAccessor;
     private Mock<IUpdateFeacnCodesService> _mockService;
-    private ILogger<FeacnController> _logger;
-    private FeacnController _controller;
+    private ILogger<FeacnCodesController> _logger;
+    private FeacnCodesController _controller;
     private Role _adminRole;
     private Role _userRole;
     private User _adminUser;
@@ -87,8 +87,8 @@ public class FeacnControllerTests
 
         _mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
         _mockService = new Mock<IUpdateFeacnCodesService>();
-        _logger = new LoggerFactory().CreateLogger<FeacnController>();
-        _controller = new FeacnController(_mockHttpContextAccessor.Object, _dbContext, _mockService.Object, _logger);
+        _logger = new LoggerFactory().CreateLogger<FeacnCodesController>();
+        _controller = new FeacnCodesController(_mockHttpContextAccessor.Object, _dbContext, _mockService.Object, _logger);
     }
 
     [TearDown]
@@ -113,7 +113,7 @@ public class FeacnControllerTests
         var ctx = new DefaultHttpContext();
         ctx.Items["UserId"] = id;
         _mockHttpContextAccessor.Setup(x => x.HttpContext).Returns(ctx);
-        _controller = new FeacnController(_mockHttpContextAccessor.Object, _dbContext, _mockService.Object, _logger);
+        _controller = new FeacnCodesController(_mockHttpContextAccessor.Object, _dbContext, _mockService.Object, _logger);
     }
 
     [Test]

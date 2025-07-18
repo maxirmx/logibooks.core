@@ -40,11 +40,11 @@ namespace Logibooks.Core.Controllers;
 [ProducesResponseType(StatusCodes.Status401Unauthorized, Type = typeof(ErrMessage))]
 [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(ErrMessage))]
 
-public class FeacnController(
+public class FeacnCodesController(
     IHttpContextAccessor httpContextAccessor,
     AppDbContext db,
     IUpdateFeacnCodesService service,
-    ILogger<FeacnController> logger) : LogibooksControllerBase(httpContextAccessor, db, logger)
+    ILogger<FeacnCodesController> logger) : LogibooksControllerBase(httpContextAccessor, db, logger)
 {
     private readonly IUpdateFeacnCodesService _service = service;
 
