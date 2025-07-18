@@ -36,6 +36,9 @@ namespace Logibooks.Core.Controllers;
 [ApiController]
 [Authorize]
 [Route("api/[controller]")]
+[ProducesResponseType(StatusCodes.Status401Unauthorized, Type = typeof(ErrMessage))]
+[ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(ErrMessage))]
+
 public class CountriesController(
     IHttpContextAccessor httpContextAccessor,
     AppDbContext db,
@@ -85,17 +88,7 @@ public class CountriesController(
     public async Task<IActionResult> Update()
     {
         if (!await _db.CheckAdmin(_curUserId)) return _403();
-
-        try
-        {
-            await _service.RunAsync();
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger.LogError(ex, "Update returning '500 Internal Server Error'");
-            return _500UploadCountryCodes();
-        }
-
+        await _service.RunAsync();
         return NoContent();
     }
 }

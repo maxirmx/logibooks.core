@@ -129,32 +129,6 @@ public class LogibooksControllerPreBase(AppDbContext db, ILogger logger) : Contr
         return StatusCode(StatusCodes.Status500InternalServerError,
                           new ErrMessage { Msg = $"Не найдена спецификация файла реестра [имя файла = {fname}]" });
     }
-
-    protected ObjectResult _500UploadRegister()
-    {
-        return StatusCode(StatusCodes.Status500InternalServerError,
-                          new ErrMessage { Msg = "Внутренняя ошибка при загрузке файла реестра" });
-    }
-    protected ObjectResult _500UploadCountryCodes()
-    {
-        return StatusCode(StatusCodes.Status500InternalServerError,
-                          new ErrMessage { Msg = "Ошибка при загрузке списка стран" });
-    }
-    protected ObjectResult _500UploadFeacn()
-    {
-        return StatusCode(StatusCodes.Status500InternalServerError,
-                          new ErrMessage { Msg = "Ошибка при загрузке справочника ФЕА" });
-    }
-    protected ObjectResult _500ValidateOrder()
-    {
-        return StatusCode(StatusCodes.Status500InternalServerError,
-                          new ErrMessage { Msg = "Ошибка при проверке заказа" });
-    }
-    protected ObjectResult _500ValidateRegister()
-    {
-        return StatusCode(StatusCodes.Status500InternalServerError,
-                          new ErrMessage { Msg = "Ошибка при проверке реестра" });
-    }
     internal static ObjectResult _500(string controller, string action)
     {
         string msg = $"Запрос не выполнен из-за внутренней ошибки сервиса [{controller}: {action}]. Если ошибка будет повторяться, обратитесь к администратору системы";

@@ -39,6 +39,9 @@ namespace Logibooks.Core.Controllers;
 [ApiController]
 [Authorize]
 [Route("api/[controller]")]
+[ProducesResponseType(StatusCodes.Status401Unauthorized, Type = typeof(ErrMessage))]
+[ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(ErrMessage))]
+
 public class OrdersController(
     IHttpContextAccessor httpContextAccessor,
     AppDbContext db,
@@ -225,7 +228,6 @@ public class OrdersController(
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
-    [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(ErrMessage))]
     public async Task<IActionResult> ValidateOrder(int id)
     {
         _logger.LogDebug("ValidateOrder for id={id}", id);
@@ -243,19 +245,11 @@ public class OrdersController(
             return _404Order(id);
         }
 
-        try
-        {
-            var stopWords = await _db.StopWords.AsNoTracking()
-                .Where(sw => !sw.ExactMatch)
-                .ToListAsync();
-            var context = _morphologyService.InitializeContext(stopWords);
-            await _validationService.ValidateAsync(order, context, null);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "ValidateOrder returning '500 Internal Server Error'");
-            return _500ValidateOrder();
-        }
+        var stopWords = await _db.StopWords.AsNoTracking()
+            .Where(sw => !sw.ExactMatch)
+            .ToListAsync();
+        var context = _morphologyService.InitializeContext(stopWords);
+        await _validationService.ValidateAsync(order, context, null);
 
         return NoContent();
     }

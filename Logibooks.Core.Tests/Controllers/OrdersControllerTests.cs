@@ -611,27 +611,4 @@ public class OrdersControllerTests
             It.IsAny<CancellationToken>()), 
             Times.Never);
     }
-
-    [Test]
-    public async Task ValidateOrder_ReturnsServerError_OnException()
-    {
-        SetCurrentUserId(1);
-        var register = new Register { Id = 20, FileName = "r.xlsx" };
-        var order = new WbrOrder { Id = 20, RegisterId = 20, StatusId = 1 };
-        _dbContext.Registers.Add(register);
-        _dbContext.Orders.Add(order);
-        await _dbContext.SaveChangesAsync();
-
-        _mockValidationService.Setup(s => s.ValidateAsync(
-            order,
-            It.IsAny<MorphologyContext?>(),
-            It.IsAny<StopWordsContext?>(),
-            It.IsAny<CancellationToken>())).ThrowsAsync(new Exception());
-
-        var result = await _controller.ValidateOrder(20);
-
-        Assert.That(result, Is.TypeOf<ObjectResult>());
-        var obj = result as ObjectResult;
-        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status500InternalServerError));
-    }
 }

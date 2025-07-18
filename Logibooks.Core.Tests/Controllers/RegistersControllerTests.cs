@@ -1082,22 +1082,6 @@ public class RegistersControllerTests
     }
 
     [Test]
-    public async Task ValidateRegister_ReturnsServerError_OnException()
-    {
-        SetCurrentUserId(1);
-        _dbContext.Registers.Add(new Register { Id = 6, FileName = "r.xlsx" });
-        await _dbContext.SaveChangesAsync();
-
-        _mockRegValidationService.Setup(s => s.StartValidationAsync(6, It.IsAny<CancellationToken>())).ThrowsAsync(new Exception());
-
-        var result = await _controller.ValidateRegister(6);
-
-        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
-        var obj = result.Result as ObjectResult;
-        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status500InternalServerError));
-    }
-
-    [Test]
     public async Task GetValidationProgress_ReturnsData()
     {
         SetCurrentUserId(1);
