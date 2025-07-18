@@ -30,7 +30,7 @@ namespace Logibooks.Core.RestModels;
 public class FeacnOrderDto
 {
     public int Id { get; set; }
-    public int Number { get; set; }
+    public string Title { get; set; } = string.Empty;
     public string? Url { get; set; }
     public string? Comment { get; set; }
 
@@ -38,7 +38,7 @@ public class FeacnOrderDto
     public FeacnOrderDto(FeacnOrder o)
     {
         Id = o.Id;
-        Number = o.Number;
+        Title = o.Title;
         Url = o.Url;
         Comment = o.Comment;
     }

@@ -33,11 +33,16 @@ public class FeacnOrder
     [Column("id")]
     public int Id { get; set; }
 
-    [Column("number")]
-    public int Number { get; set; }
+    [Column("title")]
+    public string Title { get; set; } = string.Empty;
 
     [Column("url")]
-    public string? Url { get; set; }
+    private string? _url;
+    public string? Url
+    {
+        get => string.IsNullOrEmpty(_url) ? null : $"https://www.alta.ru/tamdoc/{_url}/";
+        set => _url = value;
+    }
 
     [Column("comment")]
     public string? Comment { get; set; }

@@ -135,7 +135,7 @@ public class FeacnControllerTests
     public async Task GetAll_ReturnsData_ForAnyUser()
     {
         SetCurrentUserId(2);
-        var order = new FeacnOrder { Id = 1, Number = 1 };
+        var order = new FeacnOrder { Id = 1, Title = "OrderTitle1" };
         var prefix = new FeacnPrefix { Id = 2, Code = "12", FeacnOrderId = 1, FeacnOrder = order };
         var ex = new FeacnPrefixException { Id = 3, Code = "12a", FeacnPrefixId = 2, FeacnPrefix = prefix };
         _dbContext.FeacnOrders.Add(order);
@@ -148,6 +148,7 @@ public class FeacnControllerTests
         Assert.That(result.Value, Is.Not.Null);
         var dto = result.Value!;
         Assert.That(dto.Orders.Count, Is.EqualTo(1));
+        Assert.That(dto.Orders[0].Title, Is.EqualTo("OrderTitle1"));
         Assert.That(dto.Prefixes.Count, Is.EqualTo(1));
         Assert.That(dto.Exceptions.Count, Is.EqualTo(1));
     }
@@ -169,20 +170,21 @@ public class FeacnControllerTests
     public async Task GetAllOrders_ReturnsOrders()
     {
         SetCurrentUserId(2);
-        _dbContext.FeacnOrders.Add(new FeacnOrder { Id = 1, Number = 1 });
+        _dbContext.FeacnOrders.Add(new FeacnOrder { Id = 1, Title = "OrderTitle2" });
         await _dbContext.SaveChangesAsync();
 
         var result = await _controller.GetAllOrders();
 
         Assert.That(result.Value, Is.Not.Null);
         Assert.That(result.Value!.Count(), Is.EqualTo(1));
+        Assert.That(result.Value!.First().Title, Is.EqualTo("OrderTitle2"));
     }
 
     [Test]
     public async Task GetPrefixes_ReturnsPrefixesForOrder()
     {
         SetCurrentUserId(2);
-        var order = new FeacnOrder { Id = 1, Number = 1 };
+        var order = new FeacnOrder { Id = 1, Title = "OrderTitle3" };
         _dbContext.FeacnOrders.Add(order);
         _dbContext.FeacnPrefixes.Add(new FeacnPrefix { Id = 2, Code = "12", FeacnOrderId = 1, FeacnOrder = order });
         await _dbContext.SaveChangesAsync();
@@ -197,7 +199,7 @@ public class FeacnControllerTests
     public async Task GetPrefixException_ReturnsExceptionsForPrefix()
     {
         SetCurrentUserId(2);
-        var order = new FeacnOrder { Id = 1, Number = 1 };
+        var order = new FeacnOrder { Id = 1, Title = "OrderTitle4" };
         var prefix = new FeacnPrefix { Id = 2, Code = "12", FeacnOrderId = 1, FeacnOrder = order };
         _dbContext.FeacnOrders.Add(order);
         _dbContext.FeacnPrefixes.Add(prefix);
