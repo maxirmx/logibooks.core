@@ -42,6 +42,7 @@ namespace Logibooks.Core.Controllers;
 [Route("api/[controller]")]
 [Produces("application/json")]
 [ProducesResponseType(StatusCodes.Status401Unauthorized, Type = typeof(ErrMessage))]
+[ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(ErrMessage))]
 
 public class UsersController(
     IHttpContextAccessor httpContextAccessor,

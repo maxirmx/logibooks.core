@@ -101,7 +101,6 @@ public class FeacnControllerTests
             {
                 // Already disposed, ignore
             }
-            _dbContext = null;
         }
     }
 
@@ -151,19 +150,6 @@ public class FeacnControllerTests
         Assert.That(dto.Orders[0].Title, Is.EqualTo("OrderTitle1"));
         Assert.That(dto.Prefixes.Count, Is.EqualTo(1));
         Assert.That(dto.Exceptions.Count, Is.EqualTo(1));
-    }
-
-    [Test]
-    public async Task GetAll_ReturnsServerError_OnException()
-    {
-        SetCurrentUserId(2);
-        _dbContext.Dispose();
-
-        var result = await _controller.GetAll();
-
-        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
-        var obj = result.Result as ObjectResult;
-        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status500InternalServerError));
     }
 
     [Test]

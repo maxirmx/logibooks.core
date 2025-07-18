@@ -35,6 +35,9 @@ namespace Logibooks.Core.Controllers;
 [ApiController]
 [Authorize]
 [Route("api/[controller]")]
+[ProducesResponseType(StatusCodes.Status401Unauthorized, Type = typeof(ErrMessage))]
+[ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(ErrMessage))]
+
 public class StopWordsController(
     IHttpContextAccessor httpContextAccessor,
     AppDbContext db,

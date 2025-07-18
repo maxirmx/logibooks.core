@@ -31,6 +31,7 @@ using Logibooks.Core.Data;
 using Logibooks.Core.Extensions;
 using Logibooks.Core.Settings;
 using Logibooks.Core.Services;
+using Logibooks.Core.Filters;
 using Quartz;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -56,8 +57,9 @@ builder.Services
     .AddScoped<IOrderValidationService, OrderValidationService>()
     .AddScoped<IRegisterValidationService, RegisterValidationService>()
     .AddSingleton<IMorphologySearchService, MorphologySearchService>()
+    .AddScoped<UnhandledExceptionFilter>()
     .AddHttpContextAccessor()
-    .AddControllers();
+    .AddControllers(options => options.Filters.Add<UnhandledExceptionFilter>());
 
 builder.Services.AddHttpClient();
 

@@ -36,6 +36,9 @@ namespace Logibooks.Core.Controllers;
 [ApiController]
 [Authorize]
 [Route("api/[controller]")]
+[ProducesResponseType(StatusCodes.Status401Unauthorized, Type = typeof(ErrMessage))]
+[ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(ErrMessage))]
+
 public class FeacnController(
     IHttpContextAccessor httpContextAccessor,
     AppDbContext db,
@@ -43,27 +46,18 @@ public class FeacnController(
 {
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(FeacnDataDto))]
-    [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(ErrMessage))]
     public async Task<ActionResult<FeacnDataDto>> GetAll()
     {
-        try
+        var orders = await _db.FeacnOrders.AsNoTracking().OrderBy(o => o.Id).ToListAsync();
+        var prefixes = await _db.FeacnPrefixes.AsNoTracking().OrderBy(p => p.Id).ToListAsync();
+        var exceptions = await _db.FeacnPrefixExceptions.AsNoTracking().OrderBy(e => e.Id).ToListAsync();
+        var dto = new FeacnDataDto
         {
-            var orders = await _db.FeacnOrders.AsNoTracking().OrderBy(o => o.Id).ToListAsync();
-            var prefixes = await _db.FeacnPrefixes.AsNoTracking().OrderBy(p => p.Id).ToListAsync();
-            var exceptions = await _db.FeacnPrefixExceptions.AsNoTracking().OrderBy(e => e.Id).ToListAsync();
-            var dto = new FeacnDataDto
-            {
-                Orders = orders.Select(o => new FeacnOrderDto(o)).ToList(),
-                Prefixes = prefixes.Select(p => new FeacnPrefixDto(p)).ToList(),
-                Exceptions = exceptions.Select(e => new FeacnPrefixExceptionDto(e)).ToList()
-            };
-            return dto;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "GetAll returning '500 Internal Server Error'");
-            return _500UploadFeacn();
-        }
+            Orders = orders.Select(o => new FeacnOrderDto(o)).ToList(),
+            Prefixes = prefixes.Select(p => new FeacnPrefixDto(p)).ToList(),
+            Exceptions = exceptions.Select(e => new FeacnPrefixExceptionDto(e)).ToList()
+        };
+        return dto;
     }
 
     private async Task<List<TDto>> FetchAndConvertAsync<TEntity, TDto>(
@@ -82,59 +76,32 @@ public class FeacnController(
 
     [HttpGet("orders")]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<FeacnOrderDto>))]
-    [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(ErrMessage))]
     public async Task<ActionResult<IEnumerable<FeacnOrderDto>>> GetAllOrders()
     {
-        try
-        {
-            var orders = await FetchAndConvertAsync(_db.FeacnOrders, null, o => new FeacnOrderDto(o));
-            return orders;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "GetAllOrders returning '500 Internal Server Error'");
-            return _500UploadFeacn();
-        }
+        var orders = await FetchAndConvertAsync(_db.FeacnOrders, null, o => new FeacnOrderDto(o));
+        return orders;
     }
 
     [HttpGet("orders/{orderId}/prefixes")]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<FeacnPrefixDto>))]
-    [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(ErrMessage))]
     public async Task<ActionResult<IEnumerable<FeacnPrefixDto>>> GetPrefixes(int orderId)
     {
-        try
-        {
-            var prefixes = await FetchAndConvertAsync(
-                _db.FeacnPrefixes,
-                p => p.FeacnOrderId == orderId,
-                p => new FeacnPrefixDto(p));
-            return prefixes;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "GetPrefixes returning '500 Internal Server Error'");
-            return _500UploadFeacn();
-        }
+        var prefixes = await FetchAndConvertAsync(
+            _db.FeacnPrefixes,
+            p => p.FeacnOrderId == orderId,
+            p => new FeacnPrefixDto(p));
+        return prefixes;
     }
 
     [HttpGet("prefixes/{prefixId}/exceptions")]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<FeacnPrefixExceptionDto>))]
-    [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(ErrMessage))]
     public async Task<ActionResult<IEnumerable<FeacnPrefixExceptionDto>>> GetPrefixException(int prefixId)
     {
-        try
-        {
-            var exceptions = await FetchAndConvertAsync(
-                _db.FeacnPrefixExceptions,
-                e => e.FeacnPrefixId == prefixId,
-                e => new FeacnPrefixExceptionDto(e));
-            return exceptions;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "GetPrefixException returning '500 Internal Server Error'");
-            return _500UploadFeacn();
-        }
+        var exceptions = await FetchAndConvertAsync(
+            _db.FeacnPrefixExceptions,
+            e => e.FeacnPrefixId == prefixId,
+            e => new FeacnPrefixExceptionDto(e));
+        return exceptions;
     }
 
     [HttpPost("update")]
