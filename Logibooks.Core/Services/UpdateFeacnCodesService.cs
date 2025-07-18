@@ -57,6 +57,7 @@ public class UpdateFeacnCodesService(
         foreach (var s in SkipStarts)
         {
             var lowerS = s.ToLowerInvariant();
+            Console.WriteLine($"Checking '{text}' against '{lowerS}'");
             if (text.StartsWith(lowerS)) return true;
         }
         return false;
