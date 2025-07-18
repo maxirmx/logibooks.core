@@ -155,6 +155,14 @@ public class LogibooksControllerPreBase(AppDbContext db, ILogger logger) : Contr
         return StatusCode(StatusCodes.Status500InternalServerError,
                           new ErrMessage { Msg = "Ошибка при проверке реестра" });
     }
+    internal static ObjectResult _500(string controller, string action)
+    {
+        string msg = $"Запрос не выполнен из-за внутренней ошибки сервиса [{controller}: {action}]. Если ошибка будет повторяться, обратитесь к администратору системы";
+        return new ObjectResult(new ErrMessage { Msg = msg })
+        {
+            StatusCode = StatusCodes.Status500InternalServerError
+        };
+    }
     protected ObjectResult _404Handle(Guid handleId)
     {
         return StatusCode(StatusCodes.Status404NotFound,
