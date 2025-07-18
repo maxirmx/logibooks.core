@@ -23,12 +23,11 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+using Microsoft.EntityFrameworkCore;
 using HtmlAgilityPack;
+
 using Logibooks.Core.Data;
 using Logibooks.Core.Models;
-using Microsoft.EntityFrameworkCore;
-using System.Net.Http;
-using System.Linq;
 
 namespace Logibooks.Core.Services;
 
@@ -57,7 +56,6 @@ public class UpdateFeacnCodesService(
         foreach (var s in SkipStarts)
         {
             var lowerS = s.ToLowerInvariant();
-            Console.WriteLine($"Checking '{text}' against '{lowerS}'");
             if (text.StartsWith(lowerS)) return true;
         }
         return false;
