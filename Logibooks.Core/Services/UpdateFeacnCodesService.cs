@@ -67,12 +67,18 @@ public class UpdateFeacnCodesService(
         if (rows == null) yield break;
         foreach (var row in rows)
         {
-            var cells = row.SelectNodes("th|td")?.Select(c => (HtmlEntity.DeEntitize(c.InnerText) ?? String.Empty).Trim()).ToArray();
+            var cells = ExtractCells(row);
             if (cells == null || cells.Length == 0) continue;
             yield return cells;
         }
     }
 
+    private static string[]? ExtractCells(HtmlNode row)
+    {
+        return row.SelectNodes("th|td")
+            ?.Select(c => (HtmlEntity.DeEntitize(c.InnerText) ?? string.Empty).Trim())
+            .ToArray();
+    }
     private async Task<List<FeacnCodeRow>> ExtractAsync(CancellationToken token)
     {
         var result = new List<FeacnCodeRow>();
