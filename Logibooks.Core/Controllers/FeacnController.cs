@@ -1,9 +1,35 @@
+// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
+// All rights reserved.
+// This file is a part of Logibooks Core application
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions
+// are met:
+// 1. Redistributions of source code must retain the above copyright
+// notice, this list of conditions and the following disclaimer.
+// 2. Redistributions in binary form must reproduce the above copyright
+// notice, this list of conditions and the following disclaimer in the
+// documentation and/or other materials provided with the distribution.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+// 'AS IS' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+// TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+// PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR CONTRIBUTORS
+// BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+// POSSIBILITY OF SUCH DAMAGE.
+
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 using Logibooks.Core.Authorization;
 using Logibooks.Core.Data;
 using Logibooks.Core.RestModels;
+using System.Linq.Expressions;
 
 namespace Logibooks.Core.Controllers;
 
@@ -22,9 +48,9 @@ public class FeacnController(
     {
         try
         {
-            var orders = await _db.FEACNOrders.AsNoTracking().OrderBy(o => o.Id).ToListAsync();
-            var prefixes = await _db.FEACNPrefixes.AsNoTracking().OrderBy(p => p.Id).ToListAsync();
-            var exceptions = await _db.FEACNPrefixExceptions.AsNoTracking().OrderBy(e => e.Id).ToListAsync();
+            var orders = await _db.FeacnOrders.AsNoTracking().OrderBy(o => o.Id).ToListAsync();
+            var prefixes = await _db.FeacnPrefixes.AsNoTracking().OrderBy(p => p.Id).ToListAsync();
+            var exceptions = await _db.FeacnPrefixExceptions.AsNoTracking().OrderBy(e => e.Id).ToListAsync();
             var dto = new FeacnDataDto
             {
                 Orders = orders.Select(o => new FeacnOrderDto(o)).ToList(),
@@ -61,7 +87,7 @@ public class FeacnController(
     {
         try
         {
-            var orders = await FetchAndConvertAsync(_db.FEACNOrders, null, o => new FeacnOrderDto(o));
+            var orders = await FetchAndConvertAsync(_db.FeacnOrders, null, o => new FeacnOrderDto(o));
             return orders;
         }
         catch (Exception ex)
@@ -79,7 +105,7 @@ public class FeacnController(
         try
         {
             var prefixes = await FetchAndConvertAsync(
-                _db.FEACNPrefixes,
+                _db.FeacnPrefixes,
                 p => p.FeacnOrderId == orderId,
                 p => new FeacnPrefixDto(p));
             return prefixes;
@@ -99,7 +125,7 @@ public class FeacnController(
         try
         {
             var exceptions = await FetchAndConvertAsync(
-                _db.FEACNPrefixExceptions,
+                _db.FeacnPrefixExceptions,
                 e => e.FeacnPrefixId == prefixId,
                 e => new FeacnPrefixExceptionDto(e));
             return exceptions;

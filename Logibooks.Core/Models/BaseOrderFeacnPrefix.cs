@@ -11,5 +11,5 @@ public class BaseOrderFeacnPrefix
 
     [Column("feacn_prefix_id")]
     public int FeacnPrefixId { get; set; }
-    public FEACNPrefix FeacnPrefix { get; set; } = null!;
+    public FeacnPrefix FeacnPrefix { get; set; } = null!;
 }

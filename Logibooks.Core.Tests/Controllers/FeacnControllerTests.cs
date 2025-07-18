@@ -1,3 +1,28 @@
+// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
+// All rights reserved.
+// This file is a part of Logibooks Core application
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions
+// are met:
+// 1. Redistributions of source code must retain the above copyright
+// notice, this list of conditions and the following disclaimer.
+// 2. Redistributions in binary form must reproduce the above copyright
+// notice, this list of conditions and the following disclaimer in the
+// documentation and/or other materials provided with the distribution.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+// 'AS IS' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+// TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+// PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR CONTRIBUTORS
+// BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+// POSSIBILITY OF SUCH DAMAGE.
+
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
@@ -9,7 +34,6 @@ using NUnit.Framework;
 using Logibooks.Core.Controllers;
 using Logibooks.Core.Data;
 using Logibooks.Core.Models;
-using Logibooks.Core.RestModels;
 
 namespace Logibooks.Core.Tests.Controllers;
 
@@ -99,12 +123,12 @@ public class FeacnControllerTests
     public async Task GetAll_ReturnsData_ForAnyUser()
     {
         SetCurrentUserId(2);
-        var order = new FEACNOrder { Id = 1, Number = 1 };
-        var prefix = new FEACNPrefix { Id = 2, Code = "12", FeacnOrderId = 1, FeacnOrder = order };
-        var ex = new FEACNPrefixException { Id = 3, Code = "12a", FeacnPrefixId = 2, FeacnPrefix = prefix };
-        _dbContext.FEACNOrders.Add(order);
-        _dbContext.FEACNPrefixes.Add(prefix);
-        _dbContext.FEACNPrefixExceptions.Add(ex);
+        var order = new FeacnOrder { Id = 1, Number = 1 };
+        var prefix = new FeacnPrefix { Id = 2, Code = "12", FeacnOrderId = 1, FeacnOrder = order };
+        var ex = new FeacnPrefixException { Id = 3, Code = "12a", FeacnPrefixId = 2, FeacnPrefix = prefix };
+        _dbContext.FeacnOrders.Add(order);
+        _dbContext.FeacnPrefixes.Add(prefix);
+        _dbContext.FeacnPrefixExceptions.Add(ex);
         await _dbContext.SaveChangesAsync();
 
         var result = await _controller.GetAll();
@@ -133,7 +157,7 @@ public class FeacnControllerTests
     public async Task GetAllOrders_ReturnsOrders()
     {
         SetCurrentUserId(2);
-        _dbContext.FEACNOrders.Add(new FEACNOrder { Id = 1, Number = 1 });
+        _dbContext.FeacnOrders.Add(new FeacnOrder { Id = 1, Number = 1 });
         await _dbContext.SaveChangesAsync();
 
         var result = await _controller.GetAllOrders();
@@ -146,9 +170,9 @@ public class FeacnControllerTests
     public async Task GetPrefixes_ReturnsPrefixesForOrder()
     {
         SetCurrentUserId(2);
-        var order = new FEACNOrder { Id = 1, Number = 1 };
-        _dbContext.FEACNOrders.Add(order);
-        _dbContext.FEACNPrefixes.Add(new FEACNPrefix { Id = 2, Code = "12", FeacnOrderId = 1, FeacnOrder = order });
+        var order = new FeacnOrder { Id = 1, Number = 1 };
+        _dbContext.FeacnOrders.Add(order);
+        _dbContext.FeacnPrefixes.Add(new FeacnPrefix { Id = 2, Code = "12", FeacnOrderId = 1, FeacnOrder = order });
         await _dbContext.SaveChangesAsync();
 
         var result = await _controller.GetPrefixes(1);
@@ -161,11 +185,11 @@ public class FeacnControllerTests
     public async Task GetPrefixException_ReturnsExceptionsForPrefix()
     {
         SetCurrentUserId(2);
-        var order = new FEACNOrder { Id = 1, Number = 1 };
-        var prefix = new FEACNPrefix { Id = 2, Code = "12", FeacnOrderId = 1, FeacnOrder = order };
-        _dbContext.FEACNOrders.Add(order);
-        _dbContext.FEACNPrefixes.Add(prefix);
-        _dbContext.FEACNPrefixExceptions.Add(new FEACNPrefixException { Id = 3, Code = "12a", FeacnPrefixId = 2, FeacnPrefix = prefix });
+        var order = new FeacnOrder { Id = 1, Number = 1 };
+        var prefix = new FeacnPrefix { Id = 2, Code = "12", FeacnOrderId = 1, FeacnOrder = order };
+        _dbContext.FeacnOrders.Add(order);
+        _dbContext.FeacnPrefixes.Add(prefix);
+        _dbContext.FeacnPrefixExceptions.Add(new FeacnPrefixException { Id = 3, Code = "12a", FeacnPrefixId = 2, FeacnPrefix = prefix });
         await _dbContext.SaveChangesAsync();
 
         var result = await _controller.GetPrefixException(2);
