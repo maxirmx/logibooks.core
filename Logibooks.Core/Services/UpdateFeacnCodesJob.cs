@@ -74,7 +74,7 @@ public class UpdateFeacnCodesJob(
         {
             var cells = row.SelectNodes("th|td")?.Select(c => HtmlEntity.DeEntitize(c.InnerText).Trim()).ToArray();
             if (cells == null || cells.Length == 0) continue;
-            yield return cells!;
+            yield return cells;
         }
     }
 
