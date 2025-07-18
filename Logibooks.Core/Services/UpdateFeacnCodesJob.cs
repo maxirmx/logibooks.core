@@ -83,7 +83,7 @@ public class UpdateFeacnCodesJob(
         var result = new List<FeacnCodeRow>();
         var orders = await _db.FeacnOrders.AsNoTracking().Where(o => o.Url != null).OrderBy(o => o.Id).ToListAsync(token);
 
-        using var client = _httpClientFactory.CreateClient();
+        var client = _httpClientFactory.CreateClient();
 
         foreach (var order in orders)
         {
