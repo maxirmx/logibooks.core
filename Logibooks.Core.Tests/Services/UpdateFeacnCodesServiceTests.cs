@@ -309,6 +309,78 @@ public class UpdateFeacnCodesServiceTests
     }
 
     [Test]
+    public async Task RunAsync_UpdatesExistingPrefix_WhenDataChanges()
+    {
+        await CreateTestOrder(1, "Test Order", "update-url");
+        await CreateTestPrefix(100, 1, "1234", "Old Name", "Old Comment");
+        _dbContext.FeacnPrefixExceptions.Add(new FeacnPrefixException
+        {
+            Id = 200,
+            Code = "1111",
+            FeacnPrefixId = 100
+        });
+        await _dbContext.SaveChangesAsync();
+
+        var htmlContent = @"
+            <table>
+                <tr><td>1234 (кроме 2222)</td><td>New Name</td><td>New Comment</td></tr>
+            </table>";
+
+        SetupHttpResponse("https://www.alta.ru/tamdoc/update-url/", htmlContent);
+
+        await _service.RunAsync();
+
+        var prefix = await _dbContext.FeacnPrefixes
+            .Include(p => p.FeacnPrefixExceptions)
+            .SingleAsync();
+
+        Assert.That(prefix.Id, Is.EqualTo(100));
+        Assert.That(prefix.Description, Is.EqualTo("New Name"));
+        Assert.That(prefix.Comment, Is.EqualTo("New Comment"));
+        var exc = prefix.FeacnPrefixExceptions.Select(e => e.Code);
+        Assert.That(exc, Is.EquivalentTo(["2222"]));
+
+        _mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Updating 1 existing FEACN prefixes")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Test]
+    public async Task RunAsync_RemovesObsoletePrefixes()
+    {
+        await CreateTestOrder(1, "Test Order", "delete-url");
+        await CreateTestPrefix(100, 1, "1111", "Name 1");
+        await CreateTestPrefix(101, 1, "2222", "Name 2");
+
+        var htmlContent = @"
+            <table>
+                <tr><td>1111</td><td>Name 1</td></tr>
+            </table>";
+
+        SetupHttpResponse("https://www.alta.ru/tamdoc/delete-url/", htmlContent);
+
+        await _service.RunAsync();
+
+        var prefixes = await _dbContext.FeacnPrefixes.ToListAsync();
+        Assert.That(prefixes.Count, Is.EqualTo(1));
+        Assert.That(prefixes[0].Code, Is.EqualTo("1111"));
+
+        _mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Removing 1 obsolete FEACN prefixes")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Test]
     public void RunAsync_WithCancellationToken_ThrowsOperationCanceledException()
     {
         // Arrange
