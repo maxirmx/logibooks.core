@@ -819,5 +819,66 @@ public class UpdateFeacnCodesServiceTests
         Assert.That(prefix.Code, Is.EqualTo("1234"));
     }
 
+    [Test]
+    public async Task RunAsync_SplitsCodeWithDashIntoInterval()
+    {
+        await CreateTestOrder(1, "Test", "dash-url");
+
+        var html = @"
+            <table>
+                <tr><td>1234-56</td><td>Name</td></tr>
+            </table>";
+
+        SetupHttpResponse("https://www.alta.ru/tamdoc/dash-url/", html);
+
+        await _service.RunAsync();
+
+        var prefix = await _dbContext.FeacnPrefixes.SingleAsync();
+        Assert.That(prefix.Code, Is.EqualTo("1234"));
+        Assert.That(prefix.IntervalCode, Is.EqualTo("56"));
+    }
+
+    [Test]
+    public async Task RunAsync_ParsesExceptionWithDash()
+    {
+        await CreateTestOrder(1, "Test", "dash-exc");
+
+        var html = @"
+            <table>
+                <tr><td>1234 (кроме 1111-22)</td><td>Name</td></tr>
+            </table>";
+
+        SetupHttpResponse("https://www.alta.ru/tamdoc/dash-exc/", html);
+
+        await _service.RunAsync();
+
+        var prefix = await _dbContext.FeacnPrefixes
+            .Include(p => p.FeacnPrefixExceptions)
+            .SingleAsync();
+
+        Assert.That(prefix.Code, Is.EqualTo("1234"));
+        Assert.That(prefix.FeacnPrefixExceptions.Single().Code, Is.EqualTo("111122"));
+    }
+
+    [Test]
+    public async Task RunAsync_AddsNewPrefixWhenIntervalDiffers()
+    {
+        await CreateTestOrder(1, "Test", "int-update");
+        await CreateTestPrefix(100, 1, "1234", "Old");
+
+        var html = @"
+            <table>
+                <tr><td>1234-56</td><td>New</td></tr>
+            </table>";
+
+        SetupHttpResponse("https://www.alta.ru/tamdoc/int-update/", html);
+
+        await _service.RunAsync();
+
+        var prefixes = await _dbContext.FeacnPrefixes.OrderBy(p => p.Id).ToListAsync();
+        Assert.That(prefixes.Count, Is.EqualTo(1));
+        Assert.That(prefixes[0].IntervalCode, Is.EqualTo("56"));
+    }
+
     #endregion
 }
