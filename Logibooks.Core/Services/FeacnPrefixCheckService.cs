@@ -54,7 +54,9 @@ public class FeacnPrefixCheckService(AppDbContext db) : IFeacnPrefixCheckService
         string tnVed = order.TnVed!;
 
         // Step 3: load prefixes with exceptions
+        var twoDigitPrefix = tnVed.Substring(0, 2);
         var prefixes = await _db.FeacnPrefixes
+            .Where(p => p.Code.StartsWith(twoDigitPrefix))
             .Include(p => p.FeacnPrefixExceptions)
             .AsNoTracking()
             .ToListAsync(cancellationToken);
