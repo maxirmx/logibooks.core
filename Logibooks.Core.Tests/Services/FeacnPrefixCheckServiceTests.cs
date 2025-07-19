@@ -311,4 +311,57 @@ public class FeacnPrefixCheckServiceTests
         Assert.That(loaded.FeacnPrefixExceptions.Count, Is.EqualTo(1));
         Assert.That(loaded.FeacnPrefixExceptions.First().Code, Is.EqualTo("123455"));
     }
+
+    [Test]
+    public async Task CheckOrderWithContextAsync_MatchesPrefix_ReturnsLink()
+    {
+        using var ctx = CreateContext();
+        var prefix = new FeacnPrefix { Id = 10, Code = "1234", FeacnOrderId = 1 };
+        ctx.FeacnPrefixes.Add(prefix);
+        var order = new WbrOrder { Id = 1, RegisterId = 1, CheckStatusId = 1, TnVed = "1234567890" };
+        ctx.Orders.Add(order);
+        await ctx.SaveChangesAsync();
+
+        var svc = new FeacnPrefixCheckService(ctx);
+        var context = await svc.CreateContext();
+        var links = await svc.CheckOrderWithContextAsync(order, context);
+
+        Assert.That(links.Count(), Is.EqualTo(1));
+        Assert.That(links.First().FeacnPrefixId, Is.EqualTo(10));
+    }
+
+    [Test]
+    public async Task CheckOrderWithContextAsync_NoPrefixes_ReturnsEmptyList()
+    {
+        using var ctx = CreateContext();
+        var prefix = new FeacnPrefix { Id = 10, Code = "9999", FeacnOrderId = 1 };
+        ctx.FeacnPrefixes.Add(prefix);
+        var order = new WbrOrder { Id = 1, RegisterId = 1, CheckStatusId = 1, TnVed = "1234567890" };
+        ctx.Orders.Add(order);
+        await ctx.SaveChangesAsync();
+
+        var svc = new FeacnPrefixCheckService(ctx);
+        var context = await svc.CreateContext();
+        var links = await svc.CheckOrderWithContextAsync(order, context);
+
+        Assert.That(links.Count(), Is.EqualTo(0));
+    }
+
+    [Test]
+    public async Task CheckOrderWithContextAsync_ExceptionPreventsMatch()
+    {
+        using var ctx = CreateContext();
+        var prefix = new FeacnPrefix { Id = 10, Code = "1234", FeacnOrderId = 1 };
+        prefix.FeacnPrefixExceptions.Add(new FeacnPrefixException { Id = 20, Code = "123456" });
+        ctx.FeacnPrefixes.Add(prefix);
+        var order = new WbrOrder { Id = 1, RegisterId = 1, CheckStatusId = 1, TnVed = "1234567890" };
+        ctx.Orders.Add(order);
+        await ctx.SaveChangesAsync();
+
+        var svc = new FeacnPrefixCheckService(ctx);
+        var context = await svc.CreateContext();
+        var links = await svc.CheckOrderWithContextAsync(order, context);
+
+        Assert.That(links.Count(), Is.EqualTo(0));
+    }
 }
