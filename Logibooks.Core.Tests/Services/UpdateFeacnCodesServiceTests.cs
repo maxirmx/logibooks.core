@@ -880,5 +880,74 @@ public class UpdateFeacnCodesServiceTests
         Assert.That(prefixes[0].IntervalCode, Is.EqualTo("56"));
     }
 
+    [Test]
+    public async Task RunAsync_SkipsInvisibleRows()
+    {
+        await CreateTestOrder(1, "Test", "hidden-url");
+
+        var html = @"
+            <table>
+                <tr style='display:none'><td>1111</td><td>Hidden</td></tr>
+                <tr class='hidden'><td>2222</td><td>Also Hidden</td></tr>
+                <tr><td>3333</td><td>Visible</td></tr>
+            </table>";
+
+        SetupHttpResponse("https://www.alta.ru/tamdoc/hidden-url/", html);
+
+        await _service.RunAsync();
+
+        var prefixes = await _dbContext.FeacnPrefixes.ToListAsync();
+        Assert.That(prefixes.Count, Is.EqualTo(1));
+        Assert.That(prefixes[0].Code, Is.EqualTo("3333"));
+    }
+
+    [Test]
+    public async Task RunAsync_IgnoresRowsWhereCodeBecomesEmpty()
+    {
+        await CreateTestOrder(1, "Test", "clean-url");
+
+        var html = @"
+            <table>
+                <tr><td>(в ред. решения ЕЭК)</td><td>Ignored</td></tr>
+                <tr><td>1234</td><td>Valid</td></tr>
+            </table>";
+
+        SetupHttpResponse("https://www.alta.ru/tamdoc/clean-url/", html);
+
+        await _service.RunAsync();
+
+        var prefixes = await _dbContext.FeacnPrefixes.ToListAsync();
+        Assert.That(prefixes.Count, Is.EqualTo(1));
+        Assert.That(prefixes[0].Code, Is.EqualTo("1234"));
+    }
+
+    [Test]
+    public async Task RunAsync_ParsesPrefixCodesWithSpacesAndNewlines()
+    {
+        await CreateTestOrder(1, "Test", "multi-url");
+
+        var html = @"
+            <table>
+                <tr><td>1234- 56, 7890- 12
+3456</td><td>Name</td></tr>
+            </table>";
+
+        SetupHttpResponse("https://www.alta.ru/tamdoc/multi-url/", html);
+
+        await _service.RunAsync();
+
+        var prefixes = await _dbContext.FeacnPrefixes
+            .OrderBy(p => p.Code)
+            .ToListAsync();
+
+        Assert.That(prefixes.Count, Is.EqualTo(3));
+        Assert.That(prefixes[0].Code, Is.EqualTo("1234"));
+        Assert.That(prefixes[0].IntervalCode, Is.EqualTo("56"));
+        Assert.That(prefixes[1].Code, Is.EqualTo("3456"));
+        Assert.That(prefixes[1].IntervalCode, Is.Null);
+        Assert.That(prefixes[2].Code, Is.EqualTo("7890"));
+        Assert.That(prefixes[2].IntervalCode, Is.EqualTo("12"));
+    }
+
     #endregion
 }
