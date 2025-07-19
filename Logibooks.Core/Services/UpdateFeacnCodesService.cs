@@ -210,7 +210,7 @@ public class UpdateFeacnCodesService(
     private static IEnumerable<string> ParseCodes(string codes)
     {
         var results = codes
-            .Split([',', 'и', '\n'], StringSplitOptions.RemoveEmptyEntries)
+            .Split(new[] { ',', 'и', '\n' }, StringSplitOptions.RemoveEmptyEntries)
             .Select(c => WhitespaceRegex.Replace(c, string.Empty))
             .Where(c => !string.IsNullOrWhiteSpace(c))
             .Where(c => Regex.IsMatch(c, @"^\d+$"));

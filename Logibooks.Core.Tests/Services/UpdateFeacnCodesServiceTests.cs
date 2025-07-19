@@ -666,5 +666,111 @@ public class UpdateFeacnCodesServiceTests
             Times.Once);
     }
 
+    [Test]
+    public async Task RunAsync_SkipsTableWithKnownHeader()
+    {
+        await CreateTestOrder(1, "Test", "header-url");
+
+        var html = @"
+            <table>
+                <tr>
+                    <td>Систематическая группа пойкилотермных водных животных</td>
+                    <td>Наименование болезней и их международный индекс</td>
+                    <td>Перечень видов, чувствительных к болезням</td>
+                </tr>
+                <tr><td>9999</td><td>Skip me</td><td>Comment</td></tr>
+            </table>
+            <table>
+                <tr><td>1234</td><td>Valid</td></tr>
+            </table>";
+
+        SetupHttpResponse("https://www.alta.ru/tamdoc/header-url/", html);
+
+        await _service.RunAsync();
+
+        var prefixes = await _dbContext.FeacnPrefixes.ToListAsync();
+        Assert.That(prefixes.Count, Is.EqualTo(1));
+        Assert.That(prefixes[0].Code, Is.EqualTo("1234"));
+
+        _mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Skipping table in")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Test]
+    public async Task RunAsync_LogsWarningWhenGovernmentPhraseFound()
+    {
+        await CreateTestOrder(1, "Test", "gov-url");
+
+        var html = @"
+            <table>
+                <tr><td>1234 Правительства</td><td>Prod</td></tr>
+            </table>";
+
+        SetupHttpResponse("https://www.alta.ru/tamdoc/gov-url/", html);
+
+        await _service.RunAsync();
+
+        var prefixes = await _dbContext.FeacnPrefixes.ToListAsync();
+        Assert.That(prefixes.Count, Is.EqualTo(0));
+
+        _mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Found code")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Test]
+    public async Task RunAsync_MergesExceptionsForDuplicateCodes()
+    {
+        await CreateTestOrder(1, "Test", "dup-url");
+
+        var html = @"
+            <table>
+                <tr><td>1234 (кроме 1111)</td><td>First</td></tr>
+                <tr><td>1234 (кроме 2222)</td><td>Second</td></tr>
+            </table>";
+
+        SetupHttpResponse("https://www.alta.ru/tamdoc/dup-url/", html);
+
+        await _service.RunAsync();
+
+        var prefix = await _dbContext.FeacnPrefixes
+            .Include(p => p.FeacnPrefixExceptions)
+            .SingleAsync();
+
+        Assert.That(prefix.Code, Is.EqualTo("1234"));
+        Assert.That(prefix.Description, Is.EqualTo("Second"));
+        var exc = prefix.FeacnPrefixExceptions.Select(e => e.Code).OrderBy(c => c);
+        Assert.That(exc, Is.EquivalentTo(new[] { "1111", "2222" }));
+    }
+
+    [Test]
+    public async Task RunAsync_CleansEditorialPatterns()
+    {
+        await CreateTestOrder(1, "Test", "edit-url");
+
+        var html = @"
+            <table>
+                <tr><td>из группы 12 34</td><td>Name</td></tr>
+            </table>";
+
+        SetupHttpResponse("https://www.alta.ru/tamdoc/edit-url/", html);
+
+        await _service.RunAsync();
+
+        var prefix = await _dbContext.FeacnPrefixes.SingleAsync();
+        Assert.That(prefix.Code, Is.EqualTo("1234"));
+    }
+
     #endregion
 }
