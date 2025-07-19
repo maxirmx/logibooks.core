@@ -30,6 +30,8 @@ namespace Logibooks.Core.Models;
 [Table("feacn_prefixes")]
 public class FeacnPrefix
 {
+    public const int FeacnCodeLength = 10;
+
     [Column("id")]
     public int Id { get; set; }
 
@@ -59,7 +61,7 @@ public class FeacnPrefix
         {
             if (Code != null)
             {
-                if (long.TryParse(Code.PadRight(10, '0'), out var result))
+                if (long.TryParse(Code.PadRight(FeacnCodeLength, '0'), out var result))
                 {
                     return result;
                 }
@@ -75,7 +77,7 @@ public class FeacnPrefix
         {
             if (IntervalCode != null)
             {
-                if (long.TryParse(IntervalCode.PadRight(10, '0'), out var result))
+                if (long.TryParse(IntervalCode.PadRight(FeacnCodeLength, '0'), out var result))
                 {
                     return result;
                 }

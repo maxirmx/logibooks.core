@@ -577,4 +577,472 @@ public class OrderValidationServiceTests
         // Status should be HasIssues because both FEACN interval and stop word issues were found
         Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)OrderCheckStatusCode.HasIssues));
     }
+    [Test]
+    public async Task ValidateAsync_MatchesPrefix_PrefixMatchWithoutInterval_CreatesFeacnLink()
+    {
+        using var ctx = CreateContext();
+
+        var feacnOrder = new FeacnOrder { Id = 1, Title = "Test FEACN Order" };
+        ctx.Add(feacnOrder);
+
+        // Create prefix without interval (Code only)
+        var feacnPrefix = new FeacnPrefix
+        {
+            Id = 100,
+            Code = "1234",
+            IntervalCode = null, // No interval
+            FeacnOrderId = 1
+        };
+        ctx.FeacnPrefixes.Add(feacnPrefix);
+
+        var order = new WbrOrder
+        {
+            Id = 1,
+            RegisterId = 1,
+            CheckStatusId = 1,
+            ProductName = "Test product",
+            TnVed = "1234567890" // Starts with "1234"
+        };
+        ctx.Orders.Add(order);
+        await ctx.SaveChangesAsync();
+
+        var realFeacnService = new FeacnPrefixCheckService(ctx);
+        var svc = new OrderValidationService(ctx, new MorphologySearchService(), realFeacnService);
+
+        await svc.ValidateAsync(order);
+
+        var feacnLinks = ctx.Set<BaseOrderFeacnPrefix>().Where(l => l.BaseOrderId == 1).ToList();
+        Assert.That(feacnLinks.Count, Is.EqualTo(1));
+        Assert.That(feacnLinks.Single().FeacnPrefixId, Is.EqualTo(100));
+    }
+
+    [Test]
+    public async Task ValidateAsync_MatchesPrefix_PrefixDoesNotMatch_NoFeacnLink()
+    {
+        using var ctx = CreateContext();
+
+        var feacnOrder = new FeacnOrder { Id = 1, Title = "Test FEACN Order" };
+        ctx.Add(feacnOrder);
+
+        var feacnPrefix = new FeacnPrefix
+        {
+            Id = 100,
+            Code = "9999",
+            IntervalCode = null,
+            FeacnOrderId = 1
+        };
+        ctx.FeacnPrefixes.Add(feacnPrefix);
+
+        var order = new WbrOrder
+        {
+            Id = 1,
+            RegisterId = 1,
+            CheckStatusId = 1,
+            ProductName = "Test product",
+            TnVed = "1234567890" // Does not start with "9999"
+        };
+        ctx.Orders.Add(order);
+        await ctx.SaveChangesAsync();
+
+        var realFeacnService = new FeacnPrefixCheckService(ctx);
+        var svc = new OrderValidationService(ctx, new MorphologySearchService(), realFeacnService);
+
+        await svc.ValidateAsync(order);
+
+        var feacnLinks = ctx.Set<BaseOrderFeacnPrefix>().Where(l => l.BaseOrderId == 1).ToList();
+        Assert.That(feacnLinks.Count, Is.EqualTo(0));
+    }
+
+    [Test]
+    public async Task ValidateAsync_MatchesPrefix_IntervalMatch_CreatesFeacnLink()
+    {
+        using var ctx = CreateContext();
+
+        var feacnOrder = new FeacnOrder { Id = 1, Title = "Test FEACN Order" };
+        ctx.Add(feacnOrder);
+
+        var feacnPrefix = new FeacnPrefix
+        {
+            Id = 100,
+            Code = "1000000000",       
+            IntervalCode = "1099999999", 
+            FeacnOrderId = 1
+        };
+        ctx.FeacnPrefixes.Add(feacnPrefix);
+
+        var order = new WbrOrder
+        {
+            Id = 1,
+            RegisterId = 1,
+            CheckStatusId = 1,
+            ProductName = "Test product",
+            TnVed = "1050000000" // Falls within interval [1000000000, 1099999999]
+        };
+        ctx.Orders.Add(order);
+        await ctx.SaveChangesAsync();
+
+        var realFeacnService = new FeacnPrefixCheckService(ctx);
+        var svc = new OrderValidationService(ctx, new MorphologySearchService(), realFeacnService);
+
+        await svc.ValidateAsync(order);
+
+        var feacnLinks = ctx.Set<BaseOrderFeacnPrefix>().Where(l => l.BaseOrderId == 1).ToList();
+        Assert.That(feacnLinks.Count, Is.EqualTo(1));
+        Assert.That(feacnLinks.Single().FeacnPrefixId, Is.EqualTo(100));
+    }
+
+    [Test]
+    public async Task ValidateAsync_MatchesPrefix_IntervalBelowRange_NoFeacnLink()
+    {
+        using var ctx = CreateContext();
+
+        var feacnOrder = new FeacnOrder { Id = 1, Title = "Test FEACN Order" };
+        ctx.Add(feacnOrder);
+
+        var feacnPrefix = new FeacnPrefix
+        {
+            Id = 100,
+            Code = "2000000000",        
+            IntervalCode = "2099999999", 
+            FeacnOrderId = 1
+        };
+        ctx.FeacnPrefixes.Add(feacnPrefix);
+
+        var order = new WbrOrder
+        {
+            Id = 1,
+            RegisterId = 1,
+            CheckStatusId = 1,
+            ProductName = "Test product",
+            TnVed = "1500000000" 
+        };
+        ctx.Orders.Add(order);
+        await ctx.SaveChangesAsync();
+
+        var realFeacnService = new FeacnPrefixCheckService(ctx);
+        var svc = new OrderValidationService(ctx, new MorphologySearchService(), realFeacnService);
+
+        await svc.ValidateAsync(order);
+
+        var feacnLinks = ctx.Set<BaseOrderFeacnPrefix>().Where(l => l.BaseOrderId == 1).ToList();
+        Assert.That(feacnLinks.Count, Is.EqualTo(0));
+    }
+
+    [Test]
+    public async Task ValidateAsync_MatchesPrefix_IntervalAboveRange_NoFeacnLink()
+    {
+        using var ctx = CreateContext();
+
+        var feacnOrder = new FeacnOrder { Id = 1, Title = "Test FEACN Order" };
+        ctx.Add(feacnOrder);
+
+        var feacnPrefix = new FeacnPrefix
+        {
+            Id = 100,
+            Code = "1000000000",        
+            IntervalCode = "1099999999", 
+            FeacnOrderId = 1
+        };
+        ctx.FeacnPrefixes.Add(feacnPrefix);
+
+        var order = new WbrOrder
+        {
+            Id = 1,
+            RegisterId = 1,
+            CheckStatusId = 1,
+            ProductName = "Test product",
+            TnVed = "2500000000" 
+        };
+        ctx.Orders.Add(order);
+        await ctx.SaveChangesAsync();
+
+        var realFeacnService = new FeacnPrefixCheckService(ctx);
+        var svc = new OrderValidationService(ctx, new MorphologySearchService(), realFeacnService);
+
+        await svc.ValidateAsync(order);
+
+        var feacnLinks = ctx.Set<BaseOrderFeacnPrefix>().Where(l => l.BaseOrderId == 1).ToList();
+        Assert.That(feacnLinks.Count, Is.EqualTo(0));
+    }
+
+    [Test]
+    public async Task ValidateAsync_MatchesPrefix_IntervalWithInvalidTnVed_NoFeacnLink()
+    {
+        using var ctx = CreateContext();
+
+        var feacnOrder = new FeacnOrder { Id = 1, Title = "Test FEACN Order" };
+        ctx.Add(feacnOrder);
+
+        var feacnPrefix = new FeacnPrefix
+        {
+            Id = 100,
+            Code = "1000000000",
+            IntervalCode = "19099999999",
+            FeacnOrderId = 1
+        };
+        ctx.FeacnPrefixes.Add(feacnPrefix);
+
+        var order = new WbrOrder
+        {
+            Id = 1,
+            RegisterId = 1,
+            CheckStatusId = 1,
+            ProductName = "Test product",
+            TnVed = "10abc00000" // Invalid numeric format for interval comparison
+        };
+        ctx.Orders.Add(order);
+        await ctx.SaveChangesAsync();
+
+        var realFeacnService = new FeacnPrefixCheckService(ctx);
+        var svc = new OrderValidationService(ctx, new MorphologySearchService(), realFeacnService);
+
+        await svc.ValidateAsync(order);
+
+        var feacnLinks = ctx.Set<BaseOrderFeacnPrefix>().Where(l => l.BaseOrderId == 1).ToList();
+        Assert.That(feacnLinks.Count, Is.EqualTo(0));
+    }
+
+    [Test]
+    public async Task ValidateAsync_MatchesPrefix_ExceptionPreventsMatch_NoFeacnLink()
+    {
+        using var ctx = CreateContext();
+
+        var feacnOrder = new FeacnOrder { Id = 1, Title = "Test FEACN Order" };
+        ctx.Add(feacnOrder);
+
+        var feacnPrefix = new FeacnPrefix
+        {
+            Id = 100,
+            Code = "1234", // Would match TnVed "1234567890"
+            IntervalCode = null,
+            FeacnOrderId = 1
+        };
+
+        // Add exception that prevents the match
+        feacnPrefix.FeacnPrefixExceptions.Add(new FeacnPrefixException
+        {
+            Id = 150,
+            Code = "123456", // TnVed starts with this exception code
+            FeacnPrefixId = 100
+        });
+
+        ctx.FeacnPrefixes.Add(feacnPrefix);
+
+        var order = new WbrOrder
+        {
+            Id = 1,
+            RegisterId = 1,
+            CheckStatusId = 1,
+            ProductName = "Test product",
+            TnVed = "1234567890" // Starts with exception code "123456"
+        };
+        ctx.Orders.Add(order);
+        await ctx.SaveChangesAsync();
+
+        var realFeacnService = new FeacnPrefixCheckService(ctx);
+        var svc = new OrderValidationService(ctx, new MorphologySearchService(), realFeacnService);
+
+        await svc.ValidateAsync(order);
+
+        var feacnLinks = ctx.Set<BaseOrderFeacnPrefix>().Where(l => l.BaseOrderId == 1).ToList();
+        Assert.That(feacnLinks.Count, Is.EqualTo(0));
+    }
+
+    [Test]
+    public async Task ValidateAsync_MatchesPrefix_ExceptionDoesNotApply_CreatesFeacnLink()
+    {
+        using var ctx = CreateContext();
+
+        var feacnOrder = new FeacnOrder { Id = 1, Title = "Test FEACN Order" };
+        ctx.Add(feacnOrder);
+
+        var feacnPrefix = new FeacnPrefix
+        {
+            Id = 100,
+            Code = "1234",
+            IntervalCode = null,
+            FeacnOrderId = 1
+        };
+
+        // Add exception that does not apply to our TnVed
+        feacnPrefix.FeacnPrefixExceptions.Add(new FeacnPrefixException
+        {
+            Id = 150,
+            Code = "12349", // TnVed does not start with this
+            FeacnPrefixId = 100
+        });
+
+        ctx.FeacnPrefixes.Add(feacnPrefix);
+
+        var order = new WbrOrder
+        {
+            Id = 1,
+            RegisterId = 1,
+            CheckStatusId = 1,
+            ProductName = "Test product",
+            TnVed = "1234567890" // Does not start with exception code "12349"
+        };
+        ctx.Orders.Add(order);
+        await ctx.SaveChangesAsync();
+
+        var realFeacnService = new FeacnPrefixCheckService(ctx);
+        var svc = new OrderValidationService(ctx, new MorphologySearchService(), realFeacnService);
+
+        await svc.ValidateAsync(order);
+
+        var feacnLinks = ctx.Set<BaseOrderFeacnPrefix>().Where(l => l.BaseOrderId == 1).ToList();
+        Assert.That(feacnLinks.Count, Is.EqualTo(1));
+        Assert.That(feacnLinks.Single().FeacnPrefixId, Is.EqualTo(100));
+    }
+
+    [Test]
+    public async Task ValidateAsync_MatchesPrefix_EmptyExceptionCode_DoesNotPreventMatch()
+    {
+        using var ctx = CreateContext();
+
+        var feacnOrder = new FeacnOrder { Id = 1, Title = "Test FEACN Order" };
+        ctx.Add(feacnOrder);
+
+        var feacnPrefix = new FeacnPrefix
+        {
+            Id = 100,
+            Code = "1234",
+            IntervalCode = null,
+            FeacnOrderId = 1
+        };
+
+        // Add exception with empty code (should be ignored)
+        feacnPrefix.FeacnPrefixExceptions.Add(new FeacnPrefixException
+        {
+            Id = 150,
+            Code = "", // Empty exception code
+            FeacnPrefixId = 100
+        });
+
+        ctx.FeacnPrefixes.Add(feacnPrefix);
+
+        var order = new WbrOrder
+        {
+            Id = 1,
+            RegisterId = 1,
+            CheckStatusId = 1,
+            ProductName = "Test product",
+            TnVed = "1234567890"
+        };
+        ctx.Orders.Add(order);
+        await ctx.SaveChangesAsync();
+
+        var realFeacnService = new FeacnPrefixCheckService(ctx);
+        var svc = new OrderValidationService(ctx, new MorphologySearchService(), realFeacnService);
+
+        await svc.ValidateAsync(order);
+
+        var feacnLinks = ctx.Set<BaseOrderFeacnPrefix>().Where(l => l.BaseOrderId == 1).ToList();
+        Assert.That(feacnLinks.Count, Is.EqualTo(1));
+        Assert.That(feacnLinks.Single().FeacnPrefixId, Is.EqualTo(100));
+    }
+
+    [Test]
+    public async Task ValidateAsync_MatchesPrefix_IntervalBoundaryValues_CreatesFeacnLinks()
+    {
+        using var ctx = CreateContext();
+
+        var feacnOrder = new FeacnOrder { Id = 1, Title = "Test FEACN Order" };
+        ctx.Add(feacnOrder);
+
+        var feacnPrefix = new FeacnPrefix
+        {
+            Id = 100,
+            Code = "1000000000",        // LeftValue = 1000000000
+            IntervalCode = "1099999999", // RightValue = 1999999999
+            FeacnOrderId = 1
+        };
+        ctx.FeacnPrefixes.Add(feacnPrefix);
+
+        // Test exact left boundary
+        var order1 = new WbrOrder
+        {
+            Id = 1,
+            RegisterId = 1,
+            CheckStatusId = 1,
+            ProductName = "Test product 1",
+            TnVed = "1000000000" // Exact left boundary
+        };
+        ctx.Orders.Add(order1);
+
+        // Test exact right boundary
+        var order2 = new WbrOrder
+        {
+            Id = 2,
+            RegisterId = 1,
+            CheckStatusId = 1,
+            ProductName = "Test product 2",
+            TnVed = "1099999999" // Exact right boundary
+        };
+        ctx.Orders.Add(order2);
+
+        await ctx.SaveChangesAsync();
+
+        var realFeacnService = new FeacnPrefixCheckService(ctx);
+        var svc = new OrderValidationService(ctx, new MorphologySearchService(), realFeacnService);
+
+        // Test left boundary
+        await svc.ValidateAsync(order1);
+        var feacnLinks1 = ctx.Set<BaseOrderFeacnPrefix>().Where(l => l.BaseOrderId == 1).ToList();
+        Assert.That(feacnLinks1.Count, Is.EqualTo(1));
+
+        // Test right boundary
+        await svc.ValidateAsync(order2);
+        var feacnLinks2 = ctx.Set<BaseOrderFeacnPrefix>().Where(l => l.BaseOrderId == 2).ToList();
+        Assert.That(feacnLinks2.Count, Is.EqualTo(1));
+    }
+
+    [Test]
+    public async Task ValidateAsync_MatchesPrefix_MultipleExceptions_FirstMatchingPreventsMatch()
+    {
+        using var ctx = CreateContext();
+
+        var feacnOrder = new FeacnOrder { Id = 1, Title = "Test FEACN Order" };
+        ctx.Add(feacnOrder);
+
+        var feacnPrefix = new FeacnPrefix
+        {
+            Id = 100,
+            Code = "1234",
+            IntervalCode = null,
+            FeacnOrderId = 1
+        };
+
+        // Add multiple exceptions
+        foreach (var exception in new[]
+        {
+            new FeacnPrefixException { Id = 150, Code = "12349", FeacnPrefixId = 100 },
+            new FeacnPrefixException { Id = 151, Code = "123456", FeacnPrefixId = 100 },
+            new FeacnPrefixException { Id = 152, Code = "1234567", FeacnPrefixId = 100 }
+        })
+        {
+            feacnPrefix.FeacnPrefixExceptions.Add(exception);
+        }
+
+        ctx.FeacnPrefixes.Add(feacnPrefix);
+
+        var order = new WbrOrder
+        {
+            Id = 1,
+            RegisterId = 1,
+            CheckStatusId = 1,
+            ProductName = "Test product",
+            TnVed = "1234567890" // Starts with "123456" (second exception)
+        };
+        ctx.Orders.Add(order);
+        await ctx.SaveChangesAsync();
+
+        var realFeacnService = new FeacnPrefixCheckService(ctx);
+        var svc = new OrderValidationService(ctx, new MorphologySearchService(), realFeacnService);
+
+        await svc.ValidateAsync(order);
+
+        var feacnLinks = ctx.Set<BaseOrderFeacnPrefix>().Where(l => l.BaseOrderId == 1).ToList();
+        Assert.That(feacnLinks.Count, Is.EqualTo(0));
+    }
 }
