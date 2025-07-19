@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Logibooks.Core.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250719091758_0_6_0_Feacn_Codes")]
+    [Migration("20250719105805_0_6_0_Feacn_Codes")]
     partial class _0_6_0_Feacn_Codes
     {
         /// <inheritdoc />
@@ -413,6 +413,16 @@ namespace Logibooks.Core.Migrations
                         {
                             Id = 101,
                             Title = "Выявлены проблемы"
+                        },
+                        new
+                        {
+                            Id = 102,
+                            Title = "Неправильный формат ТН ВЭД"
+                        },
+                        new
+                        {
+                            Id = 103,
+                            Title = "Несуществующий ТН ВЭД"
                         },
                         new
                         {

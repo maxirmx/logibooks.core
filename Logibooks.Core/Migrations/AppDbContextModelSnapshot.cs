@@ -413,6 +413,16 @@ namespace Logibooks.Core.Migrations
                         },
                         new
                         {
+                            Id = 102,
+                            Title = "Неправильный формат ТН ВЭД"
+                        },
+                        new
+                        {
+                            Id = 103,
+                            Title = "Несуществующий ТН ВЭД"
+                        },
+                        new
+                        {
                             Id = 201,
                             Title = "Не выявлено проблем"
                         });

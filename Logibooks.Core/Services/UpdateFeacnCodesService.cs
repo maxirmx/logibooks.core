@@ -26,7 +26,6 @@
 using HtmlAgilityPack;
 using Logibooks.Core.Data;
 using Logibooks.Core.Models;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using System.Text.RegularExpressions;
 

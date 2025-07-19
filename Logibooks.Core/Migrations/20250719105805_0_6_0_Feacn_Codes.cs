@@ -96,6 +96,15 @@ namespace Logibooks.Core.Migrations
                 });
 
             migrationBuilder.InsertData(
+                table: "check_statuses",
+                columns: new[] { "id", "title" },
+                values: new object[,]
+                {
+                    { 102, "Неправильный формат ТН ВЭД" },
+                    { 103, "Несуществующий ТН ВЭД" }
+                });
+
+            migrationBuilder.InsertData(
                 table: "feacn_orders",
                 columns: new[] { "id", "comment", "title", "Url" },
                 values: new object[,]
@@ -137,6 +146,16 @@ namespace Logibooks.Core.Migrations
 
             migrationBuilder.DropTable(
                 name: "feacn_orders");
+
+            migrationBuilder.DeleteData(
+                table: "check_statuses",
+                keyColumn: "id",
+                keyValue: 102);
+
+            migrationBuilder.DeleteData(
+                table: "check_statuses",
+                keyColumn: "id",
+                keyValue: 103);
         }
     }
 }

@@ -231,6 +231,8 @@ namespace Logibooks.Core.Data
             modelBuilder.Entity<OrderCheckStatus>().HasData(
                 new OrderCheckStatus { Id = 1, Title = "Не проверен" },
                 new OrderCheckStatus { Id = 101, Title = "Выявлены проблемы" },
+                new OrderCheckStatus { Id = 102, Title = "Неправильный формат ТН ВЭД" },
+                new OrderCheckStatus { Id = 103, Title = "Несуществующий ТН ВЭД" },
                 new OrderCheckStatus { Id = 201, Title = "Не выявлено проблем" }
             );
 
