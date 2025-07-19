@@ -77,11 +77,8 @@ public class FeacnPrefixCheckService(AppDbContext db) : IFeacnPrefixCheckService
         foreach (var prefix in prefixes)
         {
             var key = prefix.Code[..2];
-            if (!context.Prefixes.TryGetValue(key, out var list))
-            {
-                list = new List<FeacnPrefix>();
-                context.Prefixes[key] = list;
-            }
+            var list = context.Prefixes.GetValueOrDefault(key) ?? new List<FeacnPrefix>();
+            context.Prefixes[key] = list;
             list.Add(prefix);
         }
 
