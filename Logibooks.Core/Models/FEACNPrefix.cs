@@ -53,9 +53,20 @@ public class FeacnPrefix
     public ICollection<BaseOrderFeacnPrefix> BaseOrderFeacnPrefixes { get; set; } = new List<BaseOrderFeacnPrefix>();
 
     [NotMapped]
-    public long LeftValue => Code != null
-            ? long.Parse(Code.PadRight(10, '0'))
-            : 0;
+    public long LeftValue
+    {
+        get
+        {
+            if (Code != null)
+            {
+                if (long.TryParse(Code.PadRight(10, '0'), out var result))
+                {
+                    return result;
+                }
+            }
+            return 0;
+        }
+    }
 
     [NotMapped]
     public long RightValue
