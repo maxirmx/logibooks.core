@@ -95,7 +95,10 @@ public class UpdateFeacnCodesService(
         new Regex(@"Начало\s+действия\s+редакции\s+.+?\s+г\.",
             RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.Singleline),
         new Regex(@"Редакция\s+действует\s+до\s+.+?\s+\(включительно\)",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.Singleline),
+        new Regex(@"\(только фуражное зерно\)",
             RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.Singleline)
+        
     ];
 
     private static readonly Regex ExceptionRegex = new(
@@ -129,7 +132,6 @@ public class UpdateFeacnCodesService(
             {
                 if (skipHeader.Length == 3)
                 {
-                    Console.WriteLine($"Checking header: {firstRow[0]}");
                     if (firstRow[0].Trim().Replace(" ", "").Equals(skipHeader[0], StringComparison.OrdinalIgnoreCase) &&
                         firstRow[1].Trim().Replace(" ", "").Equals(skipHeader[1], StringComparison.OrdinalIgnoreCase) &&
                         firstRow[2].Trim().Replace(" ", "").Equals(skipHeader[2], StringComparison.OrdinalIgnoreCase)) 
@@ -291,12 +293,6 @@ public class UpdateFeacnCodesService(
 
                     // Skip if code becomes empty after cleaning
                     if (string.IsNullOrWhiteSpace(code)) continue;
-
-
-                    if (code.Contains("Правительства"))
-                    {
-                        _logger.LogWarning("Found code {Code} in order {OrderId} due to known issue", code, order.Id);
-                    }
 
                     var excMatches = ExceptionRegex.Matches(code);
                     List<string> exceptions = [];
