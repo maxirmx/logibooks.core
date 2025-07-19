@@ -214,10 +214,29 @@ public class UpdateFeacnCodesService(
         var results = codes
             .Split(new[] { ',', 'и', '\n' }, StringSplitOptions.RemoveEmptyEntries)
             .Select(c => WhitespaceRegex.Replace(c, string.Empty))
+            .Select(c => c.Replace("-", string.Empty))
             .Where(c => !string.IsNullOrWhiteSpace(c))
             .Where(c => Regex.IsMatch(c, @"^\d+$"));
 
         return results;
+    }
+
+    private static IEnumerable<(string Code, string? Interval)> ParsePrefixCodes(string codes)
+    {
+        var parts = codes
+            .Split(new[] { ',', 'и', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+
+        foreach (var part in parts)
+        {
+            var cleaned = WhitespaceRegex.Replace(part, string.Empty);
+            if (string.IsNullOrWhiteSpace(cleaned)) continue;
+
+            var m = Regex.Match(cleaned, @"^(\d+)(?:-(\d+))?$");
+            if (m.Success)
+            {
+                yield return (m.Groups[1].Value, m.Groups[2].Success ? m.Groups[2].Value : null);
+            }
+        }
     }
     private async Task<List<FeacnCodeRow>> ExtractAsync(CancellationToken token)
     {
@@ -316,12 +335,11 @@ public class UpdateFeacnCodesService(
                         code = code.Trim();
                     }
 
-                    foreach (var single in ParseCodes(code))
+                    foreach (var (prefix, interval) in ParsePrefixCodes(code))
                     {
-                        var existingRow = result.FirstOrDefault(r => r.OrderId == order.Id && r.Code == single);
+                        var existingRow = result.FirstOrDefault(r => r.OrderId == order.Id && r.Code == prefix && r.IntervalCode == interval);
                         if (existingRow != null)
                         {
-                            // If this code already exists for this order, merge exceptions
                             var mergedExceptions = existingRow.Exceptions.ToList();
                             foreach (var exception in exceptions)
                             {
@@ -330,15 +348,13 @@ public class UpdateFeacnCodesService(
                                     mergedExceptions.Add(exception);
                                 }
                             }
-                            
-                            // Remove the old row and add the updated one with merged exceptions
+
                             result.Remove(existingRow);
-                            result.Add(new FeacnCodeRow(order.Id, single, name, comment, mergedExceptions));
+                            result.Add(new FeacnCodeRow(order.Id, prefix, interval, name, comment, mergedExceptions));
                         }
                         else
                         {
-                            // Add new row if this code doesn't exist yet
-                            result.Add(new FeacnCodeRow(order.Id, single, name, comment, exceptions));
+                            result.Add(new FeacnCodeRow(order.Id, prefix, interval, name, comment, exceptions));
                         }
                     }
                 }
@@ -348,7 +364,9 @@ public class UpdateFeacnCodesService(
         return result;
     }
 
-    private record FeacnCodeRow(int OrderId, string Code, string Name, string Comment, IReadOnlyList<string> Exceptions);
+    private record FeacnCodeRow(int OrderId, string Code, string? IntervalCode, string Name, string Comment, IReadOnlyList<string> Exceptions);
+
+    private readonly record struct PrefixKey(int OrderId, string Code, string? IntervalCode);
 
     public async Task RunAsync(CancellationToken cancellationToken = default)
     {
@@ -370,8 +388,8 @@ public class UpdateFeacnCodesService(
             .ToListAsync(cancellationToken);
 
         // Group existing prefixes for easier comparison
-        var existingPrefixesByOrderAndCode = existingPrefixes
-            .GroupBy(p => new { p.FeacnOrderId, p.Code })
+        var existingPrefixesByKey = existingPrefixes
+            .GroupBy(p => new { p.FeacnOrderId, p.Code, p.IntervalCode })
             .ToDictionary(g => g.Key, g => g.First());
 
         // Use a transaction for atomicity and better performance
@@ -384,15 +402,15 @@ public class UpdateFeacnCodesService(
 
             // Process new and updated prefixes
             var newPrefixes = new List<FeacnPrefix>();
-            var processedKeys = new HashSet<(int OrderId, string Code)>();
+            var processedKeys = new HashSet<PrefixKey>();
 
             foreach (var row in extracted)
             {
-                var key = new { FeacnOrderId = row.OrderId, Code = row.Code };
-                processedKeys.Add((row.OrderId, row.Code));
+                var key = new { FeacnOrderId = row.OrderId, Code = row.Code, IntervalCode = row.IntervalCode };
+                processedKeys.Add(new PrefixKey(row.OrderId, row.Code, row.IntervalCode));
 
                 // Check if this prefix already exists
-                if (existingPrefixesByOrderAndCode.TryGetValue(key, out var existingPrefix))
+                if (existingPrefixesByKey.TryGetValue(key, out var existingPrefix))
                 {
                     // Compare to see if update is needed
                     bool needsUpdate = existingPrefix.Description != row.Name ||
@@ -438,6 +456,7 @@ public class UpdateFeacnCodesService(
                     {
                         FeacnOrderId = row.OrderId,
                         Code = row.Code,
+                        IntervalCode = row.IntervalCode,
                         Description = row.Name,
                         Comment = row.Comment,
                         FeacnPrefixExceptions = row.Exceptions
@@ -457,7 +476,7 @@ public class UpdateFeacnCodesService(
 
             // Find and remove obsolete prefixes that no longer exist in the extracted data
             var obsoletePrefixes = existingPrefixes
-                .Where(p => !processedKeys.Contains((p.FeacnOrderId, p.Code)))
+                .Where(p => !processedKeys.Contains(new PrefixKey(p.FeacnOrderId, p.Code, p.IntervalCode)))
                 .ToList();
 
             if (obsoletePrefixes.Count > 0)
