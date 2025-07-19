@@ -149,7 +149,7 @@ public class OrderValidationServiceTests
         using var ctx = CreateContext();
         var order = new WbrOrder { Id = 1, RegisterId = 1, CheckStatusId = 1, ProductName = "This is SPAM with золотой браслет", TnVed = "1234567890" };
         ctx.Orders.Add(order);
-        
+
         var stopWords = new[]
         {
             new StopWord { Id = 10, Word = "spam", ExactMatch = true },      // Should match via exact
@@ -166,7 +166,7 @@ public class OrderValidationServiceTests
 
         var links = ctx.Set<BaseOrderStopWord>().ToList();
         var foundIds = links.Select(l => l.StopWordId).OrderBy(id => id).ToList();
-        
+
         Assert.That(links.Count, Is.EqualTo(2), "Should find exactly 2 matches");
         Assert.That(foundIds, Is.EquivalentTo(new[] { 10, 20 }), "Should find both exact and morphology matches");
         Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)OrderCheckStatusCode.HasIssues));
@@ -178,13 +178,13 @@ public class OrderValidationServiceTests
         using var ctx = CreateContext();
         var order = new WbrOrder { Id = 1, RegisterId = 1, CheckStatusId = 1, ProductName = "SPAM product", TnVed = "1234567890" };
         ctx.Orders.Add(order);
-        
+
         // Add some existing links that should be removed
         ctx.Set<BaseOrderStopWord>().AddRange(
             new BaseOrderStopWord { BaseOrderId = 1, StopWordId = 999 },
             new BaseOrderStopWord { BaseOrderId = 1, StopWordId = 998 }
         );
-        
+
         var stopWords = new[]
         {
             new StopWord { Id = 800, Word = "spam", ExactMatch = true }
@@ -196,7 +196,7 @@ public class OrderValidationServiceTests
         await svc.ValidateAsync(order);
 
         var links = ctx.Set<BaseOrderStopWord>().ToList();
-        
+
         Assert.That(links.Count, Is.EqualTo(1), "Should replace existing links");
         Assert.That(links.Single().StopWordId, Is.EqualTo(800), "Should have new link only");
         Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)OrderCheckStatusCode.HasIssues));
@@ -257,14 +257,14 @@ public class OrderValidationServiceTests
 
         Assert.That(context, Is.Not.Null);
         Assert.That(context.ExactMatchStopWords.Count, Is.EqualTo(3));
-        
+
         var exactMatchWords = context.ExactMatchStopWords.Select(sw => sw.Word).ToList();
         Assert.That(exactMatchWords, Contains.Item("spam"));
         Assert.That(exactMatchWords, Contains.Item("virus"));
         Assert.That(exactMatchWords, Contains.Item("malware"));
         Assert.That(exactMatchWords, Does.Not.Contain("золото"));
         Assert.That(exactMatchWords, Does.Not.Contain("дом"));
-        
+
         Assert.That(context.ExactMatchStopWords.All(sw => sw.ExactMatch), Is.True);
     }
 
@@ -293,7 +293,7 @@ public class OrderValidationServiceTests
         using var ctx = CreateContext();
         var order = new WbrOrder { Id = 1, RegisterId = 1, CheckStatusId = 1, ProductName = "This is SPAM", TnVed = "1234567890" };
         ctx.Orders.Add(order);
-        
+
         // Add stop words to database (should be ignored when context is provided)
         ctx.StopWords.Add(new StopWord { Id = 999, Word = "spam", ExactMatch = true });
         await ctx.SaveChangesAsync();
@@ -304,7 +304,7 @@ public class OrderValidationServiceTests
             new StopWord { Id = 100, Word = "spam", ExactMatch = true },
             new StopWord { Id = 200, Word = "virus", ExactMatch = true }
         };
-        
+
         var svc = CreateService(ctx);
         var stopWordsContext = svc.InitializeStopWordsContext(contextStopWords);
         await svc.ValidateAsync(order, null, stopWordsContext);
@@ -329,5 +329,196 @@ public class OrderValidationServiceTests
 
         Assert.That(ctx.Set<BaseOrderStopWord>().Any(), Is.False);
         Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)OrderCheckStatusCode.NoIssues));
+    }
+
+
+[Test]
+    public async Task ValidateAsync_TnVedWithNonNumericChars_SetsInvalidFeacnFormatStatus()
+    {
+        using var ctx = CreateContext();
+        var order = new WbrOrder { Id = 1, RegisterId = 1, CheckStatusId = 1, ProductName = "Test product", TnVed = "123abc7890" };
+        ctx.Orders.Add(order);
+        ctx.StopWords.Add(new StopWord { Id = 2, Word = "test", ExactMatch = true });
+        await ctx.SaveChangesAsync();
+
+        var svc = CreateService(ctx);
+        await svc.ValidateAsync(order);
+
+        // Should not create any stop word links due to invalid TnVed
+        Assert.That(ctx.Set<BaseOrderStopWord>().Any(), Is.False);
+        Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)OrderCheckStatusCode.InvalidFeacnFormat));
+    }
+
+    [Test]
+    public async Task ValidateAsync_TnVedTooShort_SetsInvalidFeacnFormatStatus()
+    {
+        using var ctx = CreateContext();
+        var order = new WbrOrder { Id = 1, RegisterId = 1, CheckStatusId = 1, ProductName = "Test product", TnVed = "12345" };
+        ctx.Orders.Add(order);
+        ctx.StopWords.Add(new StopWord { Id = 2, Word = "test", ExactMatch = true });
+        await ctx.SaveChangesAsync();
+
+        var svc = CreateService(ctx);
+        await svc.ValidateAsync(order);
+
+        // Should not create any stop word links due to invalid TnVed
+        Assert.That(ctx.Set<BaseOrderStopWord>().Any(), Is.False);
+        Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)OrderCheckStatusCode.InvalidFeacnFormat));
+    }
+
+
+    [Test]
+    public async Task ValidateAsync_WithRealFeacnPrefixCheckService_CreatesFeacnAndStopWordLinks()
+    {
+        using var ctx = CreateContext();
+
+        // Setup test data: FeacnOrder and FeacnPrefix
+        var feacnOrder = new FeacnOrder { Id = 1, Title = "Test FEACN Order", Comment = "Test order for validation" };
+        ctx.Add(feacnOrder);
+
+        var feacnPrefix = new FeacnPrefix
+        {
+            Id = 100,
+            Code = "1234",
+            Description = "Restricted goods category",
+            FeacnOrderId = 1
+        };
+        ctx.FeacnPrefixes.Add(feacnPrefix);
+
+        // Add stop words that should match
+        ctx.StopWords.AddRange(
+            new StopWord { Id = 200, Word = "restricted", ExactMatch = true },
+            new StopWord { Id = 201, Word = "banned", ExactMatch = true }
+        );
+
+        // Create order with TnVed that matches the FEACN prefix and product name with stop words
+        var order = new WbrOrder
+        {
+            Id = 1,
+            RegisterId = 1,
+            CheckStatusId = 1,
+            ProductName = "This is a restricted item with banned substances",
+            TnVed = "1234567890" // Matches prefix "1234"
+        };
+        ctx.Orders.Add(order);
+        await ctx.SaveChangesAsync();
+
+        // Use real FeacnPrefixCheckService instead of mock
+        var realFeacnService = new FeacnPrefixCheckService(ctx);
+        var svc = new OrderValidationService(ctx, new MorphologySearchService(), realFeacnService);
+
+        // Act
+        await svc.ValidateAsync(order);
+
+        // Assert - Check that both FEACN prefix links and stop word links were created
+        var feacnLinks = ctx.Set<BaseOrderFeacnPrefix>().Where(l => l.BaseOrderId == 1).ToList();
+        var stopWordLinks = ctx.Set<BaseOrderStopWord>().Where(l => l.BaseOrderId == 1).ToList();
+
+        // Should have one FEACN prefix link
+        Assert.That(feacnLinks.Count, Is.EqualTo(1));
+        Assert.That(feacnLinks.Single().FeacnPrefixId, Is.EqualTo(100));
+
+        // Should have two stop word links
+        Assert.That(stopWordLinks.Count, Is.EqualTo(2));
+        var stopWordIds = stopWordLinks.Select(l => l.StopWordId).OrderBy(id => id).ToList();
+        Assert.That(stopWordIds, Is.EquivalentTo(new[] { 200, 201 }));
+
+        // Status should be HasIssues because both FEACN and stop word issues were found
+        Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)OrderCheckStatusCode.HasIssues));
+    }
+
+    [Test]
+    public async Task ValidateAsync_WithRealFeacnPrefixCheckService_NoMatches_SetsNoIssues()
+    {
+        using var ctx = CreateContext();
+
+        // Setup FEACN data that won't match
+        var feacnOrder = new FeacnOrder { Id = 1, Title = "Test FEACN Order" };
+        ctx.Add(feacnOrder);
+
+        var feacnPrefix = new FeacnPrefix
+        {
+            Id = 100,
+            Code = "9999", // Won't match TnVed "1234567890"
+            FeacnOrderId = 1
+        };
+        ctx.FeacnPrefixes.Add(feacnPrefix);
+
+        // Add stop words that won't match
+        ctx.StopWords.Add(new StopWord { Id = 200, Word = "nonexistent", ExactMatch = true });
+
+        var order = new WbrOrder
+        {
+            Id = 1,
+            RegisterId = 1,
+            CheckStatusId = 1,
+            ProductName = "Clean product name",
+            TnVed = "1234567890"
+        };
+        ctx.Orders.Add(order);
+        await ctx.SaveChangesAsync();
+
+        var realFeacnService = new FeacnPrefixCheckService(ctx);
+        var svc = new OrderValidationService(ctx, new MorphologySearchService(), realFeacnService);
+
+        // Act
+        await svc.ValidateAsync(order);
+
+        // Assert - No links should be created
+        Assert.That(ctx.Set<BaseOrderFeacnPrefix>().Any(l => l.BaseOrderId == 1), Is.False);
+        Assert.That(ctx.Set<BaseOrderStopWord>().Any(l => l.BaseOrderId == 1), Is.False);
+        Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)OrderCheckStatusCode.NoIssues));
+    }
+
+    [Test]
+    public async Task ValidateAsync_WithRealFeacnPrefixCheckService_FeacnExceptionPreventsMatch()
+    {
+        using var ctx = CreateContext();
+
+        var feacnOrder = new FeacnOrder { Id = 1, Title = "Test FEACN Order" };
+        ctx.Add(feacnOrder);
+
+        // Create prefix that would match, but has an exception for the specific TnVed
+        var feacnPrefix = new FeacnPrefix
+        {
+            Id = 100,
+            Code = "1234",
+            FeacnOrderId = 1
+        };
+
+        // Add exception that prevents match
+        feacnPrefix.FeacnPrefixExceptions.Add(new FeacnPrefixException
+        {
+            Id = 150,
+            Code = "123456", // This will prevent TnVed "1234567890" from matching
+            FeacnPrefixId = 100
+        });
+
+        ctx.FeacnPrefixes.Add(feacnPrefix);
+
+        // Add stop word that will match
+        ctx.StopWords.Add(new StopWord { Id = 200, Word = "test", ExactMatch = true });
+
+        var order = new WbrOrder
+        {
+            Id = 1,
+            RegisterId = 1,
+            CheckStatusId = 1,
+            ProductName = "Test product",
+            TnVed = "1234567890" // Starts with exception code "123456"
+        };
+        ctx.Orders.Add(order);
+        await ctx.SaveChangesAsync();
+
+        var realFeacnService = new FeacnPrefixCheckService(ctx);
+        var svc = new OrderValidationService(ctx, new MorphologySearchService(), realFeacnService);
+
+        // Act
+        await svc.ValidateAsync(order);
+
+        // Assert - No FEACN link due to exception, but stop word link should exist
+        Assert.That(ctx.Set<BaseOrderFeacnPrefix>().Any(l => l.BaseOrderId == 1), Is.False);
+        Assert.That(ctx.Set<BaseOrderStopWord>().Count(l => l.BaseOrderId == 1), Is.EqualTo(1));
+        Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)OrderCheckStatusCode.HasIssues));
     }
 }
