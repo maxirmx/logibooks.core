@@ -88,10 +88,9 @@ public class FeacnCodesController(
     [HttpPost("update")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
-    [AllowAnonymous]
     public async Task<IActionResult> Update()
     {
-        //if (!await _db.CheckAdmin(_curUserId)) return _403();
+        if (!await _db.CheckAdmin(_curUserId)) return _403();
         await _service.RunAsync();
         return NoContent();
     }

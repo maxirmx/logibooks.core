@@ -116,15 +116,15 @@ public class FeacnCodesControllerTests
         _controller = new FeacnCodesController(_mockHttpContextAccessor.Object, _dbContext, _mockService.Object, _logger);
     }
 
-    //[Test]
-    //public async Task Update_ReturnsForbidden_ForNonAdmin()
-    //{
-    //    SetCurrentUserId(2);
-    //    var result = await _controller.Update();
-    //    Assert.That(result, Is.TypeOf<ObjectResult>());
-    //    var obj = result as ObjectResult;
-    //    Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
-    //}
+    [Test]
+    public async Task Update_ReturnsForbidden_ForNonAdmin()
+    {
+        SetCurrentUserId(2);
+        var result = await _controller.Update();
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
+    }
 
     [Test]
     public async Task Update_ReturnsNoContent_ForAdmin()
