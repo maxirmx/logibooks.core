@@ -65,6 +65,40 @@ public class FeacnPrefixCheckService(AppDbContext db) : IFeacnPrefixCheckService
         return links;
     }
 
+    public Task<IEnumerable<BaseOrderFeacnPrefix>> CheckOrderWithContextAsync(
+        BaseOrder order,
+        FeacnPrefixCheckContext context,
+        CancellationToken cancellationToken = default)
+    {
+        if (order.TnVed == null || order.TnVed.Length < 2)
+        {
+            return Task.FromResult<IEnumerable<BaseOrderFeacnPrefix>>([]);
+        }
+
+        string tnVed = order.TnVed;
+        var twoDigitPrefix = tnVed[..2];
+
+        if (!context.Prefixes.TryGetValue(twoDigitPrefix, out var prefixes))
+        {
+            return Task.FromResult<IEnumerable<BaseOrderFeacnPrefix>>([]);
+        }
+
+        var links = new List<BaseOrderFeacnPrefix>();
+        foreach (var prefix in prefixes)
+        {
+            if (MatchesPrefix(tnVed, prefix))
+            {
+                links.Add(new BaseOrderFeacnPrefix
+                {
+                    BaseOrderId = order.Id,
+                    FeacnPrefixId = prefix.Id
+                });
+            }
+        }
+
+        return Task.FromResult<IEnumerable<BaseOrderFeacnPrefix>>(links);
+    }
+
     public async Task<FeacnPrefixCheckContext> CreateContext(CancellationToken cancellationToken = default)
     {
         var prefixes = await _db.FeacnPrefixes
