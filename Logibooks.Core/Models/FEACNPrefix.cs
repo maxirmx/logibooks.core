@@ -51,4 +51,14 @@ public class FeacnPrefix
 
     public ICollection<FeacnPrefixException> FeacnPrefixExceptions { get; set; } = new List<FeacnPrefixException>();
     public ICollection<BaseOrderFeacnPrefix> BaseOrderFeacnPrefixes { get; set; } = new List<BaseOrderFeacnPrefix>();
+
+    [NotMapped]
+    public long LeftValue => Code != null
+            ? long.Parse(Code.PadRight(10, '0'))
+            : 0;
+
+    [NotMapped]
+    public long RightValue => IntervalCode != null
+        ? long.Parse(IntervalCode.PadRight(10, '0'))
+        : 0;
 }
