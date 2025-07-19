@@ -74,7 +74,12 @@ public class RegisterValidationService(
             
 
         var morphologyContext = _morphologyService.InitializeContext(allStopWords.Where(sw => !sw.ExactMatch));
-        
+
+        var allPrefixes = await _db.FeacnPrefixes
+            .AsNoTracking()
+            .Include(p => p.FeacnPrefixExceptions)
+            .ToListAsync(cancellationToken);
+
         var process = new ValidationProcess(registerId) { Total = orders.Count };
         if (!_byRegister.TryAdd(registerId, process))
         {
@@ -101,6 +106,7 @@ public class RegisterValidationService(
             {
                 // Initialize StopWordContext once for all orders in this register
                 var stopWordsContext = scopedOrderSvc.InitializeStopWordsContext(allStopWords);
+                var feacnContext = scopedOrderSvc.InitializeFeacnPrefixCheckContext(allPrefixes);
 
                 foreach (var id in orders)
                 {
@@ -112,8 +118,8 @@ public class RegisterValidationService(
                     var order = await scopedDb.Orders.FindAsync([id], cancellationToken: process.Cts.Token);
                     if (order != null)
                     {
-                        // Use the new overload with both contexts
-                        await scopedOrderSvc.ValidateAsync(order, morphologyContext, stopWordsContext, process.Cts.Token);
+                        // Use the new overload with all contexts
+                        await scopedOrderSvc.ValidateAsync(order, morphologyContext, stopWordsContext, feacnContext, process.Cts.Token);
                     }
                     process.Processed++;
                 }

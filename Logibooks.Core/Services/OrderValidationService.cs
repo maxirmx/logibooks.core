@@ -39,11 +39,14 @@ public class OrderValidationService(AppDbContext db, IMorphologySearchService mo
         BaseOrder order,
         MorphologyContext? morphologyContext = null,
         StopWordsContext? stopWordsContext = null,
+        FeacnPrefixCheckContext? feacnPrefixContext = null,
         CancellationToken cancellationToken = default)
     {
         // remove existing links for this order
-        var existing = _db.Set<BaseOrderStopWord>().Where(l => l.BaseOrderId == order.Id);
-        _db.Set<BaseOrderStopWord>().RemoveRange(existing);
+        var existingSw = _db.Set<BaseOrderStopWord>().Where(l => l.BaseOrderId == order.Id);
+        var existingPrefixes = _db.Set<BaseOrderFeacnPrefix>().Where(l => l.BaseOrderId == order.Id);
+        _db.Set<BaseOrderStopWord>().RemoveRange(existingSw);
+        _db.Set<BaseOrderFeacnPrefix>().RemoveRange(existingPrefixes);
         order.CheckStatusId = (int)OrderCheckStatusCode.NotChecked;
         await _db.SaveChangesAsync(cancellationToken);
 
@@ -79,15 +82,19 @@ public class OrderValidationService(AppDbContext db, IMorphologySearchService mo
             }
         }
 
+        var prefixLinks = feacnPrefixContext != null
+            ? await CheckOrderWithContextAsync(order, feacnPrefixContext, cancellationToken)
+            : await CheckOrderAsync(order, cancellationToken);
+
         if (links.Count > 0)
-        {
             _db.AddRange(links);
+        if (prefixLinks.Count > 0)
+            _db.AddRange(prefixLinks);
+
+        if (links.Count > 0 || prefixLinks.Count > 0)
             order.CheckStatusId = (int)OrderCheckStatusCode.HasIssues;
-        }
         else
-        {
-            order.CheckStatusId = (int)OrderCheckStatusCode.NoIssues; 
-        }
+            order.CheckStatusId = (int)OrderCheckStatusCode.NoIssues;
 
         await _db.SaveChangesAsync(cancellationToken);
     }
@@ -122,5 +129,80 @@ public class OrderValidationService(AppDbContext db, IMorphologySearchService mo
         var context = new StopWordsContext();
         context.ExactMatchStopWords.AddRange(exactMatchStopWords.Where(sw => sw.ExactMatch));
         return context;
+    }
+
+    public FeacnPrefixCheckContext InitializeFeacnPrefixCheckContext(IEnumerable<FeacnPrefix> prefixes)
+    {
+        var context = new FeacnPrefixCheckContext();
+        context.Prefixes.AddRange(prefixes);
+        return context;
+    }
+
+    private async Task<List<BaseOrderFeacnPrefix>> CheckOrderAsync(BaseOrder order, CancellationToken cancellationToken)
+    {
+        var prefixes = await _db.FeacnPrefixes
+            .AsNoTracking()
+            .Include(p => p.FeacnPrefixExceptions)
+            .ToListAsync(cancellationToken);
+        var context = InitializeFeacnPrefixCheckContext(prefixes);
+        return CheckOrderWithContext(order, context);
+    }
+
+    private Task<List<BaseOrderFeacnPrefix>> CheckOrderWithContextAsync(BaseOrder order, FeacnPrefixCheckContext context, CancellationToken cancellationToken)
+    {
+        return Task.FromResult(CheckOrderWithContext(order, context));
+    }
+
+    private List<BaseOrderFeacnPrefix> CheckOrderWithContext(BaseOrder order, FeacnPrefixCheckContext context)
+    {
+        var result = new List<BaseOrderFeacnPrefix>();
+        var tnVed = order.TnVed ?? string.Empty;
+
+        if (string.IsNullOrWhiteSpace(tnVed))
+            return result;
+
+        foreach (var prefix in context.Prefixes)
+        {
+            if (PrefixMatches(tnVed, prefix))
+            {
+                result.Add(new BaseOrderFeacnPrefix { BaseOrderId = order.Id, FeacnPrefixId = prefix.Id });
+            }
+        }
+
+        return result;
+    }
+
+    private static bool PrefixMatches(string tnVed, FeacnPrefix prefix)
+    {
+        if (string.IsNullOrWhiteSpace(tnVed) || string.IsNullOrWhiteSpace(prefix.Code))
+            return false;
+
+        var code = prefix.Code;
+        if (prefix.IntervalCode == null)
+        {
+            if (!tnVed.StartsWith(code))
+                return false;
+        }
+        else
+        {
+            var len = code.Length;
+            if (tnVed.Length < len)
+                return false;
+            var value = tnVed[..len];
+            if (string.Compare(value, code, StringComparison.Ordinal) < 0 ||
+                string.Compare(value, prefix.IntervalCode, StringComparison.Ordinal) > 0)
+                return false;
+        }
+
+        if (prefix.FeacnPrefixExceptions != null)
+        {
+            foreach (var exc in prefix.FeacnPrefixExceptions)
+            {
+                if (!string.IsNullOrWhiteSpace(exc.Code) && tnVed.StartsWith(exc.Code))
+                    return false;
+            }
+        }
+
+        return true;
     }
 }

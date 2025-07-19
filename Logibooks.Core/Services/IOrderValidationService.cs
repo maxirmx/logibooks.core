@@ -35,12 +35,19 @@ public interface IOrderValidationService
     Task ValidateAsync(BaseOrder order,
         MorphologyContext? morphologyContext = null,
         StopWordsContext? stopWordsContext = null,
+        FeacnPrefixCheckContext? feacnPrefixContext = null,
         CancellationToken cancellationToken = default);
 
     StopWordsContext InitializeStopWordsContext(IEnumerable<StopWord> exactMatchStopWords);
+    FeacnPrefixCheckContext InitializeFeacnPrefixCheckContext(IEnumerable<FeacnPrefix> prefixes);
 }
 
 public class StopWordsContext
 {
     internal List<StopWord> ExactMatchStopWords { get; } = new();
+}
+
+public class FeacnPrefixCheckContext
+{
+    internal List<FeacnPrefix> Prefixes { get; } = new();
 }

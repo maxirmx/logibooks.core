@@ -249,7 +249,14 @@ public class OrdersController(
             .Where(sw => !sw.ExactMatch)
             .ToListAsync();
         var context = _morphologyService.InitializeContext(stopWords);
-        await _validationService.ValidateAsync(order, context, null);
+
+        var prefixes = await _db.FeacnPrefixes
+            .AsNoTracking()
+            .Include(p => p.FeacnPrefixExceptions)
+            .ToListAsync();
+        var feacnContext = _validationService.InitializeFeacnPrefixCheckContext(prefixes);
+
+        await _validationService.ValidateAsync(order, context, null, feacnContext);
 
         return NoContent();
     }

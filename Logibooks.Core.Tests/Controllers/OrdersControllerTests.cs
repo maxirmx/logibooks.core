@@ -565,15 +565,18 @@ public class OrdersControllerTests
         var order = new WbrOrder { Id = 10, RegisterId = 10, StatusId = 1 };
         _dbContext.Registers.Add(register);
         _dbContext.Orders.Add(order);
+        _dbContext.FeacnOrders.Add(new FeacnOrder { Id = 1, Title = "t" });
+        _dbContext.FeacnPrefixes.Add(new FeacnPrefix { Id = 1, Code = "12", FeacnOrderId = 1 });
         await _dbContext.SaveChangesAsync();
 
         var result = await _controller.ValidateOrder(10);
 
         _mockValidationService.Verify(s => s.ValidateAsync(
-            order, 
+            order,
             It.IsAny<MorphologyContext?>(),
             It.IsAny<StopWordsContext?>(),
-            It.IsAny<CancellationToken>()), 
+            It.IsAny<FeacnPrefixCheckContext?>(),
+            It.IsAny<CancellationToken>()),
             Times.Once);
         Assert.That(result, Is.TypeOf<NoContentResult>());
     }
@@ -588,7 +591,8 @@ public class OrdersControllerTests
             It.IsAny<BaseOrder>(),
             It.IsAny<MorphologyContext?>(),
             It.IsAny<StopWordsContext?>(),
-            It.IsAny<CancellationToken>()), 
+            It.IsAny<FeacnPrefixCheckContext?>(),
+            It.IsAny<CancellationToken>()),
             Times.Never);
         Assert.That(result, Is.TypeOf<ObjectResult>());
         var obj = result as ObjectResult;
@@ -608,7 +612,8 @@ public class OrdersControllerTests
             It.IsAny<BaseOrder>(),
             It.IsAny<MorphologyContext?>(),
             It.IsAny<StopWordsContext?>(),
-            It.IsAny<CancellationToken>()), 
+            It.IsAny<FeacnPrefixCheckContext?>(),
+            It.IsAny<CancellationToken>()),
             Times.Never);
     }
 }

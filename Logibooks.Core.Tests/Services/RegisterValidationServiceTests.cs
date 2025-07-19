@@ -79,6 +79,7 @@ public class RegisterValidationServiceTests
             It.IsAny<BaseOrder>(),
             It.IsAny<MorphologyContext?>(),
             It.IsAny<StopWordsContext?>(),
+            It.IsAny<FeacnPrefixCheckContext?>(),
             It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
         var logger = new LoggerFactory().CreateLogger<RegisterValidationService>();
@@ -93,10 +94,11 @@ public class RegisterValidationServiceTests
         Assert.That(progress.Processed, Is.EqualTo(-1));
         Assert.That(progress.Finished, Is.True);
         mock.Verify(m => m.ValidateAsync(
-            It.IsAny<BaseOrder>(), 
+            It.IsAny<BaseOrder>(),
             It.IsAny<MorphologyContext?>(),
             It.IsAny<StopWordsContext?>(),
-            It.IsAny<CancellationToken>()), 
+            It.IsAny<FeacnPrefixCheckContext?>(),
+            It.IsAny<CancellationToken>()),
             Times.Exactly(2));
     }
 
@@ -113,9 +115,10 @@ public class RegisterValidationServiceTests
         var tcs = new TaskCompletionSource();
         var mock = new Mock<IOrderValidationService>();
         mock.Setup(m => m.ValidateAsync(
-            It.IsAny<BaseOrder>(), 
+            It.IsAny<BaseOrder>(),
             It.IsAny<MorphologyContext?>(),
             It.IsAny<StopWordsContext?>(),
+            It.IsAny<FeacnPrefixCheckContext?>(),
             It.IsAny<CancellationToken>()))
             .Returns(async () => { await Task.Delay(20); tcs.TrySetResult(); });
         var logger = new LoggerFactory().CreateLogger<RegisterValidationService>();
@@ -196,8 +199,8 @@ public class RegisterValidationServiceTests
         // Add a register and two orders with product names containing stop words
         ctx.Registers.Add(new Register { Id = 100, FileName = "test.xlsx" });
         ctx.Orders.AddRange(
-            new WbrOrder { Id = 101, RegisterId = 100, ProductName = "This is SPAM and malware" },
-            new WbrOrder { Id = 102, RegisterId = 100, ProductName = "Clean product" }
+            new WbrOrder { Id = 101, RegisterId = 100, ProductName = "This is SPAM and malware", TnVed = "1234" },
+            new WbrOrder { Id = 102, RegisterId = 100, ProductName = "Clean product", TnVed = "9999" }
         );
         // Add stop words: one that should match, one that should not
         ctx.StopWords.AddRange(
@@ -205,6 +208,8 @@ public class RegisterValidationServiceTests
             new StopWord { Id = 202, Word = "malware", ExactMatch = true },
             new StopWord { Id = 203, Word = "virus", ExactMatch = false } // not used for exact match
         );
+        ctx.FeacnOrders.Add(new FeacnOrder { Id = 1, Title = "fo" });
+        ctx.FeacnPrefixes.Add(new FeacnPrefix { Id = 301, Code = "12", FeacnOrderId = 1 });
         await ctx.SaveChangesAsync();
 
         // Use real OrderValidationService and MorphologySearchService
@@ -241,14 +246,19 @@ public class RegisterValidationServiceTests
 
 
         // Reload orders and check stop word links
-        var order1 = await ctx.Orders.Include(o => o.BaseOrderStopWords).FirstAsync(o => o.Id == 101);
-        var order2 = await ctx.Orders.Include(o => o.BaseOrderStopWords).FirstAsync(o => o.Id == 102);
+        var order1 = await ctx.Orders.Include(o => o.BaseOrderStopWords).Include(o => o.BaseOrderFeacnPrefixes).FirstAsync(o => o.Id == 101);
+        var order2 = await ctx.Orders.Include(o => o.BaseOrderStopWords).Include(o => o.BaseOrderFeacnPrefixes).FirstAsync(o => o.Id == 102);
 
         // Order 1 should have links to both "spam" and "malware"
         var stopWordIds1 = order1.BaseOrderStopWords.Select(l => l.StopWordId).ToList();
         Assert.That(stopWordIds1, Does.Contain(201));
         Assert.That(stopWordIds1, Does.Contain(202));
         Assert.That(stopWordIds1.Count, Is.EqualTo(2));
+
+        // Order 1 should have feacn prefix link
+        Assert.That(order1.BaseOrderFeacnPrefixes.Any(l => l.FeacnPrefixId == 301), Is.True);
+        // Order 2 should have no feacn links
+        Assert.That(order2.BaseOrderFeacnPrefixes, Is.Empty);
 
         // Order 2 should have no stop word links
         Assert.That(order2.BaseOrderStopWords, Is.Empty);
