@@ -48,36 +48,7 @@ public class OrderValidationService(AppDbContext db, IMorphologySearchService mo
         await _db.SaveChangesAsync(cancellationToken);
 
         var productName = order.ProductName ?? string.Empty;
-
-        // Use pre-loaded stop words from context or load from database
-        List<StopWord> matchingWords;
-        if (stopWordsContext != null)
-        {
-            matchingWords = GetMatchingStopWordsFromContext(productName, stopWordsContext);
-        }
-        else
-        {
-            matchingWords = await GetMatchingStopWords(productName, cancellationToken);
-        }
-
-        var links = new List<BaseOrderStopWord>();
-        var existingStopWordIds = new HashSet<int>();
-
-        foreach (var sw in matchingWords)
-        {
-            links.Add(new BaseOrderStopWord { BaseOrderId = order.Id, StopWordId = sw.Id });
-            existingStopWordIds.Add(sw.Id);
-        }
-
-        if (morphologyContext != null)
-        {
-            var ids = _morphService.CheckText(morphologyContext, productName);
-            foreach (var id in ids)
-            {
-                if (existingStopWordIds.Add(id)) // HashSet.Add returns false if already exists
-                    links.Add(new BaseOrderStopWord { BaseOrderId = order.Id, StopWordId = id });
-            }
-        }
+        var links = await SelectStopWordLinksAsync(order.Id, productName, stopWordsContext, morphologyContext, cancellationToken);
 
         if (links.Count > 0)
         {
@@ -92,6 +63,47 @@ public class OrderValidationService(AppDbContext db, IMorphologySearchService mo
         await _db.SaveChangesAsync(cancellationToken);
     }
 
+    private async Task<List<BaseOrderStopWord>> SelectStopWordLinksAsync(
+        int orderId,
+        string productName,
+        StopWordsContext? stopWordsContext,
+        MorphologyContext? morphologyContext,
+        CancellationToken cancellationToken)
+    {
+        var links = new List<BaseOrderStopWord>();
+        var existingStopWordIds = new HashSet<int>();
+
+        // Get matching stop words from context or database
+        List<StopWord> matchingWords;
+        if (stopWordsContext != null)
+        {
+            matchingWords = GetMatchingStopWordsFromContext(productName, stopWordsContext);
+        }
+        else
+        {
+            matchingWords = await GetMatchingStopWords(productName, cancellationToken);
+        }
+
+        // Add stop words to links
+        foreach (var sw in matchingWords)
+        {
+            links.Add(new BaseOrderStopWord { BaseOrderId = orderId, StopWordId = sw.Id });
+            existingStopWordIds.Add(sw.Id);
+        }
+
+        // Add morphology-based matches
+        if (morphologyContext != null)
+        {
+            var ids = _morphService.CheckText(morphologyContext, productName);
+            foreach (var id in ids)
+            {
+                if (existingStopWordIds.Add(id)) // HashSet.Add returns false if already exists
+                    links.Add(new BaseOrderStopWord { BaseOrderId = orderId, StopWordId = id });
+            }
+        }
+
+        return links;
+    }
     private List<StopWord> GetMatchingStopWordsFromContext(string productName, StopWordsContext context)
     {
         if (string.IsNullOrEmpty(productName))

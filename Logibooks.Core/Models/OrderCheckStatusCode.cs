@@ -28,5 +28,7 @@ public enum OrderCheckStatusCode
 {
     NotChecked = 1,
     HasIssues = 101,
+    InvalidFeacnFormat = 102,
+    NonexistingFeacn = 103,
     NoIssues = 201
 }
