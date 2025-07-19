@@ -64,6 +64,26 @@ public class FeacnPrefixCheckService(AppDbContext db) : IFeacnPrefixCheckService
 
         return links;
     }
+
+    public async Task<FeacnPrefixCheckContext> CreateContext(CancellationToken cancellationToken = default)
+    {
+        var prefixes = await _db.FeacnPrefixes
+            .Where(p => !string.IsNullOrEmpty(p.Code) && p.Code.Length >= 2)
+            .Include(p => p.FeacnPrefixExceptions)
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+
+        var context = new FeacnPrefixCheckContext();
+        foreach (var prefix in prefixes)
+        {
+            var key = prefix.Code[..2];
+            var list = context.Prefixes.GetValueOrDefault(key) ?? new List<FeacnPrefix>();
+            context.Prefixes[key] = list;
+            list.Add(prefix);
+        }
+
+        return context;
+    }
     private static bool MatchesPrefix(string tnVed, FeacnPrefix prefix)
     {
         if (prefix.LeftValue != 0 && prefix.RightValue != 0)

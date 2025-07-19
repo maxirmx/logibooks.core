@@ -260,4 +260,55 @@ public class FeacnPrefixCheckServiceTests
         Assert.That(order.CheckStatusId, Is.EqualTo(1));
         Assert.That(links.Count(), Is.EqualTo(0));
     }
+
+    [Test]
+    public async Task CreateContext_GroupsPrefixesByTwoDigits()
+    {
+        using var ctx = CreateContext();
+        var p1 = new FeacnPrefix { Id = 1, Code = "1200", FeacnOrderId = 1 };
+        var p2 = new FeacnPrefix { Id = 2, Code = "1299", FeacnOrderId = 1 };
+        var p3 = new FeacnPrefix { Id = 3, Code = "9900", FeacnOrderId = 1 };
+        ctx.FeacnPrefixes.AddRange(p1, p2, p3);
+        await ctx.SaveChangesAsync();
+
+        var svc = new FeacnPrefixCheckService(ctx);
+        var context = await svc.CreateContext();
+
+        Assert.That(context.Prefixes.ContainsKey("12"));
+        Assert.That(context.Prefixes.ContainsKey("99"));
+        Assert.That(context.Prefixes["12"].Count, Is.EqualTo(2));
+        Assert.That(context.Prefixes["99"].Count, Is.EqualTo(1));
+    }
+
+    [Test]
+    public async Task CreateContext_IgnoresShortCodes()
+    {
+        using var ctx = CreateContext();
+        var shortPrefix = new FeacnPrefix { Id = 5, Code = "1", FeacnOrderId = 1 };
+        ctx.FeacnPrefixes.Add(shortPrefix);
+        await ctx.SaveChangesAsync();
+
+        var svc = new FeacnPrefixCheckService(ctx);
+        var context = await svc.CreateContext();
+
+        var allIds = context.Prefixes.SelectMany(kvp => kvp.Value).Select(p => p.Id);
+        Assert.That(allIds, Does.Not.Contain(5));
+    }
+
+    [Test]
+    public async Task CreateContext_LoadsExceptions()
+    {
+        using var ctx = CreateContext();
+        var prefix = new FeacnPrefix { Id = 10, Code = "1234", FeacnOrderId = 1 };
+        prefix.FeacnPrefixExceptions.Add(new FeacnPrefixException { Id = 20, Code = "123455" });
+        ctx.FeacnPrefixes.Add(prefix);
+        await ctx.SaveChangesAsync();
+
+        var svc = new FeacnPrefixCheckService(ctx);
+        var context = await svc.CreateContext();
+
+        var loaded = context.Prefixes["12"].First(p => p.Id == 10);
+        Assert.That(loaded.FeacnPrefixExceptions.Count, Is.EqualTo(1));
+        Assert.That(loaded.FeacnPrefixExceptions.First().Code, Is.EqualTo("123455"));
+    }
 }
