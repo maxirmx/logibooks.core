@@ -181,11 +181,16 @@ public class UpdateFeacnCodesService(
         @"\((?:за\s+исключением|кроме)\s+(.*?)\)",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
+    private static readonly Regex WhitespaceRegex = new(
+        @"\s+",
+        RegexOptions.Compiled);
+
+
     private static IEnumerable<string> ParseCodes(string codes)
     {
         return codes
             .Split(',', StringSplitOptions.RemoveEmptyEntries)
-            .Select(c => Regex.Replace(c, "\\s+", string.Empty))
+            .Select(c => WhitespaceRegex.Replace(c, string.Empty))
             .Where(c => !string.IsNullOrWhiteSpace(c));
     }
     private async Task<List<FeacnCodeRow>> ExtractAsync(CancellationToken token)
@@ -273,7 +278,7 @@ public class UpdateFeacnCodesService(
 
                     foreach (var single in ParseCodes(code))
                     {
-                        if (string.IsNullOrWhiteSpace(single)) continue;
+                        // ParseCodes method already filters out empty entries with Where(c => !string.IsNullOrWhiteSpace(c)) 
                         result.Add(new FeacnCodeRow(order.Id, single, name, comment, exceptions));
                     }
                 }
@@ -283,7 +288,7 @@ public class UpdateFeacnCodesService(
         return result;
     }
 
-    private record FeacnCodeRow(int OrderId, string Code, string Name, string Comment, List<string> Exceptions);
+    private record FeacnCodeRow(int OrderId, string Code, string Name, string Comment, IReadOnlyList<string> Exceptions);
 
     public async Task RunAsync(CancellationToken cancellationToken = default)
     {

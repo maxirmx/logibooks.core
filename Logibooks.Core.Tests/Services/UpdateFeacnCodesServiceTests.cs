@@ -527,7 +527,7 @@ public class UpdateFeacnCodesServiceTests
 
         var htmlContent = @"
             <table>
-                <tr><td>12 34, 56 78 (кроме 90 12, 34 56)</td><td>Product</td></tr>
+                <tr><td>12 34, 56 78 (кроме 1234 90 12, 567834 56)</td><td>Product</td></tr>
             </table>";
 
         SetupHttpResponse("https://www.alta.ru/tamdoc/test-url/", htmlContent);
@@ -548,7 +548,7 @@ public class UpdateFeacnCodesServiceTests
         foreach (var prefix in prefixes)
         {
             var exc = prefix.FeacnPrefixExceptions.Select(e => e.Code).OrderBy(c => c).ToList();
-            CollectionAssert.AreEquivalent(new[] { "9012", "3456" }, exc);
+            Assert.That(exc, Is.EquivalentTo(["12349012", "56783456"]));
         }
     }
 
