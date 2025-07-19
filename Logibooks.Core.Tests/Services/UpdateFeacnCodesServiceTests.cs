@@ -520,6 +520,39 @@ public class UpdateFeacnCodesServiceTests
     }
 
     [Test]
+    public async Task RunAsync_ParsesExceptionsAndMultipleCodes()
+    {
+        // Arrange
+        await CreateTestOrder(1, "Test Order", "test-url");
+
+        var htmlContent = @"
+            <table>
+                <tr><td>12 34, 56 78 (кроме 1234 90 12, 567834 56)</td><td>Product</td></tr>
+            </table>";
+
+        SetupHttpResponse("https://www.alta.ru/tamdoc/test-url/", htmlContent);
+
+        // Act
+        await _service.RunAsync();
+
+        // Assert
+        var prefixes = await _dbContext.FeacnPrefixes
+            .Include(p => p.FeacnPrefixExceptions)
+            .OrderBy(p => p.Code)
+            .ToListAsync();
+
+        Assert.That(prefixes.Count, Is.EqualTo(2));
+        Assert.That(prefixes[0].Code, Is.EqualTo("1234"));
+        Assert.That(prefixes[1].Code, Is.EqualTo("5678"));
+
+        foreach (var prefix in prefixes)
+        {
+            var exc = prefix.FeacnPrefixExceptions.Select(e => e.Code).OrderBy(c => c).ToList();
+            Assert.That(exc, Is.EquivalentTo(["12349012", "56783456"]));
+        }
+    }
+
+    [Test]
     public async Task RunAsync_LogsProgressInformation()
     {
         // Arrange

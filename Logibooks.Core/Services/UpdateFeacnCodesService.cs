@@ -176,6 +176,23 @@ public class UpdateFeacnCodesService(
             ?.Select(c => (HtmlEntity.DeEntitize(c.InnerText) ?? string.Empty).Trim())
             .ToArray();
     }
+
+    private static readonly Regex ExceptionRegex = new(
+        @"\((?:за\s+исключением|кроме)\s+(.*?)\)",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    private static readonly Regex WhitespaceRegex = new(
+        @"\s+",
+        RegexOptions.Compiled);
+
+
+    private static IEnumerable<string> ParseCodes(string codes)
+    {
+        return codes
+            .Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(c => WhitespaceRegex.Replace(c, string.Empty))
+            .Where(c => !string.IsNullOrWhiteSpace(c));
+    }
     private async Task<List<FeacnCodeRow>> ExtractAsync(CancellationToken token)
     {
         var result = new List<FeacnCodeRow>();
@@ -251,7 +268,19 @@ public class UpdateFeacnCodesService(
                     // Skip if code becomes empty after cleaning
                     if (string.IsNullOrWhiteSpace(code)) continue;
 
-                    result.Add(new FeacnCodeRow(order.Id, code, name, comment));
+                    var excMatch = ExceptionRegex.Match(code);
+                    List<string> exceptions = [];
+                    if (excMatch.Success)
+                    {
+                        exceptions = ParseCodes(excMatch.Groups[1].Value).ToList();
+                        code = code.Remove(excMatch.Index, excMatch.Length).Trim();
+                    }
+
+                    foreach (var single in ParseCodes(code))
+                    {
+                        // ParseCodes method already filters out empty entries with Where(c => !string.IsNullOrWhiteSpace(c)) 
+                        result.Add(new FeacnCodeRow(order.Id, single, name, comment, exceptions));
+                    }
                 }
             }
         }
@@ -259,7 +288,7 @@ public class UpdateFeacnCodesService(
         return result;
     }
 
-    private record FeacnCodeRow(int OrderId, string Code, string Name, string Comment);
+    private record FeacnCodeRow(int OrderId, string Code, string Name, string Comment, IReadOnlyList<string> Exceptions);
 
     public async Task RunAsync(CancellationToken cancellationToken = default)
     {
@@ -291,13 +320,22 @@ public class UpdateFeacnCodesService(
             }
 
             // Add new prefixes using batch operation
-            var newPrefixes = extracted.Select(row => new FeacnPrefix
+            var newPrefixes = new List<FeacnPrefix>();
+
+            foreach (var row in extracted)
             {
-                FeacnOrderId = row.OrderId,
-                Code = row.Code,
-                Description = row.Name,
-                Comment = row.Comment
-            }).ToList();
+                var prefix = new FeacnPrefix
+                {
+                    FeacnOrderId = row.OrderId,
+                    Code = row.Code,
+                    Description = row.Name,
+                    Comment = row.Comment,
+                    FeacnPrefixExceptions = row.Exceptions
+                        .Select(e => new FeacnPrefixException { Code = e })
+                        .ToList()
+                };
+                newPrefixes.Add(prefix);
+            }
 
             _db.FeacnPrefixes.AddRange(newPrefixes);
             _logger.LogInformation("Adding {Count} new FEACN prefixes", newPrefixes.Count);
