@@ -29,5 +29,5 @@ namespace Logibooks.Core.Services;
 
 public interface IFeacnPrefixCheckService
 {
-    Task CheckOrderAsync(BaseOrder order, CancellationToken cancellationToken = default);
+    Task<IEnumerable<BaseOrderFeacnPrefix>> CheckOrderAsync(BaseOrder order, CancellationToken cancellationToken = default);
 }

@@ -196,8 +196,8 @@ public class RegisterValidationServiceTests
         // Add a register and two orders with product names containing stop words
         ctx.Registers.Add(new Register { Id = 100, FileName = "test.xlsx" });
         ctx.Orders.AddRange(
-            new WbrOrder { Id = 101, RegisterId = 100, ProductName = "This is SPAM and malware" },
-            new WbrOrder { Id = 102, RegisterId = 100, ProductName = "Clean product" }
+            new WbrOrder { Id = 101, RegisterId = 100, ProductName = "This is SPAM and malware", TnVed = "1234567890" },
+            new WbrOrder { Id = 102, RegisterId = 100, ProductName = "Clean product", TnVed = "1234567890" }
         );
         // Add stop words: one that should match, one that should not
         ctx.StopWords.AddRange(
@@ -209,8 +209,8 @@ public class RegisterValidationServiceTests
 
         // Use real OrderValidationService and MorphologySearchService
         var logger = new LoggerFactory().CreateLogger<RegisterValidationService>();
-        var orderValidationService = new OrderValidationService(ctx, new MorphologySearchService());
-
+        var feacnPrefixCheckService = new Mock<IFeacnPrefixCheckService>().Object;
+        var orderValidationService = new OrderValidationService(ctx, new MorphologySearchService(), feacnPrefixCheckService);
         // Setup DI scope factory to provide real services
         var mockServiceProvider = new Mock<IServiceProvider>();
         mockServiceProvider.Setup(x => x.GetService(typeof(AppDbContext))).Returns(ctx);

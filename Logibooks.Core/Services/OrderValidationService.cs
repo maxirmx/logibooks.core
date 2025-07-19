@@ -26,14 +26,19 @@
 using Logibooks.Core.Data;
 using Logibooks.Core.Models;
 using Microsoft.EntityFrameworkCore;
+using System.Text.RegularExpressions;
 
 namespace Logibooks.Core.Services;
 
-public class OrderValidationService(AppDbContext db, IMorphologySearchService morphService) : IOrderValidationService
+public class OrderValidationService(
+    AppDbContext db, 
+    IMorphologySearchService morphService, 
+    IFeacnPrefixCheckService feacnPrefixCheckService) : IOrderValidationService
 {
     private readonly AppDbContext _db = db;
     private readonly IMorphologySearchService _morphService = morphService;
-
+    private readonly IFeacnPrefixCheckService _feacnPrefixCheckService = feacnPrefixCheckService;
+    private static readonly Regex TnVedRegex = new("^\\d{10}$", RegexOptions.Compiled);
 
     public async Task ValidateAsync(
         BaseOrder order,
@@ -42,24 +47,44 @@ public class OrderValidationService(AppDbContext db, IMorphologySearchService mo
         CancellationToken cancellationToken = default)
     {
         // remove existing links for this order
-        var existing = _db.Set<BaseOrderStopWord>().Where(l => l.BaseOrderId == order.Id);
-        _db.Set<BaseOrderStopWord>().RemoveRange(existing);
+        var existing1 = _db.Set<BaseOrderStopWord>().Where(l => l.BaseOrderId == order.Id);
+        _db.Set<BaseOrderStopWord>().RemoveRange(existing1);
+
+        var existing2 = _db.Set<BaseOrderFeacnPrefix>()
+            .Where(l => l.BaseOrderId == order.Id);
+        _db.Set<BaseOrderFeacnPrefix>().RemoveRange(existing2);
+
+        if (string.IsNullOrWhiteSpace(order.TnVed) || !TnVedRegex.IsMatch(order.TnVed))
+        {
+            order.CheckStatusId = (int)OrderCheckStatusCode.InvalidFeacnFormat; 
+            await _db.SaveChangesAsync(cancellationToken);
+            return;
+        }
+
         order.CheckStatusId = (int)OrderCheckStatusCode.NotChecked;
         await _db.SaveChangesAsync(cancellationToken);
 
         var productName = order.ProductName ?? string.Empty;
-        var links = await SelectStopWordLinksAsync(order.Id, productName, stopWordsContext, morphologyContext, cancellationToken);
+        var links1 = await SelectStopWordLinksAsync(order.Id, productName, stopWordsContext, morphologyContext, cancellationToken);
 
-        if (links.Count > 0)
+        var links2 = await _feacnPrefixCheckService.CheckOrderAsync(order, cancellationToken);
+
+        if (links1.Count > 0)
         {
-            _db.AddRange(links);
+            _db.AddRange(links1);
+        }
+        if (links2.Any())
+        {
+            _db.AddRange(links2);
+        }
+        if (links1.Count > 0 || links2.Any())
+        {
             order.CheckStatusId = (int)OrderCheckStatusCode.HasIssues;
         }
         else
         {
-            order.CheckStatusId = (int)OrderCheckStatusCode.NoIssues; 
+            order.CheckStatusId = (int)OrderCheckStatusCode.NoIssues;
         }
-
         await _db.SaveChangesAsync(cancellationToken);
     }
 

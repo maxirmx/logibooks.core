@@ -23,7 +23,6 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-using System.Text.RegularExpressions;
 using Logibooks.Core.Data;
 using Logibooks.Core.Models;
 using Microsoft.EntityFrameworkCore;
@@ -34,27 +33,16 @@ public class FeacnPrefixCheckService(AppDbContext db) : IFeacnPrefixCheckService
 {
     private readonly AppDbContext _db = db;
 
-    private static readonly Regex TnVedRegex = new("^\\d{10}$", RegexOptions.Compiled);
-
-    public async Task CheckOrderAsync(BaseOrder order, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<BaseOrderFeacnPrefix>> CheckOrderAsync(BaseOrder order, CancellationToken cancellationToken = default)
     {
-        // Step 1: remove existing links
-        var existing = _db.Set<BaseOrderFeacnPrefix>()
-            .Where(l => l.BaseOrderId == order.Id);
-        _db.Set<BaseOrderFeacnPrefix>().RemoveRange(existing);
-
-        // Step 2: check TN VED format
-        if (string.IsNullOrWhiteSpace(order.TnVed) || !TnVedRegex.IsMatch(order.TnVed))
+        if (order.TnVed == null || order.TnVed.Length < 2)
         {
-            order.CheckStatusId = 102; // Wrong TN VED format
-            await _db.SaveChangesAsync(cancellationToken);
-            return;
+            return [];
         }
 
-        string tnVed = order.TnVed!;
-
-        // Step 3: load prefixes with exceptions
-        var twoDigitPrefix = tnVed.Substring(0, 2);
+        string tnVed = order.TnVed;
+        var twoDigitPrefix = tnVed[..2];
+        
         var prefixes = await _db.FeacnPrefixes
             .Where(p => p.Code.StartsWith(twoDigitPrefix))
             .Include(p => p.FeacnPrefixExceptions)
@@ -66,7 +54,6 @@ public class FeacnPrefixCheckService(AppDbContext db) : IFeacnPrefixCheckService
         {
             if (MatchesPrefix(tnVed, prefix))
             {
-                order.CheckStatusId = 101;
                 links.Add(new BaseOrderFeacnPrefix
                 {
                     BaseOrderId = order.Id,
@@ -75,26 +62,10 @@ public class FeacnPrefixCheckService(AppDbContext db) : IFeacnPrefixCheckService
             }
         }
 
-        if (links.Count == 0)
-        {
-            order.CheckStatusId = (int)OrderCheckStatusCode.NoIssues;
-        }
-        else if (links.Count > 0)
-        {
-            _db.Set<BaseOrderFeacnPrefix>().AddRange(links);
-        }
-
-        await _db.SaveChangesAsync(cancellationToken);
+        return links;
     }
-
     private static bool MatchesPrefix(string tnVed, FeacnPrefix prefix)
     {
-        if (tnVed.Length < 2 || prefix.Code.Length < 2)
-            return false;
-
-        if (!tnVed.StartsWith(prefix.Code[..2]))
-            return false;
-
         if (prefix.LeftValue != 0 && prefix.RightValue != 0)
         {
             if (!long.TryParse(tnVed, out var value))
