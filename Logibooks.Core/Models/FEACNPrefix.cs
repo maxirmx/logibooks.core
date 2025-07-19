@@ -58,7 +58,18 @@ public class FeacnPrefix
             : 0;
 
     [NotMapped]
-    public long RightValue => IntervalCode != null
-        ? long.Parse(IntervalCode.PadRight(10, '0'))
-        : 0;
+    public long RightValue
+    {
+        get
+        {
+            if (IntervalCode != null)
+            {
+                if (long.TryParse(IntervalCode.PadRight(10, '0'), out var result))
+                {
+                    return result;
+                }
+            }
+            return 0;
+        }
+    }
 }
