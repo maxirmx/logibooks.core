@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Logibooks.Core.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250718081355_0_6_0_FeacnCodes")]
-    partial class _0_6_0_FeacnCodes
+    [Migration("20250719091758_0_6_0_Feacn_Codes")]
+    partial class _0_6_0_Feacn_Codes
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -348,6 +348,10 @@ namespace Logibooks.Core.Migrations
                     b.Property<int>("FeacnOrderId")
                         .HasColumnType("integer")
                         .HasColumnName("feacn_order_id");
+
+                    b.Property<string>("IntervalCode")
+                        .HasColumnType("text")
+                        .HasColumnName("interval_code");
 
                     b.HasKey("Id");
 

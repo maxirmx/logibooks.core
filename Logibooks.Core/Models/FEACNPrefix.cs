@@ -42,6 +42,9 @@ public class FeacnPrefix
     [Column("comment")]
     public string? Comment { get; set; }
 
+    [Column("interval_code")]
+    public string? IntervalCode { get; set; }
+
     [Column("feacn_order_id")]
     public int FeacnOrderId { get; set; }
     public FeacnOrder FeacnOrder { get; set; } = null!;

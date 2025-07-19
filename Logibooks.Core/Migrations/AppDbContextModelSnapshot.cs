@@ -346,6 +346,10 @@ namespace Logibooks.Core.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("feacn_order_id");
 
+                    b.Property<string>("IntervalCode")
+                        .HasColumnType("text")
+                        .HasColumnName("interval_code");
+
                     b.HasKey("Id");
 
                     b.HasIndex("FeacnOrderId");

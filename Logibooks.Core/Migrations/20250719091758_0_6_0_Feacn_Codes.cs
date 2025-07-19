@@ -8,7 +8,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Logibooks.Core.Migrations
 {
     /// <inheritdoc />
-    public partial class _0_6_0_FeacnCodes : Migration
+    public partial class _0_6_0_Feacn_Codes : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -37,6 +37,7 @@ namespace Logibooks.Core.Migrations
                     code = table.Column<string>(type: "text", nullable: false),
                     description = table.Column<string>(type: "text", nullable: true),
                     comment = table.Column<string>(type: "text", nullable: true),
+                    interval_code = table.Column<string>(type: "text", nullable: true),
                     feacn_order_id = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>

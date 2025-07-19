@@ -40,7 +40,7 @@ public class FeacnPrefixDto
     public FeacnPrefixDto(FeacnPrefix p)
     {
         Id = p.Id;
-        Code = p.Code;
+        Code = (p.IntervalCode is not null) ? $"{p.Code}-{p.IntervalCode}" : p.Code;
         Description = p.Description;
         Comment = p.Comment;
         FeacnOrderId = p.FeacnOrderId;
