@@ -27,8 +27,6 @@ using Logibooks.Core.Models;
 using Logibooks.Core.RestModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System;
-
 namespace Logibooks.Core.Data
 {
     public class AppDbContext : DbContext
