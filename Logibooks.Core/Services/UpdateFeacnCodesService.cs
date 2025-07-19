@@ -412,9 +412,9 @@ public class UpdateFeacnCodesService(
                 // Check if this prefix already exists
                 if (existingPrefixesByKey.TryGetValue(key, out var existingPrefix))
                 {
-                    // Compare to see if update is needed
                     bool needsUpdate = existingPrefix.Description != row.Name ||
-                                      existingPrefix.Comment != row.Comment;
+                                       existingPrefix.Comment != row.Comment ||
+                                       existingPrefix.IntervalCode != row.IntervalCode;
                     
                     // Compare exceptions
                     var existingExceptions = existingPrefix.FeacnPrefixExceptions
@@ -433,6 +433,7 @@ public class UpdateFeacnCodesService(
                         // Update existing prefix
                         existingPrefix.Description = row.Name;
                         existingPrefix.Comment = row.Comment;
+                        existingPrefix.IntervalCode = row.IntervalCode; 
                         
                         // Handle exceptions if they changed
                         if (exceptionsChanged)
