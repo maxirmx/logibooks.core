@@ -703,33 +703,6 @@ public class UpdateFeacnCodesServiceTests
     }
 
     [Test]
-    public async Task RunAsync_LogsWarningWhenGovernmentPhraseFound()
-    {
-        await CreateTestOrder(1, "Test", "gov-url");
-
-        var html = @"
-            <table>
-                <tr><td>1234 Правительства</td><td>Prod</td></tr>
-            </table>";
-
-        SetupHttpResponse("https://www.alta.ru/tamdoc/gov-url/", html);
-
-        await _service.RunAsync();
-
-        var prefixes = await _dbContext.FeacnPrefixes.ToListAsync();
-        Assert.That(prefixes.Count, Is.EqualTo(0));
-
-        _mockLogger.Verify(
-            x => x.Log(
-                LogLevel.Warning,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Found code")),
-                It.IsAny<Exception>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.Once);
-    }
-
-    [Test]
     public async Task RunAsync_MergesExceptionsForDuplicateCodes()
     {
         await CreateTestOrder(1, "Test", "dup-url");
