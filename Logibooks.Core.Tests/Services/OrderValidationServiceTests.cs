@@ -521,4 +521,60 @@ public class OrderValidationServiceTests
         Assert.That(ctx.Set<BaseOrderStopWord>().Count(l => l.BaseOrderId == 1), Is.EqualTo(1));
         Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)OrderCheckStatusCode.HasIssues));
     }
+
+    [Test]
+    public async Task ValidateAsync_WithRealFeacnPrefixCheckService_IntervalCodeMatch_CreatesFeacnLink()
+    {
+        using var ctx = CreateContext();
+
+        // Setup FEACN data with interval matching
+        var feacnOrder = new FeacnOrder { Id = 1, Title = "Test FEACN Order with Interval" };
+        ctx.Add(feacnOrder);
+
+        var feacnPrefix = new FeacnPrefix
+        {
+            Id = 100,
+            Code = "1200000000",        // Left boundary: 1200000000
+            IntervalCode = "1299999999", // Right boundary: 1299999999
+            Description = "Interval-based restricted goods",
+            FeacnOrderId = 1
+        };
+        ctx.FeacnPrefixes.Add(feacnPrefix);
+
+        // Add stop word that will also match
+        ctx.StopWords.Add(new StopWord { Id = 200, Word = "product", ExactMatch = true });
+
+        // Create order with TnVed that falls within the interval range
+        var order = new WbrOrder
+        {
+            Id = 1,
+            RegisterId = 1,
+            CheckStatusId = 1,
+            ProductName = "Test product within interval range",
+            TnVed = "1234567890" // This falls between 1200000000 and 1299999999
+        };
+        ctx.Orders.Add(order);
+        await ctx.SaveChangesAsync();
+
+        var realFeacnService = new FeacnPrefixCheckService(ctx);
+        var svc = new OrderValidationService(ctx, new MorphologySearchService(), realFeacnService);
+
+        // Act
+        await svc.ValidateAsync(order);
+
+        // Assert - Check that both FEACN prefix link (interval match) and stop word link were created
+        var feacnLinks = ctx.Set<BaseOrderFeacnPrefix>().Where(l => l.BaseOrderId == 1).ToList();
+        var stopWordLinks = ctx.Set<BaseOrderStopWord>().Where(l => l.BaseOrderId == 1).ToList();
+
+        // Should have one FEACN prefix link from interval matching
+        Assert.That(feacnLinks.Count, Is.EqualTo(1));
+        Assert.That(feacnLinks.Single().FeacnPrefixId, Is.EqualTo(100));
+
+        // Should have one stop word link
+        Assert.That(stopWordLinks.Count, Is.EqualTo(1));
+        Assert.That(stopWordLinks.Single().StopWordId, Is.EqualTo(200));
+
+        // Status should be HasIssues because both FEACN interval and stop word issues were found
+        Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)OrderCheckStatusCode.HasIssues));
+    }
 }
