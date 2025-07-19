@@ -77,23 +77,34 @@ public class UpdateFeacnCodesService(
     [
         new Regex(
             @"\(\s*в\s+ред\.\s+решени[йя]\s+.+?\s*\)",
-            RegexOptions.IgnoreCase | RegexOptions.Compiled),
+            RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.Singleline),
         new Regex(@"\bиз\s+группы?\b",
-            RegexOptions.IgnoreCase | RegexOptions.Compiled),
+            RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.Singleline),
         new Regex(@"\bиз\b",
-            RegexOptions.IgnoreCase | RegexOptions.Compiled),
+            RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.Singleline),
         new Regex(@"Распространяется\s+на\s+правоотношения,\s+возникшие\s+с\s+.+?\s+г\.",
-            RegexOptions.IgnoreCase | RegexOptions.Compiled),
+            RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.Singleline),
         new Regex(@"Нов\.\s+ред\.\s+Решение\s+.+?\s+(ЕЭК|КТС)",
-            RegexOptions.IgnoreCase | RegexOptions.Compiled),
+            RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.Singleline),
+        new Regex(@"Нов\.\s+ред\.\s+Постановление\s+.+?\s+(Правительства РФ)",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.Singleline),       
         new Regex(@"См\.\s+пред\.\s+ред\.\s+Решение\s+.+?\s+(ЕЭК|КТС)",
-            RegexOptions.IgnoreCase | RegexOptions.Compiled),
+            RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.Singleline),
+        new Regex(@"См\.\s+пред\.\s+ред\.\s+Постановление\s+.+?\s+(Правительства РФ)",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.Singleline),
         new Regex(@"Начало\s+действия\s+редакции\s+.+?\s+г\.",
-            RegexOptions.IgnoreCase | RegexOptions.Compiled),
+            RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.Singleline),
         new Regex(@"Редакция\s+действует\s+до\s+.+?\s+\(включительно\)",
-            RegexOptions.IgnoreCase | RegexOptions.Compiled)
+            RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.Singleline)
     ];
 
+    private static readonly Regex ExceptionRegex = new(
+        @"(?:\(?)(?:кроме|за\s+исключением)(.*?)\)",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.Singleline);
+
+    private static readonly Regex WhitespaceRegex = new(
+        @"\s+",
+        RegexOptions.Compiled | RegexOptions.Singleline);
 
     private static bool ShouldSkip(string cell)
     {
@@ -164,10 +175,29 @@ public class UpdateFeacnCodesService(
         if (rows == null) yield break;
         foreach (var row in rows)
         {
+            if (IsInvisibleRow(row)) continue;
+
             var cells = ExtractCells(row);
             if (cells == null || cells.Length == 0) continue;
             yield return cells;
         }
+    }
+
+    private static bool IsInvisibleRow(HtmlNode row)
+    {
+        // Check if the row has style attributes that make it invisible
+        var style = row.GetAttributeValue("style", "").ToLowerInvariant();
+        if (style.Contains("display:none") || style.Contains("display: none") ||
+            style.Contains("visibility:hidden") || style.Contains("visibility: hidden"))
+            return true;
+
+        // Check for CSS classes that might indicate hidden rows (common in some frameworks)
+        var className = row.GetAttributeValue("class", "").ToLowerInvariant();
+        if (className.Contains("hidden") || className.Contains("invisible") ||
+            className.Contains("d-none") || className.Contains("hide"))
+            return true;
+
+        return false;
     }
 
     private static string[]? ExtractCells(HtmlNode row)
@@ -177,21 +207,15 @@ public class UpdateFeacnCodesService(
             .ToArray();
     }
 
-    private static readonly Regex ExceptionRegex = new(
-        @"\((?:за\s+исключением|кроме)\s+(.*?)\)",
-        RegexOptions.IgnoreCase | RegexOptions.Compiled);
-
-    private static readonly Regex WhitespaceRegex = new(
-        @"\s+",
-        RegexOptions.Compiled);
-
-
     private static IEnumerable<string> ParseCodes(string codes)
     {
-        return codes
-            .Split(',', StringSplitOptions.RemoveEmptyEntries)
+        var results = codes
+            .Split([',', 'и', '\n'], StringSplitOptions.RemoveEmptyEntries)
             .Select(c => WhitespaceRegex.Replace(c, string.Empty))
-            .Where(c => !string.IsNullOrWhiteSpace(c));
+            .Where(c => !string.IsNullOrWhiteSpace(c))
+            .Where(c => Regex.IsMatch(c, @"^\d+$"));
+
+        return results;
     }
     private async Task<List<FeacnCodeRow>> ExtractAsync(CancellationToken token)
     {
@@ -268,18 +292,58 @@ public class UpdateFeacnCodesService(
                     // Skip if code becomes empty after cleaning
                     if (string.IsNullOrWhiteSpace(code)) continue;
 
-                    var excMatch = ExceptionRegex.Match(code);
-                    List<string> exceptions = [];
-                    if (excMatch.Success)
+
+                    if (code.Contains("Правительства"))
                     {
-                        exceptions = ParseCodes(excMatch.Groups[1].Value).ToList();
-                        code = code.Remove(excMatch.Index, excMatch.Length).Trim();
+                        _logger.LogWarning("Found code {Code} in order {OrderId} due to known issue", code, order.Id);
+                    }
+
+                    var excMatches = ExceptionRegex.Matches(code);
+                    List<string> exceptions = [];
+                    if (excMatches.Count > 0)
+                    {
+                        // Process each exception pattern match
+                        foreach (Match match in excMatches)
+                        {
+                            // Add all codes from this match to the exceptions list
+                            var newExceptions = ParseCodes(match.Groups[1].Value).ToList();
+                            exceptions.AddRange(newExceptions.Where(e => !exceptions.Contains(e)));
+                        }
+
+                        // Remove all exception patterns from the code string
+                        // Start from the last match to avoid index shifting issues
+                        for (int j = excMatches.Count - 1; j >= 0; j--)
+                        {
+                            var match = excMatches[j];
+                            code = code.Remove(match.Index, match.Length);
+                        }
+                        code = code.Trim();
                     }
 
                     foreach (var single in ParseCodes(code))
                     {
-                        // ParseCodes method already filters out empty entries with Where(c => !string.IsNullOrWhiteSpace(c)) 
-                        result.Add(new FeacnCodeRow(order.Id, single, name, comment, exceptions));
+                        var existingRow = result.FirstOrDefault(r => r.OrderId == order.Id && r.Code == single);
+                        if (existingRow != null)
+                        {
+                            // If this code already exists for this order, merge exceptions
+                            var mergedExceptions = existingRow.Exceptions.ToList();
+                            foreach (var exception in exceptions)
+                            {
+                                if (!mergedExceptions.Contains(exception))
+                                {
+                                    mergedExceptions.Add(exception);
+                                }
+                            }
+                            
+                            // Remove the old row and add the updated one with merged exceptions
+                            result.Remove(existingRow);
+                            result.Add(new FeacnCodeRow(order.Id, single, name, comment, mergedExceptions));
+                        }
+                        else
+                        {
+                            // Add new row if this code doesn't exist yet
+                            result.Add(new FeacnCodeRow(order.Id, single, name, comment, exceptions));
+                        }
                     }
                 }
             }
@@ -302,43 +366,113 @@ public class UpdateFeacnCodesService(
             return;
         }
 
-        // Batch operation: fetch all existing prefixes in one query to avoid N+1 queries
+        // Batch operation: fetch all existing prefixes in one query
         var orderIds = extracted.Select(r => r.OrderId).Distinct().ToList();
         var existingPrefixes = await _db.FeacnPrefixes
+            .Include(p => p.FeacnPrefixExceptions)
             .Where(p => orderIds.Contains(p.FeacnOrderId))
             .ToListAsync(cancellationToken);
+
+        // Group existing prefixes for easier comparison
+        var existingPrefixesByOrderAndCode = existingPrefixes
+            .GroupBy(p => new { p.FeacnOrderId, p.Code })
+            .ToDictionary(g => g.Key, g => g.First());
 
         // Use a transaction for atomicity and better performance
         using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
         try
         {
-            // Remove all existing prefixes for these orders
-            if (existingPrefixes.Count > 0)
-            {
-                _db.FeacnPrefixes.RemoveRange(existingPrefixes);
-                _logger.LogInformation("Removing {Count} existing FEACN prefixes", existingPrefixes.Count);
-            }
+            int added = 0;
+            int updated = 0;
+            int deleted = 0;
 
-            // Add new prefixes using batch operation
+            // Process new and updated prefixes
             var newPrefixes = new List<FeacnPrefix>();
+            var processedKeys = new HashSet<(int OrderId, string Code)>();
 
             foreach (var row in extracted)
             {
-                var prefix = new FeacnPrefix
+                var key = new { FeacnOrderId = row.OrderId, Code = row.Code };
+                processedKeys.Add((row.OrderId, row.Code));
+
+                // Check if this prefix already exists
+                if (existingPrefixesByOrderAndCode.TryGetValue(key, out var existingPrefix))
                 {
-                    FeacnOrderId = row.OrderId,
-                    Code = row.Code,
-                    Description = row.Name,
-                    Comment = row.Comment,
-                    FeacnPrefixExceptions = row.Exceptions
-                        .Select(e => new FeacnPrefixException { Code = e })
-                        .ToList()
-                };
-                newPrefixes.Add(prefix);
+                    // Compare to see if update is needed
+                    bool needsUpdate = existingPrefix.Description != row.Name ||
+                                      existingPrefix.Comment != row.Comment;
+                    
+                    // Compare exceptions
+                    var existingExceptions = existingPrefix.FeacnPrefixExceptions
+                        .Select(e => e.Code)
+                        .OrderBy(c => c)
+                        .ToList();
+                    
+                    var newExceptions = row.Exceptions
+                        .OrderBy(c => c)
+                        .ToList();
+
+                    bool exceptionsChanged = !existingExceptions.SequenceEqual(newExceptions);
+                    
+                    if (needsUpdate || exceptionsChanged)
+                    {
+                        // Update existing prefix
+                        existingPrefix.Description = row.Name;
+                        existingPrefix.Comment = row.Comment;
+                        
+                        // Handle exceptions if they changed
+                        if (exceptionsChanged)
+                        {
+                            // Remove old exceptions
+                            _db.FeacnPrefixExceptions.RemoveRange(existingPrefix.FeacnPrefixExceptions);
+                            
+                            // Add new exceptions
+                            existingPrefix.FeacnPrefixExceptions = row.Exceptions
+                                .Select(e => new FeacnPrefixException { Code = e })
+                                .ToList();
+                        }
+                        
+                        updated++;
+                    }
+                }
+                else
+                {
+                    // Create new prefix
+                    var prefix = new FeacnPrefix
+                    {
+                        FeacnOrderId = row.OrderId,
+                        Code = row.Code,
+                        Description = row.Name,
+                        Comment = row.Comment,
+                        FeacnPrefixExceptions = row.Exceptions
+                            .Select(e => new FeacnPrefixException { Code = e })
+                            .ToList()
+                    };
+                    newPrefixes.Add(prefix);
+                    added++;
+                }
             }
 
-            _db.FeacnPrefixes.AddRange(newPrefixes);
-            _logger.LogInformation("Adding {Count} new FEACN prefixes", newPrefixes.Count);
+            // Add all new prefixes at once
+            if (newPrefixes.Count > 0)
+            {
+                _db.FeacnPrefixes.AddRange(newPrefixes);
+            }
+
+            // Find and remove obsolete prefixes that no longer exist in the extracted data
+            var obsoletePrefixes = existingPrefixes
+                .Where(p => !processedKeys.Contains((p.FeacnOrderId, p.Code)))
+                .ToList();
+
+            if (obsoletePrefixes.Count > 0)
+            {
+                _db.FeacnPrefixes.RemoveRange(obsoletePrefixes);
+                deleted = obsoletePrefixes.Count;
+            }
+
+            _logger.LogInformation("Adding {Count} new FEACN prefixes", added);
+            _logger.LogInformation("Updating {Count} existing FEACN prefixes", updated);
+            _logger.LogInformation("Removing {Count} obsolete FEACN prefixes", deleted);
 
             await _db.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
