@@ -75,7 +75,7 @@ public class FeacnPrefixCheckService(AppDbContext db) : IFeacnPrefixCheckService
             }
         }
 
-        if (links.Count == 0 && order.CheckStatusId != 101)
+        if (links.Count == 0)
         {
             order.CheckStatusId = (int)OrderCheckStatusCode.NoIssues;
         }
