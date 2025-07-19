@@ -23,9 +23,18 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-namespace Logibooks.Core;
+using System.ComponentModel.DataAnnotations.Schema;
 
-public static class VersionInfo
+namespace Logibooks.Core.Models;
+
+[Table("base_order_feacn_prefixes")]
+public class BaseOrderFeacnPrefix
 {
-    public const string AppVersion = "0.6.0";
+    [Column("base_order_id")]
+    public int BaseOrderId { get; set; }
+    public BaseOrder BaseOrder { get; set; } = null!;
+
+    [Column("feacn_prefix_id")]
+    public int FeacnPrefixId { get; set; }
+    public FeacnPrefix FeacnPrefix { get; set; } = null!;
 }

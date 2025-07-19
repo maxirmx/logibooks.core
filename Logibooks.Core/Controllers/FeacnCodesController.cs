@@ -24,12 +24,13 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 using Microsoft.AspNetCore.Mvc;
-using Logibooks.Core.Authorization;
+using Microsoft.EntityFrameworkCore;
 
-using Logibooks.Core.Services;
+using Logibooks.Core.Authorization;
 using Logibooks.Core.Data;
 using Logibooks.Core.RestModels;
-using Microsoft.EntityFrameworkCore;
+using Logibooks.Core.Services;
+using System.Linq.Expressions;
 
 namespace Logibooks.Core.Controllers;
 
@@ -39,48 +40,50 @@ namespace Logibooks.Core.Controllers;
 [ProducesResponseType(StatusCodes.Status401Unauthorized, Type = typeof(ErrMessage))]
 [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(ErrMessage))]
 
-public class CountriesController(
+public class FeacnCodesController(
     IHttpContextAccessor httpContextAccessor,
     AppDbContext db,
-    IUpdateCountriesService service,
-    ILogger<CountriesController> logger) : LogibooksControllerBase(httpContextAccessor, db, logger)
+    IUpdateFeacnCodesService service,
+    ILogger<FeacnCodesController> logger) : LogibooksControllerBase(httpContextAccessor, db, logger)
 {
-    private readonly IUpdateCountriesService _service = service;
+    private readonly IUpdateFeacnCodesService _service = service;
 
-    [HttpGet]
-    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<CountryDto>))]
-    public async Task<ActionResult<IEnumerable<CountryDto>>> GetCodes()
+    private async Task<List<TDto>> FetchAndConvertAsync<TEntity, TDto>(
+        IQueryable<TEntity> query,
+        Expression<Func<TEntity, bool>>? filter,
+        Func<TEntity, TDto> convertToDto)
+        where TEntity : class
     {
-        var codes = await _db.Countries.AsNoTracking().ToListAsync();
-        return codes.Select(c => new CountryDto(c)).ToList();
+        if (filter != null)
+        {
+            query = query.Where(filter);
+        }
+        var entities = await query.AsNoTracking().OrderBy(e => EF.Property<object>(e, "Id")).ToListAsync();
+        return entities.Select(convertToDto).ToList();
     }
 
-    [HttpGet("compact")]
-    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<CountryCompactDto>))]
-    public async Task<ActionResult<IEnumerable<CountryCompactDto>>> GetCodesCompact()
+    [HttpGet("orders")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<FeacnOrderDto>))]
+    public async Task<ActionResult<IEnumerable<FeacnOrderDto>>> GetAllOrders()
     {
-        var codes = await _db.Countries.AsNoTracking()
-            .OrderBy(c =>
-                c.IsoAlpha2 == "RU" ? 0 :
-                c.IsoAlpha2 == "UZ" ? 1 :
-                c.IsoAlpha2 == "GE" ? 2 :
-                c.IsoAlpha2 == "AZ" ? 3 :
-                c.IsoAlpha2 == "TR" ? 4 :
-                int.MaxValue)
-            .ThenBy(c => c.IsoNumeric)
-            .Select(c => new CountryCompactDto(c))
+        var orders = await FetchAndConvertAsync(_db.FeacnOrders, null, o => new FeacnOrderDto(o));
+        return orders;
+    }
+
+    [HttpGet("orders/{orderId}/prefixes")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<FeacnPrefixDto>))]
+    public async Task<ActionResult<IEnumerable<FeacnPrefixDto>>> GetPrefixes(int orderId)
+    {
+        var prefixes = await _db.FeacnPrefixes
+            .AsNoTracking()
+            .Include(p => p.FeacnPrefixExceptions)
+            .Where(p => p.FeacnOrderId == orderId)
+            .OrderBy(p => p.Id)
+            .Select(p => new FeacnPrefixDto(p))
             .ToListAsync();
-        return codes;
+        return prefixes;
     }
 
-    [HttpGet("{id}")]
-    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(CountryDto))]
-    [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
-    public async Task<ActionResult<CountryDto>> GetCode(short id)
-    {
-        var cc = await _db.Countries.AsNoTracking().FirstOrDefaultAsync(c => c.IsoNumeric == id);
-        return cc == null ? _404Object(id) : new CountryDto(cc);
-    }
 
     [HttpPost("update")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]

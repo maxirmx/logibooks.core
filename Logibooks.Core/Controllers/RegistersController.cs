@@ -42,6 +42,8 @@ namespace Logibooks.Core.Controllers;
 [ApiController]
 [Authorize]
 [Route("api/[controller]")]
+[ProducesResponseType(StatusCodes.Status401Unauthorized, Type = typeof(ErrMessage))]
+[ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(ErrMessage))]
 public class RegistersController(
     IHttpContextAccessor httpContextAccessor,
     AppDbContext db,
@@ -58,6 +60,7 @@ public class RegistersController(
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(RegisterViewItem))]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
+
     public async Task<ActionResult<RegisterViewItem>> GetRegister(int id)
     {
         _logger.LogDebug("GetRegister for id={id}", id);
@@ -219,7 +222,6 @@ public class RegistersController(
     [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(Reference))]
     [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
-    [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(ErrMessage))]
     public async Task<IActionResult> UploadRegister(IFormFile file)
     {
         _logger.LogDebug("UploadRegister called for {name} ({size} bytes)", file?.FileName, file?.Length);
@@ -239,66 +241,58 @@ public class RegistersController(
             return _400EmptyRegister();
         }
 
-        try
+        // Get the file extension
+        var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
+
+        // Handle based on file type
+        if (fileExtension == ".xlsx" || fileExtension == ".xls")
         {
-            // Get the file extension
-            var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
+            using var ms = new MemoryStream();
+            await file.CopyToAsync(ms);
+            byte[] excelContent = ms.ToArray();
+            var result = await ProcessExcel(companyId, excelContent, file.FileName);
+            return result;
+        }
+        else if (fileExtension == ".zip" || fileExtension == ".rar")
+        {
+            // Archive file - need to extract Excel
+            using var ms = new MemoryStream();
+            await file.CopyToAsync(ms);
+            ms.Position = 0;
 
-            // Handle based on file type
-            if (fileExtension == ".xlsx" || fileExtension == ".xls")
+            byte[] excelContent = [];
+            string excelFileName = String.Empty;
+
+            // Extract content from archive
+            using (var archive = ArchiveFactory.Open(ms))
             {
-                using var ms = new MemoryStream();
-                await file.CopyToAsync(ms);
-                byte[] excelContent = ms.ToArray();
-                var result = await ProcessExcel(companyId, excelContent, file.FileName);
-                return result;
-            }
-            else if (fileExtension == ".zip" || fileExtension == ".rar")
-            {
-                // Archive file - need to extract Excel
-                using var ms = new MemoryStream();
-                await file.CopyToAsync(ms);
-                ms.Position = 0;
+                var excelEntry = archive.Entries.FirstOrDefault(entry =>
+                    !entry.IsDirectory &&
+                    entry.Key != null &&
+                    (Path.GetExtension(entry.Key).Equals(".xlsx", StringComparison.InvariantCultureIgnoreCase) ||
+                        Path.GetExtension(entry.Key).Equals(".xls", StringComparison.InvariantCultureIgnoreCase)));
 
-                byte[] excelContent = [];
-                string excelFileName = String.Empty;
-
-                // Extract content from archive
-                using (var archive = ArchiveFactory.Open(ms))
+                if (excelEntry == null || excelEntry.Key == null)
                 {
-                    var excelEntry = archive.Entries.FirstOrDefault(entry =>
-                        !entry.IsDirectory &&
-                        entry.Key != null &&
-                        (Path.GetExtension(entry.Key).Equals(".xlsx", StringComparison.InvariantCultureIgnoreCase) ||
-                         Path.GetExtension(entry.Key).Equals(".xls", StringComparison.InvariantCultureIgnoreCase)));
-
-                    if (excelEntry == null || excelEntry.Key == null)
-                    {
-                        return _400NoRegister();
-                    }
-
-                    excelFileName = excelEntry.Key;
-
-                    // Extract the Excel file
-                    using var entryStream = new MemoryStream();
-                    excelEntry.WriteTo(entryStream);
-                    excelContent = entryStream.ToArray();
+                    return _400NoRegister();
                 }
 
-                var result = await ProcessExcel(companyId, excelContent, excelFileName);
-                _logger.LogDebug("UploadRegister processed archive with Excel");
-                return result;
+                excelFileName = excelEntry.Key;
+
+                // Extract the Excel file
+                using var entryStream = new MemoryStream();
+                excelEntry.WriteTo(entryStream);
+                excelContent = entryStream.ToArray();
             }
-            else
-            {
-                _logger.LogDebug("UploadRegister returning '400 Bad Request' - unsupported file type {ext}", fileExtension);
-                return _400UnsupportedFileType(fileExtension);
-            }
+
+            var result = await ProcessExcel(companyId, excelContent, excelFileName);
+            _logger.LogDebug("UploadRegister processed archive with Excel");
+            return result;
         }
-        catch (Exception ex)
+        else
         {
-            _logger.LogError(ex, "UploadRegister returning '500 Internal Server Error'");
-            return _500UploadRegister();
+            _logger.LogDebug("UploadRegister returning '400 Bad Request' - unsupported file type {ext}", fileExtension);
+            return _400UnsupportedFileType(fileExtension);
         }
     }
 
@@ -377,7 +371,6 @@ public class RegistersController(
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(GuidReference))]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
-    [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(ErrMessage))]
     public async Task<ActionResult<GuidReference>> ValidateRegister(int id)
     {
         _logger.LogDebug("ValidateRegister for id={id}", id);
@@ -394,16 +387,8 @@ public class RegistersController(
             return _404Register(id);
         }
 
-        try
-        {
-            var handle = await _validationService.StartValidationAsync(id);
-            return Ok(new GuidReference { Id = handle });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "ValidateRegister returning '500 Internal Server Error'");
-            return _500ValidateRegister();
-        }
+        var handle = await _validationService.StartValidationAsync(id);
+        return Ok(new GuidReference { Id = handle });
     }
 
     [HttpGet("validate/{handleId}")]

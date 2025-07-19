@@ -23,9 +23,21 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-namespace Logibooks.Core;
+using Logibooks.Core.Models;
 
-public static class VersionInfo
+namespace Logibooks.Core.RestModels;
+
+public class FeacnOrderDto
 {
-    public const string AppVersion = "0.6.0";
+    public int Id { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string? Url { get; set; }
+
+    public FeacnOrderDto() { }
+    public FeacnOrderDto(FeacnOrder o)
+    {
+        Id = o.Id;
+        Title = o.Title;
+        Url = o.Url;
+    }
 }

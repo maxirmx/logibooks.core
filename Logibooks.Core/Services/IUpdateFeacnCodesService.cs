@@ -23,9 +23,9 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-namespace Logibooks.Core;
+namespace Logibooks.Core.Services;
 
-public static class VersionInfo
+public interface IUpdateFeacnCodesService
 {
-    public const string AppVersion = "0.6.0";
+    Task RunAsync(CancellationToken cancellationToken = default);
 }

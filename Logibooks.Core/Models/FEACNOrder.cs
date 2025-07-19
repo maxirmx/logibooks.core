@@ -23,9 +23,29 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-namespace Logibooks.Core;
+using System.ComponentModel.DataAnnotations.Schema;
 
-public static class VersionInfo
+namespace Logibooks.Core.Models;
+
+[Table("feacn_orders")]
+public class FeacnOrder
 {
-    public const string AppVersion = "0.6.0";
+    [Column("id")]
+    public int Id { get; set; }
+
+    [Column("title")]
+    public string Title { get; set; } = string.Empty;
+
+    [Column("url")]
+    private string? _url;
+    public string? Url
+    {
+        get => string.IsNullOrEmpty(_url) ? null : $"https://www.alta.ru/tamdoc/{_url}/";
+        set => _url = value;
+    } 
+
+    [Column("comment")]
+    public string? Comment { get; set; }
+
+    public ICollection<FeacnPrefix> FeacnPrefixes { get; set; } = [];
 }

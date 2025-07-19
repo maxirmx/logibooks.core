@@ -31,6 +31,7 @@ using Logibooks.Core.Data;
 using Logibooks.Core.Extensions;
 using Logibooks.Core.Settings;
 using Logibooks.Core.Services;
+using Logibooks.Core.Filters;
 using Quartz;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -53,11 +54,13 @@ builder.Services
     .Configure<AppSettings>(builder.Configuration.GetSection("AppSettings"))
     .AddScoped<IJwtUtils, JwtUtils>()
     .AddScoped<IUpdateCountriesService, UpdateCountriesService>()
+    .AddScoped<IUpdateFeacnCodesService, UpdateFeacnCodesService>()
     .AddScoped<IOrderValidationService, OrderValidationService>()
     .AddScoped<IRegisterValidationService, RegisterValidationService>()
     .AddSingleton<IMorphologySearchService, MorphologySearchService>()
+    .AddScoped<UnhandledExceptionFilter>()
     .AddHttpContextAccessor()
-    .AddControllers();
+    .AddControllers(options => options.Filters.Add<UnhandledExceptionFilter>());
 
 builder.Services.AddHttpClient();
 
@@ -75,16 +78,28 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddQuartz(q =>
 {
-    var jobKey = new JobKey("UpdateCountries");
-    q.AddJob<UpdateCountriesJob>(opts => opts.WithIdentity(jobKey));
+    var updateCountriesJobKey = new JobKey("UpdateCountries");
+    q.AddJob<UpdateCountriesJob>(opts => opts.WithIdentity(updateCountriesJobKey));
 
-    var cron = config["Jobs:UpdateCountries"];
-    if (!string.IsNullOrWhiteSpace(cron))
+    var updateCountriesCron = config["Jobs:UpdateCountries"];
+    if (!string.IsNullOrWhiteSpace(updateCountriesCron))
     {
         q.AddTrigger(opts => opts
-            .ForJob(jobKey)
+            .ForJob(updateCountriesJobKey)
             .WithIdentity("UpdateCountries-trigger")
-            .WithCronSchedule(cron));
+            .WithCronSchedule(updateCountriesCron));
+    }
+
+    var updateFeacnCodesKey = new JobKey("UpdateFeacnCodes");
+    q.AddJob<UpdateFeacnCodesJob>(opts => opts.WithIdentity(updateFeacnCodesKey));
+
+    var updateFeacnCodesCron = config["Jobs:UpdateFeacnCodes"];
+    if (!string.IsNullOrWhiteSpace(updateFeacnCodesCron))
+    {
+        q.AddTrigger(opts => opts
+            .ForJob(updateFeacnCodesKey)
+            .WithIdentity("UpdateFeacnCodes-trigger")
+            .WithCronSchedule(updateFeacnCodesCron));
     }
 });
 builder.Services.AddQuartzHostedService(options => options.WaitForJobsToComplete = true);

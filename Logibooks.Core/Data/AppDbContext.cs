@@ -27,7 +27,6 @@ using Logibooks.Core.Models;
 using Logibooks.Core.RestModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-
 namespace Logibooks.Core.Data
 {
     public class AppDbContext : DbContext
@@ -46,6 +45,10 @@ namespace Logibooks.Core.Data
         public DbSet<Country> Countries => Set<Country>();
         public DbSet<Company> Companies => Set<Company>();
         public DbSet<StopWord> StopWords => Set<StopWord>();
+        public DbSet<FeacnOrder> FeacnOrders => Set<FeacnOrder>();
+        public DbSet<FeacnPrefix> FeacnPrefixes => Set<FeacnPrefix>();
+        public DbSet<FeacnPrefixException> FeacnPrefixExceptions => Set<FeacnPrefixException>();
+        public DbSet<BaseOrderFeacnPrefix> BaseOrderFeacnPrefixes => Set<BaseOrderFeacnPrefix>();
         public async Task<bool> CheckAdmin(int cuid)
         {
             var user = await Users
@@ -189,6 +192,29 @@ namespace Logibooks.Core.Data
                 .WithMany(sw => sw.BaseOrderStopWords)
                 .HasForeignKey(bosw => bosw.StopWordId);
 
+            modelBuilder.Entity<BaseOrderFeacnPrefix>()
+                .HasKey(bofp => new { bofp.BaseOrderId, bofp.FeacnPrefixId });
+
+            modelBuilder.Entity<BaseOrderFeacnPrefix>()
+                .HasOne(bofp => bofp.BaseOrder)
+                .WithMany(bo => bo.BaseOrderFeacnPrefixes)
+                .HasForeignKey(bofp => bofp.BaseOrderId);
+
+            modelBuilder.Entity<BaseOrderFeacnPrefix>()
+                .HasOne(bofp => bofp.FeacnPrefix)
+                .WithMany(fp => fp.BaseOrderFeacnPrefixes)
+                .HasForeignKey(bofp => bofp.FeacnPrefixId);
+
+            modelBuilder.Entity<FeacnPrefix>()
+                .HasOne(fp => fp.FeacnOrder)
+                .WithMany(fo => fo.FeacnPrefixes)
+                .HasForeignKey(fp => fp.FeacnOrderId);
+
+            modelBuilder.Entity<FeacnPrefixException>()
+                .HasOne(e => e.FeacnPrefix)
+                .WithMany(p => p.FeacnPrefixExceptions)
+                .HasForeignKey(e => e.FeacnPrefixId);
+
             modelBuilder.Entity<StopWord>()
                 .HasIndex(sw => sw.Word)
                 .IsUnique();
@@ -205,6 +231,8 @@ namespace Logibooks.Core.Data
             modelBuilder.Entity<OrderCheckStatus>().HasData(
                 new OrderCheckStatus { Id = 1, Title = "Не проверен" },
                 new OrderCheckStatus { Id = 101, Title = "Выявлены проблемы" },
+                new OrderCheckStatus { Id = 102, Title = "Неправильный формат ТН ВЭД" },
+                new OrderCheckStatus { Id = 103, Title = "Несуществующий ТН ВЭД" },
                 new OrderCheckStatus { Id = 201, Title = "Не выявлено проблем" }
             );
 
@@ -301,6 +329,39 @@ namespace Logibooks.Core.Data
             );
             modelBuilder.Entity<UserRole>().HasData(
                 new UserRole { UserId = 3, RoleId = 1 }
+            );
+
+            modelBuilder.Entity<FeacnOrder>().HasData(
+                new FeacnOrder { 
+                    Id = 1, 
+                    Title  = "Решение Комиссии Таможенного союза от 18 июня 2010 г. N 317 \"О применении ветеринарно-санитарных мер в Евразийском экономическом союзе\"", 
+                    Url = "10sr0317", 
+                    Comment = "Подлежит ветеринарному контролю" 
+                },
+                new FeacnOrder { 
+                    Id = 2, 
+                    Title = "Решение Комиссии Таможенного союза от 18 июня 2010 г. N 318 \"Об обеспечении карантина растений в Евразийском экономическом союзе\"", 
+                    Url = "10sr0318", 
+                    Comment = "Подлежит карантинному фитосанитарному контролю" 
+                },
+                new FeacnOrder { 
+                    Id = 3, 
+                    Title = "Приказ ФТС России от 12 мая 2011 г. N 971 \"О компетенции таможенных органов по совершению таможенных операций в отношении драгоценных металлов и драгоценных камней\"", 
+                    Url = "11pr0971", 
+                    Comment = "Операции в отношении драгоценных металлов и драгоценных камней" 
+                },
+                new FeacnOrder { 
+                    Id = 4, 
+                    Title = "Постановление Правительства РФ от 09.03.2022 № 311 \"О мерах по реализации Указа Президента Российской Федерации от 8 марта 2022 г. N 100\"", 
+                    Url = "22ps0311", 
+                    Comment = "Временный запрет на вывоз" 
+                },
+                new FeacnOrder { 
+                    Id = 5, 
+                    Title = "Постановление Правительства Российской Федерации от 9 марта 2022 г. N 312 \"О введении на временной основе разрешительного порядка вывоза отдельных видов товаров за пределы территории Российской Федерации\"", 
+                    Url = "22ps0312", 
+                    Comment = "Разрешительный порядок вывоза" 
+                }
             );
         }
     }

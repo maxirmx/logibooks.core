@@ -36,6 +36,8 @@ namespace Logibooks.Core.Controllers;
 [ApiController]
 [Authorize]
 [Route("api/[controller]")]
+[ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(ErrMessage))]
+
 public class StatusController(
     AppDbContext db,
     ILogger<StatusController> logger) : LogibooksControllerPreBase(db, logger)
