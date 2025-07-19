@@ -759,6 +759,8 @@ public class UpdateFeacnCodesServiceTests
     {
         await CreateTestOrder(1, "Test", "edit-url");
 
+        // Test data simulates an editorial pattern where spaces are removed from numeric codes.
+        // For example, "из группы 12 34" should be processed into "1234".
         var html = @"
             <table>
                 <tr><td>из группы 12 34</td><td>Name</td></tr>
