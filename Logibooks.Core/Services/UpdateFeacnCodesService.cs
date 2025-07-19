@@ -26,6 +26,7 @@
 using HtmlAgilityPack;
 using Logibooks.Core.Data;
 using Logibooks.Core.Models;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
@@ -109,6 +110,17 @@ public class UpdateFeacnCodesService(
         @"\s+",
         RegexOptions.Compiled | RegexOptions.Singleline);
 
+    private static readonly Regex CleanRegex = new(
+        @"^(\d+)(?:-(\d+))?$",
+        RegexOptions.Compiled | RegexOptions.Singleline);
+
+    private static readonly Regex Clean0Regex = new(
+        @"^\d+$",
+        RegexOptions.Compiled | RegexOptions.Singleline);
+
+    private static readonly Regex DashNormalizationRegex = new(
+        @"-\s*",
+        RegexOptions.Compiled | RegexOptions.Singleline);
     private static bool ShouldSkip(string cell)
     {
         var text = cell.Trim().ToLowerInvariant();
@@ -216,22 +228,27 @@ public class UpdateFeacnCodesService(
             .Select(c => WhitespaceRegex.Replace(c, string.Empty))
             .Select(c => c.Replace("-", string.Empty))
             .Where(c => !string.IsNullOrWhiteSpace(c))
-            .Where(c => Regex.IsMatch(c, @"^\d+$"));
+            .Where(c => Clean0Regex.IsMatch(c));
 
         return results;
     }
 
     private static IEnumerable<(string Code, string? Interval)> ParsePrefixCodes(string codes)
     {
-        var parts = codes
+        // First, normalize by removing all whitespace after dashes
+        var normalizedCode = DashNormalizationRegex.Replace(codes, "-");
+        
+        var parts = normalizedCode
             .Split(new[] { ',', 'и', '\n' }, StringSplitOptions.RemoveEmptyEntries);
 
         foreach (var part in parts)
         {
+            // Remove any remaining whitespace
             var cleaned = WhitespaceRegex.Replace(part, string.Empty);
+            
             if (string.IsNullOrWhiteSpace(cleaned)) continue;
 
-            var m = Regex.Match(cleaned, @"^(\d+)(?:-(\d+))?$");
+            var m = CleanRegex.Match(cleaned);
             if (m.Success)
             {
                 yield return (m.Groups[1].Value, m.Groups[2].Success ? m.Groups[2].Value : null);
@@ -460,9 +477,7 @@ public class UpdateFeacnCodesService(
                         IntervalCode = row.IntervalCode,
                         Description = row.Name,
                         Comment = row.Comment,
-                        FeacnPrefixExceptions = row.Exceptions
-                            .Select(e => new FeacnPrefixException { Code = e })
-                            .ToList()
+                        FeacnPrefixExceptions = [.. row.Exceptions.Select(e => new FeacnPrefixException { Code = e })]
                     };
                     newPrefixes.Add(prefix);
                     added++;
