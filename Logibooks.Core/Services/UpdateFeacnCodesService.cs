@@ -125,7 +125,10 @@ public class UpdateFeacnCodesService(
         foreach (var s in SkipStarts)
         {
             var lowerS = s.ToLowerInvariant();
-            if (text.StartsWith(lowerS)) return true;
+            if (text.StartsWith(lowerS))
+            {
+                return true;
+            }
         }
         return false;
     }
@@ -187,7 +190,7 @@ public class UpdateFeacnCodesService(
         if (rows == null) yield break;
         foreach (var row in rows)
         {
-            if (IsInvisibleRow(row)) continue;
+            //if (IsInvisible(row)) continue;
 
             var cells = ExtractCells(row);
             if (cells == null || cells.Length == 0) continue;
@@ -195,23 +198,45 @@ public class UpdateFeacnCodesService(
         }
     }
 
-    private static bool IsInvisibleRow(HtmlNode row)
+    /*private static bool IsInvisible(HtmlNode node)
     {
         // Check if the row has style attributes that make it invisible
-        var style = row.GetAttributeValue("style", "").ToLowerInvariant();
+        var style = node.GetAttributeValue("style", "").ToLowerInvariant();
         if (style.Contains("display:none") || style.Contains("display: none") ||
             style.Contains("visibility:hidden") || style.Contains("visibility: hidden"))
             return true;
 
         // Check for CSS classes that might indicate hidden rows (common in some frameworks)
-        var className = row.GetAttributeValue("class", "").ToLowerInvariant();
+        var className = node.GetAttributeValue("class", "").ToLowerInvariant();
         if (className.Contains("hidden") || className.Contains("invisible") ||
-            className.Contains("d-none") || className.Contains("hide"))
+            className.Contains("d-none") || className.Contains("hide") ||
+            className.Contains("content-old"))
             return true;
+
+        // Check parent elements for invisible styles/classes
+        var parent = node.ParentNode;
+        while (parent != null && parent.NodeType == HtmlNodeType.Element)
+        {
+            var parentStyle = parent.GetAttributeValue("style", "").ToLowerInvariant();
+            if (parentStyle.Contains("display:none") || parentStyle.Contains("display: none") ||
+                parentStyle.Contains("visibility:hidden") || parentStyle.Contains("visibility: hidden"))
+                return true;
+
+            var parentClass = parent.GetAttributeValue("class", "").ToLowerInvariant();
+            if (parentClass.Contains("hidden") || parentClass.Contains("invisible") ||
+                parentClass.Contains("d-none") || parentClass.Contains("hide") ||
+                parentClass.Contains("content-old"))
+                return true;
+
+            parent = parent.ParentNode;
+            
+            if (parent.Name.ToLowerInvariant() == "body")
+                break;
+        }
 
         return false;
     }
-
+    */
     private static string[]? ExtractCells(HtmlNode row)
     {
         return row.SelectNodes("th|td")
@@ -282,11 +307,28 @@ public class UpdateFeacnCodesService(
 
             var doc = new HtmlDocument();
             doc.LoadHtml(html);
+
+            var contentOldDivs = doc.DocumentNode.SelectNodes("//div[contains(@class, 'content-old')]");
+            if (contentOldDivs != null)
+            {
+                _logger.LogInformation("Skipping content-old in {Url}", url);
+                foreach (var div in contentOldDivs)
+                {
+                    div.Remove();
+                }
+            }
+            
             var tables = doc.DocumentNode.SelectNodes("//table");
             if (tables == null) continue;
 
             foreach (var table in tables)
             {
+                //if (IsInvisible(table))
+                //{
+                //    _logger.LogInformation("Skipping invisible table in {Url}", url);
+                //    continue;
+                //}
+
                 var rows = ParseTable(table).ToList();
                 if (rows.Count == 0) continue;
                 int cols = rows.Max(r => r.Length);
@@ -302,7 +344,7 @@ public class UpdateFeacnCodesService(
                 for (int i = 0; i < rows.Count; i++)
                 {
                     var cells = rows[i];
-                    
+                  
                     if (cells.All(string.IsNullOrWhiteSpace)) continue;
                     if (cells.Any(ShouldSkip)) continue;
 
