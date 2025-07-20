@@ -35,16 +35,16 @@ public class OzonOrder : BaseOrder
     [Column("description_en")]
     public string? DescriptionEn { get; set; }
 
-    [Column("weight_kg", TypeName = "numeric(10,3)")]
+    [Column("weight_kg", TypeName = "numeric(10,2)")]
     public decimal? WeightKg { get; set; }
 
     [Column("currency")]
     public string? Currency { get; set; }
 
-    [Column("unit_price", TypeName = "numeric(10,3)")]
+    [Column("unit_price", TypeName = "numeric(10,2)")]
     public decimal? UnitPrice { get; set; }
 
-    [Column("quantity", TypeName = "numeric(10,3)")]
+    [Column("quantity", TypeName = "numeric(10)")]
     public decimal? Quantity { get; set; }
 
     [Column("product_link")]

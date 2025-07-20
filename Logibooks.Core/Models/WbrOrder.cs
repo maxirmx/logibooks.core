@@ -70,13 +70,13 @@ public class WbrOrder : BaseOrder
     [Column("unit")]
     public string? Unit { get; set; }
 
-    [Column("weight_kg", TypeName = "numeric(10,3)")]
+    [Column("weight_kg", TypeName = "numeric(10,2)")]
     public decimal? WeightKg { get; set; }
 
-    [Column("quantity", TypeName = "numeric(10,3)")]
+    [Column("quantity", TypeName = "numeric(10)")]
     public decimal? Quantity { get; set; }
 
-    [Column("unit_price", TypeName = "numeric(10,3)")]
+    [Column("unit_price", TypeName = "numeric(10,2)")]
     public decimal? UnitPrice { get; set; }
 
     [Column("currency")]
