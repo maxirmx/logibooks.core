@@ -4,6 +4,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 using System;
+using System.Linq;
+using System.IO;
+using System.Threading.Tasks;
 using System.Reflection;
 
 namespace Logibooks.Core.Tests.Services;
@@ -118,4 +121,40 @@ public class ConvertValueToPropertyTypeTests
         Assert.That(result, Is.EqualTo(Guid.Empty));
     }
 
+}
+
+public class UploadOzonRegisterTests
+{
+#pragma warning disable CS8618
+    private RegisterProcessingService _service;
+#pragma warning restore CS8618
+
+    [SetUp]
+    public void Setup()
+    {
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase($"ozon_{Guid.NewGuid()}")
+            .Options;
+
+        var dbContext = new AppDbContext(options);
+        var logger = new LoggerFactory().CreateLogger<RegisterProcessingService>();
+        _service = new RegisterProcessingService(dbContext, logger);
+    }
+
+    [Test]
+    public async Task UploadOzonRegisterFromExcelAsync_InsertsOrders()
+    {
+        var content = await File.ReadAllBytesAsync(Path.Combine("test.data", "Озон_Short.xlsx"));
+
+        var reference = await _service.UploadOzonRegisterFromExcelAsync(1, content, "Озон_Short.xlsx");
+
+        var ctx = (AppDbContext)typeof(RegisterProcessingService)
+            .GetField("_db", BindingFlags.NonPublic | BindingFlags.Instance)!
+            .GetValue(_service)!;
+
+        Assert.That(reference.Id, Is.GreaterThan(0));
+        Assert.That(ctx.Registers.Count(), Is.EqualTo(1));
+        Assert.That(ctx.OzonOrders.Count(), Is.EqualTo(3));
+        Assert.That(ctx.OzonOrders.OrderBy(o => o.Id).First().PostingNumber, Is.EqualTo("0180993146-0049-7"));
+    }
 }

@@ -115,6 +115,80 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
         return new Reference { Id = register.Id };
     }
 
+    public async Task<Reference> UploadOzonRegisterFromExcelAsync(
+        int companyId,
+        byte[] content,
+        string fileName,
+        string mappingFile = "ozon_register_mapping.yaml",
+        CancellationToken cancellationToken = default)
+    {
+        _logger.LogDebug("UploadOzonRegisterFromExcelAsync for {file} ({size} bytes)", fileName, content.Length);
+
+        var mappingPath = Path.Combine(AppContext.BaseDirectory, "mapping", mappingFile);
+        if (!System.IO.File.Exists(mappingPath))
+        {
+            throw new FileNotFoundException("Mapping file not found", mappingPath);
+        }
+
+        var mapping = RegisterMapping.Load(mappingPath);
+
+        System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+        using var ms = new MemoryStream(content);
+        using var reader = ExcelReaderFactory.CreateReader(ms);
+        var dataSet = reader.AsDataSet();
+        if (dataSet.Tables.Count == 0 || dataSet.Tables[0].Rows.Count <= 1)
+        {
+            throw new InvalidOperationException("Excel file is empty");
+        }
+
+        var table = dataSet.Tables[0];
+        var headerRow = table.Rows[0];
+        var columnMap = new Dictionary<int, string>();
+        for (int c = 0; c < table.Columns.Count; c++)
+        {
+            var header = headerRow[c]?.ToString() ?? string.Empty;
+            if (mapping.HeaderMappings.TryGetValue(header, out var prop))
+            {
+                columnMap[c] = prop;
+            }
+        }
+
+        var register = new Register { FileName = fileName, CompanyId = companyId };
+        _db.Registers.Add(register);
+        await _db.SaveChangesAsync(cancellationToken);
+
+        var orders = new List<OzonOrder>();
+        for (int r = 1; r < table.Rows.Count; r++)
+        {
+            var row = table.Rows[r];
+            var order = new OzonOrder { RegisterId = register.Id, StatusId = 1, CheckStatusId = 1 };
+            foreach (var kv in columnMap)
+            {
+                var val = row[kv.Key]?.ToString();
+                var propInfo = typeof(OzonOrder).GetProperty(kv.Value);
+                if (propInfo != null && val != null)
+                {
+                    try
+                    {
+                        object? convertedValue = ConvertValueToPropertyType(val, propInfo.PropertyType, propInfo.Name);
+                        propInfo.SetValue(order, convertedValue);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to set value '{Value}' for property {Property}", val, propInfo.Name);
+                    }
+                }
+            }
+            orders.Add(order);
+        }
+
+        _db.Orders.AddRange(orders);
+        await _db.SaveChangesAsync(cancellationToken);
+
+        _logger.LogDebug("UploadOzonRegisterFromExcelAsync imported {count} orders", orders.Count);
+        return new Reference { Id = register.Id };
+    }
+
     private static readonly CultureInfo RussianCulture = new("ru-RU");
 
     private object? ConvertValueToPropertyType(string? value, Type propertyType, string propertyName)
