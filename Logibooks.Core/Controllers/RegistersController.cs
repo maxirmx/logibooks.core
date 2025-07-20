@@ -50,7 +50,6 @@ public class RegistersController(
 
     private readonly string[] allowedSortBy = ["id", "filename", "date", "orderstotal"];
     private readonly int maxPageSize = 100;
-    private readonly int idWBR = 2;
     private readonly IRegisterValidationService _validationService = validationService;
     private readonly IRegisterProcessingService _processingService = processingService;
 
@@ -224,7 +223,7 @@ public class RegistersController(
     {
         _logger.LogDebug("UploadRegister called for {name} ({size} bytes)", file?.FileName, file?.Length);
 
-        int companyId = idWBR;
+        int companyId = _processingService.getWBRId();
 
         var ok = await _db.CheckLogist(_curUserId);
         if (!ok)
