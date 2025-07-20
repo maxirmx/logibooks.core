@@ -244,7 +244,7 @@ public class UploadRegisterErrorTests
         }
         finally
         {
-            System.IO.File.Move(backup, mappingPath);
+            File.Move(backup, mappingPath);
         }
     }
 }
