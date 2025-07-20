@@ -93,7 +93,7 @@ public class OrderViewItem
             .ToList() ?? new List<int>();
         FeacnOrderIds = order.BaseOrderFeacnPrefixes?
             .Where(bofp => bofp.FeacnPrefix?.FeacnOrderId != null)
-            .Select(bofp => bofp.FeacnPrefix.FeacnOrderId)
+            .Select(bofp => bofp.FeacnPrefix?.FeacnOrderId ?? 0)
             .Distinct()
             .ToList() ?? new List<int>();
     }
