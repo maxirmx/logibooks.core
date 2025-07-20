@@ -8,6 +8,7 @@ using System.Linq;
 using System.IO;
 using System.Threading.Tasks;
 using System.Reflection;
+using ExcelDataReader.Exceptions;
 
 namespace Logibooks.Core.Tests.Services;
 
@@ -156,5 +157,94 @@ public class UploadOzonRegisterTests
         Assert.That(ctx.Registers.Count(), Is.EqualTo(1));
         Assert.That(ctx.OzonOrders.Count(), Is.EqualTo(3));
         Assert.That(ctx.OzonOrders.OrderBy(o => o.Id).First().PostingNumber, Is.EqualTo("0180993146-0049-7"));
+    }
+}
+
+public class UploadWbrRegisterTests
+{
+#pragma warning disable CS8618
+    private RegisterProcessingService _service;
+#pragma warning restore CS8618
+
+    [SetUp]
+    public void Setup()
+    {
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase($"wbr_{Guid.NewGuid()}")
+            .Options;
+
+        var dbContext = new AppDbContext(options);
+        var logger = new LoggerFactory().CreateLogger<RegisterProcessingService>();
+        _service = new RegisterProcessingService(dbContext, logger);
+    }
+
+    [Test]
+    public async Task UploadWbrRegisterFromExcelAsync_InsertsOrders()
+    {
+        var content = await File.ReadAllBytesAsync(Path.Combine("test.data", "Реестр_207730349.xlsx"));
+
+        var reference = await _service.UploadRegisterFromExcelAsync(_service.GetWBRId(), content, "Реестр_207730349.xlsx");
+
+        var ctx = (AppDbContext)typeof(RegisterProcessingService)
+            .GetField("_db", BindingFlags.NonPublic | BindingFlags.Instance)!
+            .GetValue(_service)!;
+
+        Assert.That(reference.Id, Is.GreaterThan(0));
+        Assert.That(ctx.Registers.Count(), Is.EqualTo(1));
+        Assert.That(ctx.WbrOrders.Count(), Is.EqualTo(3));
+        Assert.That(ctx.WbrOrders.OrderBy(o => o.Id).First().RowNumber, Is.EqualTo(3101));
+    }
+}
+
+public class UploadRegisterErrorTests
+{
+#pragma warning disable CS8618
+    private RegisterProcessingService _service;
+#pragma warning restore CS8618
+
+    [SetUp]
+    public void Setup()
+    {
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase($"err_{Guid.NewGuid()}")
+            .Options;
+
+        var dbContext = new AppDbContext(options);
+        var logger = new LoggerFactory().CreateLogger<RegisterProcessingService>();
+        _service = new RegisterProcessingService(dbContext, logger);
+    }
+
+    [Test]
+    public void UploadRegisterFromExcelAsync_InvalidFile_ThrowsHeaderException()
+    {
+        var content = File.ReadAllBytes(Path.Combine("test.data", "file.txt"));
+        Assert.ThrowsAsync<ExcelDataReader.Exceptions.HeaderException>(async () =>
+            await _service.UploadRegisterFromExcelAsync(_service.GetOzonId(), content, "file.txt"));
+    }
+
+    [Test]
+    public void UploadRegisterFromExcelAsync_EmptyExcel_ThrowsInvalidOperationException()
+    {
+        var content = File.ReadAllBytes(Path.Combine("test.data", "Register_Empty.xlsx"));
+        Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await _service.UploadRegisterFromExcelAsync(_service.GetOzonId(), content, "Register_Empty.xlsx"));
+    }
+
+    [Test]
+    public void UploadRegisterFromExcelAsync_MissingMapping_ThrowsFileNotFoundException()
+    {
+        var mappingPath = Path.Combine(AppContext.BaseDirectory, "mapping", "wbr_register_mapping.yaml");
+        var backup = mappingPath + ".bak";
+        System.IO.File.Move(mappingPath, backup);
+        try
+        {
+            var content = File.ReadAllBytes(Path.Combine("test.data", "Реестр_207730349.xlsx"));
+            Assert.ThrowsAsync<FileNotFoundException>(async () =>
+                await _service.UploadRegisterFromExcelAsync(_service.GetWBRId(), content, "Реестр_207730349.xlsx"));
+        }
+        finally
+        {
+            System.IO.File.Move(backup, mappingPath);
+        }
     }
 }
