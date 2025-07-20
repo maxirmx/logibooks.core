@@ -230,7 +230,7 @@ public class UpdateFeacnCodesService(
 
             parent = parent.ParentNode;
             
-            if (parent.Name.ToLowerInvariant() == "body")
+            if (parent.Name != null && parent.Name.ToLowerInvariant() == "body")
                 break;
         }
 
