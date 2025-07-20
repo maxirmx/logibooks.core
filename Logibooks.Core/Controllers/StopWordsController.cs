@@ -47,6 +47,12 @@ public class StopWordsController(
 {
     private readonly IMorphologySearchService _morphologySearchService = morphologySearchService;
 
+    protected ObjectResult _501MorphologyValidation(string word)
+    {
+        return StatusCode(StatusCodes.Status501NotImplemented,
+                          new ErrMessage { Msg = $"Слово '{word}' отсутсвует в словаре системы и не может быть настроено для поиска морфологического соотвествия. Используйте точное соответствие" });
+    }
+
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<StopWordDto>))]
     public async Task<ActionResult<IEnumerable<StopWordDto>>> GetStopWords()
@@ -69,12 +75,10 @@ public class StopWordsController(
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status409Conflict, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status501NotImplemented, Type = typeof(ErrMessage))]
-    [AllowAnonymous]
     public async Task<ActionResult<StopWordDto>> PostStopWord(StopWordDto dto)
     {
-        // if (!await _db.CheckAdmin(_curUserId)) return _403();
+        if (!await _db.CheckAdmin(_curUserId)) return _403();
         
-        // Check for morphology validation if exact match is not requested
         if (!dto.ExactMatch)
         {
             if (!_morphologySearchService.CheckWord(dto.Word))
@@ -109,12 +113,24 @@ public class StopWordsController(
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status409Conflict, Type = typeof(ErrMessage))]
+    [ProducesResponseType(StatusCodes.Status501NotImplemented, Type = typeof(ErrMessage))]
     public async Task<IActionResult> PutStopWord(int id, StopWordDto dto)
     {
         if (!await _db.CheckAdmin(_curUserId)) return _403();
         if (id != dto.Id) return BadRequest();
         var sw = await _db.StopWords.FindAsync(id);
         if (sw == null) return _404Object(id);
+        
+        // Check for morphology validation if exact match is not requested
+        if (!dto.ExactMatch)
+        {
+            if (!_morphologySearchService.CheckWord(dto.Word))
+            {
+                _logger.LogDebug("PutStopWord returning '501 Not Implemented' - morphology validation failed for word: {word}", dto.Word);
+                return _501MorphologyValidation(dto.Word);
+            }
+        }
+        
         if (!sw.Word.Equals(dto.Word, StringComparison.OrdinalIgnoreCase) &&
             await _db.StopWords.AnyAsync(w => w.Word.ToLower() == dto.Word.ToLower()))
         {

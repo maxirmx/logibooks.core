@@ -157,16 +157,16 @@ public class StopWordsControllerTests
         Assert.That(del, Is.TypeOf<NoContentResult>());
     }
 
-//    [Test]
-//    public async Task Create_ReturnsForbidden_ForNonAdmin()
-//    {
-//        SetCurrentUserId(2);
-//        var dto = new StopWordDto { Word = "w" };
-//        var result = await _controller.PostStopWord(dto);
-//        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
-//        var obj = result.Result as ObjectResult;
-//        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
-//    }
+    [Test]
+    public async Task Create_ReturnsForbidden_ForNonAdmin()
+    {
+        SetCurrentUserId(2);
+        var dto = new StopWordDto { Word = "w" };
+        var result = await _controller.PostStopWord(dto);
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
+    }
 
     [Test]
     public async Task DeleteStopWord_AllowsCascadeDeletion_WhenUsed()
@@ -392,5 +392,81 @@ public class StopWordsControllerTests
         
         // Verify that CheckWord was never called for exact match
         _mockMorphologySearchService.Verify(x => x.CheckWord("hello"), Times.Never);
+    }
+
+    [Test]
+    public async Task PutStopWord_Returns501_WhenMorphologyValidationFails()
+    {
+        SetCurrentUserId(1); // Admin user
+        
+        // Create an existing stop word
+        var existingWord = new StopWord { Id = 200, Word = "существующий", ExactMatch = false };
+        _dbContext.StopWords.Add(existingWord);
+        await _dbContext.SaveChangesAsync();
+        
+        // Setup mock to return false for morphology validation
+        _mockMorphologySearchService.Setup(x => x.CheckWord("invalid"))
+            .Returns(false);
+        
+        var dto = new StopWordDto { Id = 200, Word = "invalid", ExactMatch = false };
+        var result = await _controller.PutStopWord(200, dto);
+
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status501NotImplemented));
+        Assert.That(obj.Value, Is.InstanceOf<ErrMessage>());
+        var err = obj.Value as ErrMessage;
+        Assert.That(err!.Msg, Does.Contain("invalid"));
+        Assert.That(err.Msg, Does.Contain("отсутсвует в словаре"));
+    }
+
+    [Test]
+    public async Task PutStopWord_SucceedsWithMorphologyValidation_WhenValidationPasses()
+    {
+        SetCurrentUserId(1); // Admin user
+        
+        // Create an existing stop word
+        var existingWord = new StopWord { Id = 201, Word = "старый", ExactMatch = false };
+        _dbContext.StopWords.Add(existingWord);
+        await _dbContext.SaveChangesAsync();
+        
+        // Setup mock to return true for morphology validation
+        _mockMorphologySearchService.Setup(x => x.CheckWord("новый"))
+            .Returns(true);
+        
+        var dto = new StopWordDto { Id = 201, Word = "новый", ExactMatch = false };
+        var result = await _controller.PutStopWord(201, dto);
+
+        Assert.That(result, Is.TypeOf<NoContentResult>());
+        
+        // Verify the word was updated
+        var updatedWord = await _dbContext.StopWords.FindAsync(201);
+        Assert.That(updatedWord!.Word, Is.EqualTo("новый"));
+        Assert.That(updatedWord.ExactMatch, Is.False);
+    }
+
+    [Test]
+    public async Task PutStopWord_SkipsMorphologyValidation_WhenExactMatchIsTrue()
+    {
+        SetCurrentUserId(1); // Admin user
+        
+        // Create an existing stop word
+        var existingWord = new StopWord { Id = 202, Word = "старое", ExactMatch = false };
+        _dbContext.StopWords.Add(existingWord);
+        await _dbContext.SaveChangesAsync();
+        
+        // Even though this would fail morphology validation, it should succeed because ExactMatch = true
+        var dto = new StopWordDto { Id = 202, Word = "badword", ExactMatch = true };
+        var result = await _controller.PutStopWord(202, dto);
+
+        Assert.That(result, Is.TypeOf<NoContentResult>());
+        
+        // Verify the word was updated
+        var updatedWord = await _dbContext.StopWords.FindAsync(202);
+        Assert.That(updatedWord!.Word, Is.EqualTo("badword"));
+        Assert.That(updatedWord.ExactMatch, Is.True);
+        
+        // Verify that CheckWord was never called for exact match
+        _mockMorphologySearchService.Verify(x => x.CheckWord("badword"), Times.Never);
     }
 }
