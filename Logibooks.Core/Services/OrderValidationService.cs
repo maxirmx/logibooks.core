@@ -42,8 +42,9 @@ public class OrderValidationService(
 
     public async Task ValidateAsync(
         BaseOrder order,
-        MorphologyContext? morphologyContext = null,
-        StopWordsContext? stopWordsContext = null,
+        MorphologyContext morphologyContext,
+        StopWordsContext stopWordsContext,
+        FeacnPrefixCheckContext? feacnContext = null,
         CancellationToken cancellationToken = default)
     {
         // remove existing links for this order
@@ -67,7 +68,9 @@ public class OrderValidationService(
         var productName = order.ProductName ?? string.Empty;
         var links1 = await SelectStopWordLinksAsync(order.Id, productName, stopWordsContext, morphologyContext, cancellationToken);
 
-        var links2 = await _feacnPrefixCheckService.CheckOrderAsync(order, cancellationToken);
+        var links2 = feacnContext != null
+            ? await _feacnPrefixCheckService.CheckOrderWithContextAsync(order, feacnContext, cancellationToken)
+            : await _feacnPrefixCheckService.CheckOrderAsync(order, cancellationToken);
 
         if (links1.Count > 0)
         {
@@ -91,23 +94,14 @@ public class OrderValidationService(
     private async Task<List<BaseOrderStopWord>> SelectStopWordLinksAsync(
         int orderId,
         string productName,
-        StopWordsContext? stopWordsContext,
-        MorphologyContext? morphologyContext,
+        StopWordsContext stopWordsContext,
+        MorphologyContext morphologyContext,
         CancellationToken cancellationToken)
     {
         var links = new List<BaseOrderStopWord>();
         var existingStopWordIds = new HashSet<int>();
 
-        // Get matching stop words from context or database
-        List<StopWord> matchingWords;
-        if (stopWordsContext != null)
-        {
-            matchingWords = GetMatchingStopWordsFromContext(productName, stopWordsContext);
-        }
-        else
-        {
-            matchingWords = await GetMatchingStopWords(productName, cancellationToken);
-        }
+        List<StopWord> matchingWords = GetMatchingStopWordsFromContext(productName, stopWordsContext); 
 
         // Add stop words to links
         foreach (var sw in matchingWords)
@@ -116,17 +110,14 @@ public class OrderValidationService(
             existingStopWordIds.Add(sw.Id);
         }
 
-        // Add morphology-based matches
-        if (morphologyContext != null)
+        var ids = _morphService.CheckText(morphologyContext, productName);
+        foreach (var id in ids)
         {
-            var ids = _morphService.CheckText(morphologyContext, productName);
-            foreach (var id in ids)
-            {
-                if (existingStopWordIds.Add(id)) // HashSet.Add returns false if already exists
-                    links.Add(new BaseOrderStopWord { BaseOrderId = orderId, StopWordId = id });
-            }
+            if (existingStopWordIds.Add(id)) // HashSet.Add returns false if already exists
+                links.Add(new BaseOrderStopWord { BaseOrderId = orderId, StopWordId = id });
         }
 
+        await Task.Delay(0, cancellationToken);
         return links;
     }
     private List<StopWord> GetMatchingStopWordsFromContext(string productName, StopWordsContext context)
@@ -138,20 +129,6 @@ public class OrderValidationService(
             .Where(sw => !string.IsNullOrEmpty(sw.Word) && 
                          productName.Contains(sw.Word, StringComparison.OrdinalIgnoreCase))
             .ToList();
-    }
-
-    private async Task<List<StopWord>> GetMatchingStopWords(string productName, CancellationToken cancellationToken)
-    {
-        if (string.IsNullOrEmpty(productName))
-            return [];
-
-        // Load all exact match stop words and filter in memory for case-insensitive matching
-        var allWords = await _db.StopWords.AsNoTracking()
-            .Where(sw => sw.ExactMatch && !string.IsNullOrEmpty(sw.Word))
-            .ToListAsync(cancellationToken);
-
-        return allWords.Where(sw => productName.Contains(sw.Word, StringComparison.OrdinalIgnoreCase))
-                      .ToList();
     }
 
     public StopWordsContext InitializeStopWordsContext(IEnumerable<StopWord> exactMatchStopWords)

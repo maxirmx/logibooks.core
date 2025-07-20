@@ -83,7 +83,9 @@ public class OrderValidationServiceTests
         await ctx.SaveChangesAsync();
 
         var svc = CreateService(ctx);
-        await svc.ValidateAsync(order);
+        var stopWordsContext = svc.InitializeStopWordsContext(ctx.StopWords.ToList());
+        var morphologyContext = new MorphologyContext(); // Assuming you have a way to create this context
+        await svc.ValidateAsync(order, morphologyContext, stopWordsContext);
 
         Assert.That(ctx.Set<BaseOrderStopWord>().Count(), Is.EqualTo(1));
         var link = ctx.Set<BaseOrderStopWord>().Single();
@@ -101,7 +103,9 @@ public class OrderValidationServiceTests
         await ctx.SaveChangesAsync();
 
         var svc = CreateService(ctx);
-        await svc.ValidateAsync(order);
+        var stopWordsContext = svc.InitializeStopWordsContext(ctx.StopWords.ToList());
+        var morphologyContext = new MorphologyContext(); // Assuming you have a way to create this context
+        await svc.ValidateAsync(order, morphologyContext, stopWordsContext);
 
         Assert.That(ctx.Set<BaseOrderStopWord>().Any(), Is.False);
         Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)OrderCheckStatusCode.NoIssues));
@@ -117,7 +121,9 @@ public class OrderValidationServiceTests
         await ctx.SaveChangesAsync();
 
         var svc = CreateService(ctx);
-        await svc.ValidateAsync(order);
+        var stopWordsContext = svc.InitializeStopWordsContext(ctx.StopWords.ToList());
+        var morphologyContext = new MorphologyContext(); // Assuming you have a way to create this context
+        await svc.ValidateAsync(order, morphologyContext, stopWordsContext);
 
         Assert.That(ctx.Set<BaseOrderStopWord>().Single().StopWordId, Is.EqualTo(5));
         Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)OrderCheckStatusCode.HasIssues));
@@ -134,9 +140,10 @@ public class OrderValidationServiceTests
         await ctx.SaveChangesAsync();
 
         var morph = new MorphologySearchService();
-        var context = morph.InitializeContext(new[] { sw });
+        var morphologyContext = morph.InitializeContext(new[] { sw });
+        var stopWordsContext = new StopWordsContext();
         var svc = CreateServiceWithMorphology(ctx, morph);
-        await svc.ValidateAsync(order, context);
+        await svc.ValidateAsync(order, morphologyContext, stopWordsContext);
 
         var link = ctx.Set<BaseOrderStopWord>().Single();
         Assert.That(link.StopWordId, Is.EqualTo(7));
@@ -160,9 +167,10 @@ public class OrderValidationServiceTests
         await ctx.SaveChangesAsync();
 
         var morph = new MorphologySearchService();
-        var context = morph.InitializeContext(stopWords.Where(sw => !sw.ExactMatch));
+        var morphologyContext = morph.InitializeContext(stopWords.Where(sw => !sw.ExactMatch));
         var svc = CreateServiceWithMorphology(ctx, morph);
-        await svc.ValidateAsync(order, context);
+        var stopWordsContext = svc.InitializeStopWordsContext(stopWords.Where(sw => sw.ExactMatch));
+        await svc.ValidateAsync(order, morphologyContext, stopWordsContext);
 
         var links = ctx.Set<BaseOrderStopWord>().ToList();
         var foundIds = links.Select(l => l.StopWordId).OrderBy(id => id).ToList();
@@ -193,7 +201,9 @@ public class OrderValidationServiceTests
         await ctx.SaveChangesAsync();
 
         var svc = CreateService(ctx);
-        await svc.ValidateAsync(order);
+        var stopWordsContext = svc.InitializeStopWordsContext(stopWords);
+        var morphologyContext = new MorphologyContext();
+        await svc.ValidateAsync(order, morphologyContext, stopWordsContext);
 
         var links = ctx.Set<BaseOrderStopWord>().ToList();
 
@@ -281,7 +291,9 @@ public class OrderValidationServiceTests
         await ctx.SaveChangesAsync();
 
         var svc = CreateService(ctx);
-        await svc.ValidateAsync(order);
+        var stopWordsContext = svc.InitializeStopWordsContext(ctx.StopWords.ToList());
+        var morphologyContext = new MorphologyContext(); // Assuming you have a way to create this context
+        await svc.ValidateAsync(order, morphologyContext, stopWordsContext);
 
         Assert.That(ctx.Set<BaseOrderStopWord>().Any(), Is.False);
         Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)OrderCheckStatusCode.NoIssues));
@@ -307,7 +319,8 @@ public class OrderValidationServiceTests
 
         var svc = CreateService(ctx);
         var stopWordsContext = svc.InitializeStopWordsContext(contextStopWords);
-        await svc.ValidateAsync(order, null, stopWordsContext);
+        var morphologyContext = new MorphologyContext();
+        await svc.ValidateAsync(order, morphologyContext, stopWordsContext, null);
 
         var links = ctx.Set<BaseOrderStopWord>().ToList();
         Assert.That(links.Count, Is.EqualTo(1));
@@ -325,14 +338,15 @@ public class OrderValidationServiceTests
         await ctx.SaveChangesAsync();
 
         var svc = CreateService(ctx);
-        await svc.ValidateAsync(order);
+        var stopWordsContext = svc.InitializeStopWordsContext(ctx.StopWords.ToList());
+        var morphologyContext = new MorphologyContext(); // Assuming you have a way to create this context
+        await svc.ValidateAsync(order, morphologyContext, stopWordsContext);
 
         Assert.That(ctx.Set<BaseOrderStopWord>().Any(), Is.False);
         Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)OrderCheckStatusCode.NoIssues));
     }
 
-
-[Test]
+    [Test]
     public async Task ValidateAsync_TnVedWithNonNumericChars_SetsInvalidFeacnFormatStatus()
     {
         using var ctx = CreateContext();
@@ -342,7 +356,9 @@ public class OrderValidationServiceTests
         await ctx.SaveChangesAsync();
 
         var svc = CreateService(ctx);
-        await svc.ValidateAsync(order);
+        var stopWordsContext = svc.InitializeStopWordsContext(ctx.StopWords.ToList());
+        var morphologyContext = new MorphologyContext();
+        await svc.ValidateAsync(order, morphologyContext, stopWordsContext);
 
         // Should not create any stop word links due to invalid TnVed
         Assert.That(ctx.Set<BaseOrderStopWord>().Any(), Is.False);
@@ -359,13 +375,14 @@ public class OrderValidationServiceTests
         await ctx.SaveChangesAsync();
 
         var svc = CreateService(ctx);
-        await svc.ValidateAsync(order);
+        var stopWordsContext = svc.InitializeStopWordsContext(ctx.StopWords.ToList());
+        var morphologyContext = new MorphologyContext();
+        await svc.ValidateAsync(order, morphologyContext, stopWordsContext);
 
         // Should not create any stop word links due to invalid TnVed
         Assert.That(ctx.Set<BaseOrderStopWord>().Any(), Is.False);
         Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)OrderCheckStatusCode.InvalidFeacnFormat));
     }
-
 
     [Test]
     public async Task ValidateAsync_WithRealFeacnPrefixCheckService_CreatesFeacnAndStopWordLinks()
@@ -407,8 +424,13 @@ public class OrderValidationServiceTests
         var realFeacnService = new FeacnPrefixCheckService(ctx);
         var svc = new OrderValidationService(ctx, new MorphologySearchService(), realFeacnService);
 
+        // Initialize contexts
+        var stopWordsContext = svc.InitializeStopWordsContext(ctx.StopWords.ToList());
+        var morphologyContext = new MorphologyContext(); 
+        var feacnContext = await realFeacnService.CreateContext(); // Properly initialize the context
+
         // Act
-        await svc.ValidateAsync(order);
+        await svc.ValidateAsync(order, morphologyContext, stopWordsContext, feacnContext);
 
         // Assert - Check that both FEACN prefix links and stop word links were created
         var feacnLinks = ctx.Set<BaseOrderFeacnPrefix>().Where(l => l.BaseOrderId == 1).ToList();
@@ -461,8 +483,11 @@ public class OrderValidationServiceTests
         var realFeacnService = new FeacnPrefixCheckService(ctx);
         var svc = new OrderValidationService(ctx, new MorphologySearchService(), realFeacnService);
 
+        var stopWordsContext = svc.InitializeStopWordsContext(ctx.StopWords.ToList());
+        var morphologyContext = new MorphologyContext();
+
         // Act
-        await svc.ValidateAsync(order);
+        await svc.ValidateAsync(order, morphologyContext, stopWordsContext);
 
         // Assert - No links should be created
         Assert.That(ctx.Set<BaseOrderFeacnPrefix>().Any(l => l.BaseOrderId == 1), Is.False);
@@ -513,8 +538,11 @@ public class OrderValidationServiceTests
         var realFeacnService = new FeacnPrefixCheckService(ctx);
         var svc = new OrderValidationService(ctx, new MorphologySearchService(), realFeacnService);
 
+        var stopWordsContext = svc.InitializeStopWordsContext(ctx.StopWords.ToList());
+        var morphologyContext = new MorphologyContext();
+
         // Act
-        await svc.ValidateAsync(order);
+        await svc.ValidateAsync(order, morphologyContext, stopWordsContext);
 
         // Assert - No FEACN link due to exception, but stop word link should exist
         Assert.That(ctx.Set<BaseOrderFeacnPrefix>().Any(l => l.BaseOrderId == 1), Is.False);
@@ -559,8 +587,11 @@ public class OrderValidationServiceTests
         var realFeacnService = new FeacnPrefixCheckService(ctx);
         var svc = new OrderValidationService(ctx, new MorphologySearchService(), realFeacnService);
 
+        var stopWordsContext = svc.InitializeStopWordsContext(ctx.StopWords.ToList());
+        var morphologyContext = new MorphologyContext();
+
         // Act
-        await svc.ValidateAsync(order);
+        await svc.ValidateAsync(order, morphologyContext, stopWordsContext);
 
         // Assert - Check that both FEACN prefix link (interval match) and stop word link were created
         var feacnLinks = ctx.Set<BaseOrderFeacnPrefix>().Where(l => l.BaseOrderId == 1).ToList();
@@ -577,6 +608,7 @@ public class OrderValidationServiceTests
         // Status should be HasIssues because both FEACN interval and stop word issues were found
         Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)OrderCheckStatusCode.HasIssues));
     }
+
     [Test]
     public async Task ValidateAsync_MatchesPrefix_PrefixMatchWithoutInterval_CreatesFeacnLink()
     {
@@ -609,7 +641,9 @@ public class OrderValidationServiceTests
         var realFeacnService = new FeacnPrefixCheckService(ctx);
         var svc = new OrderValidationService(ctx, new MorphologySearchService(), realFeacnService);
 
-        await svc.ValidateAsync(order);
+        var stopWordsContext = new StopWordsContext();
+        var morphologyContext = new MorphologyContext();
+        await svc.ValidateAsync(order, morphologyContext, stopWordsContext);
 
         var feacnLinks = ctx.Set<BaseOrderFeacnPrefix>().Where(l => l.BaseOrderId == 1).ToList();
         Assert.That(feacnLinks.Count, Is.EqualTo(1));
@@ -647,7 +681,9 @@ public class OrderValidationServiceTests
         var realFeacnService = new FeacnPrefixCheckService(ctx);
         var svc = new OrderValidationService(ctx, new MorphologySearchService(), realFeacnService);
 
-        await svc.ValidateAsync(order);
+        var stopWordsContext = new StopWordsContext();
+        var morphologyContext = new MorphologyContext();
+        await svc.ValidateAsync(order, morphologyContext, stopWordsContext);
 
         var feacnLinks = ctx.Set<BaseOrderFeacnPrefix>().Where(l => l.BaseOrderId == 1).ToList();
         Assert.That(feacnLinks.Count, Is.EqualTo(0));
@@ -684,7 +720,9 @@ public class OrderValidationServiceTests
         var realFeacnService = new FeacnPrefixCheckService(ctx);
         var svc = new OrderValidationService(ctx, new MorphologySearchService(), realFeacnService);
 
-        await svc.ValidateAsync(order);
+        var stopWordsContext = new StopWordsContext();
+        var morphologyContext = new MorphologyContext();
+        await svc.ValidateAsync(order, morphologyContext, stopWordsContext);
 
         var feacnLinks = ctx.Set<BaseOrderFeacnPrefix>().Where(l => l.BaseOrderId == 1).ToList();
         Assert.That(feacnLinks.Count, Is.EqualTo(1));
@@ -722,7 +760,9 @@ public class OrderValidationServiceTests
         var realFeacnService = new FeacnPrefixCheckService(ctx);
         var svc = new OrderValidationService(ctx, new MorphologySearchService(), realFeacnService);
 
-        await svc.ValidateAsync(order);
+        var stopWordsContext = new StopWordsContext();
+        var morphologyContext = new MorphologyContext();
+        await svc.ValidateAsync(order, morphologyContext, stopWordsContext);
 
         var feacnLinks = ctx.Set<BaseOrderFeacnPrefix>().Where(l => l.BaseOrderId == 1).ToList();
         Assert.That(feacnLinks.Count, Is.EqualTo(0));
@@ -759,7 +799,9 @@ public class OrderValidationServiceTests
         var realFeacnService = new FeacnPrefixCheckService(ctx);
         var svc = new OrderValidationService(ctx, new MorphologySearchService(), realFeacnService);
 
-        await svc.ValidateAsync(order);
+        var stopWordsContext = new StopWordsContext();
+        var morphologyContext = new MorphologyContext();
+        await svc.ValidateAsync(order, morphologyContext, stopWordsContext);
 
         var feacnLinks = ctx.Set<BaseOrderFeacnPrefix>().Where(l => l.BaseOrderId == 1).ToList();
         Assert.That(feacnLinks.Count, Is.EqualTo(0));
@@ -796,7 +838,9 @@ public class OrderValidationServiceTests
         var realFeacnService = new FeacnPrefixCheckService(ctx);
         var svc = new OrderValidationService(ctx, new MorphologySearchService(), realFeacnService);
 
-        await svc.ValidateAsync(order);
+        var stopWordsContext = new StopWordsContext();
+        var morphologyContext = new MorphologyContext();
+        await svc.ValidateAsync(order, morphologyContext, stopWordsContext);
 
         var feacnLinks = ctx.Set<BaseOrderFeacnPrefix>().Where(l => l.BaseOrderId == 1).ToList();
         Assert.That(feacnLinks.Count, Is.EqualTo(0));
@@ -842,7 +886,9 @@ public class OrderValidationServiceTests
         var realFeacnService = new FeacnPrefixCheckService(ctx);
         var svc = new OrderValidationService(ctx, new MorphologySearchService(), realFeacnService);
 
-        await svc.ValidateAsync(order);
+        var stopWordsContext = new StopWordsContext();
+        var morphologyContext = new MorphologyContext();
+        await svc.ValidateAsync(order, morphologyContext, stopWordsContext);
 
         var feacnLinks = ctx.Set<BaseOrderFeacnPrefix>().Where(l => l.BaseOrderId == 1).ToList();
         Assert.That(feacnLinks.Count, Is.EqualTo(0));
@@ -888,7 +934,9 @@ public class OrderValidationServiceTests
         var realFeacnService = new FeacnPrefixCheckService(ctx);
         var svc = new OrderValidationService(ctx, new MorphologySearchService(), realFeacnService);
 
-        await svc.ValidateAsync(order);
+        var stopWordsContext = new StopWordsContext();
+        var morphologyContext = new MorphologyContext();
+        await svc.ValidateAsync(order, morphologyContext, stopWordsContext);
 
         var feacnLinks = ctx.Set<BaseOrderFeacnPrefix>().Where(l => l.BaseOrderId == 1).ToList();
         Assert.That(feacnLinks.Count, Is.EqualTo(1));
@@ -935,7 +983,9 @@ public class OrderValidationServiceTests
         var realFeacnService = new FeacnPrefixCheckService(ctx);
         var svc = new OrderValidationService(ctx, new MorphologySearchService(), realFeacnService);
 
-        await svc.ValidateAsync(order);
+        var stopWordsContext = new StopWordsContext();
+        var morphologyContext = new MorphologyContext();
+        await svc.ValidateAsync(order, morphologyContext, stopWordsContext);
 
         var feacnLinks = ctx.Set<BaseOrderFeacnPrefix>().Where(l => l.BaseOrderId == 1).ToList();
         Assert.That(feacnLinks.Count, Is.EqualTo(1));
@@ -986,13 +1036,16 @@ public class OrderValidationServiceTests
         var realFeacnService = new FeacnPrefixCheckService(ctx);
         var svc = new OrderValidationService(ctx, new MorphologySearchService(), realFeacnService);
 
+        var stopWordsContext = new StopWordsContext();
+        var morphologyContext = new MorphologyContext();
+
         // Test left boundary
-        await svc.ValidateAsync(order1);
+        await svc.ValidateAsync(order1, morphologyContext, stopWordsContext);
         var feacnLinks1 = ctx.Set<BaseOrderFeacnPrefix>().Where(l => l.BaseOrderId == 1).ToList();
         Assert.That(feacnLinks1.Count, Is.EqualTo(1));
 
         // Test right boundary
-        await svc.ValidateAsync(order2);
+        await svc.ValidateAsync(order2, morphologyContext, stopWordsContext);
         var feacnLinks2 = ctx.Set<BaseOrderFeacnPrefix>().Where(l => l.BaseOrderId == 2).ToList();
         Assert.That(feacnLinks2.Count, Is.EqualTo(1));
     }
@@ -1040,7 +1093,9 @@ public class OrderValidationServiceTests
         var realFeacnService = new FeacnPrefixCheckService(ctx);
         var svc = new OrderValidationService(ctx, new MorphologySearchService(), realFeacnService);
 
-        await svc.ValidateAsync(order);
+        var stopWordsContext = new StopWordsContext();
+        var morphologyContext = new MorphologyContext();
+        await svc.ValidateAsync(order, morphologyContext, stopWordsContext);
 
         var feacnLinks = ctx.Set<BaseOrderFeacnPrefix>().Where(l => l.BaseOrderId == 1).ToList();
         Assert.That(feacnLinks.Count, Is.EqualTo(0));
