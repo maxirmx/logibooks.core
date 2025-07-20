@@ -73,6 +73,14 @@ public class OrderUpdateItem
     //public string? Category { get; set; }
     //public string? Subcategory { get; set; }
 
+    // Ozon specific fields
+    public string? PostingNumber { get; set; }
+    public int? PlacesCount { get; set; }
+    public string? Article { get; set; }
+    public string? LastName { get; set; }
+    public string? FirstName { get; set; }
+    public string? Patronymic { get; set; }
+
     public override string ToString()
     {
         return JsonSerializer.Serialize(this, JOptions.DefaultOptions);
