@@ -25,7 +25,7 @@
     <ProjectReference Include="..\Logibooks.Core\Logibooks.Core.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <None Update="..\Logibooks.Core\mapping\register_mapping.yaml">
+    <None Update="..\Logibooks.Core\mapping\wbr_register_mapping.yaml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="test.data\file.txt">
