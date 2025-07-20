@@ -900,7 +900,7 @@ public class UpdateFeacnCodesServiceTests
         <table>
             <tr style='display:none'><td>4444</td><td>Hidden Row</td></tr>
             <tr class='hidden'><td>5555</td><td>Also Hidden Row</td></tr>
-            <tr class='content-old'><td>6666</td><td>Content Old Row but not Devider</td></tr>
+            <tr class='content-old'><td>6666</td><td>Content Old Row but not Divider</td></tr>
             <tr><td>7777</td><td>Visible</td></tr>
         </table>";
 
