@@ -235,7 +235,7 @@ public class UploadRegisterErrorTests
     {
         var mappingPath = Path.Combine(AppContext.BaseDirectory, "mapping", "wbr_register_mapping.yaml");
         var backup = mappingPath + ".bak";
-        System.IO.File.Move(mappingPath, backup);
+        File.Move(mappingPath, backup);
         try
         {
             var content = File.ReadAllBytes(Path.Combine("test.data", "Реестр_207730349.xlsx"));
