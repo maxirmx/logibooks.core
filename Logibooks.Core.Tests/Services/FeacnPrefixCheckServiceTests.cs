@@ -313,7 +313,7 @@ public class FeacnPrefixCheckServiceTests
     }
 
     [Test]
-    public async Task CheckOrderWithContextAsync_MatchesPrefix_ReturnsLink()
+    public async Task CheckOrder_MatchesPrefix_ReturnsLink()
     {
         using var ctx = CreateContext();
         var prefix = new FeacnPrefix { Id = 10, Code = "1234", FeacnOrderId = 1 };
@@ -324,14 +324,14 @@ public class FeacnPrefixCheckServiceTests
 
         var svc = new FeacnPrefixCheckService(ctx);
         var context = await svc.CreateContext();
-        var links = await svc.CheckOrderWithContextAsync(order, context);
+        var links = svc.CheckOrder(order, context);
 
         Assert.That(links.Count(), Is.EqualTo(1));
         Assert.That(links.First().FeacnPrefixId, Is.EqualTo(10));
     }
 
     [Test]
-    public async Task CheckOrderWithContextAsync_NoPrefixes_ReturnsEmptyList()
+    public async Task CheckOrder_NoPrefixes_ReturnsEmptyList()
     {
         using var ctx = CreateContext();
         var prefix = new FeacnPrefix { Id = 10, Code = "9999", FeacnOrderId = 1 };
@@ -342,13 +342,13 @@ public class FeacnPrefixCheckServiceTests
 
         var svc = new FeacnPrefixCheckService(ctx);
         var context = await svc.CreateContext();
-        var links = await svc.CheckOrderWithContextAsync(order, context);
+        var links = svc.CheckOrder(order, context);
 
         Assert.That(links.Count(), Is.EqualTo(0));
     }
 
     [Test]
-    public async Task CheckOrderWithContextAsync_ExceptionPreventsMatch()
+    public async Task CheckOrder_ExceptionPreventsMatch()
     {
         using var ctx = CreateContext();
         var prefix = new FeacnPrefix { Id = 10, Code = "1234", FeacnOrderId = 1 };
@@ -360,7 +360,7 @@ public class FeacnPrefixCheckServiceTests
 
         var svc = new FeacnPrefixCheckService(ctx);
         var context = await svc.CreateContext();
-        var links = await svc.CheckOrderWithContextAsync(order, context);
+        var links = svc.CheckOrder(order, context);
 
         Assert.That(links.Count(), Is.EqualTo(0));
     }

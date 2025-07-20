@@ -66,10 +66,10 @@ public class OrderValidationService(
         await _db.SaveChangesAsync(cancellationToken);
 
         var productName = order.ProductName ?? string.Empty;
-        var links1 = await SelectStopWordLinksAsync(order.Id, productName, stopWordsContext, morphologyContext, cancellationToken);
+        var links1 = SelectStopWordLinks(order.Id, productName, stopWordsContext, morphologyContext);
 
         var links2 = feacnContext != null
-            ? await _feacnPrefixCheckService.CheckOrderWithContextAsync(order, feacnContext, cancellationToken)
+            ? _feacnPrefixCheckService.CheckOrder(order, feacnContext)
             : await _feacnPrefixCheckService.CheckOrderAsync(order, cancellationToken);
 
         if (links1.Count > 0)
@@ -91,12 +91,11 @@ public class OrderValidationService(
         await _db.SaveChangesAsync(cancellationToken);
     }
 
-    private async Task<List<BaseOrderStopWord>> SelectStopWordLinksAsync(
+    private List<BaseOrderStopWord> SelectStopWordLinks(
         int orderId,
         string productName,
         StopWordsContext stopWordsContext,
-        MorphologyContext morphologyContext,
-        CancellationToken cancellationToken)
+        MorphologyContext morphologyContext)
     {
         var links = new List<BaseOrderStopWord>();
         var existingStopWordIds = new HashSet<int>();
@@ -117,10 +116,9 @@ public class OrderValidationService(
                 links.Add(new BaseOrderStopWord { BaseOrderId = orderId, StopWordId = id });
         }
 
-        await Task.Delay(0, cancellationToken);
         return links;
     }
-    private List<StopWord> GetMatchingStopWordsFromContext(string productName, StopWordsContext context)
+    private static List<StopWord> GetMatchingStopWordsFromContext(string productName, StopWordsContext context)
     {
         if (string.IsNullOrEmpty(productName))
             return [];

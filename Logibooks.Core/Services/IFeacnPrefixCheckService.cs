@@ -30,7 +30,7 @@ namespace Logibooks.Core.Services;
 public interface IFeacnPrefixCheckService
 {
     Task<IEnumerable<BaseOrderFeacnPrefix>> CheckOrderAsync(BaseOrder order, CancellationToken cancellationToken = default);
-    Task<IEnumerable<BaseOrderFeacnPrefix>> CheckOrderWithContextAsync(BaseOrder order, FeacnPrefixCheckContext context, CancellationToken cancellationToken = default);
+    IEnumerable<BaseOrderFeacnPrefix> CheckOrder(BaseOrder order, FeacnPrefixCheckContext context);
     Task<FeacnPrefixCheckContext> CreateContext(CancellationToken cancellationToken = default);
 }
 

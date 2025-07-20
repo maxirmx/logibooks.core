@@ -65,14 +65,13 @@ public class FeacnPrefixCheckService(AppDbContext db) : IFeacnPrefixCheckService
         return links;
     }
 
-    public Task<IEnumerable<BaseOrderFeacnPrefix>> CheckOrderWithContextAsync(
+    public IEnumerable<BaseOrderFeacnPrefix> CheckOrder(
         BaseOrder order,
-        FeacnPrefixCheckContext context,
-        CancellationToken cancellationToken = default)
+        FeacnPrefixCheckContext context)
     {
         if (order.TnVed == null || order.TnVed.Length < 2)
         {
-            return Task.FromResult<IEnumerable<BaseOrderFeacnPrefix>>([]);
+            return [];
         }
 
         string tnVed = order.TnVed;
@@ -80,7 +79,7 @@ public class FeacnPrefixCheckService(AppDbContext db) : IFeacnPrefixCheckService
 
         if (!context.Prefixes.TryGetValue(twoDigitPrefix, out var prefixes))
         {
-            return Task.FromResult<IEnumerable<BaseOrderFeacnPrefix>>([]);
+            return [];
         }
 
         var links = new List<BaseOrderFeacnPrefix>();
@@ -96,7 +95,7 @@ public class FeacnPrefixCheckService(AppDbContext db) : IFeacnPrefixCheckService
             }
         }
 
-        return Task.FromResult<IEnumerable<BaseOrderFeacnPrefix>>(links);
+        return links;
     }
 
     public async Task<FeacnPrefixCheckContext> CreateContext(CancellationToken cancellationToken = default)
