@@ -58,6 +58,7 @@ builder.Services
     .AddScoped<IFeacnPrefixCheckService, FeacnPrefixCheckService>()
     .AddScoped<IOrderValidationService, OrderValidationService>()
     .AddScoped<IRegisterValidationService, RegisterValidationService>()
+    .AddScoped<IRegisterProcessingService, RegisterProcessingService>()
     .AddSingleton<IMorphologySearchService, MorphologySearchService>()
     .AddScoped<UnhandledExceptionFilter>()
     .AddHttpContextAccessor()
