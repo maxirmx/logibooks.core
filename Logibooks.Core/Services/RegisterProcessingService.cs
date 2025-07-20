@@ -45,74 +45,7 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
         string mappingFile = "wbr_register_mapping.yaml",
         CancellationToken cancellationToken = default)
     {
-        _logger.LogDebug("UploadWbrRegisterFromExcelAsync for {file} ({size} bytes)", fileName, content.Length);
-
-        var mappingPath = Path.Combine(AppContext.BaseDirectory, "mapping", mappingFile);
-        if (!System.IO.File.Exists(mappingPath))
-        {
-            throw new FileNotFoundException("Mapping file not found", mappingPath);
-        }
-
-        var mapping = RegisterMapping.Load(mappingPath);
-
-        System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
-        using var ms = new MemoryStream(content);
-        using var reader = ExcelReaderFactory.CreateReader(ms);
-        var dataSet = reader.AsDataSet();
-        if (dataSet.Tables.Count == 0 || dataSet.Tables[0].Rows.Count <= 1)
-        {
-            throw new InvalidOperationException("Excel file is empty");
-        }
-
-        var table = dataSet.Tables[0];
-        var headerRow = table.Rows[0];
-        var columnMap = new Dictionary<int, string>();
-        for (int c = 0; c < table.Columns.Count; c++)
-        {
-            var header = headerRow[c]?.ToString() ?? string.Empty;
-            if (mapping.HeaderMappings.TryGetValue(header, out var prop))
-            {
-                columnMap[c] = prop;
-            }
-        }
-
-        var register = new Register { FileName = fileName, CompanyId = companyId };
-        _db.Registers.Add(register);
-        await _db.SaveChangesAsync(cancellationToken);
-
-        var orders = new List<WbrOrder>();
-        for (int r = 1; r < table.Rows.Count; r++)
-        {
-            var row = table.Rows[r];
-            var order = new WbrOrder { RegisterId = register.Id, StatusId = 1, CheckStatusId = 1 };
-            foreach (var kv in columnMap)
-            {
-                var val = row[kv.Key]?.ToString();
-                var propInfo = typeof(WbrOrder).GetProperty(kv.Value);
-                if (propInfo != null)
-                {
-                    if (propInfo != null && val != null)
-                    {
-                        try
-                        {
-                            object? convertedValue = ConvertValueToPropertyType(val, propInfo.PropertyType, propInfo.Name);
-                            propInfo.SetValue(order, convertedValue);
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogWarning(ex, "Failed to set value '{Value}' for property {Property}", val, propInfo.Name);
-                        }
-                    }
-                }
-            }
-            orders.Add(order);
-        }
-
-        _db.Orders.AddRange(orders);
-        await _db.SaveChangesAsync(cancellationToken);
-
-        _logger.LogDebug("UploadWbrRegisterFromExcelAsync imported {count} orders", orders.Count);
-        return new Reference { Id = register.Id };
+        return await UploadRegisterFromExcelAsync(companyId, content, fileName, mappingFile, cancellationToken);
     }
 
     public async Task<Reference> UploadOzonRegisterFromExcelAsync(
@@ -122,7 +55,21 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
         string mappingFile = "ozon_register_mapping.yaml",
         CancellationToken cancellationToken = default)
     {
-        _logger.LogDebug("UploadOzonRegisterFromExcelAsync for {file} ({size} bytes)", fileName, content.Length);
+        return await UploadRegisterFromExcelAsync(companyId, content, fileName, mappingFile, cancellationToken);
+    }
+
+    private async Task<Reference> UploadRegisterFromExcelAsync(
+        int companyId,
+        byte[] content,
+        string fileName,
+        string mappingFile,
+        CancellationToken cancellationToken = default)
+    {
+        // Determine company type and method name from companyId
+        bool isWbr = companyId == 2; // WBR company ID
+        string methodName = isWbr ? "UploadWbrRegisterFromExcelAsync" : "UploadOzonRegisterFromExcelAsync";
+        
+        _logger.LogDebug("{MethodName} for {file} ({size} bytes)", methodName, fileName, content.Length);
 
         var mappingPath = Path.Combine(AppContext.BaseDirectory, "mapping", mappingFile);
         if (!System.IO.File.Exists(mappingPath))
@@ -157,15 +104,39 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
         _db.Registers.Add(register);
         await _db.SaveChangesAsync(cancellationToken);
 
-        var orders = new List<OzonOrder>();
+        // Create orders based on company type
+        if (isWbr)
+        {
+            var orders = CreateWbrOrders(table, register.Id, columnMap);
+            _db.Orders.AddRange(orders);
+            await _db.SaveChangesAsync(cancellationToken);
+            _logger.LogDebug("{MethodName} imported {count} orders", methodName, orders.Count);
+        }
+        else // Ozon
+        {
+            var orders = CreateOzonOrders(table, register.Id, columnMap);
+            _db.Orders.AddRange(orders);
+            await _db.SaveChangesAsync(cancellationToken);
+            _logger.LogDebug("{MethodName} imported {count} orders", methodName, orders.Count);
+        }
+
+        return new Reference { Id = register.Id };
+    }
+
+    private List<WbrOrder> CreateWbrOrders(System.Data.DataTable table, int registerId, Dictionary<int, string> columnMap)
+    {
+        var orders = new List<WbrOrder>();
+        var orderType = typeof(WbrOrder);
+
         for (int r = 1; r < table.Rows.Count; r++)
         {
             var row = table.Rows[r];
-            var order = new OzonOrder { RegisterId = register.Id, StatusId = 1, CheckStatusId = 1 };
+            var order = new WbrOrder { RegisterId = registerId, StatusId = 1, CheckStatusId = 1 };
+
             foreach (var kv in columnMap)
             {
                 var val = row[kv.Key]?.ToString();
-                var propInfo = typeof(OzonOrder).GetProperty(kv.Value);
+                var propInfo = orderType.GetProperty(kv.Value);
                 if (propInfo != null && val != null)
                 {
                     try
@@ -182,11 +153,40 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
             orders.Add(order);
         }
 
-        _db.Orders.AddRange(orders);
-        await _db.SaveChangesAsync(cancellationToken);
+        return orders;
+    }
 
-        _logger.LogDebug("UploadOzonRegisterFromExcelAsync imported {count} orders", orders.Count);
-        return new Reference { Id = register.Id };
+    private List<OzonOrder> CreateOzonOrders(System.Data.DataTable table, int registerId, Dictionary<int, string> columnMap)
+    {
+        var orders = new List<OzonOrder>();
+        var orderType = typeof(OzonOrder);
+
+        for (int r = 1; r < table.Rows.Count; r++)
+        {
+            var row = table.Rows[r];
+            var order = new OzonOrder { RegisterId = registerId, StatusId = 1, CheckStatusId = 1 };
+
+            foreach (var kv in columnMap)
+            {
+                var val = row[kv.Key]?.ToString();
+                var propInfo = orderType.GetProperty(kv.Value);
+                if (propInfo != null && val != null)
+                {
+                    try
+                    {
+                        object? convertedValue = ConvertValueToPropertyType(val, propInfo.PropertyType, propInfo.Name);
+                        propInfo.SetValue(order, convertedValue);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to set value '{Value}' for property {Property}", val, propInfo.Name);
+                    }
+                }
+            }
+            orders.Add(order);
+        }
+
+        return orders;
     }
 
     private static readonly CultureInfo RussianCulture = new("ru-RU");
