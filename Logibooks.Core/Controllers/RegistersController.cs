@@ -458,8 +458,8 @@ public class RegistersController(
     private async Task<IActionResult> ProcessExcel(
         int companyId,
         byte[] content,
-        string fileName, 
-        string mappingFile = "register_mapping.yaml")
+        string fileName,
+        string mappingFile = "wbr_register_mapping.yaml")
     {
         _logger.LogDebug("ProcessExcel for {file} ({size} bytes)", fileName, content.Length);
 
