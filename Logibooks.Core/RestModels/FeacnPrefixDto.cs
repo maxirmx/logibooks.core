@@ -35,8 +35,6 @@ public class FeacnPrefixDto
     public string? Comment { get; set; }
     public int FeacnOrderId { get; set; }
     public List<FeacnPrefixExceptionDto> Exceptions { get; set; } = [];
-
-    public FeacnPrefixDto() { }
     public FeacnPrefixDto(FeacnPrefix p)
     {
         Id = p.Id;

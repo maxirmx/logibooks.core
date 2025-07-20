@@ -32,8 +32,6 @@ public class FeacnPrefixExceptionDto
     public int Id { get; set; }
     public string Code { get; set; } = string.Empty;
     public int FeacnPrefixId { get; set; }
-
-    public FeacnPrefixExceptionDto() { }
     public FeacnPrefixExceptionDto(FeacnPrefixException e)
     {
         Id = e.Id;
