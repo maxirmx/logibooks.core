@@ -25,7 +25,6 @@
 
 using Logibooks.Core.Data;
 using Logibooks.Core.Models;
-using Microsoft.EntityFrameworkCore;
 using System.Text.RegularExpressions;
 
 namespace Logibooks.Core.Services;
