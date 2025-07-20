@@ -78,8 +78,8 @@ public class RegisterValidationServiceTests
         var mock = new Mock<IOrderValidationService>();
         mock.Setup(m => m.ValidateAsync(
             It.IsAny<BaseOrder>(),
-            It.IsAny<MorphologyContext?>(),
-            It.IsAny<StopWordsContext?>(),
+            It.IsAny<MorphologyContext>(), 
+            It.IsAny<StopWordsContext>(),
             It.IsAny<FeacnPrefixCheckContext?>(),
             It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
@@ -97,8 +97,8 @@ public class RegisterValidationServiceTests
         Assert.That(progress.Finished, Is.True);
         mock.Verify(m => m.ValidateAsync(
             It.IsAny<BaseOrder>(),
-            It.IsAny<MorphologyContext?>(),
-            It.IsAny<StopWordsContext?>(),
+            It.IsAny<MorphologyContext>(), 
+            It.IsAny<StopWordsContext>(),
             It.IsAny<FeacnPrefixCheckContext?>(),
             It.IsAny<CancellationToken>()),
             Times.Exactly(2));
@@ -118,8 +118,8 @@ public class RegisterValidationServiceTests
         var mock = new Mock<IOrderValidationService>();
         mock.Setup(m => m.ValidateAsync(
             It.IsAny<BaseOrder>(),
-            It.IsAny<MorphologyContext?>(),
-            It.IsAny<StopWordsContext?>(),
+            It.IsAny<MorphologyContext>(),
+            It.IsAny<StopWordsContext>(),
             It.IsAny<FeacnPrefixCheckContext?>(),
             It.IsAny<CancellationToken>()))
             .Returns(async () => { await Task.Delay(20); tcs.TrySetResult(); });

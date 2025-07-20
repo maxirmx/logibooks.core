@@ -72,6 +72,7 @@ public class OrdersController(
 
         var order = await _db.Orders.AsNoTracking()
             .Include(o => o.BaseOrderStopWords)
+            .Include(o => o.BaseOrderFeacnPrefixes)
             .FirstOrDefaultAsync(o => o.Id == id);
 
         if (order == null)
@@ -164,6 +165,7 @@ public class OrdersController(
 
         IQueryable<BaseOrder> query = _db.Orders.AsNoTracking()
             .Include(o => o.BaseOrderStopWords)
+            .Include(o => o.BaseOrderFeacnPrefixes)
             .Where(o => o.RegisterId == registerId);
 
         if (statusId != null)
@@ -245,15 +247,14 @@ public class OrdersController(
             return _404Order(id);
         }
 
-        var stopWords = await _db.StopWords.AsNoTracking()
-            .Where(sw => !sw.ExactMatch)
-            .ToListAsync();
-        var context = _morphologyService.InitializeContext(stopWords);
-        await _validationService.ValidateAsync(order, context, null, null);
+        var stopWords = await _db.StopWords.AsNoTracking().ToListAsync();
+        var morphologyContext = _morphologyService.InitializeContext(stopWords.Where(sw => !sw.ExactMatch));
+        var stopWordsContext = _validationService.InitializeStopWordsContext(stopWords.Where(sw => sw.ExactMatch));
+
+        await _validationService.ValidateAsync(order, morphologyContext, stopWordsContext, null);
 
         return NoContent();
     }
-
 
     [HttpGet("checkstatuses")]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<OrderCheckStatus>))]

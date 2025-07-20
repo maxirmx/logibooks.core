@@ -32,8 +32,8 @@ namespace Logibooks.Core.Services;
 public interface IOrderValidationService
 {
     Task ValidateAsync(BaseOrder order,
-        MorphologyContext? morphologyContext = null,
-        StopWordsContext? stopWordsContext = null,
+        MorphologyContext morphologyContext,
+        StopWordsContext stopWordsContext,
         FeacnPrefixCheckContext? feacnContext = null,
         CancellationToken cancellationToken = default);
 

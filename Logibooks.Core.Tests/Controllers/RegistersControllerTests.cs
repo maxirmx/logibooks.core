@@ -42,6 +42,7 @@ using System.Threading;
 using System;
 using System.Linq;
 using System.Reflection;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Logibooks.Core.Tests.Controllers;
 
@@ -1179,7 +1180,8 @@ public class RegistersControllerTests
         scopeMock.Setup(s => s.ServiceProvider).Returns(spMock.Object);
         scopeFactoryMock.Setup(f => f.CreateScope()).Returns(scopeMock.Object);
 
-        var realRegSvc = new RegisterValidationService(_dbContext, scopeFactoryMock.Object, _logger, new MorphologySearchService(), new FeacnPrefixCheckService(_dbContext));
+        // Update the logger type to match the expected type for RegisterValidationService
+        var realRegSvc = new RegisterValidationService(_dbContext, scopeFactoryMock.Object, new LoggerFactory().CreateLogger<RegisterValidationService>(), new MorphologySearchService(), new FeacnPrefixCheckService(_dbContext));
         _controller = new RegistersController(_mockHttpContextAccessor.Object, _dbContext, _logger, realRegSvc);
 
         var result = await _controller.ValidateRegister(200);

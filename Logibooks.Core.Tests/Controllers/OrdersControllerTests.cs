@@ -571,8 +571,8 @@ public class OrdersControllerTests
 
         _mockValidationService.Verify(s => s.ValidateAsync(
             order,
-            It.IsAny<MorphologyContext?>(),
-            It.IsAny<StopWordsContext?>(),
+            It.IsAny<MorphologyContext>(),
+            It.IsAny<StopWordsContext>(),
             It.IsAny<FeacnPrefixCheckContext?>(),
             It.IsAny<CancellationToken>()),
             Times.Once);
@@ -587,8 +587,8 @@ public class OrdersControllerTests
 
         _mockValidationService.Verify(s => s.ValidateAsync(
             It.IsAny<BaseOrder>(),
-            It.IsAny<MorphologyContext?>(),
-            It.IsAny<StopWordsContext?>(),
+            It.IsAny<MorphologyContext>(),
+            It.IsAny<StopWordsContext>(),
             It.IsAny<FeacnPrefixCheckContext?>(),
             It.IsAny<CancellationToken>()),
             Times.Never);
@@ -608,8 +608,8 @@ public class OrdersControllerTests
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
         _mockValidationService.Verify(s => s.ValidateAsync(
             It.IsAny<BaseOrder>(),
-            It.IsAny<MorphologyContext?>(),
-            It.IsAny<StopWordsContext?>(),
+            It.IsAny<MorphologyContext>(),
+            It.IsAny<StopWordsContext>(),
             It.IsAny<FeacnPrefixCheckContext?>(),
             It.IsAny<CancellationToken>()),
             Times.Never);
@@ -618,6 +618,8 @@ public class OrdersControllerTests
     [Test]
     public async Task ValidateOrder_WithRealService_CreatesFeacnLinks()
     {
+        SetCurrentUserId(1);
+
         var register = new Register { Id = 20, FileName = "r.xlsx" };
         var feacnOrder = new FeacnOrder { Id = 30, Title = "t" };
         var prefix = new FeacnPrefix { Id = 40, Code = "12", FeacnOrderId = 30, FeacnOrder = feacnOrder };
