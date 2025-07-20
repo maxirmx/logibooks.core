@@ -24,7 +24,6 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 using System.Globalization;
-using System.Net.Http;
 using CsvHelper;
 using CsvHelper.Configuration;
 using Logibooks.Core.Data;
