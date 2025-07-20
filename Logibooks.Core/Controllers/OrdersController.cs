@@ -73,6 +73,8 @@ public class OrdersController(
         var order = await _db.Orders.AsNoTracking()
             .Include(o => o.BaseOrderStopWords)
             .Include(o => o.BaseOrderFeacnPrefixes)
+                .ThenInclude(bofp => bofp.FeacnPrefix)
+                    .ThenInclude(fp => fp.FeacnOrder)
             .FirstOrDefaultAsync(o => o.Id == id);
 
         if (order == null)
@@ -166,6 +168,8 @@ public class OrdersController(
         IQueryable<BaseOrder> query = _db.Orders.AsNoTracking()
             .Include(o => o.BaseOrderStopWords)
             .Include(o => o.BaseOrderFeacnPrefixes)
+                .ThenInclude(bofp => bofp.FeacnPrefix)
+                    .ThenInclude(fp => fp.FeacnOrder)
             .Where(o => o.RegisterId == registerId);
 
         if (statusId != null)
