@@ -877,7 +877,7 @@ public class RegistersControllerTests
         Assert.That(registersCount, Is.EqualTo(0), "No register should be created for unsupported file types");
     }
 
-    private async Task<IActionResult> InvokeProcessExcel(int companyId, byte[] content, string fileName, string mappingFile = "register_mapping.yaml")
+    private async Task<IActionResult> InvokeProcessExcel(int companyId, byte[] content, string fileName, string mappingFile = "wbr_register_mapping.yaml")
     {
         return await (Task<IActionResult>)_processExcelMethod.Invoke(
             _controller,
