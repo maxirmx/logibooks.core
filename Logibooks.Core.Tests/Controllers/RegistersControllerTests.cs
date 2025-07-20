@@ -691,10 +691,9 @@ public class RegistersControllerTests
 
         // Set up the mock processing service to return a successful reference
         var expectedReference = new Reference { Id = 123 };
-        _mockProcessingService.Setup(x => x.UploadWbrRegisterFromExcelAsync(
+        _mockProcessingService.Setup(x => x.UploadRegisterFromExcelAsync(
             It.IsAny<int>(), 
             It.IsAny<byte[]>(), 
-            It.IsAny<string>(), 
             It.IsAny<string>(), 
             It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedReference);
@@ -758,10 +757,9 @@ public class RegistersControllerTests
 
         // Set up the mock processing service to return a successful reference
         var expectedReference = new Reference { Id = 124 };
-        _mockProcessingService.Setup(x => x.UploadWbrRegisterFromExcelAsync(
+        _mockProcessingService.Setup(x => x.UploadRegisterFromExcelAsync(
             It.IsAny<int>(), 
             It.IsAny<byte[]>(), 
-            It.IsAny<string>(), 
             It.IsAny<string>(), 
             It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedReference);
@@ -799,10 +797,9 @@ public class RegistersControllerTests
         }
 
         // Set up the mock processing service to throw InvalidOperationException for empty files
-        _mockProcessingService.Setup(x => x.UploadWbrRegisterFromExcelAsync(
+        _mockProcessingService.Setup(x => x.UploadRegisterFromExcelAsync(
             It.IsAny<int>(), 
             It.IsAny<byte[]>(), 
-            It.IsAny<string>(), 
             It.IsAny<string>(), 
             It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("Excel file is empty"));
