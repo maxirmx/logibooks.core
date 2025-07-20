@@ -35,4 +35,11 @@ public interface IRegisterProcessingService
         string fileName,
         string mappingFile = "wbr_register_mapping.yaml",
         CancellationToken cancellationToken = default);
+
+    Task<Reference> UploadOzonRegisterFromExcelAsync(
+        int companyId,
+        byte[] content,
+        string fileName,
+        string mappingFile = "ozon_register_mapping.yaml",
+        CancellationToken cancellationToken = default);
 }
