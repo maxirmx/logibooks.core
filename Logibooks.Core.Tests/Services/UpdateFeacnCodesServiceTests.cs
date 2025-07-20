@@ -881,24 +881,45 @@ public class UpdateFeacnCodesServiceTests
     }
 
     [Test]
-    public async Task RunAsync_SkipsInvisibleRows()
+    public async Task RunAsync_ContentOld()
     {
         await CreateTestOrder(1, "Test", "hidden-url");
 
         var html = @"
+        <table style='display:none'>
+            <tr><td>1111</td><td>Hidden Table</td></tr>
+        </table>
+        <table class='content-old'>
+            <tr><td>2222</td><td>Content Old Table but not Divider</td></tr>
+        </table>
+        <div class='content-old'>
             <table>
-                <tr style='display:none'><td>1111</td><td>Hidden</td></tr>
-                <tr class='hidden'><td>2222</td><td>Also Hidden</td></tr>
-                <tr><td>3333</td><td>Visible</td></tr>
-            </table>";
+                <tr><td>3333</td><td>Table in Content Old Div</td></tr>
+            </table>
+        </div>
+        <table>
+            <tr style='display:none'><td>4444</td><td>Hidden Row</td></tr>
+            <tr class='hidden'><td>5555</td><td>Also Hidden Row</td></tr>
+            <tr class='content-old'><td>6666</td><td>Content Old Row but not Divider</td></tr>
+            <tr><td>7777</td><td>Visible</td></tr>
+        </table>";
 
         SetupHttpResponse("https://www.alta.ru/tamdoc/hidden-url/", html);
 
         await _service.RunAsync();
 
         var prefixes = await _dbContext.FeacnPrefixes.ToListAsync();
-        Assert.That(prefixes.Count, Is.EqualTo(1));
-        Assert.That(prefixes[0].Code, Is.EqualTo("3333"));
+        Assert.That(prefixes.Count, Is.EqualTo(6));
+
+        // Verify that invisible table logging occurred
+        _mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Skipping content-old")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.AtLeastOnce);
     }
 
     [Test]
