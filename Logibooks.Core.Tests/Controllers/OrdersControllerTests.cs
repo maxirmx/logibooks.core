@@ -640,6 +640,65 @@ public class OrdersControllerTests
         await ctrl.ValidateOrder(20);
         var res = await ctrl.GetOrder(20);
 
-        Assert.That(res.Value!.FeacnPrefixIds, Does.Contain(40));
+        Assert.That(res.Value!.FeacnOrderIds, Does.Contain(30));
+    }
+
+    [Test]
+    public async Task GetOrder_ReturnsFeacnOrderIds_WithUniqueValues()
+    {
+        SetCurrentUserId(1);
+        var register = new Register { Id = 1, FileName = "r.xlsx" };
+        var feacnOrder1 = new FeacnOrder { Id = 10, Title = "Order 1" };
+        var feacnOrder2 = new FeacnOrder { Id = 20, Title = "Order 2" };
+        var order = new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "A" };
+        
+        // Create multiple prefixes with same FeacnOrderId and different FeacnOrderId
+        var prefix1 = new FeacnPrefix { Id = 100, Code = "12", FeacnOrderId = 10, FeacnOrder = feacnOrder1 };
+        var prefix2 = new FeacnPrefix { Id = 101, Code = "34", FeacnOrderId = 10, FeacnOrder = feacnOrder1 }; // Same order
+        var prefix3 = new FeacnPrefix { Id = 102, Code = "56", FeacnOrderId = 20, FeacnOrder = feacnOrder2 }; // Different order
+        
+        // Create links to all prefixes
+        var link1 = new BaseOrderFeacnPrefix { BaseOrderId = 1, FeacnPrefixId = 100, BaseOrder = order, FeacnPrefix = prefix1 };
+        var link2 = new BaseOrderFeacnPrefix { BaseOrderId = 1, FeacnPrefixId = 101, BaseOrder = order, FeacnPrefix = prefix2 };
+        var link3 = new BaseOrderFeacnPrefix { BaseOrderId = 1, FeacnPrefixId = 102, BaseOrder = order, FeacnPrefix = prefix3 };
+
+        _dbContext.Registers.Add(register);
+        _dbContext.FeacnOrders.AddRange(feacnOrder1, feacnOrder2);
+        _dbContext.FeacnPrefixes.AddRange(prefix1, prefix2, prefix3);
+        _dbContext.Orders.Add(order);
+        _dbContext.Set<BaseOrderFeacnPrefix>().AddRange(link1, link2, link3);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.GetOrder(1);
+
+        Assert.That(result.Value, Is.Not.Null);
+        Assert.That(result.Value!.FeacnOrderIds.Count, Is.EqualTo(2)); // Should have only 2 unique FeacnOrder IDs
+        Assert.That(result.Value.FeacnOrderIds, Does.Contain(10));
+        Assert.That(result.Value.FeacnOrderIds, Does.Contain(20));
+    }
+
+    [Test]
+    public async Task GetOrders_ReturnsFeacnOrderIds()
+    {
+        SetCurrentUserId(1);
+        var reg = new Register { Id = 1, FileName = "r.xlsx" };
+        var feacnOrder = new FeacnOrder { Id = 25, Title = "FEACN Order" };
+        var prefix = new FeacnPrefix { Id = 50, Code = "78", FeacnOrderId = 25, FeacnOrder = feacnOrder };
+        var order = new WbrOrder { Id = 10, RegisterId = 1, StatusId = 1 };
+        var link = new BaseOrderFeacnPrefix { BaseOrderId = 10, FeacnPrefixId = 50, BaseOrder = order, FeacnPrefix = prefix };
+        
+        _dbContext.Registers.Add(reg);
+        _dbContext.FeacnOrders.Add(feacnOrder);
+        _dbContext.FeacnPrefixes.Add(prefix);
+        _dbContext.Orders.Add(order);
+        _dbContext.Set<BaseOrderFeacnPrefix>().Add(link);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.GetOrders(registerId: 1);
+        var ok = result.Result as OkObjectResult;
+        var pr = ok!.Value as PagedResult<OrderViewItem>;
+
+        Assert.That(pr!.Items.First().FeacnOrderIds.Count, Is.EqualTo(1));
+        Assert.That(pr.Items.First().FeacnOrderIds.First(), Is.EqualTo(25));
     }
 }
