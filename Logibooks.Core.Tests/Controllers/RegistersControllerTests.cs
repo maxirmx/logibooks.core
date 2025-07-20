@@ -15,8 +15,7 @@
 // 'AS IS' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
 // TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
 // PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR CONTRIBUTORS
-// BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+// BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
 // SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
 // INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
 // CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
@@ -41,7 +40,6 @@ using System.IO;
 using System.Threading;
 using System;
 using System.Linq;
-using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Logibooks.Core.Tests.Controllers;
@@ -54,16 +52,18 @@ public class RegistersControllerTests
     private Mock<IHttpContextAccessor> _mockHttpContextAccessor;
     private Mock<IRegisterValidationService> _mockRegValidationService;
     private ILogger<RegistersController> _logger;
-    private RegisterProcessingService _service;
     private Role _logistRole;
     private Role _adminRole;
     private User _logistUser;
     private User _adminUser;
+    private RegistersController _controller;
     private Mock<IRegisterProcessingService> _mockProcessingService;
 #pragma warning restore CS8618
 
     private readonly string testDataDir = Path.Combine(AppContext.BaseDirectory, "test.data");
 
+
+    // Initialize the _controller field in the Setup method
     [SetUp]
     public void Setup()
     {
@@ -84,7 +84,7 @@ public class RegistersControllerTests
             Password = hpw,
             FirstName = "Log",
             LastName = "User",
-            UserRoles = [ new UserRole { UserId = 1, RoleId = 1, Role = _logistRole } ]
+            UserRoles = [new UserRole { UserId = 1, RoleId = 1, Role = _logistRole }]
         };
         _adminUser = new User
         {
@@ -93,7 +93,7 @@ public class RegistersControllerTests
             Password = hpw,
             FirstName = "Adm",
             LastName = "User",
-            UserRoles = [ new UserRole { UserId = 2, RoleId = 2, Role = _adminRole } ]
+            UserRoles = [new UserRole { UserId = 2, RoleId = 2, Role = _adminRole }]
         };
         _dbContext.Users.AddRange(_logistUser, _adminUser);
         _dbContext.SaveChanges();
@@ -103,7 +103,6 @@ public class RegistersControllerTests
         _mockProcessingService = new Mock<IRegisterProcessingService>();
         _logger = new LoggerFactory().CreateLogger<RegistersController>();
         _controller = new RegistersController(_mockHttpContextAccessor.Object, _dbContext, _logger, _mockRegValidationService.Object, _mockProcessingService.Object);
-
     }
 
     [TearDown]
@@ -690,13 +689,25 @@ public class RegistersControllerTests
             return;
         }
 
+        // Set up the mock processing service to return a successful reference
+        var expectedReference = new Reference { Id = 123 };
+        _mockProcessingService.Setup(x => x.UploadWbrRegisterFromExcelAsync(
+            It.IsAny<int>(), 
+            It.IsAny<byte[]>(), 
+            It.IsAny<string>(), 
+            It.IsAny<string>(), 
+            It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expectedReference);
+
         var mockFile = CreateMockFile("Реестр_207730349.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", excelContent);
         var result = await _controller.UploadRegister(mockFile.Object);
         Assert.That(result, Is.TypeOf<CreatedAtActionResult>());
 
-        // Verify that orders were created in the database
-        Assert.That(_dbContext.Orders.Count(), Is.GreaterThan(0),
-            "Orders should have been created in the database");
+        // Verify the CreatedAtActionResult properties
+        var createdResult = result as CreatedAtActionResult;
+        Assert.That(createdResult!.Value, Is.TypeOf<Reference>());
+        var returnedReference = createdResult.Value as Reference;
+        Assert.That(returnedReference!.Id, Is.EqualTo(expectedReference.Id));
     }
 
     [Test]
@@ -745,6 +756,16 @@ public class RegistersControllerTests
             return;
         }
 
+        // Set up the mock processing service to return a successful reference
+        var expectedReference = new Reference { Id = 124 };
+        _mockProcessingService.Setup(x => x.UploadWbrRegisterFromExcelAsync(
+            It.IsAny<int>(), 
+            It.IsAny<byte[]>(), 
+            It.IsAny<string>(), 
+            It.IsAny<string>(), 
+            It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expectedReference);
+
         var mockFile = CreateMockFile("Реестр_207730349.zip", "application/zip", zipContent);
 
         var result = await _controller.UploadRegister(mockFile.Object);
@@ -752,8 +773,11 @@ public class RegistersControllerTests
         // Assert that the result is OK
         Assert.That(result, Is.TypeOf<CreatedAtActionResult>());
 
-
-        Assert.That(_dbContext.Orders.Count(), Is.GreaterThan(0));
+        // Verify the CreatedAtActionResult properties
+        var createdResult = result as CreatedAtActionResult;
+        Assert.That(createdResult!.Value, Is.TypeOf<Reference>());
+        var returnedReference = createdResult.Value as Reference;
+        Assert.That(returnedReference!.Id, Is.EqualTo(expectedReference.Id));
     }
 
     [Test]
@@ -773,6 +797,15 @@ public class RegistersControllerTests
             Assert.Fail($"Test file not found at {testFilePath}: {ex.Message}");
             return;
         }
+
+        // Set up the mock processing service to throw InvalidOperationException for empty files
+        _mockProcessingService.Setup(x => x.UploadWbrRegisterFromExcelAsync(
+            It.IsAny<int>(), 
+            It.IsAny<byte[]>(), 
+            It.IsAny<string>(), 
+            It.IsAny<string>(), 
+            It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("Excel file is empty"));
 
         var mockFile = CreateMockFile("Register_Empty.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", excelContent);
         var result = await _controller.UploadRegister(mockFile.Object);
