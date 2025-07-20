@@ -652,7 +652,7 @@ public class OrdersControllerTests
         var feacnOrder2 = new FeacnOrder { Id = 20, Title = "Order 2" };
         var order = new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "A" };
         
-        // Create multiple prefixes with same FeacnOrderId and different FeacnOrderId
+        // Create multiple prefixes - some with the same FeacnOrderId and some with different FeacnOrderIds
         var prefix1 = new FeacnPrefix { Id = 100, Code = "12", FeacnOrderId = 10, FeacnOrder = feacnOrder1 };
         var prefix2 = new FeacnPrefix { Id = 101, Code = "34", FeacnOrderId = 10, FeacnOrder = feacnOrder1 }; // Same order
         var prefix3 = new FeacnPrefix { Id = 102, Code = "56", FeacnOrderId = 20, FeacnOrder = feacnOrder2 }; // Different order
