@@ -146,7 +146,7 @@ public class UploadOzonRegisterTests
     {
         var content = await File.ReadAllBytesAsync(Path.Combine("test.data", "Озон_Short.xlsx"));
 
-        var reference = await _service.UploadOzonRegisterFromExcelAsync(1, content, "Озон_Short.xlsx");
+        var reference = await _service.UploadRegisterFromExcelAsync(_service.GetOzonId() , content, "Озон_Short.xlsx");
 
         var ctx = (AppDbContext)typeof(RegisterProcessingService)
             .GetField("_db", BindingFlags.NonPublic | BindingFlags.Instance)!

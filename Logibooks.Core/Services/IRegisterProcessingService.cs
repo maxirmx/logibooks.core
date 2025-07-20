@@ -29,20 +29,12 @@ namespace Logibooks.Core.Services;
 
 public interface IRegisterProcessingService
 {
-    public int getOzonId() => 1;
-    public int getWBRId() => 2;
+    public int GetOzonId() => 1;
+    public int GetWBRId() => 2;
 
-    Task<Reference> UploadWbrRegisterFromExcelAsync(
+    Task<Reference> UploadRegisterFromExcelAsync(
         int companyId,
         byte[] content,
         string fileName,
-        string mappingFile = "wbr_register_mapping.yaml",
-        CancellationToken cancellationToken = default);
-
-    Task<Reference> UploadOzonRegisterFromExcelAsync(
-        int companyId,
-        byte[] content,
-        string fileName,
-        string mappingFile = "ozon_register_mapping.yaml",
         CancellationToken cancellationToken = default);
 }

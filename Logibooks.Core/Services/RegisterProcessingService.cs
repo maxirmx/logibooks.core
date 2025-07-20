@@ -37,38 +37,21 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
 {
     private readonly AppDbContext _db = db;
     private readonly ILogger<RegisterProcessingService> _logger = logger;
+    private static readonly CultureInfo RussianCulture = new("ru-RU");
 
-    public async Task<Reference> UploadWbrRegisterFromExcelAsync(
+    public int GetOzonId() => 1;
+    public int GetWBRId() => 2;
+    public async Task<Reference> UploadRegisterFromExcelAsync(
         int companyId,
         byte[] content,
         string fileName,
-        string mappingFile = "wbr_register_mapping.yaml",
-        CancellationToken cancellationToken = default)
-    {
-        return await UploadRegisterFromExcelAsync(companyId, content, fileName, mappingFile, cancellationToken);
-    }
-
-    public async Task<Reference> UploadOzonRegisterFromExcelAsync(
-        int companyId,
-        byte[] content,
-        string fileName,
-        string mappingFile = "ozon_register_mapping.yaml",
-        CancellationToken cancellationToken = default)
-    {
-        return await UploadRegisterFromExcelAsync(companyId, content, fileName, mappingFile, cancellationToken);
-    }
-
-    private async Task<Reference> UploadRegisterFromExcelAsync(
-        int companyId,
-        byte[] content,
-        string fileName,
-        string mappingFile,
         CancellationToken cancellationToken = default)
     {
         // Determine company type and method name from companyId
         bool isWbr = companyId == 2; // WBR company ID
         string methodName = isWbr ? "UploadWbrRegisterFromExcelAsync" : "UploadOzonRegisterFromExcelAsync";
-        
+        string mappingFile = isWbr ? "wbr_register_mapping.yaml" : "ozon_register_mapping.yaml";
+
         _logger.LogDebug("{MethodName} for {file} ({size} bytes)", methodName, fileName, content.Length);
 
         var mappingPath = Path.Combine(AppContext.BaseDirectory, "mapping", mappingFile);
@@ -102,24 +85,24 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
 
         var register = new Register { FileName = fileName, CompanyId = companyId };
         _db.Registers.Add(register);
-        await _db.SaveChangesAsync(cancellationToken);
 
+        int count = 0;
         // Create orders based on company type
         if (isWbr)
         {
             var orders = CreateWbrOrders(table, register.Id, columnMap);
             _db.Orders.AddRange(orders);
-            await _db.SaveChangesAsync(cancellationToken);
-            _logger.LogDebug("{MethodName} imported {count} orders", methodName, orders.Count);
+            count = orders.Count;
         }
         else // Ozon
         {
             var orders = CreateOzonOrders(table, register.Id, columnMap);
             _db.Orders.AddRange(orders);
-            await _db.SaveChangesAsync(cancellationToken);
-            _logger.LogDebug("{MethodName} imported {count} orders", methodName, orders.Count);
+            count = orders.Count;
         }
 
+        await _db.SaveChangesAsync(cancellationToken);
+        _logger.LogDebug("{MethodName} imported {count} orders", methodName, count);
         return new Reference { Id = register.Id };
     }
 
@@ -188,8 +171,6 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
 
         return orders;
     }
-
-    private static readonly CultureInfo RussianCulture = new("ru-RU");
 
     private object? ConvertValueToPropertyType(string? value, Type propertyType, string propertyName)
     {

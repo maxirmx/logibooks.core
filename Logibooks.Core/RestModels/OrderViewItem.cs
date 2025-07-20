@@ -58,8 +58,6 @@ public class OrderViewItem
 
     public OrderViewItem(BaseOrder order)
     {
-        ArgumentNullException.ThrowIfNull(order);
-
         Id = order.Id;
         RegisterId = order.RegisterId;
         StatusId = order.StatusId;

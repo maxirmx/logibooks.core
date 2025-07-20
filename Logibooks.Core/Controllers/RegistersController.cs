@@ -215,21 +215,27 @@ public class RegistersController(
         return Ok(result);
     }
 
-    [HttpPost("upload")]
+    [HttpPost("upload/{companyId?}")]
     [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(Reference))]
     [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
-    public async Task<IActionResult> UploadRegister(IFormFile file)
+    public async Task<IActionResult> UploadRegister(IFormFile file, int? companyId = null)
     {
         _logger.LogDebug("UploadRegister called for {name} ({size} bytes)", file?.FileName, file?.Length);
 
-        int companyId = _processingService.getWBRId();
+        int cId = companyId ?? _processingService.GetWBRId();
 
         var ok = await _db.CheckLogist(_curUserId);
         if (!ok)
         {
             _logger.LogDebug("UploadRegister returning '403 Forbidden'");
             return _403();
+        }
+
+        if (cId != _processingService.GetWBRId() && cId != _processingService.GetOzonId())
+        {
+            _logger.LogDebug($"Unknown company id: {cId}", cId);
+            return _400CompanyId((int)cId);
         }
 
         if (file == null || file.Length == 0)
@@ -249,7 +255,7 @@ public class RegistersController(
             byte[] excelContent = ms.ToArray();
             try
             {
-                var reference = await _processingService.UploadWbrRegisterFromExcelAsync(companyId, excelContent, file.FileName);
+                var reference = await _processingService.UploadRegisterFromExcelAsync(cId, excelContent, file.FileName);
                 return CreatedAtAction(nameof(UploadRegister), new { id = reference.Id }, reference);
             }
             catch (FileNotFoundException ex)
@@ -297,7 +303,7 @@ public class RegistersController(
 
             try
             {
-                var reference = await _processingService.UploadWbrRegisterFromExcelAsync(companyId, excelContent, excelFileName);
+                var reference = await _processingService.UploadRegisterFromExcelAsync(cId, excelContent, excelFileName);
                 _logger.LogDebug("UploadRegister processed archive with Excel");
                 return CreatedAtAction(nameof(UploadRegister), new { id = reference.Id }, reference);
             }
