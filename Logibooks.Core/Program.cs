@@ -55,6 +55,7 @@ builder.Services
     .AddScoped<IJwtUtils, JwtUtils>()
     .AddScoped<IUpdateCountriesService, UpdateCountriesService>()
     .AddScoped<IUpdateFeacnCodesService, UpdateFeacnCodesService>()
+    .AddScoped<IFeacnPrefixCheckService, FeacnPrefixCheckService>()
     .AddScoped<IOrderValidationService, OrderValidationService>()
     .AddScoped<IRegisterValidationService, RegisterValidationService>()
     .AddSingleton<IMorphologySearchService, MorphologySearchService>()

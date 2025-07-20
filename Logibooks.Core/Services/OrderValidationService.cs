@@ -26,73 +26,99 @@
 using Logibooks.Core.Data;
 using Logibooks.Core.Models;
 using Microsoft.EntityFrameworkCore;
+using System.Text.RegularExpressions;
 
 namespace Logibooks.Core.Services;
 
-public class OrderValidationService(AppDbContext db, IMorphologySearchService morphService) : IOrderValidationService
+public class OrderValidationService(
+    AppDbContext db, 
+    IMorphologySearchService morphService, 
+    IFeacnPrefixCheckService feacnPrefixCheckService) : IOrderValidationService
 {
     private readonly AppDbContext _db = db;
     private readonly IMorphologySearchService _morphService = morphService;
-
+    private readonly IFeacnPrefixCheckService _feacnPrefixCheckService = feacnPrefixCheckService;
+    private static readonly Regex TnVedRegex = new($"^\\d{{{FeacnPrefix.FeacnCodeLength}}}$", RegexOptions.Compiled);
 
     public async Task ValidateAsync(
         BaseOrder order,
-        MorphologyContext? morphologyContext = null,
-        StopWordsContext? stopWordsContext = null,
+        MorphologyContext morphologyContext,
+        StopWordsContext stopWordsContext,
+        FeacnPrefixCheckContext? feacnContext = null,
         CancellationToken cancellationToken = default)
     {
         // remove existing links for this order
-        var existing = _db.Set<BaseOrderStopWord>().Where(l => l.BaseOrderId == order.Id);
-        _db.Set<BaseOrderStopWord>().RemoveRange(existing);
+        var existing1 = _db.Set<BaseOrderStopWord>().Where(l => l.BaseOrderId == order.Id);
+        _db.Set<BaseOrderStopWord>().RemoveRange(existing1);
+
+        var existing2 = _db.Set<BaseOrderFeacnPrefix>()
+            .Where(l => l.BaseOrderId == order.Id);
+        _db.Set<BaseOrderFeacnPrefix>().RemoveRange(existing2);
+
+        if (string.IsNullOrWhiteSpace(order.TnVed) || !TnVedRegex.IsMatch(order.TnVed))
+        {
+            order.CheckStatusId = (int)OrderCheckStatusCode.InvalidFeacnFormat; 
+            await _db.SaveChangesAsync(cancellationToken);
+            return;
+        }
+
         order.CheckStatusId = (int)OrderCheckStatusCode.NotChecked;
         await _db.SaveChangesAsync(cancellationToken);
 
         var productName = order.ProductName ?? string.Empty;
+        var links1 = SelectStopWordLinks(order.Id, productName, stopWordsContext, morphologyContext);
 
-        // Use pre-loaded stop words from context or load from database
-        List<StopWord> matchingWords;
-        if (stopWordsContext != null)
+        var links2 = feacnContext != null
+            ? _feacnPrefixCheckService.CheckOrder(order, feacnContext)
+            : await _feacnPrefixCheckService.CheckOrderAsync(order, cancellationToken);
+
+        if (links1.Count > 0)
         {
-            matchingWords = GetMatchingStopWordsFromContext(productName, stopWordsContext);
+            _db.AddRange(links1);
         }
-        else
+        if (links2.Any())
         {
-            matchingWords = await GetMatchingStopWords(productName, cancellationToken);
+            _db.AddRange(links2);
         }
-
-        var links = new List<BaseOrderStopWord>();
-        var existingStopWordIds = new HashSet<int>();
-
-        foreach (var sw in matchingWords)
+        if (links1.Count > 0 || links2.Any())
         {
-            links.Add(new BaseOrderStopWord { BaseOrderId = order.Id, StopWordId = sw.Id });
-            existingStopWordIds.Add(sw.Id);
-        }
-
-        if (morphologyContext != null)
-        {
-            var ids = _morphService.CheckText(morphologyContext, productName);
-            foreach (var id in ids)
-            {
-                if (existingStopWordIds.Add(id)) // HashSet.Add returns false if already exists
-                    links.Add(new BaseOrderStopWord { BaseOrderId = order.Id, StopWordId = id });
-            }
-        }
-
-        if (links.Count > 0)
-        {
-            _db.AddRange(links);
             order.CheckStatusId = (int)OrderCheckStatusCode.HasIssues;
         }
         else
         {
-            order.CheckStatusId = (int)OrderCheckStatusCode.NoIssues; 
+            order.CheckStatusId = (int)OrderCheckStatusCode.NoIssues;
         }
-
         await _db.SaveChangesAsync(cancellationToken);
     }
 
-    private List<StopWord> GetMatchingStopWordsFromContext(string productName, StopWordsContext context)
+    private List<BaseOrderStopWord> SelectStopWordLinks(
+        int orderId,
+        string productName,
+        StopWordsContext stopWordsContext,
+        MorphologyContext morphologyContext)
+    {
+        var links = new List<BaseOrderStopWord>();
+        var existingStopWordIds = new HashSet<int>();
+
+        List<StopWord> matchingWords = GetMatchingStopWordsFromContext(productName, stopWordsContext); 
+
+        // Add stop words to links
+        foreach (var sw in matchingWords)
+        {
+            links.Add(new BaseOrderStopWord { BaseOrderId = orderId, StopWordId = sw.Id });
+            existingStopWordIds.Add(sw.Id);
+        }
+
+        var ids = _morphService.CheckText(morphologyContext, productName);
+        foreach (var id in ids)
+        {
+            if (existingStopWordIds.Add(id)) // HashSet.Add returns false if already exists
+                links.Add(new BaseOrderStopWord { BaseOrderId = orderId, StopWordId = id });
+        }
+
+        return links;
+    }
+    private static List<StopWord> GetMatchingStopWordsFromContext(string productName, StopWordsContext context)
     {
         if (string.IsNullOrEmpty(productName))
             return [];
@@ -101,20 +127,6 @@ public class OrderValidationService(AppDbContext db, IMorphologySearchService mo
             .Where(sw => !string.IsNullOrEmpty(sw.Word) && 
                          productName.Contains(sw.Word, StringComparison.OrdinalIgnoreCase))
             .ToList();
-    }
-
-    private async Task<List<StopWord>> GetMatchingStopWords(string productName, CancellationToken cancellationToken)
-    {
-        if (string.IsNullOrEmpty(productName))
-            return [];
-
-        // Load all exact match stop words and filter in memory for case-insensitive matching
-        var allWords = await _db.StopWords.AsNoTracking()
-            .Where(sw => sw.ExactMatch && !string.IsNullOrEmpty(sw.Word))
-            .ToListAsync(cancellationToken);
-
-        return allWords.Where(sw => productName.Contains(sw.Word, StringComparison.OrdinalIgnoreCase))
-                      .ToList();
     }
 
     public StopWordsContext InitializeStopWordsContext(IEnumerable<StopWord> exactMatchStopWords)

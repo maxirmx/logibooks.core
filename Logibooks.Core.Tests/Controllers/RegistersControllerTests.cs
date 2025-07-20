@@ -42,6 +42,7 @@ using System.Threading;
 using System;
 using System.Linq;
 using System.Reflection;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Logibooks.Core.Tests.Controllers;
 
@@ -1153,6 +1154,52 @@ public class RegistersControllerTests
         var obj = result as ObjectResult;
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
         _mockRegValidationService.Verify(s => s.CancelValidation(It.IsAny<Guid>()), Times.Never);
+    }
+
+    [Test]
+    public async Task ValidateRegister_WithRealService_CreatesFeacnLinks()
+    {
+        SetCurrentUserId(1);
+        var register = new Register { Id = 200, FileName = "r.xlsx" };
+        var feacnOrder = new FeacnOrder { Id = 300, Title = "t" };
+        var prefix = new FeacnPrefix { Id = 400, Code = "12", FeacnOrderId = 300, FeacnOrder = feacnOrder };
+        var order = new WbrOrder { Id = 201, RegisterId = 200, StatusId = 1, TnVed = "1234567890" };
+        _dbContext.Registers.Add(register);
+        _dbContext.FeacnOrders.Add(feacnOrder);
+        _dbContext.FeacnPrefixes.Add(prefix);
+        _dbContext.Orders.Add(order);
+        await _dbContext.SaveChangesAsync();
+
+        var orderValidationService = new OrderValidationService(_dbContext, new MorphologySearchService(), new FeacnPrefixCheckService(_dbContext));
+        var scopeFactoryMock = new Mock<IServiceScopeFactory>();
+        var spMock = new Mock<IServiceProvider>();
+        spMock.Setup(x => x.GetService(typeof(AppDbContext))).Returns(_dbContext);
+        spMock.Setup(x => x.GetService(typeof(IOrderValidationService))).Returns(orderValidationService);
+        spMock.Setup(x => x.GetService(typeof(IFeacnPrefixCheckService))).Returns(new FeacnPrefixCheckService(_dbContext));
+        var scopeMock = new Mock<IServiceScope>();
+        scopeMock.Setup(s => s.ServiceProvider).Returns(spMock.Object);
+        scopeFactoryMock.Setup(f => f.CreateScope()).Returns(scopeMock.Object);
+
+        // Update the logger type to match the expected type for RegisterValidationService
+        var realRegSvc = new RegisterValidationService(_dbContext, scopeFactoryMock.Object, new LoggerFactory().CreateLogger<RegisterValidationService>(), new MorphologySearchService(), new FeacnPrefixCheckService(_dbContext));
+        _controller = new RegistersController(_mockHttpContextAccessor.Object, _dbContext, _logger, realRegSvc);
+
+        var result = await _controller.ValidateRegister(200);
+        var handle = ((GuidReference)((OkObjectResult)result.Result!).Value!).Id;
+
+        // wait for completion
+        ValidationProgress? progress = null;
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        while (sw.Elapsed < TimeSpan.FromSeconds(2))
+        {
+            progress = realRegSvc.GetProgress(handle);
+            if (progress != null && progress.Finished)
+                break;
+            await Task.Delay(50);
+        }
+
+        var orderReloaded = await _dbContext.Orders.Include(o => o.BaseOrderFeacnPrefixes).FirstAsync(o => o.Id == 201);
+        Assert.That(orderReloaded.BaseOrderFeacnPrefixes.Any(l => l.FeacnPrefixId == 400), Is.True);
     }
 }
 

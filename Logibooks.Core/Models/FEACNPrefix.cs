@@ -30,6 +30,8 @@ namespace Logibooks.Core.Models;
 [Table("feacn_prefixes")]
 public class FeacnPrefix
 {
+    public const int FeacnCodeLength = 10;
+
     [Column("id")]
     public int Id { get; set; }
 
@@ -51,4 +53,36 @@ public class FeacnPrefix
 
     public ICollection<FeacnPrefixException> FeacnPrefixExceptions { get; set; } = new List<FeacnPrefixException>();
     public ICollection<BaseOrderFeacnPrefix> BaseOrderFeacnPrefixes { get; set; } = new List<BaseOrderFeacnPrefix>();
+
+    [NotMapped]
+    public long LeftValue
+    {
+        get
+        {
+            if (Code != null)
+            {
+                if (long.TryParse(Code.PadRight(FeacnCodeLength, '0'), out var result))
+                {
+                    return result;
+                }
+            }
+            return 0;
+        }
+    }
+
+    [NotMapped]
+    public long RightValue
+    {
+        get
+        {
+            if (IntervalCode != null)
+            {
+                if (long.TryParse(IntervalCode.PadRight(FeacnCodeLength, '0'), out var result))
+                {
+                    return result;
+                }
+            }
+            return 0;
+        }
+    }
 }

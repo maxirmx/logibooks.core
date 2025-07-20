@@ -54,6 +54,7 @@ public class OrderViewItem
     public string? PostingNumber { get; set; }
     public string? OzonId { get; set; }
     public List<int> StopWordIds { get; set; } = new();
+    public List<int> FeacnPrefixIds { get; set; } = new();
 
     public OrderViewItem(BaseOrder order)
     {
@@ -89,6 +90,9 @@ public class OrderViewItem
 
         StopWordIds = order.BaseOrderStopWords?
             .Select(bosw => bosw.StopWordId)
+            .ToList() ?? new List<int>();
+        FeacnPrefixIds = order.BaseOrderFeacnPrefixes?
+            .Select(bosw => bosw.FeacnPrefixId)
             .ToList() ?? new List<int>();
     }
 
