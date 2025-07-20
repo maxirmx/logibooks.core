@@ -570,10 +570,11 @@ public class OrdersControllerTests
         var result = await _controller.ValidateOrder(10);
 
         _mockValidationService.Verify(s => s.ValidateAsync(
-            order, 
+            order,
             It.IsAny<MorphologyContext?>(),
             It.IsAny<StopWordsContext?>(),
-            It.IsAny<CancellationToken>()), 
+            It.IsAny<FeacnPrefixCheckContext?>(),
+            It.IsAny<CancellationToken>()),
             Times.Once);
         Assert.That(result, Is.TypeOf<NoContentResult>());
     }
@@ -588,7 +589,8 @@ public class OrdersControllerTests
             It.IsAny<BaseOrder>(),
             It.IsAny<MorphologyContext?>(),
             It.IsAny<StopWordsContext?>(),
-            It.IsAny<CancellationToken>()), 
+            It.IsAny<FeacnPrefixCheckContext?>(),
+            It.IsAny<CancellationToken>()),
             Times.Never);
         Assert.That(result, Is.TypeOf<ObjectResult>());
         var obj = result as ObjectResult;
@@ -608,7 +610,34 @@ public class OrdersControllerTests
             It.IsAny<BaseOrder>(),
             It.IsAny<MorphologyContext?>(),
             It.IsAny<StopWordsContext?>(),
-            It.IsAny<CancellationToken>()), 
+            It.IsAny<FeacnPrefixCheckContext?>(),
+            It.IsAny<CancellationToken>()),
             Times.Never);
+    }
+
+    [Test]
+    public async Task ValidateOrder_WithRealService_CreatesFeacnLinks()
+    {
+        var register = new Register { Id = 20, FileName = "r.xlsx" };
+        var feacnOrder = new FeacnOrder { Id = 30, Title = "t" };
+        var prefix = new FeacnPrefix { Id = 40, Code = "12", FeacnOrderId = 30, FeacnOrder = feacnOrder };
+        var order = new WbrOrder { Id = 20, RegisterId = 20, StatusId = 1, TnVed = "1234567890" };
+        _dbContext.Registers.Add(register);
+        _dbContext.FeacnOrders.Add(feacnOrder);
+        _dbContext.FeacnPrefixes.Add(prefix);
+        _dbContext.Orders.Add(order);
+        await _dbContext.SaveChangesAsync();
+
+        var validationSvc = new OrderValidationService(_dbContext, new MorphologySearchService(), new FeacnPrefixCheckService(_dbContext));
+        var ctrl = new OrdersController(_mockHttpContextAccessor.Object, _dbContext, _logger, new Mock<IMapper>().Object, validationSvc, _morphologyService);
+
+        var ctx = new DefaultHttpContext();
+        ctx.Items["UserId"] = 1;
+        _mockHttpContextAccessor.Setup(x => x.HttpContext).Returns(ctx);
+
+        await ctrl.ValidateOrder(20);
+        var res = await ctrl.GetOrder(20);
+
+        Assert.That(res.Value!.FeacnPrefixIds, Does.Contain(40));
     }
 }

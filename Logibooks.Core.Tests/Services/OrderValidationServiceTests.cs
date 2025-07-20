@@ -307,7 +307,7 @@ public class OrderValidationServiceTests
 
         var svc = CreateService(ctx);
         var stopWordsContext = svc.InitializeStopWordsContext(contextStopWords);
-        await svc.ValidateAsync(order, null, stopWordsContext);
+        await svc.ValidateAsync(order, null, stopWordsContext, null);
 
         var links = ctx.Set<BaseOrderStopWord>().ToList();
         Assert.That(links.Count, Is.EqualTo(1));

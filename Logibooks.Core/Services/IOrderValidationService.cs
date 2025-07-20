@@ -34,6 +34,7 @@ public interface IOrderValidationService
     Task ValidateAsync(BaseOrder order,
         MorphologyContext? morphologyContext = null,
         StopWordsContext? stopWordsContext = null,
+        FeacnPrefixCheckContext? feacnContext = null,
         CancellationToken cancellationToken = default);
 
     StopWordsContext InitializeStopWordsContext(IEnumerable<StopWord> exactMatchStopWords);

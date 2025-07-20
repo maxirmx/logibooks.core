@@ -50,7 +50,7 @@ public class RegisterValidationServiceTests
         return new AppDbContext(options);
     }
 
-    private static IServiceScopeFactory CreateMockScopeFactory(AppDbContext dbContext, IOrderValidationService orderValidationService)
+    private static IServiceScopeFactory CreateMockScopeFactory(AppDbContext dbContext, IOrderValidationService orderValidationService, IFeacnPrefixCheckService feacnPrefixCheckService)
     {
         var mockServiceProvider = new Mock<IServiceProvider>();
         var mockScope = new Mock<IServiceScope>();
@@ -58,6 +58,7 @@ public class RegisterValidationServiceTests
 
         mockScope.Setup(s => s.ServiceProvider.GetService(typeof(AppDbContext))).Returns(dbContext);
         mockScope.Setup(s => s.ServiceProvider.GetService(typeof(IOrderValidationService))).Returns(orderValidationService);
+        mockScope.Setup(s => s.ServiceProvider.GetService(typeof(IFeacnPrefixCheckService))).Returns(feacnPrefixCheckService);
 
         mockScopeFactory.Setup(f => f.CreateScope()).Returns(mockScope.Object);
 
@@ -79,11 +80,13 @@ public class RegisterValidationServiceTests
             It.IsAny<BaseOrder>(),
             It.IsAny<MorphologyContext?>(),
             It.IsAny<StopWordsContext?>(),
+            It.IsAny<FeacnPrefixCheckContext?>(),
             It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
         var logger = new LoggerFactory().CreateLogger<RegisterValidationService>();
-        var scopeFactory = CreateMockScopeFactory(ctx, mock.Object);
-        var svc = new RegisterValidationService(ctx, scopeFactory, logger, new MorphologySearchService());
+        var feacnSvc = new Mock<IFeacnPrefixCheckService>().Object;
+        var scopeFactory = CreateMockScopeFactory(ctx, mock.Object, feacnSvc);
+        var svc = new RegisterValidationService(ctx, scopeFactory, logger, new MorphologySearchService(), feacnSvc);
 
         var handle = await svc.StartValidationAsync(1);
         await Task.Delay(100); // Give more time for background task
@@ -93,10 +96,11 @@ public class RegisterValidationServiceTests
         Assert.That(progress.Processed, Is.EqualTo(-1));
         Assert.That(progress.Finished, Is.True);
         mock.Verify(m => m.ValidateAsync(
-            It.IsAny<BaseOrder>(), 
+            It.IsAny<BaseOrder>(),
             It.IsAny<MorphologyContext?>(),
             It.IsAny<StopWordsContext?>(),
-            It.IsAny<CancellationToken>()), 
+            It.IsAny<FeacnPrefixCheckContext?>(),
+            It.IsAny<CancellationToken>()),
             Times.Exactly(2));
     }
 
@@ -113,14 +117,16 @@ public class RegisterValidationServiceTests
         var tcs = new TaskCompletionSource();
         var mock = new Mock<IOrderValidationService>();
         mock.Setup(m => m.ValidateAsync(
-            It.IsAny<BaseOrder>(), 
+            It.IsAny<BaseOrder>(),
             It.IsAny<MorphologyContext?>(),
             It.IsAny<StopWordsContext?>(),
+            It.IsAny<FeacnPrefixCheckContext?>(),
             It.IsAny<CancellationToken>()))
             .Returns(async () => { await Task.Delay(20); tcs.TrySetResult(); });
         var logger = new LoggerFactory().CreateLogger<RegisterValidationService>();
-        var scopeFactory = CreateMockScopeFactory(ctx, mock.Object);
-        var svc = new RegisterValidationService(ctx, scopeFactory, logger, new MorphologySearchService());
+        var feacnSvc = new Mock<IFeacnPrefixCheckService>().Object;
+        var scopeFactory = CreateMockScopeFactory(ctx, mock.Object, feacnSvc);
+        var svc = new RegisterValidationService(ctx, scopeFactory, logger, new MorphologySearchService(), feacnSvc);
 
         var handle = await svc.StartValidationAsync(2);
         svc.CancelValidation(handle);
@@ -141,8 +147,9 @@ public class RegisterValidationServiceTests
 
         var mock = new Mock<IOrderValidationService>();
         var logger = new LoggerFactory().CreateLogger<RegisterValidationService>();
-        var scopeFactory = CreateMockScopeFactory(ctx, mock.Object);
-        var svc = new RegisterValidationService(ctx, scopeFactory, logger, new MorphologySearchService());
+        var feacnSvc = new Mock<IFeacnPrefixCheckService>().Object;
+        var scopeFactory = CreateMockScopeFactory(ctx, mock.Object, feacnSvc);
+        var svc = new RegisterValidationService(ctx, scopeFactory, logger, new MorphologySearchService(), feacnSvc);
 
         var h1 = await svc.StartValidationAsync(3);
         var h2 = await svc.StartValidationAsync(3);
@@ -168,7 +175,8 @@ public class RegisterValidationServiceTests
         mockScopeFactory.Setup(f => f.CreateScope()).Returns(mockScope.Object);
 
         var logger = new LoggerFactory().CreateLogger<RegisterValidationService>();
-        var svc = new RegisterValidationService(ctx, mockScopeFactory.Object, logger, new MorphologySearchService());
+        var feacnSvc = new Mock<IFeacnPrefixCheckService>().Object;
+        var svc = new RegisterValidationService(ctx, mockScopeFactory.Object, logger, new MorphologySearchService(), feacnSvc);
 
         var handle = await svc.StartValidationAsync(10);
 
@@ -209,12 +217,13 @@ public class RegisterValidationServiceTests
 
         // Use real OrderValidationService and MorphologySearchService
         var logger = new LoggerFactory().CreateLogger<RegisterValidationService>();
-        var feacnPrefixCheckService = new Mock<IFeacnPrefixCheckService>().Object;
+        var feacnPrefixCheckService = new FeacnPrefixCheckService(ctx);
         var orderValidationService = new OrderValidationService(ctx, new MorphologySearchService(), feacnPrefixCheckService);
         // Setup DI scope factory to provide real services
         var mockServiceProvider = new Mock<IServiceProvider>();
         mockServiceProvider.Setup(x => x.GetService(typeof(AppDbContext))).Returns(ctx);
         mockServiceProvider.Setup(x => x.GetService(typeof(IOrderValidationService))).Returns(orderValidationService);
+        mockServiceProvider.Setup(x => x.GetService(typeof(IFeacnPrefixCheckService))).Returns(feacnPrefixCheckService);
 
         var mockScope = new Mock<IServiceScope>();
         mockScope.Setup(x => x.ServiceProvider).Returns(mockServiceProvider.Object);
@@ -222,7 +231,7 @@ public class RegisterValidationServiceTests
         var mockScopeFactory = new Mock<IServiceScopeFactory>();
         mockScopeFactory.Setup(x => x.CreateScope()).Returns(mockScope.Object);
 
-        var svc = new RegisterValidationService(ctx, mockScopeFactory.Object, logger, new MorphologySearchService());
+        var svc = new RegisterValidationService(ctx, mockScopeFactory.Object, logger, new MorphologySearchService(), feacnPrefixCheckService);
 
         // Act
         var handle = await svc.StartValidationAsync(100);

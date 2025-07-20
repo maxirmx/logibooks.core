@@ -44,6 +44,7 @@ public class OrderValidationService(
         BaseOrder order,
         MorphologyContext? morphologyContext = null,
         StopWordsContext? stopWordsContext = null,
+        FeacnPrefixCheckContext? feacnContext = null,
         CancellationToken cancellationToken = default)
     {
         // remove existing links for this order
@@ -67,7 +68,9 @@ public class OrderValidationService(
         var productName = order.ProductName ?? string.Empty;
         var links1 = await SelectStopWordLinksAsync(order.Id, productName, stopWordsContext, morphologyContext, cancellationToken);
 
-        var links2 = await _feacnPrefixCheckService.CheckOrderAsync(order, cancellationToken);
+        var links2 = feacnContext != null
+            ? await _feacnPrefixCheckService.CheckOrderWithContextAsync(order, feacnContext, cancellationToken)
+            : await _feacnPrefixCheckService.CheckOrderAsync(order, cancellationToken);
 
         if (links1.Count > 0)
         {

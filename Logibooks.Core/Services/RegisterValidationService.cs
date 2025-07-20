@@ -34,12 +34,14 @@ public class RegisterValidationService(
     AppDbContext db,
     IServiceScopeFactory scopeFactory,
     ILogger<RegisterValidationService> logger,
-    IMorphologySearchService morphologyService) : IRegisterValidationService
+    IMorphologySearchService morphologyService,
+    IFeacnPrefixCheckService feacnPrefixCheckService) : IRegisterValidationService
 {
     private readonly AppDbContext _db = db;
     private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
     private readonly ILogger<RegisterValidationService> _logger = logger;
     private readonly IMorphologySearchService _morphologyService = morphologyService;
+    private readonly IFeacnPrefixCheckService _feacnPrefixCheckService = feacnPrefixCheckService;
 
     private class ValidationProcess
     {
@@ -87,8 +89,9 @@ public class RegisterValidationService(
             using var scope = _scopeFactory.CreateScope();
             var scopedDb = scope.ServiceProvider.GetService(typeof(AppDbContext)) as AppDbContext;
             var scopedOrderSvc = scope.ServiceProvider.GetService(typeof(IOrderValidationService)) as IOrderValidationService;
+            var scopedFeacnSvc = scope.ServiceProvider.GetService(typeof(IFeacnPrefixCheckService)) as IFeacnPrefixCheckService;
 
-            if (scopedDb == null || scopedOrderSvc == null)
+            if (scopedDb == null || scopedOrderSvc == null || scopedFeacnSvc == null)
             {
                 process.Error = "Failed to resolve required services";
                 process.Finished = true;
@@ -99,8 +102,9 @@ public class RegisterValidationService(
 
             try
             {
-                // Initialize StopWordContext once for all orders in this register
+                // Initialize StopWordContext and FeacnPrefixContext once for all orders in this register
                 var stopWordsContext = scopedOrderSvc.InitializeStopWordsContext(allStopWords);
+                var feacnContext = await scopedFeacnSvc.CreateContext(process.Cts.Token);
 
                 foreach (var id in orders)
                 {
@@ -113,7 +117,7 @@ public class RegisterValidationService(
                     if (order != null)
                     {
                         // Use the new overload with both contexts
-                        await scopedOrderSvc.ValidateAsync(order, morphologyContext, stopWordsContext, process.Cts.Token);
+                        await scopedOrderSvc.ValidateAsync(order, morphologyContext, stopWordsContext, feacnContext, process.Cts.Token);
                     }
                     process.Processed++;
                 }
