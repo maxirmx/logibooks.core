@@ -1,4 +1,4 @@
-// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
+п»ї// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
 // All rights reserved.
 // This file is a part of Logibooks Core application
 //
@@ -46,12 +46,6 @@ public class StopWordsController(
     IMorphologySearchService morphologySearchService) : LogibooksControllerBase(httpContextAccessor, db, logger)
 {
     private readonly IMorphologySearchService _morphologySearchService = morphologySearchService;
-
-    protected ObjectResult _501MorphologyValidation(string word)
-    {
-        return StatusCode(StatusCodes.Status501NotImplemented,
-                          new ErrMessage { Msg = $"Слово '{word}' отсутсвует в словаре системы и не может быть настроено для поиска морфологического соотвествия. Используйте точное соответствие" });
-    }
 
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<StopWordDto>))]
