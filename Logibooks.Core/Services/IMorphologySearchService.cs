@@ -32,6 +32,7 @@ public interface IMorphologySearchService
 {
     MorphologyContext InitializeContext(IEnumerable<StopWord> stopWords);
     IEnumerable<int> CheckText(MorphologyContext context, string text);
+    bool CheckWord(string word);
 }
 
 public class MorphologyContext

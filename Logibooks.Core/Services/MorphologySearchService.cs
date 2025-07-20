@@ -51,6 +51,16 @@ public class MorphologySearchService : IMorphologySearchService
         return morphs.Count > 0 ? morphs.First().NormalCase.ToUpperInvariant() : word.ToUpperInvariant();
     }
 
+    public bool CheckWord(string word)
+    {
+        if (string.IsNullOrWhiteSpace(word))
+            return false;
+            
+        var normalForm = GetNormalForm(word);
+        var morphs = MorphologyService.GetAllWordforms(normalForm, Pullenti.Morph.MorphLang.RU);
+        return morphs.Count > 0 && morphs.Any(m => m.NormalCase == normalForm);
+    }
+
     public MorphologyContext InitializeContext(IEnumerable<StopWord> stopWords)
     {
         var context = new MorphologyContext();
