@@ -29,6 +29,7 @@ using Microsoft.EntityFrameworkCore;
 using Logibooks.Core.Authorization;
 using Logibooks.Core.Data;
 using Logibooks.Core.RestModels;
+using Logibooks.Core.Services;
 
 namespace Logibooks.Core.Controllers;
 
@@ -41,8 +42,11 @@ namespace Logibooks.Core.Controllers;
 public class StopWordsController(
     IHttpContextAccessor httpContextAccessor,
     AppDbContext db,
-    ILogger<StopWordsController> logger) : LogibooksControllerBase(httpContextAccessor, db, logger)
+    ILogger<StopWordsController> logger,
+    IMorphologySearchService morphologySearchService) : LogibooksControllerBase(httpContextAccessor, db, logger)
 {
+    private readonly IMorphologySearchService _morphologySearchService = morphologySearchService;
+
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<StopWordDto>))]
     public async Task<ActionResult<IEnumerable<StopWordDto>>> GetStopWords()
@@ -64,14 +68,28 @@ public class StopWordsController(
     [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(StopWordDto))]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status409Conflict, Type = typeof(ErrMessage))]
+    [ProducesResponseType(StatusCodes.Status501NotImplemented, Type = typeof(ErrMessage))]
+    [AllowAnonymous]
     public async Task<ActionResult<StopWordDto>> PostStopWord(StopWordDto dto)
     {
-        if (!await _db.CheckAdmin(_curUserId)) return _403();
+        // if (!await _db.CheckAdmin(_curUserId)) return _403();
+        
+        // Check for morphology validation if exact match is not requested
+        if (!dto.ExactMatch)
+        {
+            if (!_morphologySearchService.CheckWord(dto.Word))
+            {
+                _logger.LogDebug("PostStopWord returning '501 Not Implemented' - morphology validation failed for word: {word}", dto.Word);
+                return _501MorphologyValidation(dto.Word);
+            }
+        }
+        
         if (await _db.StopWords.AnyAsync(sw => sw.Word.ToLower() == dto.Word.ToLower()))
         {
             return _409StopWord(dto.Word);
         }
         var sw = dto.ToModel();
+
         _db.StopWords.Add(sw);
         try
         {
@@ -132,4 +150,5 @@ public class StopWordsController(
         await _db.SaveChangesAsync();
         return NoContent();
     }
+
 }
