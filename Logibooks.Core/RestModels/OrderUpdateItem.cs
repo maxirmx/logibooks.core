@@ -31,47 +31,26 @@ namespace Logibooks.Core.RestModels;
 public class OrderUpdateItem
 {
     public int? StatusId { get; set; }
-    // public int? CheckStatusId { get; set; }
-    // public int? RowNumber { get; set; }
     public string? OrderNumber { get; set; }
-    //public DateOnly? InvoiceDate { get; set; }
-    //public string? Sticker { get; set; }
     public string? Shk { get; set; }
-    //public string? StickerCode { get; set; }
     public string? TnVed { get; set; }
-    //public string? SiteArticle { get; set; }
-    //public string? HeelHeight { get; set; }
-    //public string? Size { get; set; }
     public string? ProductName { get; set; }
-    //public string? Description { get; set; }
-    //public string? Gender { get; set; }
-    //public string? Brand { get; set; }
-    //public string? FabricType { get; set; }
-    //public string? Composition { get; set; }
-    //public string? Lining { get; set; }
-    //public string? Insole { get; set; }
-    //public string? Sole { get; set; }
     public string? Country { get; set; }
-    //public string? FactoryAddress { get; set; }
-    //public string? Unit { get; set; }
     public decimal? WeightKg { get; set; }
     public decimal? Quantity { get; set; }
     public decimal? UnitPrice { get; set; }
     public string? Currency { get; set; }
-    //public string? Barcode { get; set; }
-    //public string? Declaration { get; set; }
     public string? ProductLink { get; set; }
     public string? RecipientName { get; set; }
-    //public string? RecipientInn { get; set; }
     public string? PassportNumber { get; set; }
-    //public string? Pinfl { get; set; }
-    //public string? RecipientAddress { get; set; }
-    //public string? ContactPhone { get; set; }
-    //public string? BoxNumber { get; set; }
-    //public string? Supplier { get; set; }
-    //public string? SupplierInn { get; set; }
-    //public string? Category { get; set; }
-    //public string? Subcategory { get; set; }
+
+    // Ozon specific fields
+    public string? PostingNumber { get; set; }
+    public int? PlacesCount { get; set; }
+    public string? Article { get; set; }
+    public string? LastName { get; set; }
+    public string? FirstName { get; set; }
+    public string? Patronymic { get; set; }
 
     public override string ToString()
     {
