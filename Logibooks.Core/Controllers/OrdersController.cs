@@ -51,6 +51,8 @@ public class OrdersController(
     IMorphologySearchService morphologyService) : LogibooksControllerBase(httpContextAccessor, db, logger)
 {
     private const int MaxPageSize = 1000;
+    private const int OzonCompanyId = 1;
+    private const int WbrCompanyId = 2;
     private readonly IMapper _mapper = mapper;
     private readonly IOrderValidationService _validationService = validationService;
     private readonly IMorphologySearchService _morphologyService = morphologyService;
@@ -59,9 +61,20 @@ public class OrdersController(
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(OrderViewItem))]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
-    public async Task<ActionResult<OrderViewItem>> GetOrder(int id)
+    [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(ErrMessage))]
+    public async Task<ActionResult<OrderViewItem>> GetOrder(int id, int companyId)
     {
-        _logger.LogDebug("GetOrder for id={id}", id);
+        _logger.LogDebug("GetOrder for id={id} companyId={cid}", id, companyId);
+
+        if (companyId == 0)
+        {
+            return _400CompanyId();
+        }
+
+        if (!await _db.Companies.AnyAsync(c => c.Id == companyId))
+        {
+            return _404CompanyId(companyId);
+        }
 
         var ok = await _db.CheckLogist(_curUserId);
         if (!ok)
@@ -70,7 +83,11 @@ public class OrdersController(
             return _403();
         }
 
-        var order = await _db.Orders.AsNoTracking()
+        IQueryable<BaseOrder> query = companyId == WbrCompanyId
+            ? _db.WbrOrders.AsNoTracking().Where(o => o.Register.CompanyId == companyId)
+            : _db.OzonOrders.AsNoTracking().Where(o => o.Register.CompanyId == companyId);
+
+        var order = await query
             .Include(o => o.BaseOrderStopWords)
             .Include(o => o.BaseOrderFeacnPrefixes)
                 .ThenInclude(bofp => bofp.FeacnPrefix)
@@ -91,9 +108,20 @@ public class OrdersController(
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
-    public async Task<IActionResult> UpdateOrder(int id, OrderUpdateItem update)
+    [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(ErrMessage))]
+    public async Task<IActionResult> UpdateOrder(int id, OrderUpdateItem update, int companyId)
     {
-        _logger.LogDebug("UpdateOrder for id={id}", id);
+        _logger.LogDebug("UpdateOrder for id={id} companyId={cid}", id, companyId);
+
+        if (companyId == 0)
+        {
+            return _400CompanyId();
+        }
+
+        if (!await _db.Companies.AnyAsync(c => c.Id == companyId))
+        {
+            return _404CompanyId(companyId);
+        }
 
         var ok = await _db.CheckLogist(_curUserId);
         if (!ok)
@@ -102,20 +130,73 @@ public class OrdersController(
             return _403();
         }
 
-        var order = await _db.WbrOrders.FindAsync(id);
+        IQueryable<BaseOrder> query = companyId == WbrCompanyId
+            ? _db.WbrOrders.Where(o => o.Register.CompanyId == companyId)
+            : _db.OzonOrders.Where(o => o.Register.CompanyId == companyId);
+
+        var order = await query.FirstOrDefaultAsync(o => o.Id == id);
         if (order == null)
         {
             _logger.LogDebug("UpdateOrder returning '404 Not Found'");
             return _404Order(id);
         }
 
-        // Use AutoMapper via extension method
-        order.UpdateFrom(update, _mapper);
+        if (order is WbrOrder wbr)
+        {
+            wbr.UpdateFrom(update, _mapper);
+        }
+        else if (order is OzonOrder ozon)
+        {
+            ozon.UpdateFrom(update, _mapper);
+        }
 
         _db.Entry(order).State = EntityState.Modified;
         await _db.SaveChangesAsync();
 
         _logger.LogDebug("UpdateOrder returning '204 No content'");
+        return NoContent();
+    }
+
+    [HttpDelete("{id}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
+    [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
+    [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(ErrMessage))]
+    public async Task<IActionResult> DeleteOrder(int id, int companyId)
+    {
+        _logger.LogDebug("DeleteOrder for id={id} companyId={cid}", id, companyId);
+
+        if (companyId == 0)
+        {
+            return _400CompanyId();
+        }
+
+        if (!await _db.Companies.AnyAsync(c => c.Id == companyId))
+        {
+            return _404CompanyId(companyId);
+        }
+
+        if (!await _db.CheckLogist(_curUserId))
+        {
+            _logger.LogDebug("DeleteOrder returning '403 Forbidden'");
+            return _403();
+        }
+
+        IQueryable<BaseOrder> query = companyId == WbrCompanyId
+            ? _db.WbrOrders.Where(o => o.Register.CompanyId == companyId)
+            : _db.OzonOrders.Where(o => o.Register.CompanyId == companyId);
+
+        var order = await query.FirstOrDefaultAsync(o => o.Id == id);
+        if (order == null)
+        {
+            _logger.LogDebug("DeleteOrder returning '404 Not Found'");
+            return _404Order(id);
+        }
+
+        _db.Remove(order);
+        await _db.SaveChangesAsync();
+
+        _logger.LogDebug("DeleteOrder returning '204 No content'");
         return NoContent();
     }
 

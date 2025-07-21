@@ -39,6 +39,13 @@ public class OrderMappingProfile : Profile
             .ForMember(dest => dest.Register, opt => opt.Ignore())
             .ForMember(dest => dest.ProductName, opt => opt.MapFrom(src => src.ProductName))
             .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
+
+        CreateMap<OrderUpdateItem, OzonOrder>()
+            .ForMember(dest => dest.Id, opt => opt.Ignore())
+            .ForMember(dest => dest.RegisterId, opt => opt.Ignore())
+            .ForMember(dest => dest.Register, opt => opt.Ignore())
+            .ForMember(dest => dest.ProductName, opt => opt.MapFrom(src => src.ProductName))
+            .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
     }
 }
 
