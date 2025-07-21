@@ -43,6 +43,18 @@ public class LogibooksControllerPreBase(AppDbContext db, ILogger logger) : Contr
                return StatusCode(StatusCodes.Status400BadRequest,
                           new ErrMessage() { Msg = $"Неизвестный идентификатор компании [id={companyId}]" });
     }
+
+    protected ObjectResult _400CompanyId()
+    {
+        return StatusCode(StatusCodes.Status400BadRequest,
+                          new ErrMessage() { Msg = "Не указан идентификатор компании" });
+    }
+
+    protected ObjectResult _404CompanyId(int companyId)
+    {
+        return StatusCode(StatusCodes.Status404NotFound,
+                          new ErrMessage() { Msg = $"Неизвестный идентификатор компании [id={companyId}]" });
+    }
     protected ObjectResult _400EmptyRegister()
     {
         return StatusCode(StatusCodes.Status400BadRequest,

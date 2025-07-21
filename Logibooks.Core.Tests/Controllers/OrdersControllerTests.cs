@@ -82,6 +82,10 @@ public class OrdersControllerTests
             UserRoles = [new UserRole { UserId = 1, RoleId = 1, Role = _logistRole }]
         };
         _dbContext.Users.Add(_logistUser);
+        _dbContext.Companies.AddRange(
+            new Company { Id = 1, Inn = "1", Name = "Ozon" },
+            new Company { Id = 2, Inn = "2", Name = "WBR" }
+        );
         _dbContext.SaveChanges();
 
         _mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
@@ -116,7 +120,7 @@ public class OrdersControllerTests
     public async Task GetOrder_ReturnsOrder_ForLogist()
     {
         SetCurrentUserId(1);
-        var register = new Register { Id = 1, FileName = "r.xlsx" };
+        var register = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
         var order = new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "A" };
         var sw = new StopWord { Id = 5, Word = "bad" };
         var link = new BaseOrderStopWord { BaseOrderId = 1, StopWordId = 5, BaseOrder = order, StopWord = sw };
@@ -126,7 +130,7 @@ public class OrdersControllerTests
         _dbContext.Add(link);
         await _dbContext.SaveChangesAsync();
 
-        var result = await _controller.GetOrder(1);
+        var result = await _controller.GetOrder(1, 2);
 
         Assert.That(result.Value, Is.Not.Null);
         Assert.That(result.Value, Is.InstanceOf<OrderViewItem>());
@@ -139,7 +143,7 @@ public class OrdersControllerTests
     public async Task UpdateOrder_ChangesData()
     {
         SetCurrentUserId(1);
-        var register = new Register { Id = 1, CompanyId = 1, FileName = "r.xlsx" };
+        var register = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
         var order = new WbrOrder { Id = 2, RegisterId = 1, StatusId = 1, TnVed = "A" };
         _dbContext.Registers.Add(register);
         _dbContext.Orders.Add(order);
@@ -167,7 +171,7 @@ public class OrdersControllerTests
             _morphologyService // Add this parameter
         );
 
-        var result = await _controller.UpdateOrder(2, updated);
+        var result = await _controller.UpdateOrder(2, updated, 2);
 
         Assert.That(result, Is.TypeOf<NoContentResult>());
 
@@ -180,7 +184,7 @@ public class OrdersControllerTests
     public async Task GetOrders_FiltersAndSorts()
     {
         SetCurrentUserId(1);
-        var reg = new Register { Id = 1, FileName = "r.xlsx" };
+        var reg = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
         _dbContext.Registers.Add(reg);
         _dbContext.Orders.AddRange(
             new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "B" },
@@ -201,7 +205,7 @@ public class OrdersControllerTests
     public async Task GetOrders_ReturnsStopWords()
     {
         SetCurrentUserId(1);
-        var reg = new Register { Id = 1, FileName = "r.xlsx" };
+        var reg = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
         var sw = new StopWord { Id = 7, Word = "foo" };
         var o1 = new WbrOrder { Id = 10, RegisterId = 1, StatusId = 1 };
         var link = new BaseOrderStopWord { BaseOrderId = 10, StopWordId = 7, BaseOrder = o1, StopWord = sw };
@@ -223,7 +227,7 @@ public class OrdersControllerTests
     public async Task GetOrders_ReturnsForbidden_ForNonLogist()
     {
         SetCurrentUserId(99); // unknown user
-        var reg = new Register { Id = 1, FileName = "r.xlsx" };
+        var reg = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
         _dbContext.Registers.Add(reg);
         _dbContext.SaveChanges();
 
@@ -238,7 +242,7 @@ public class OrdersControllerTests
     public async Task GetOrder_ReturnsForbidden_ForNonLogist()
     {
         SetCurrentUserId(99); // unknown user
-        var result = await _controller.GetOrder(1);
+        var result = await _controller.GetOrder(1, 2);
 
         Assert.That(result.Result, Is.TypeOf<ObjectResult>());
         var obj = result.Result as ObjectResult;
@@ -249,11 +253,11 @@ public class OrdersControllerTests
     public async Task GetOrder_ReturnsNotFound_WhenMissing()
     {
         SetCurrentUserId(1);
-        var register = new Register { Id = 1, FileName = "r.xlsx" };
+        var register = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
         _dbContext.Registers.Add(register);
         await _dbContext.SaveChangesAsync();
 
-        var result = await _controller.GetOrder(99);
+        var result = await _controller.GetOrder(99, 2);
 
         Assert.That(result.Result, Is.TypeOf<ObjectResult>());
         var obj = result.Result as ObjectResult;
@@ -266,7 +270,7 @@ public class OrdersControllerTests
         SetCurrentUserId(99); // unknown user
         var updated = new OrderUpdateItem();
 
-        var result = await _controller.UpdateOrder(1, updated);
+        var result = await _controller.UpdateOrder(1, updated, 2);
 
         Assert.That(result, Is.TypeOf<ObjectResult>());
         var obj = result as ObjectResult;
@@ -277,13 +281,13 @@ public class OrdersControllerTests
     public async Task UpdateOrder_ReturnsNotFound_WhenMissing()
     {
         SetCurrentUserId(1);
-        var register = new Register { Id = 1, FileName = "r.xlsx" };
+        var register = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
         _dbContext.Registers.Add(register);
         await _dbContext.SaveChangesAsync();
 
         var updated = new OrderUpdateItem { StatusId = 2, TnVed = "B" };
 
-        var result = await _controller.UpdateOrder(1, updated);
+        var result = await _controller.UpdateOrder(1, updated, 2);
 
         Assert.That(result, Is.TypeOf<ObjectResult>());
         var obj = result as ObjectResult;
@@ -327,7 +331,7 @@ public class OrdersControllerTests
     public async Task GetOrders_ReturnsAll_WhenPageSizeIsMinusOne()
     {
         SetCurrentUserId(1);
-        var reg = new Register { Id = 1, FileName = "r.xlsx" };
+        var reg = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
         _dbContext.Registers.Add(reg);
         _dbContext.Orders.AddRange(
             new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "A" },
@@ -348,7 +352,7 @@ public class OrdersControllerTests
     public async Task GetOrders_PageExceedsTotalPages_ResetsToFirstPage()
     {
         SetCurrentUserId(1);
-        var reg = new Register { Id = 1, FileName = "r.xlsx" };
+        var reg = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
         _dbContext.Registers.Add(reg);
         for (int i = 1; i <= 6; i++)
         {
@@ -489,7 +493,7 @@ public class OrdersControllerTests
     public async Task GetOrderStatus_ReturnsStatusTitle_WhenOrderExists()
     {
         // Arrange
-        var reg = new Register { Id = 1, FileName = "r.xlsx" };
+        var reg = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
         _dbContext.Registers.Add(reg);
         var status = new OrderStatus { Id = 1, Title = "Test Status" };
         var order = new WbrOrder { Shk = "12345678", RegisterId = 1, StatusId = 1, Status = status };
@@ -524,7 +528,7 @@ public class OrdersControllerTests
     public async Task GetOrderStatusWorksWithoutAuthentication()
     {
         // Arrange
-        var reg = new Register { Id = 1, FileName = "r.xlsx" };
+        var reg = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
         _dbContext.Registers.Add(reg);
         var status = new OrderStatus { Id = 1, Title = "Available" };
         var order = new WbrOrder { Shk = "ABC123", RegisterId = 1,  StatusId = 1, Status = status };
@@ -561,7 +565,7 @@ public class OrdersControllerTests
     public async Task ValidateOrder_RunsService_ForLogist()
     {
         SetCurrentUserId(1);
-        var register = new Register { Id = 10, FileName = "r.xlsx" };
+        var register = new Register { Id = 10, CompanyId = 2, FileName = "r.xlsx" };
         var order = new WbrOrder { Id = 10, RegisterId = 10, StatusId = 1 };
         _dbContext.Registers.Add(register);
         _dbContext.Orders.Add(order);
@@ -620,7 +624,7 @@ public class OrdersControllerTests
     {
         SetCurrentUserId(1);
 
-        var register = new Register { Id = 20, FileName = "r.xlsx" };
+        var register = new Register { Id = 20, CompanyId = 2, FileName = "r.xlsx" };
         var feacnOrder = new FeacnOrder { Id = 30, Title = "t" };
         var prefix = new FeacnPrefix { Id = 40, Code = "12", FeacnOrderId = 30, FeacnOrder = feacnOrder };
         var order = new WbrOrder { Id = 20, RegisterId = 20, StatusId = 1, TnVed = "1234567890" };
@@ -631,14 +635,14 @@ public class OrdersControllerTests
         await _dbContext.SaveChangesAsync();
 
         var validationSvc = new OrderValidationService(_dbContext, new MorphologySearchService(), new FeacnPrefixCheckService(_dbContext));
-        var ctrl = new OrdersController(_mockHttpContextAccessor.Object, _dbContext, _logger, new Mock<IMapper>().Object, validationSvc, _morphologyService);
-
         var ctx = new DefaultHttpContext();
         ctx.Items["UserId"] = 1;
         _mockHttpContextAccessor.Setup(x => x.HttpContext).Returns(ctx);
 
+        var ctrl = new OrdersController(_mockHttpContextAccessor.Object, _dbContext, _logger, new Mock<IMapper>().Object, validationSvc, _morphologyService);
+
         await ctrl.ValidateOrder(20);
-        var res = await ctrl.GetOrder(20);
+        var res = await ctrl.GetOrder(20, 2);
 
         Assert.That(res.Value!.FeacnOrderIds, Does.Contain(30));
     }
@@ -647,7 +651,7 @@ public class OrdersControllerTests
     public async Task GetOrder_ReturnsFeacnOrderIds_WithUniqueValues()
     {
         SetCurrentUserId(1);
-        var register = new Register { Id = 1, FileName = "r.xlsx" };
+        var register = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
         var feacnOrder1 = new FeacnOrder { Id = 10, Title = "Order 1" };
         var feacnOrder2 = new FeacnOrder { Id = 20, Title = "Order 2" };
         var order = new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "A" };
@@ -669,7 +673,7 @@ public class OrdersControllerTests
         _dbContext.Set<BaseOrderFeacnPrefix>().AddRange(link1, link2, link3);
         await _dbContext.SaveChangesAsync();
 
-        var result = await _controller.GetOrder(1);
+        var result = await _controller.GetOrder(1, 2);
 
         Assert.That(result.Value, Is.Not.Null);
         Assert.That(result.Value!.FeacnOrderIds.Count, Is.EqualTo(2)); // Should have only 2 unique FeacnOrder IDs
@@ -681,7 +685,7 @@ public class OrdersControllerTests
     public async Task GetOrders_ReturnsFeacnOrderIds()
     {
         SetCurrentUserId(1);
-        var reg = new Register { Id = 1, FileName = "r.xlsx" };
+        var reg = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
         var feacnOrder = new FeacnOrder { Id = 25, Title = "FEACN Order" };
         var prefix = new FeacnPrefix { Id = 50, Code = "78", FeacnOrderId = 25, FeacnOrder = feacnOrder };
         var order = new WbrOrder { Id = 10, RegisterId = 1, StatusId = 1 };
@@ -700,5 +704,60 @@ public class OrdersControllerTests
 
         Assert.That(pr!.Items.First().FeacnOrderIds.Count, Is.EqualTo(1));
         Assert.That(pr.Items.First().FeacnOrderIds.First(), Is.EqualTo(25));
+    }
+
+    [Test]
+    public async Task GetOrder_ReturnsBadRequest_WhenCompanyIdMissing()
+    {
+        SetCurrentUserId(1);
+        var result = await _controller.GetOrder(1, 0);
+
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
+    }
+
+    [Test]
+    public async Task GetOrder_ReturnsNotFound_WhenUnknownCompanyId()
+    {
+        SetCurrentUserId(1);
+        var register = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
+        var order = new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1 };
+        _dbContext.Registers.Add(register);
+        _dbContext.Orders.Add(order);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.GetOrder(1, 99);
+
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+    }
+
+    [Test]
+    public async Task UpdateOrder_ReturnsBadRequest_WhenCompanyIdMissing()
+    {
+        SetCurrentUserId(1);
+        var result = await _controller.UpdateOrder(1, new OrderUpdateItem(), 0);
+
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
+    }
+
+    [Test]
+    public async Task DeleteOrder_RemovesOrder()
+    {
+        SetCurrentUserId(1);
+        var register = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
+        var order = new WbrOrder { Id = 5, RegisterId = 1, StatusId = 1 };
+        _dbContext.Registers.Add(register);
+        _dbContext.Orders.Add(order);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.DeleteOrder(5, 2);
+
+        Assert.That(result, Is.TypeOf<NoContentResult>());
+        Assert.That(await _dbContext.Orders.FindAsync(5), Is.Null);
     }
 }
