@@ -223,7 +223,7 @@ public class RegistersController(
     {
         _logger.LogDebug("UploadRegister called for {name} ({size} bytes)", file?.FileName, file?.Length);
 
-        int cId = companyId ?? _processingService.GetWBRId();
+        int cId = companyId ?? IRegisterProcessingService.GetWBRId();
 
         var ok = await _db.CheckLogist(_curUserId);
         if (!ok)
@@ -232,7 +232,7 @@ public class RegistersController(
             return _403();
         }
 
-        if (cId != _processingService.GetWBRId() && cId != _processingService.GetOzonId())
+        if (cId != IRegisterProcessingService.GetWBRId() && cId != IRegisterProcessingService.GetOzonId())
         {
             _logger.LogDebug($"Unknown company id: {cId}", cId);
             return _400CompanyId((int)cId);

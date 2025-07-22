@@ -93,8 +93,7 @@ public class OrdersControllerTests
         _logger = new LoggerFactory().CreateLogger<OrdersController>();
         _mockValidationService = new Mock<IOrderValidationService>();
         _mockProcessingService = new Mock<IRegisterProcessingService>();
-        _mockProcessingService.Setup(s => s.GetWBRId()).Returns(2);
-        _mockProcessingService.Setup(s => s.GetOzonId()).Returns(1);
+        // Note: Cannot mock static methods GetWBRId() and GetOzonId() - they return constants
         _morphologyService = new MorphologySearchService();
         _controller = CreateController();
     }

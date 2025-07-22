@@ -39,8 +39,9 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
     private readonly ILogger<RegisterProcessingService> _logger = logger;
     private static readonly CultureInfo RussianCulture = new("ru-RU");
 
-    public int GetOzonId() => 1;
-    public int GetWBRId() => 2;
+    public int GetOzonId() => IRegisterProcessingService.GetOzonId();
+    public int GetWBRId() => IRegisterProcessingService.GetWBRId();
+
     public async Task<Reference> UploadRegisterFromExcelAsync(
         int companyId,
         byte[] content,

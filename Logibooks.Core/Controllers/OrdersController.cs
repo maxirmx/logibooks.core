@@ -94,7 +94,7 @@ public class OrdersController(
         BaseOrder? order = null;
         int companyId = orderWithRegister.Register.CompanyId;
 
-        if (companyId == _processingService.GetWBRId())
+        if (companyId == IRegisterProcessingService.GetWBRId())
         {
             order = await _db.WbrOrders.AsNoTracking()
                 .Include(o => o.Register)
@@ -104,7 +104,7 @@ public class OrdersController(
                         .ThenInclude(fp => fp.FeacnOrder)
                 .FirstOrDefaultAsync(o => o.Id == id);
         }
-        else if (companyId == _processingService.GetOzonId())
+        else if (companyId == IRegisterProcessingService.GetOzonId())
         {
             order = await _db.OzonOrders.AsNoTracking()
                 .Include(o => o.Register)
@@ -163,13 +163,13 @@ public class OrdersController(
         BaseOrder? order = null;
         int companyId = orderWithRegister.Register.CompanyId;
 
-        if (companyId == _processingService.GetWBRId())
+        if (companyId == IRegisterProcessingService.GetWBRId())
         {
             order = await _db.WbrOrders
                 .Include(o => o.Register)
                 .FirstOrDefaultAsync(o => o.Id == id);
         }
-        else if (companyId == _processingService.GetOzonId())
+        else if (companyId == IRegisterProcessingService.GetOzonId())
         {
             order = await _db.OzonOrders
                 .Include(o => o.Register)

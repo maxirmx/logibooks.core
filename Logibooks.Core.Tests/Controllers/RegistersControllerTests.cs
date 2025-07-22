@@ -925,10 +925,6 @@ public class RegistersControllerTests
     {
         SetCurrentUserId(1); // Logist user
 
-        // Setup mock processing service to return unknown company IDs
-        _mockProcessingService.Setup(x => x.GetWBRId()).Returns(2);
-        _mockProcessingService.Setup(x => x.GetOzonId()).Returns(1);
-
         byte[] testContent = System.Text.Encoding.UTF8.GetBytes("test content");
         var mockFile = CreateMockFile("test.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", testContent);
 
@@ -950,10 +946,6 @@ public class RegistersControllerTests
     public async Task UploadRegister_DefaultsToWBRCompany_WhenNoCompanyIdProvided()
     {
         SetCurrentUserId(1); // Logist user
-
-        // Setup mock processing service
-        _mockProcessingService.Setup(x => x.GetWBRId()).Returns(2);
-        _mockProcessingService.Setup(x => x.GetOzonId()).Returns(1);
 
         var expectedReference = new Reference { Id = 125 };
         _mockProcessingService.Setup(x => x.UploadRegisterFromExcelAsync(
@@ -1144,10 +1136,6 @@ public class RegistersControllerTests
     public async Task UploadRegister_ReturnsSuccess_ForOzonCompany()
     {
         SetCurrentUserId(1); // Logist user
-
-        // Setup mock processing service for Ozon
-        _mockProcessingService.Setup(x => x.GetWBRId()).Returns(2);
-        _mockProcessingService.Setup(x => x.GetOzonId()).Returns(1);
 
         var expectedReference = new Reference { Id = 128 };
         _mockProcessingService.Setup(x => x.UploadRegisterFromExcelAsync(
