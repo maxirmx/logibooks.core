@@ -48,12 +48,14 @@ public class OrdersController(
     ILogger<OrdersController> logger,
     IMapper mapper,
     IOrderValidationService validationService,
-    IMorphologySearchService morphologyService) : LogibooksControllerBase(httpContextAccessor, db, logger)
+    IMorphologySearchService morphologyService,
+    IRegisterProcessingService processingService) : LogibooksControllerBase(httpContextAccessor, db, logger)
 {
     private const int MaxPageSize = 1000;
     private readonly IMapper _mapper = mapper;
     private readonly IOrderValidationService _validationService = validationService;
     private readonly IMorphologySearchService _morphologyService = morphologyService;
+    private readonly IRegisterProcessingService _processingService = processingService;
 
     [HttpGet("{id}")]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(OrderViewItem))]
@@ -70,20 +72,57 @@ public class OrdersController(
             return _403();
         }
 
-        var order = await _db.Orders.AsNoTracking()
-            .Include(o => o.BaseOrderStopWords)
-            .Include(o => o.BaseOrderFeacnPrefixes)
-                .ThenInclude(bofp => bofp.FeacnPrefix)
-                    .ThenInclude(fp => fp.FeacnOrder)
+        // First, get the order with its register to determine the company type
+        var orderWithRegister = await _db.Orders.AsNoTracking()
+            .Include(o => o.Register)
             .FirstOrDefaultAsync(o => o.Id == id);
 
-        if (order == null)
+        if (orderWithRegister == null)
         {
             _logger.LogDebug("GetOrder returning '404 Not Found'");
             return _404Order(id);
         }
 
-        _logger.LogDebug("GetOrder returning order");
+        // Validate that the company exists
+        if (!await _db.Companies.AnyAsync(c => c.Id == orderWithRegister.Register.CompanyId))
+        {
+            _logger.LogDebug("GetOrder returning '404 Not Found' - company not found");
+            return _404CompanyId(orderWithRegister.Register.CompanyId);
+        }
+
+        // Now query the specific order type with all required includes
+        BaseOrder? order = null;
+        int companyId = orderWithRegister.Register.CompanyId;
+
+        if (companyId == IRegisterProcessingService.GetWBRId())
+        {
+            order = await _db.WbrOrders.AsNoTracking()
+                .Include(o => o.Register)
+                .Include(o => o.BaseOrderStopWords)
+                .Include(o => o.BaseOrderFeacnPrefixes)
+                    .ThenInclude(bofp => bofp.FeacnPrefix)
+                        .ThenInclude(fp => fp.FeacnOrder)
+                .FirstOrDefaultAsync(o => o.Id == id);
+        }
+        else if (companyId == IRegisterProcessingService.GetOzonId())
+        {
+            order = await _db.OzonOrders.AsNoTracking()
+                .Include(o => o.Register)
+                .Include(o => o.BaseOrderStopWords)
+                .Include(o => o.BaseOrderFeacnPrefixes)
+                    .ThenInclude(bofp => bofp.FeacnPrefix)
+                        .ThenInclude(fp => fp.FeacnOrder)
+                .FirstOrDefaultAsync(o => o.Id == id);
+        }
+
+        if (order == null)
+        {
+            _logger.LogDebug("GetOrder returning '404 Not Found' - order not found in specific table");
+            return _404Order(id);
+        }
+
+        _logger.LogDebug("GetOrder returning {orderType} order for companyId={cid}", 
+            order.GetType().Name, companyId);
         return new OrderViewItem(order);
     }
 
@@ -102,20 +141,99 @@ public class OrdersController(
             return _403();
         }
 
-        var order = await _db.WbrOrders.FindAsync(id);
-        if (order == null)
+        // First, get the order with its register to determine the company type
+        var orderWithRegister = await _db.Orders
+            .Include(o => o.Register)
+            .FirstOrDefaultAsync(o => o.Id == id);
+
+        if (orderWithRegister == null)
         {
             _logger.LogDebug("UpdateOrder returning '404 Not Found'");
             return _404Order(id);
         }
 
-        // Use AutoMapper via extension method
-        order.UpdateFrom(update, _mapper);
+        // Validate that the company exists
+        if (!await _db.Companies.AnyAsync(c => c.Id == orderWithRegister.Register.CompanyId))
+        {
+            _logger.LogDebug("UpdateOrder returning '404 Not Found' - company not found");
+            return _404CompanyId(orderWithRegister.Register.CompanyId);
+        }
+
+        // Now query the specific order type for update
+        BaseOrder? order = null;
+        int companyId = orderWithRegister.Register.CompanyId;
+
+        if (companyId == IRegisterProcessingService.GetWBRId())
+        {
+            order = await _db.WbrOrders
+                .Include(o => o.Register)
+                .FirstOrDefaultAsync(o => o.Id == id);
+        }
+        else if (companyId == IRegisterProcessingService.GetOzonId())
+        {
+            order = await _db.OzonOrders
+                .Include(o => o.Register)
+                .FirstOrDefaultAsync(o => o.Id == id);
+        }
+
+        if (order == null)
+        {
+            _logger.LogDebug("UpdateOrder returning '404 Not Found' - order not found in specific table");
+            return _404Order(id);
+        }
+
+        if (order is WbrOrder wbr)
+        {
+            wbr.UpdateFrom(update, _mapper);
+        }
+        else if (order is OzonOrder ozon)
+        {
+            ozon.UpdateFrom(update, _mapper);
+        }
 
         _db.Entry(order).State = EntityState.Modified;
         await _db.SaveChangesAsync();
 
-        _logger.LogDebug("UpdateOrder returning '204 No content'");
+        _logger.LogDebug("UpdateOrder returning '204 No content' for id={id}", id);
+        return NoContent();
+    }
+
+    [HttpDelete("{id}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
+    [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
+    public async Task<IActionResult> DeleteOrder(int id)
+    {
+        _logger.LogDebug("DeleteOrder for id={id}", id);
+
+        if (!await _db.CheckLogist(_curUserId))
+        {
+            _logger.LogDebug("DeleteOrder returning '403 Forbidden'");
+            return _403();
+        }
+
+        // First, get the order with its register to determine the company type
+        var orderWithRegister = await _db.Orders
+            .Include(o => o.Register)
+            .FirstOrDefaultAsync(o => o.Id == id);
+
+        if (orderWithRegister == null)
+        {
+            _logger.LogDebug("DeleteOrder returning '404 Not Found'");
+            return _404Order(id);
+        }
+
+        // Validate that the company exists
+        if (!await _db.Companies.AnyAsync(c => c.Id == orderWithRegister.Register.CompanyId))
+        {
+            _logger.LogDebug("DeleteOrder returning '404 Not Found' - company not found");
+            return _404CompanyId(orderWithRegister.Register.CompanyId);
+        }
+
+        _db.Remove(orderWithRegister);
+        await _db.SaveChangesAsync();
+
+        _logger.LogDebug("DeleteOrder returning '204 No content' for id={id}", id);
         return NoContent();
     }
 

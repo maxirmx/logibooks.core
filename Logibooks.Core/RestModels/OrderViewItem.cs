@@ -51,6 +51,11 @@ public class OrderViewItem
     public string? RecipientName { get; set; }
     public string? RecipientInn { get; set; }
     public string? PassportNumber { get; set; }
+    public int? PlacesCount { get; set; }
+    public string? Article { get; set; }
+    public string? LastName { get; set; }
+    public string? FirstName { get; set; }
+    public string? Patronymic { get; set; }
     public string? PostingNumber { get; set; }
     public string? OzonId { get; set; }
     public List<int> StopWordIds { get; set; } = new();
@@ -58,8 +63,6 @@ public class OrderViewItem
 
     public OrderViewItem(BaseOrder order)
     {
-        ArgumentNullException.ThrowIfNull(order);
-
         Id = order.Id;
         RegisterId = order.RegisterId;
         StatusId = order.StatusId;
@@ -86,6 +89,18 @@ public class OrderViewItem
         {
             PostingNumber = ozon.PostingNumber;
             OzonId = ozon.OzonId;
+            Country = ozon.Country;
+            WeightKg = ozon.WeightKg;
+            Quantity = ozon.Quantity;
+            UnitPrice = ozon.UnitPrice;
+            Currency = ozon.Currency;
+            ProductLink = ozon.ProductLink;
+            PassportNumber = ozon.PassportNumber;
+            PlacesCount = ozon.PlacesCount;
+            Article = ozon.Article;
+            LastName = ozon.LastName;
+            FirstName = ozon.FirstName;
+            Patronymic = ozon.Patronymic;
         }
 
         StopWordIds = order.BaseOrderStopWords?

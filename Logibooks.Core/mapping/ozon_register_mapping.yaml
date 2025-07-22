@@ -1,0 +1,37 @@
+header_mappings:
+  "Номер коробки": BoxNumber
+  "ID отправления": OzonId
+  "Номер отправления": PostingNumber
+  "Вес отправления": ShipmentWeightKg
+  "Кол-во мест": PlacesCount
+  "Штрих код": Barcode
+  "Артикул": Article
+  "Производитель": Manufacturer
+  "Страна": Country
+  "Описание на английском": DescriptionEn
+  "Описание на русском": ProductName
+  "Вес": WeightKg
+  "Валюта": Currency
+  "Цена единицы": UnitPrice
+  "Количество": Quantity
+  "Ссылка на страницу интернет-магазина": ProductLink
+  "Код ТНВЭД": TnVed
+  "Фамилия": LastName
+  "Имя": FirstName
+  "Отчество": Patronymic
+  "Телефон": Phone
+  "Email": Email
+  "Дата рождения": BirthDate
+  "Серия паспорта": PassportSeries
+  "Номер паспорта": PassportNumber
+  "Дата выдачи паспорта": PassportIssueDate
+  "Кем выдан паспорт": PassportIssuedBy
+  "ИНН": Inn
+  "Индекс": PostalCode
+  "Населенный пункт": City
+  "Адрес": Address
+  "ЦМН": Cmn
+  "ID ЦМН": CmnId
+  "IMEI": Imei
+  "IMEI 2": Imei2
+  "Комментарий": Comment

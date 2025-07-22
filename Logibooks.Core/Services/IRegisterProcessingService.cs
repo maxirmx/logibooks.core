@@ -23,9 +23,20 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-namespace Logibooks.Core;
+using Logibooks.Core.RestModels;
 
-public static class VersionInfo
+namespace Logibooks.Core.Services;
+
+public interface IRegisterProcessingService
 {
-    public const string AppVersion = "0.7.0";
+    protected const int OzonId = 1;
+    protected const int WBRId = 2;
+
+    static public int GetOzonId() => OzonId;
+    static public int GetWBRId() => WBRId;
+    Task<Reference> UploadRegisterFromExcelAsync(
+        int companyId,
+        byte[] content,
+        string fileName,
+        CancellationToken cancellationToken = default);
 }

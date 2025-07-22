@@ -54,6 +54,7 @@ public class OrdersControllerTests
     private Mock<IHttpContextAccessor> _mockHttpContextAccessor;
     private Mock<IOrderValidationService> _mockValidationService;
     private IMorphologySearchService _morphologyService;
+    private Mock<IRegisterProcessingService> _mockProcessingService;
     private ILogger<OrdersController> _logger;
     private OrdersController _controller;
     private Role _logistRole;
@@ -82,11 +83,17 @@ public class OrdersControllerTests
             UserRoles = [new UserRole { UserId = 1, RoleId = 1, Role = _logistRole }]
         };
         _dbContext.Users.Add(_logistUser);
+        _dbContext.Companies.AddRange(
+            new Company { Id = 1, Inn = "1", Name = "Ozon" },
+            new Company { Id = 2, Inn = "2", Name = "WBR" }
+        );
         _dbContext.SaveChanges();
 
         _mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
         _logger = new LoggerFactory().CreateLogger<OrdersController>();
         _mockValidationService = new Mock<IOrderValidationService>();
+        _mockProcessingService = new Mock<IRegisterProcessingService>();
+        // Note: Cannot mock static methods GetWBRId() and GetOzonId() - they return constants
         _morphologyService = new MorphologySearchService();
         _controller = CreateController();
     }
@@ -101,7 +108,14 @@ public class OrdersControllerTests
     private OrdersController CreateController()
     {
         var mockMapper = new Mock<IMapper>();
-        return new OrdersController(_mockHttpContextAccessor.Object, _dbContext, _logger, mockMapper.Object, _mockValidationService.Object, _morphologyService);
+        return new OrdersController(
+            _mockHttpContextAccessor.Object,
+            _dbContext,
+            _logger,
+            mockMapper.Object,
+            _mockValidationService.Object,
+            _morphologyService,
+            _mockProcessingService.Object);
     }
 
     private void SetCurrentUserId(int id)
@@ -116,7 +130,7 @@ public class OrdersControllerTests
     public async Task GetOrder_ReturnsOrder_ForLogist()
     {
         SetCurrentUserId(1);
-        var register = new Register { Id = 1, FileName = "r.xlsx" };
+        var register = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
         var order = new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "A" };
         var sw = new StopWord { Id = 5, Word = "bad" };
         var link = new BaseOrderStopWord { BaseOrderId = 1, StopWordId = 5, BaseOrder = order, StopWord = sw };
@@ -139,7 +153,7 @@ public class OrdersControllerTests
     public async Task UpdateOrder_ChangesData()
     {
         SetCurrentUserId(1);
-        var register = new Register { Id = 1, CompanyId = 1, FileName = "r.xlsx" };
+        var register = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
         var order = new WbrOrder { Id = 2, RegisterId = 1, StatusId = 1, TnVed = "A" };
         _dbContext.Registers.Add(register);
         _dbContext.Orders.Add(order);
@@ -164,7 +178,8 @@ public class OrdersControllerTests
             _logger,
             mockMapper.Object,
             _mockValidationService.Object,
-            _morphologyService // Add this parameter
+            _morphologyService,
+            _mockProcessingService.Object
         );
 
         var result = await _controller.UpdateOrder(2, updated);
@@ -177,10 +192,155 @@ public class OrdersControllerTests
     }
 
     [Test]
+    public async Task UpdateOrder_ReturnsForbidden_ForNonLogist()
+    {
+        SetCurrentUserId(99); // unknown user
+        var updated = new OrderUpdateItem();
+
+        var result = await _controller.UpdateOrder(1, updated);
+
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
+    }
+
+    [Test]
+    public async Task UpdateOrder_ReturnsNotFound_WhenMissing()
+    {
+        SetCurrentUserId(1);
+        var register = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
+        _dbContext.Registers.Add(register);
+        await _dbContext.SaveChangesAsync();
+
+        var updated = new OrderUpdateItem { StatusId = 2, TnVed = "B" };
+
+        var result = await _controller.UpdateOrder(1, updated);
+
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+    }
+
+    [Test]
+    public async Task UpdateOrder_ReturnsNotFound_WhenCompanyNotFound()
+    {
+        SetCurrentUserId(1);
+        // Create an order with a register that references a non-existent company
+        var register = new Register { Id = 1, CompanyId = 999, FileName = "r.xlsx" }; // Company 999 doesn't exist
+        var order = new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "A" };
+        _dbContext.Registers.Add(register);
+        _dbContext.Orders.Add(order);
+        await _dbContext.SaveChangesAsync();
+
+        var updated = new OrderUpdateItem { StatusId = 2, TnVed = "B" };
+
+        var result = await _controller.UpdateOrder(1, updated);
+
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+    }
+
+    [Test]
+    public async Task UpdateOrder_ReturnsNotFound_WhenOrderExistsInWrongTable()
+    {
+        SetCurrentUserId(1);
+        // Create a WBR register but try to update an order that doesn't exist in WBR table
+        var register = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" }; // CompanyId = 2 is WBR
+        var ozonOrder = new OzonOrder { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "A" }; // Order exists in Ozon table
+        _dbContext.Registers.Add(register);
+        _dbContext.Orders.Add(ozonOrder);
+        await _dbContext.SaveChangesAsync();
+
+        var updated = new OrderUpdateItem { StatusId = 2, TnVed = "B" };
+
+        var result = await _controller.UpdateOrder(1, updated);
+
+        // Should return 404 because the order is in the wrong table for the company type
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+    }
+
+    [Test]
+    public async Task UpdateOrder_UpdatesWbrOrder_WhenCompanyIsWBR()
+    {
+        SetCurrentUserId(1);
+        var register = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" }; // CompanyId = 2 is WBR
+        var order = new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "A", OrderNumber = "WBR123" };
+        _dbContext.Registers.Add(register);
+        _dbContext.Orders.Add(order);
+        await _dbContext.SaveChangesAsync();
+
+        var mockMapper = new Mock<IMapper>();
+        mockMapper.Setup(m => m.Map(It.IsAny<OrderUpdateItem>(), It.IsAny<WbrOrder>()))
+            .Callback<OrderUpdateItem, WbrOrder>((src, dest) =>
+            {
+                if (src.StatusId.HasValue) dest.StatusId = src.StatusId.Value;
+                if (src.OrderNumber != null) dest.OrderNumber = src.OrderNumber;
+            });
+
+        _controller = new OrdersController(
+            _mockHttpContextAccessor.Object,
+            _dbContext,
+            _logger,
+            mockMapper.Object,
+            _mockValidationService.Object,
+            _morphologyService,
+            _mockProcessingService.Object
+        );
+
+        var updated = new OrderUpdateItem { StatusId = 3, OrderNumber = "WBR456" };
+        var result = await _controller.UpdateOrder(1, updated);
+
+        Assert.That(result, Is.TypeOf<NoContentResult>());
+        var savedOrder = await _dbContext.WbrOrders.FindAsync(1);
+        Assert.That(savedOrder!.StatusId, Is.EqualTo(3));
+        Assert.That(savedOrder.OrderNumber, Is.EqualTo("WBR456"));
+    }
+
+    [Test]
+    public async Task UpdateOrder_UpdatesOzonOrder_WhenCompanyIsOzon()
+    {
+        SetCurrentUserId(1);
+        var register = new Register { Id = 2, CompanyId = 1, FileName = "r.xlsx" }; // CompanyId = 1 is Ozon
+        var order = new OzonOrder { Id = 2, RegisterId = 2, StatusId = 1, TnVed = "B", OzonId = "OZON456" };
+        _dbContext.Registers.Add(register);
+        _dbContext.Orders.Add(order);
+        await _dbContext.SaveChangesAsync();
+
+        var mockMapper = new Mock<IMapper>();
+        mockMapper.Setup(m => m.Map(It.IsAny<OrderUpdateItem>(), It.IsAny<OzonOrder>()))
+            .Callback<OrderUpdateItem, OzonOrder>((src, dest) =>
+            {
+                if (src.StatusId.HasValue) dest.StatusId = src.StatusId.Value;
+                if (src.PostingNumber != null) dest.PostingNumber = src.PostingNumber;
+            });
+
+        _controller = new OrdersController(
+            _mockHttpContextAccessor.Object,
+            _dbContext,
+            _logger,
+            mockMapper.Object,
+            _mockValidationService.Object,
+            _morphologyService,
+            _mockProcessingService.Object
+        );
+
+        var updated = new OrderUpdateItem { StatusId = 3, PostingNumber = "POST123" };
+        var result = await _controller.UpdateOrder(2, updated);
+
+        Assert.That(result, Is.TypeOf<NoContentResult>());
+        var savedOrder = await _dbContext.OzonOrders.FindAsync(2);
+        Assert.That(savedOrder!.StatusId, Is.EqualTo(3));
+        Assert.That(savedOrder.PostingNumber, Is.EqualTo("POST123"));
+    }
+
+     [Test]
     public async Task GetOrders_FiltersAndSorts()
     {
         SetCurrentUserId(1);
-        var reg = new Register { Id = 1, FileName = "r.xlsx" };
+        var reg = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
         _dbContext.Registers.Add(reg);
         _dbContext.Orders.AddRange(
             new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "B" },
@@ -201,7 +361,7 @@ public class OrdersControllerTests
     public async Task GetOrders_ReturnsStopWords()
     {
         SetCurrentUserId(1);
-        var reg = new Register { Id = 1, FileName = "r.xlsx" };
+        var reg = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
         var sw = new StopWord { Id = 7, Word = "foo" };
         var o1 = new WbrOrder { Id = 10, RegisterId = 1, StatusId = 1 };
         var link = new BaseOrderStopWord { BaseOrderId = 10, StopWordId = 7, BaseOrder = o1, StopWord = sw };
@@ -223,7 +383,7 @@ public class OrdersControllerTests
     public async Task GetOrders_ReturnsForbidden_ForNonLogist()
     {
         SetCurrentUserId(99); // unknown user
-        var reg = new Register { Id = 1, FileName = "r.xlsx" };
+        var reg = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
         _dbContext.Registers.Add(reg);
         _dbContext.SaveChanges();
 
@@ -249,7 +409,7 @@ public class OrdersControllerTests
     public async Task GetOrder_ReturnsNotFound_WhenMissing()
     {
         SetCurrentUserId(1);
-        var register = new Register { Id = 1, FileName = "r.xlsx" };
+        var register = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
         _dbContext.Registers.Add(register);
         await _dbContext.SaveChangesAsync();
 
@@ -261,32 +421,20 @@ public class OrdersControllerTests
     }
 
     [Test]
-    public async Task UpdateOrder_ReturnsForbidden_ForNonLogist()
-    {
-        SetCurrentUserId(99); // unknown user
-        var updated = new OrderUpdateItem();
-
-        var result = await _controller.UpdateOrder(1, updated);
-
-        Assert.That(result, Is.TypeOf<ObjectResult>());
-        var obj = result as ObjectResult;
-        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
-    }
-
-    [Test]
-    public async Task UpdateOrder_ReturnsNotFound_WhenMissing()
+    public async Task GetOrder_ReturnsNotFound_WhenCompanyNotFound()
     {
         SetCurrentUserId(1);
-        var register = new Register { Id = 1, FileName = "r.xlsx" };
+        // Create an order with a register that references a non-existent company
+        var register = new Register { Id = 1, CompanyId = 999, FileName = "r.xlsx" }; // Company 999 doesn't exist
+        var order = new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "A" };
         _dbContext.Registers.Add(register);
+        _dbContext.Orders.Add(order);
         await _dbContext.SaveChangesAsync();
 
-        var updated = new OrderUpdateItem { StatusId = 2, TnVed = "B" };
+        var result = await _controller.GetOrder(1);
 
-        var result = await _controller.UpdateOrder(1, updated);
-
-        Assert.That(result, Is.TypeOf<ObjectResult>());
-        var obj = result as ObjectResult;
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
     }
 
@@ -327,7 +475,7 @@ public class OrdersControllerTests
     public async Task GetOrders_ReturnsAll_WhenPageSizeIsMinusOne()
     {
         SetCurrentUserId(1);
-        var reg = new Register { Id = 1, FileName = "r.xlsx" };
+        var reg = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
         _dbContext.Registers.Add(reg);
         _dbContext.Orders.AddRange(
             new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "A" },
@@ -348,7 +496,7 @@ public class OrdersControllerTests
     public async Task GetOrders_PageExceedsTotalPages_ResetsToFirstPage()
     {
         SetCurrentUserId(1);
-        var reg = new Register { Id = 1, FileName = "r.xlsx" };
+        var reg = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
         _dbContext.Registers.Add(reg);
         for (int i = 1; i <= 6; i++)
         {
@@ -489,7 +637,7 @@ public class OrdersControllerTests
     public async Task GetOrderStatus_ReturnsStatusTitle_WhenOrderExists()
     {
         // Arrange
-        var reg = new Register { Id = 1, FileName = "r.xlsx" };
+        var reg = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
         _dbContext.Registers.Add(reg);
         var status = new OrderStatus { Id = 1, Title = "Test Status" };
         var order = new WbrOrder { Shk = "12345678", RegisterId = 1, StatusId = 1, Status = status };
@@ -524,7 +672,7 @@ public class OrdersControllerTests
     public async Task GetOrderStatusWorksWithoutAuthentication()
     {
         // Arrange
-        var reg = new Register { Id = 1, FileName = "r.xlsx" };
+        var reg = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
         _dbContext.Registers.Add(reg);
         var status = new OrderStatus { Id = 1, Title = "Available" };
         var order = new WbrOrder { Shk = "ABC123", RegisterId = 1,  StatusId = 1, Status = status };
@@ -561,7 +709,7 @@ public class OrdersControllerTests
     public async Task ValidateOrder_RunsService_ForLogist()
     {
         SetCurrentUserId(1);
-        var register = new Register { Id = 10, FileName = "r.xlsx" };
+        var register = new Register { Id = 10, CompanyId = 2, FileName = "r.xlsx" };
         var order = new WbrOrder { Id = 10, RegisterId = 10, StatusId = 1 };
         _dbContext.Registers.Add(register);
         _dbContext.Orders.Add(order);
@@ -620,7 +768,7 @@ public class OrdersControllerTests
     {
         SetCurrentUserId(1);
 
-        var register = new Register { Id = 20, FileName = "r.xlsx" };
+        var register = new Register { Id = 20, CompanyId = 2, FileName = "r.xlsx" };
         var feacnOrder = new FeacnOrder { Id = 30, Title = "t" };
         var prefix = new FeacnPrefix { Id = 40, Code = "12", FeacnOrderId = 30, FeacnOrder = feacnOrder };
         var order = new WbrOrder { Id = 20, RegisterId = 20, StatusId = 1, TnVed = "1234567890" };
@@ -631,11 +779,18 @@ public class OrdersControllerTests
         await _dbContext.SaveChangesAsync();
 
         var validationSvc = new OrderValidationService(_dbContext, new MorphologySearchService(), new FeacnPrefixCheckService(_dbContext));
-        var ctrl = new OrdersController(_mockHttpContextAccessor.Object, _dbContext, _logger, new Mock<IMapper>().Object, validationSvc, _morphologyService);
-
         var ctx = new DefaultHttpContext();
         ctx.Items["UserId"] = 1;
         _mockHttpContextAccessor.Setup(x => x.HttpContext).Returns(ctx);
+
+        var ctrl = new OrdersController(
+            _mockHttpContextAccessor.Object,
+            _dbContext,
+            _logger,
+            new Mock<IMapper>().Object,
+            validationSvc,
+            _morphologyService,
+            _mockProcessingService.Object);
 
         await ctrl.ValidateOrder(20);
         var res = await ctrl.GetOrder(20);
@@ -647,7 +802,7 @@ public class OrdersControllerTests
     public async Task GetOrder_ReturnsFeacnOrderIds_WithUniqueValues()
     {
         SetCurrentUserId(1);
-        var register = new Register { Id = 1, FileName = "r.xlsx" };
+        var register = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
         var feacnOrder1 = new FeacnOrder { Id = 10, Title = "Order 1" };
         var feacnOrder2 = new FeacnOrder { Id = 20, Title = "Order 2" };
         var order = new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "A" };
@@ -681,7 +836,7 @@ public class OrdersControllerTests
     public async Task GetOrders_ReturnsFeacnOrderIds()
     {
         SetCurrentUserId(1);
-        var reg = new Register { Id = 1, FileName = "r.xlsx" };
+        var reg = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
         var feacnOrder = new FeacnOrder { Id = 25, Title = "FEACN Order" };
         var prefix = new FeacnPrefix { Id = 50, Code = "78", FeacnOrderId = 25, FeacnOrder = feacnOrder };
         var order = new WbrOrder { Id = 10, RegisterId = 1, StatusId = 1 };
@@ -700,5 +855,127 @@ public class OrdersControllerTests
 
         Assert.That(pr!.Items.First().FeacnOrderIds.Count, Is.EqualTo(1));
         Assert.That(pr.Items.First().FeacnOrderIds.First(), Is.EqualTo(25));
+    }
+
+    [Test]
+    public async Task DeleteOrder_RemovesOrder()
+    {
+        SetCurrentUserId(1);
+        var register = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
+        var order = new WbrOrder { Id = 5, RegisterId = 1, StatusId = 1 };
+        _dbContext.Registers.Add(register);
+        _dbContext.Orders.Add(order);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.DeleteOrder(5);
+
+        Assert.That(result, Is.TypeOf<NoContentResult>());
+        Assert.That(await _dbContext.Orders.FindAsync(5), Is.Null);
+    }
+
+    [Test]
+    public async Task DeleteOrder_ReturnsForbidden_ForNonLogist()
+    {
+        SetCurrentUserId(99); // unknown user
+        var register = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
+        var order = new WbrOrder { Id = 5, RegisterId = 1, StatusId = 1 };
+        _dbContext.Registers.Add(register);
+        _dbContext.Orders.Add(order);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.DeleteOrder(5);
+
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
+        Assert.That(await _dbContext.Orders.FindAsync(5), Is.Not.Null); // Order should still exist
+    }
+
+    [Test]
+    public async Task DeleteOrder_ReturnsNotFound_WhenOrderDoesNotExist()
+    {
+        SetCurrentUserId(1);
+        var result = await _controller.DeleteOrder(999);
+
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+    }
+
+    [Test]
+    public async Task DeleteOrder_ReturnsNotFound_WhenCompanyDoesNotExist()
+    {
+        SetCurrentUserId(1);
+        // Create an order with a register that references a non-existent company
+        var register = new Register { Id = 1, CompanyId = 999, FileName = "r.xlsx" }; // Company 999 doesn't exist
+        var order = new WbrOrder { Id = 5, RegisterId = 1, StatusId = 1 };
+        _dbContext.Registers.Add(register);
+        _dbContext.Orders.Add(order);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.DeleteOrder(5);
+
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+        Assert.That(await _dbContext.Orders.FindAsync(5), Is.Not.Null); // Order should still exist
+    }
+
+    [Test]
+    public async Task GetOrder_ReturnsWbrOrder_WhenCompanyIsWBR()
+    {
+        SetCurrentUserId(1);
+        var register = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" }; // CompanyId = 2 is WBR
+        var order = new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "A", OrderNumber = "WBR123" };
+        _dbContext.Registers.Add(register);
+        _dbContext.Orders.Add(order);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.GetOrder(1);
+
+        Assert.That(result.Value, Is.Not.Null);
+        Assert.That(result.Value, Is.InstanceOf<OrderViewItem>());
+        Assert.That(result.Value!.Id, Is.EqualTo(1));
+        Assert.That(result.Value.OrderNumber, Is.EqualTo("WBR123")); // WbrOrder specific field
+        Assert.That(result.Value.OzonId, Is.Null); // Should not have Ozon-specific fields
+    }
+
+    [Test]
+    public async Task GetOrder_ReturnsOzonOrder_WhenCompanyIsOzon()
+    {
+        SetCurrentUserId(1);
+        var register = new Register { Id = 2, CompanyId = 1, FileName = "r.xlsx" }; // CompanyId = 1 is Ozon
+        var order = new OzonOrder { Id = 2, RegisterId = 2, StatusId = 1, TnVed = "B", OzonId = "OZON456", PostingNumber = "POST789" };
+        _dbContext.Registers.Add(register);
+        _dbContext.Orders.Add(order);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.GetOrder(2);
+
+        Assert.That(result.Value, Is.Not.Null);
+        Assert.That(result.Value, Is.InstanceOf<OrderViewItem>());
+        Assert.That(result.Value!.Id, Is.EqualTo(2));
+        Assert.That(result.Value.OzonId, Is.EqualTo("OZON456")); // OzonOrder specific field
+        Assert.That(result.Value.PostingNumber, Is.EqualTo("POST789")); // OzonOrder specific field
+        Assert.That(result.Value.OrderNumber, Is.Null); // Should not have WBR-specific fields
+    }
+
+    [Test]
+    public async Task GetOrder_ReturnsNotFound_WhenOrderExistsInWrongTable()
+    {
+        SetCurrentUserId(1);
+        // Create a WBR register but try to find an order that doesn't exist in WBR table
+        var register = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" }; // CompanyId = 2 is WBR
+        var ozonOrder = new OzonOrder { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "A" }; // Order exists in Ozon table
+        _dbContext.Registers.Add(register);
+        _dbContext.Orders.Add(ozonOrder);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.GetOrder(1);
+
+        // Should return 404 because the order is in the wrong table for the company type
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
     }
 }

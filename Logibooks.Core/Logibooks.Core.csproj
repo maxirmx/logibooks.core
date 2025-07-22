@@ -36,7 +36,10 @@
     <PackageReference Include="ExcelDataReader.DataSet" Version="3.7.0" />
   </ItemGroup>
   <ItemGroup>
-    <None Update="mapping/register_mapping.yaml">
+    <None Update="mapping/wbr_register_mapping.yaml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="mapping/ozon_register_mapping.yaml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
