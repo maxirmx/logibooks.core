@@ -33,14 +33,13 @@ public class OrderMappingProfile : Profile
 {
     public OrderMappingProfile()
     {
-        CreateMap<OrderUpdateItem, WbrOrder>()
-            .ForMember(dest => dest.Id, opt => opt.Ignore())
-            .ForMember(dest => dest.RegisterId, opt => opt.Ignore())
-            .ForMember(dest => dest.Register, opt => opt.Ignore())
-            .ForMember(dest => dest.ProductName, opt => opt.MapFrom(src => src.ProductName))
-            .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
+        MapOrderUpdate<WbrOrder>();
+        MapOrderUpdate<OzonOrder>();
+    }
 
-        CreateMap<OrderUpdateItem, OzonOrder>()
+    private void MapOrderUpdate<TOrder>() where TOrder : BaseOrder
+    {
+        CreateMap<OrderUpdateItem, TOrder>()
             .ForMember(dest => dest.Id, opt => opt.Ignore())
             .ForMember(dest => dest.RegisterId, opt => opt.Ignore())
             .ForMember(dest => dest.Register, opt => opt.Ignore())

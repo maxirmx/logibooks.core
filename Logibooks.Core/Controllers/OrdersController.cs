@@ -48,14 +48,14 @@ public class OrdersController(
     ILogger<OrdersController> logger,
     IMapper mapper,
     IOrderValidationService validationService,
-    IMorphologySearchService morphologyService) : LogibooksControllerBase(httpContextAccessor, db, logger)
+    IMorphologySearchService morphologyService,
+    IRegisterProcessingService processingService) : LogibooksControllerBase(httpContextAccessor, db, logger)
 {
     private const int MaxPageSize = 1000;
-    private const int OzonCompanyId = 1;
-    private const int WbrCompanyId = 2;
     private readonly IMapper _mapper = mapper;
     private readonly IOrderValidationService _validationService = validationService;
     private readonly IMorphologySearchService _morphologyService = morphologyService;
+    private readonly IRegisterProcessingService _processingService = processingService;
 
     [HttpGet("{id}")]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(OrderViewItem))]
@@ -83,9 +83,7 @@ public class OrdersController(
             return _403();
         }
 
-        IQueryable<BaseOrder> query = companyId == WbrCompanyId
-            ? _db.WbrOrders.AsNoTracking().Where(o => o.Register.CompanyId == companyId)
-            : _db.OzonOrders.AsNoTracking().Where(o => o.Register.CompanyId == companyId);
+        IQueryable<BaseOrder> query = BuildOrderQuery(companyId, asNoTracking: true);
 
         var order = await query
             .Include(o => o.BaseOrderStopWords)
@@ -130,9 +128,7 @@ public class OrdersController(
             return _403();
         }
 
-        IQueryable<BaseOrder> query = companyId == WbrCompanyId
-            ? _db.WbrOrders.Where(o => o.Register.CompanyId == companyId)
-            : _db.OzonOrders.Where(o => o.Register.CompanyId == companyId);
+        IQueryable<BaseOrder> query = BuildOrderQuery(companyId);
 
         var order = await query.FirstOrDefaultAsync(o => o.Id == id);
         if (order == null)
@@ -182,9 +178,7 @@ public class OrdersController(
             return _403();
         }
 
-        IQueryable<BaseOrder> query = companyId == WbrCompanyId
-            ? _db.WbrOrders.Where(o => o.Register.CompanyId == companyId)
-            : _db.OzonOrders.Where(o => o.Register.CompanyId == companyId);
+        IQueryable<BaseOrder> query = BuildOrderQuery(companyId);
 
         var order = await query.FirstOrDefaultAsync(o => o.Id == id);
         if (order == null)
@@ -370,5 +364,14 @@ public class OrdersController(
         }
 
         return Ok(statusTitle);
+    }
+
+    private IQueryable<BaseOrder> BuildOrderQuery(int companyId, bool asNoTracking = false)
+    {
+        IQueryable<BaseOrder> query = companyId == _processingService.GetWBRId()
+            ? _db.WbrOrders.Where(o => o.Register.CompanyId == companyId)
+            : _db.OzonOrders.Where(o => o.Register.CompanyId == companyId);
+
+        return asNoTracking ? query.AsNoTracking() : query;
     }
 }
