@@ -29,9 +29,11 @@ namespace Logibooks.Core.Services;
 
 public interface IRegisterProcessingService
 {
-    public int GetOzonId() => 1;
-    public int GetWBRId() => 2;
+    private const int OzonId = 1;
+    private const int WBRId = 2;
 
+    public int GetOzonId() => OzonId;
+    public int GetWBRId() => WBRId;
     Task<Reference> UploadRegisterFromExcelAsync(
         int companyId,
         byte[] content,
