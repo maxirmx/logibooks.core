@@ -85,6 +85,7 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
 
         var register = new Register { FileName = fileName, CompanyId = companyId };
         _db.Registers.Add(register);
+        await _db.SaveChangesAsync(cancellationToken);
 
         int count = 0;
         // Create orders based on company type
