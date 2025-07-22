@@ -54,6 +54,7 @@ public class OrdersControllerTests
     private Mock<IHttpContextAccessor> _mockHttpContextAccessor;
     private Mock<IOrderValidationService> _mockValidationService;
     private IMorphologySearchService _morphologyService;
+    private Mock<IRegisterProcessingService> _mockProcessingService;
     private ILogger<OrdersController> _logger;
     private OrdersController _controller;
     private Role _logistRole;
@@ -91,6 +92,9 @@ public class OrdersControllerTests
         _mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
         _logger = new LoggerFactory().CreateLogger<OrdersController>();
         _mockValidationService = new Mock<IOrderValidationService>();
+        _mockProcessingService = new Mock<IRegisterProcessingService>();
+        _mockProcessingService.Setup(s => s.GetWBRId()).Returns(2);
+        _mockProcessingService.Setup(s => s.GetOzonId()).Returns(1);
         _morphologyService = new MorphologySearchService();
         _controller = CreateController();
     }
@@ -105,7 +109,14 @@ public class OrdersControllerTests
     private OrdersController CreateController()
     {
         var mockMapper = new Mock<IMapper>();
-        return new OrdersController(_mockHttpContextAccessor.Object, _dbContext, _logger, mockMapper.Object, _mockValidationService.Object, _morphologyService);
+        return new OrdersController(
+            _mockHttpContextAccessor.Object,
+            _dbContext,
+            _logger,
+            mockMapper.Object,
+            _mockValidationService.Object,
+            _morphologyService,
+            _mockProcessingService.Object);
     }
 
     private void SetCurrentUserId(int id)
@@ -168,7 +179,8 @@ public class OrdersControllerTests
             _logger,
             mockMapper.Object,
             _mockValidationService.Object,
-            _morphologyService // Add this parameter
+            _morphologyService,
+            _mockProcessingService.Object
         );
 
         var result = await _controller.UpdateOrder(2, updated, 2);
@@ -639,7 +651,14 @@ public class OrdersControllerTests
         ctx.Items["UserId"] = 1;
         _mockHttpContextAccessor.Setup(x => x.HttpContext).Returns(ctx);
 
-        var ctrl = new OrdersController(_mockHttpContextAccessor.Object, _dbContext, _logger, new Mock<IMapper>().Object, validationSvc, _morphologyService);
+        var ctrl = new OrdersController(
+            _mockHttpContextAccessor.Object,
+            _dbContext,
+            _logger,
+            new Mock<IMapper>().Object,
+            validationSvc,
+            _morphologyService,
+            _mockProcessingService.Object);
 
         await ctrl.ValidateOrder(20);
         var res = await ctrl.GetOrder(20, 2);
