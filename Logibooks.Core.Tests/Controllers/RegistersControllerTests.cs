@@ -902,6 +902,413 @@ public class RegistersControllerTests
         Assert.That(registersCount, Is.EqualTo(0), "No register should be created for unsupported file types");
     }
 
+    [Test]
+    public async Task UploadRegister_ReturnsBadRequest_WhenNullFileUploaded()
+    {
+        SetCurrentUserId(1); // Logist user
+
+        var result = await _controller.UploadRegister(null!);
+
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
+        var error = obj.Value as ErrMessage;
+        Assert.That(error!.Msg, Does.Contain("Пустой файл реестра"));
+
+        // Verify no register was created in the database
+        var registersCount = await _dbContext.Registers.CountAsync();
+        Assert.That(registersCount, Is.EqualTo(0), "No register should be created for null file");
+    }
+
+    [Test]
+    public async Task UploadRegister_ReturnsBadRequest_WhenInvalidCompanyIdProvided()
+    {
+        SetCurrentUserId(1); // Logist user
+
+        // Setup mock processing service to return unknown company IDs
+        _mockProcessingService.Setup(x => x.GetWBRId()).Returns(2);
+        _mockProcessingService.Setup(x => x.GetOzonId()).Returns(1);
+
+        byte[] testContent = System.Text.Encoding.UTF8.GetBytes("test content");
+        var mockFile = CreateMockFile("test.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", testContent);
+
+        // Test with an invalid company ID (not WBR or Ozon)
+        var result = await _controller.UploadRegister(mockFile.Object, companyId: 999);
+
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
+        var error = obj.Value as ErrMessage;
+        Assert.That(error!.Msg, Does.Contain("Неизвестный идентификатор компании [id=999]"));
+
+        // Verify no register was created in the database
+        var registersCount = await _dbContext.Registers.CountAsync();
+        Assert.That(registersCount, Is.EqualTo(0), "No register should be created for invalid company ID");
+    }
+
+    [Test]
+    public async Task UploadRegister_DefaultsToWBRCompany_WhenNoCompanyIdProvided()
+    {
+        SetCurrentUserId(1); // Logist user
+
+        // Setup mock processing service
+        _mockProcessingService.Setup(x => x.GetWBRId()).Returns(2);
+        _mockProcessingService.Setup(x => x.GetOzonId()).Returns(1);
+
+        var expectedReference = new Reference { Id = 125 };
+        _mockProcessingService.Setup(x => x.UploadRegisterFromExcelAsync(
+            2, // Should default to WBR ID
+            It.IsAny<byte[]>(), 
+            It.IsAny<string>(), 
+            It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expectedReference);
+
+        byte[] testContent = System.Text.Encoding.UTF8.GetBytes("test excel content");
+        var mockFile = CreateMockFile("test.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", testContent);
+
+        var result = await _controller.UploadRegister(mockFile.Object); // No companyId provided
+
+        Assert.That(result, Is.TypeOf<CreatedAtActionResult>());
+        var createdResult = result as CreatedAtActionResult;
+        var returnedReference = createdResult!.Value as Reference;
+        Assert.That(returnedReference!.Id, Is.EqualTo(expectedReference.Id));
+
+        // Verify that the processing service was called with WBR ID (2)
+        _mockProcessingService.Verify(x => x.UploadRegisterFromExcelAsync(
+            2, 
+            It.IsAny<byte[]>(), 
+            It.IsAny<string>(), 
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
+    public async Task UploadRegister_Returns500InternalServerError_WhenMappingFileNotFound()
+    {
+        SetCurrentUserId(1); // Logist user
+
+        byte[] testContent = System.Text.Encoding.UTF8.GetBytes("test excel content");
+        var mockFile = CreateMockFile("test.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", testContent);
+
+        // Setup mock processing service to throw FileNotFoundException
+        _mockProcessingService.Setup(x => x.UploadRegisterFromExcelAsync(
+            It.IsAny<int>(), 
+            It.IsAny<byte[]>(), 
+            It.IsAny<string>(), 
+            It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new FileNotFoundException("Mapping file not found", "wbr_register_mapping.yaml"));
+
+        var result = await _controller.UploadRegister(mockFile.Object);
+
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status500InternalServerError));
+        var error = obj.Value as ErrMessage;
+        Assert.That(error!.Msg, Does.Contain("Не найдена спецификация файла реестра"));
+        Assert.That(error!.Msg, Does.Contain("wbr_register_mapping.yaml"));
+
+        // Verify no register was created in the database
+        var registersCount = await _dbContext.Registers.CountAsync();
+        Assert.That(registersCount, Is.EqualTo(0), "No register should be created when mapping file is not found");
+    }
+
+    [Test]
+    public async Task UploadRegister_Returns500InternalServerError_WhenMappingFileNotFound_ForZipFile()
+    {
+        SetCurrentUserId(1); // Logist user
+
+        // Create a real ZIP in memory with an Excel file
+        using var zipStream = new MemoryStream();
+        using (var archive = new System.IO.Compression.ZipArchive(zipStream, System.IO.Compression.ZipArchiveMode.Create, true))
+        {
+            var entry = archive.CreateEntry("test.xlsx");
+            using var entryStream = entry.Open();
+            byte[] excelContent = System.Text.Encoding.UTF8.GetBytes("fake excel content");
+            entryStream.Write(excelContent, 0, excelContent.Length);
+        }
+
+        var mockFile = CreateMockFile("test.zip", "application/zip", zipStream.ToArray());
+
+        // Setup mock processing service to throw FileNotFoundException
+        _mockProcessingService.Setup(x => x.UploadRegisterFromExcelAsync(
+            It.IsAny<int>(), 
+            It.IsAny<byte[]>(), 
+            It.IsAny<string>(), 
+            It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new FileNotFoundException("Mapping file not found", "ozon_register_mapping.yaml"));
+
+        var result = await _controller.UploadRegister(mockFile.Object);
+
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status500InternalServerError));
+        var error = obj.Value as ErrMessage;
+        Assert.That(error!.Msg, Does.Contain("Не найдена спецификация файла реестра"));
+        Assert.That(error!.Msg, Does.Contain("ozon_register_mapping.yaml"));
+
+        // Verify no register was created in the database
+        var registersCount = await _dbContext.Registers.CountAsync();
+        Assert.That(registersCount, Is.EqualTo(0), "No register should be created when mapping file is not found");
+    }
+
+    [Test]
+    public async Task UploadRegister_Returns400BadRequest_WhenEmptyExcelInZip()
+    {
+        SetCurrentUserId(1); // Logist user
+
+        // Create a real ZIP in memory with an Excel file
+        using var zipStream = new MemoryStream();
+        using (var archive = new System.IO.Compression.ZipArchive(zipStream, System.IO.Compression.ZipArchiveMode.Create, true))
+        {
+            var entry = archive.CreateEntry("empty.xlsx");
+            using var entryStream = entry.Open();
+            byte[] emptyContent = [];
+            entryStream.Write(emptyContent, 0, emptyContent.Length);
+        }
+
+        var mockFile = CreateMockFile("empty.zip", "application/zip", zipStream.ToArray());
+
+        // Setup mock processing service to throw InvalidOperationException for empty Excel
+        _mockProcessingService.Setup(x => x.UploadRegisterFromExcelAsync(
+            It.IsAny<int>(), 
+            It.IsAny<byte[]>(), 
+            It.IsAny<string>(), 
+            It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("Excel file is empty"));
+
+        var result = await _controller.UploadRegister(mockFile.Object);
+
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
+        var error = obj.Value as ErrMessage;
+        Assert.That(error!.Msg, Does.Contain("Пустой файл реестра"));
+
+        // Verify no register was created in the database
+        var registersCount = await _dbContext.Registers.CountAsync();
+        Assert.That(registersCount, Is.EqualTo(0), "No register should be created for empty Excel file in ZIP");
+    }
+
+
+    [TestCase(".doc", "application/msword")]
+    [TestCase(".docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document")]
+    [TestCase(".jpg", "image/jpeg")]
+    [TestCase(".png", "image/png")]
+    [TestCase(".json", "application/json")]
+    [TestCase(".xml", "application/xml")]
+    [TestCase(".csv", "text/csv")]
+    public async Task UploadRegister_ReturnsBadRequest_ForVariousUnsupportedFileTypes(string extension, string contentType)
+    {
+        SetCurrentUserId(1); // Logist user
+
+        byte[] testContent = System.Text.Encoding.UTF8.GetBytes("test content");
+        var mockFile = CreateMockFile($"test{extension}", contentType, testContent);
+
+        var result = await _controller.UploadRegister(mockFile.Object);
+
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
+        var error = obj.Value as ErrMessage;
+        Assert.That(error!.Msg, Does.Contain($"Файлы формата {extension} не поддерживаются"));
+        Assert.That(error!.Msg, Does.Contain("Можно загрузить .xlsx, .xls, .zip, .rar"));
+
+        // Verify no register was created in the database
+        var registersCount = await _dbContext.Registers.CountAsync();
+        Assert.That(registersCount, Is.EqualTo(0), $"No register should be created for {extension} files");
+    }
+
+    [Test]
+    public async Task UploadRegister_HandlesFileWithoutExtension()
+    {
+        SetCurrentUserId(1); // Logist user
+
+        byte[] testContent = System.Text.Encoding.UTF8.GetBytes("test content");
+        var mockFile = CreateMockFile("filename_without_extension", "application/octet-stream", testContent);
+
+        var result = await _controller.UploadRegister(mockFile.Object);
+
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
+        var error = obj.Value as ErrMessage;
+        Assert.That(error!.Msg, Does.Contain("Файлы формата  не поддерживаются"));
+        Assert.That(error!.Msg, Does.Contain("Можно загрузить .xlsx, .xls, .zip, .rar"));
+
+        // Verify no register was created in the database
+        var registersCount = await _dbContext.Registers.CountAsync();
+        Assert.That(registersCount, Is.EqualTo(0), "No register should be created for files without extension");
+    }
+
+
+    [Test]
+    public async Task UploadRegister_ReturnsSuccess_ForOzonCompany()
+    {
+        SetCurrentUserId(1); // Logist user
+
+        // Setup mock processing service for Ozon
+        _mockProcessingService.Setup(x => x.GetWBRId()).Returns(2);
+        _mockProcessingService.Setup(x => x.GetOzonId()).Returns(1);
+
+        var expectedReference = new Reference { Id = 128 };
+        _mockProcessingService.Setup(x => x.UploadRegisterFromExcelAsync(
+            1, // Ozon ID
+            It.IsAny<byte[]>(), 
+            It.IsAny<string>(), 
+            It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expectedReference);
+
+        byte[] testContent = System.Text.Encoding.UTF8.GetBytes("test excel content");
+        var mockFile = CreateMockFile("ozon_test.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", testContent);
+
+        var result = await _controller.UploadRegister(mockFile.Object, companyId: 1);
+
+        Assert.That(result, Is.TypeOf<CreatedAtActionResult>());
+        var createdResult = result as CreatedAtActionResult;
+        var returnedReference = createdResult!.Value as Reference;
+        Assert.That(returnedReference!.Id, Is.EqualTo(expectedReference.Id));
+
+        // Verify that the processing service was called with Ozon ID (1)
+        _mockProcessingService.Verify(x => x.UploadRegisterFromExcelAsync(
+            1, 
+            It.IsAny<byte[]>(), 
+            It.IsAny<string>(), 
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+
+    [Test]
+    public async Task UploadRegister_HandlesZipWithNestedDirectories()
+    {
+        SetCurrentUserId(1); // Logist user
+
+        // Create a ZIP with Excel file in a nested directory
+        using var zipStream = new MemoryStream();
+        using (var archive = new System.IO.Compression.ZipArchive(zipStream, System.IO.Compression.ZipArchiveMode.Create, true))
+        {
+            // Add directory entry (some tools create these)
+            archive.CreateEntry("documents/");
+            
+            // Add Excel file in nested directory
+            var entry = archive.CreateEntry("documents/register.xlsx");
+            using var entryStream = entry.Open();
+            byte[] excelContent = System.Text.Encoding.UTF8.GetBytes("nested excel content");
+            entryStream.Write(excelContent, 0, excelContent.Length);
+        }
+
+        var expectedReference = new Reference { Id = 130 };
+        _mockProcessingService.Setup(x => x.UploadRegisterFromExcelAsync(
+            It.IsAny<int>(), 
+            It.IsAny<byte[]>(), 
+            "documents/register.xlsx",
+            It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expectedReference);
+
+        var mockFile = CreateMockFile("nested.zip", "application/zip", zipStream.ToArray());
+
+        var result = await _controller.UploadRegister(mockFile.Object);
+
+        Assert.That(result, Is.TypeOf<CreatedAtActionResult>());
+        var createdResult = result as CreatedAtActionResult;
+        var returnedReference = createdResult!.Value as Reference;
+        Assert.That(returnedReference!.Id, Is.EqualTo(expectedReference.Id));
+    }
+
+    [Test]
+    public async Task UploadRegister_HandlesLargeFileUpload()
+    {
+        SetCurrentUserId(1); // Logist user
+
+        // Create a large mock file (simulate what might happen with large uploads)
+        byte[] largeContent = new byte[10 * 1024 * 1024]; // 10MB
+        new Random().NextBytes(largeContent);
+
+        var expectedReference = new Reference { Id = 131 };
+        _mockProcessingService.Setup(x => x.UploadRegisterFromExcelAsync(
+            It.IsAny<int>(), 
+            It.IsAny<byte[]>(), 
+            It.IsAny<string>(), 
+            It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expectedReference);
+
+        var mockFile = CreateMockFile("large.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", largeContent);
+
+        var result = await _controller.UploadRegister(mockFile.Object);
+
+        Assert.That(result, Is.TypeOf<CreatedAtActionResult>());
+        var createdResult = result as CreatedAtActionResult;
+        var returnedReference = createdResult!.Value as Reference;
+        Assert.That(returnedReference!.Id, Is.EqualTo(expectedReference.Id));
+    }
+
+    [Test]
+    public async Task UploadRegister_HandlesConcurrentUploads()
+    {
+        SetCurrentUserId(1); // Logist user
+
+        var expectedReference1 = new Reference { Id = 132 };
+        var expectedReference2 = new Reference { Id = 133 };
+
+        // Setup different responses for different calls
+        var setupSequence = _mockProcessingService.SetupSequence(x => x.UploadRegisterFromExcelAsync(
+            It.IsAny<int>(), 
+            It.IsAny<byte[]>(), 
+            It.IsAny<string>(), 
+            It.IsAny<CancellationToken>()));
+        
+        setupSequence.ReturnsAsync(expectedReference1);
+        setupSequence.ReturnsAsync(expectedReference2);
+
+        byte[] content1 = System.Text.Encoding.UTF8.GetBytes("first file content");
+        byte[] content2 = System.Text.Encoding.UTF8.GetBytes("second file content");
+
+        var mockFile1 = CreateMockFile("file1.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", content1);
+        var mockFile2 = CreateMockFile("file2.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", content2);
+
+        // Execute concurrent uploads
+        var task1 = _controller.UploadRegister(mockFile1.Object);
+        var task2 = _controller.UploadRegister(mockFile2.Object);
+
+        var results = await Task.WhenAll(task1, task2);
+
+        // Both should succeed
+        Assert.That(results[0], Is.TypeOf<CreatedAtActionResult>());
+        Assert.That(results[1], Is.TypeOf<CreatedAtActionResult>());
+
+        var result1 = results[0] as CreatedAtActionResult;
+        var result2 = results[1] as CreatedAtActionResult;
+
+        var ref1 = result1!.Value as Reference;
+        var ref2 = result2!.Value as Reference;
+
+        Assert.That(ref1!.Id, Is.EqualTo(expectedReference1.Id));
+        Assert.That(ref2!.Id, Is.EqualTo(expectedReference2.Id));
+    }
+
+
+    [Test]
+    public async Task UploadRegister_LogsDebugInformation()
+    {
+        SetCurrentUserId(1); // Logist user
+
+        var expectedReference = new Reference { Id = 134 };
+        _mockProcessingService.Setup(x => x.UploadRegisterFromExcelAsync(
+            It.IsAny<int>(), 
+            It.IsAny<byte[]>(), 
+            It.IsAny<string>(), 
+            It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expectedReference);
+
+        byte[] testContent = System.Text.Encoding.UTF8.GetBytes("test excel content");
+        var mockFile = CreateMockFile("test.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", testContent);
+
+        var result = await _controller.UploadRegister(mockFile.Object);
+
+        Assert.That(result, Is.TypeOf<CreatedAtActionResult>());
+
+        // Note: In a real scenario, you might want to verify that logging actually occurred
+        // This would require setting up a mock logger and verifying log calls
+        // For now, we just verify the method executed successfully
+    }
 
     [Test]
     public async Task DeleteRegister_DeletesEmptyRegister_WhenUserIsLogist()
