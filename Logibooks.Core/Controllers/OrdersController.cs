@@ -194,7 +194,7 @@ public class OrdersController(
         _db.Entry(order).State = EntityState.Modified;
         await _db.SaveChangesAsync();
 
-        _logger.LogDebug("UpdateOrder returning '204 No content' for companyId={cid}", companyId);
+        _logger.LogDebug("UpdateOrder returning '204 No content' for id={id}", id);
         return NoContent();
     }
 
