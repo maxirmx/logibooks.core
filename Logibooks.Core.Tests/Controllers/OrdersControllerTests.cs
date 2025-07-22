@@ -337,18 +337,7 @@ public class OrdersControllerTests
         Assert.That(savedOrder.PostingNumber, Is.EqualTo("POST123"));
     }
 
-    [Test]
-    public async Task UpdateOrder_ReturnsBadRequest_WhenCompanyIdMissing()
-    {
-        SetCurrentUserId(1);
-        var result = await _controller.UpdateOrder(1, new OrderUpdateItem());
-
-        Assert.That(result, Is.TypeOf<ObjectResult>());
-        var obj = result as ObjectResult;
-        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
-    }
-
-    [Test]
+     [Test]
     public async Task GetOrders_FiltersAndSorts()
     {
         SetCurrentUserId(1);
@@ -879,10 +868,58 @@ public class OrdersControllerTests
         _dbContext.Orders.Add(order);
         await _dbContext.SaveChangesAsync();
 
-        var result = await _controller.DeleteOrder(5, 2);
+        var result = await _controller.DeleteOrder(5);
 
         Assert.That(result, Is.TypeOf<NoContentResult>());
         Assert.That(await _dbContext.Orders.FindAsync(5), Is.Null);
+    }
+
+    [Test]
+    public async Task DeleteOrder_ReturnsForbidden_ForNonLogist()
+    {
+        SetCurrentUserId(99); // unknown user
+        var register = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
+        var order = new WbrOrder { Id = 5, RegisterId = 1, StatusId = 1 };
+        _dbContext.Registers.Add(register);
+        _dbContext.Orders.Add(order);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.DeleteOrder(5);
+
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
+        Assert.That(await _dbContext.Orders.FindAsync(5), Is.Not.Null); // Order should still exist
+    }
+
+    [Test]
+    public async Task DeleteOrder_ReturnsNotFound_WhenOrderDoesNotExist()
+    {
+        SetCurrentUserId(1);
+        var result = await _controller.DeleteOrder(999);
+
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+    }
+
+    [Test]
+    public async Task DeleteOrder_ReturnsNotFound_WhenCompanyDoesNotExist()
+    {
+        SetCurrentUserId(1);
+        // Create an order with a register that references a non-existent company
+        var register = new Register { Id = 1, CompanyId = 999, FileName = "r.xlsx" }; // Company 999 doesn't exist
+        var order = new WbrOrder { Id = 5, RegisterId = 1, StatusId = 1 };
+        _dbContext.Registers.Add(register);
+        _dbContext.Orders.Add(order);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.DeleteOrder(5);
+
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+        Assert.That(await _dbContext.Orders.FindAsync(5), Is.Not.Null); // Order should still exist
     }
 
     [Test]

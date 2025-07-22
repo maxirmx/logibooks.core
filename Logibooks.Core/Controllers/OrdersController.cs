@@ -202,20 +202,9 @@ public class OrdersController(
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
-    [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(ErrMessage))]
-    public async Task<IActionResult> DeleteOrder(int id, int companyId)
+    public async Task<IActionResult> DeleteOrder(int id)
     {
-        _logger.LogDebug("DeleteOrder for id={id} companyId={cid}", id, companyId);
-
-        if (companyId == 0)
-        {
-            return _400CompanyId();
-        }
-
-        if (!await _db.Companies.AnyAsync(c => c.Id == companyId))
-        {
-            return _404CompanyId(companyId);
-        }
+        _logger.LogDebug("DeleteOrder for id={id}", id);
 
         if (!await _db.CheckLogist(_curUserId))
         {
@@ -223,19 +212,28 @@ public class OrdersController(
             return _403();
         }
 
-        IQueryable<BaseOrder> query = BuildOrderQuery(companyId);
+        // First, get the order with its register to determine the company type
+        var orderWithRegister = await _db.Orders
+            .Include(o => o.Register)
+            .FirstOrDefaultAsync(o => o.Id == id);
 
-        var order = await query.FirstOrDefaultAsync(o => o.Id == id);
-        if (order == null)
+        if (orderWithRegister == null)
         {
             _logger.LogDebug("DeleteOrder returning '404 Not Found'");
             return _404Order(id);
         }
 
-        _db.Remove(order);
+        // Validate that the company exists
+        if (!await _db.Companies.AnyAsync(c => c.Id == orderWithRegister.Register.CompanyId))
+        {
+            _logger.LogDebug("DeleteOrder returning '404 Not Found' - company not found");
+            return _404CompanyId(orderWithRegister.Register.CompanyId);
+        }
+
+        _db.Remove(orderWithRegister);
         await _db.SaveChangesAsync();
 
-        _logger.LogDebug("DeleteOrder returning '204 No content'");
+        _logger.LogDebug("DeleteOrder returning '204 No content' for id={id}", id);
         return NoContent();
     }
 
@@ -409,14 +407,5 @@ public class OrdersController(
         }
 
         return Ok(statusTitle);
-    }
-
-    private IQueryable<BaseOrder> BuildOrderQuery(int companyId, bool asNoTracking = false)
-    {
-        IQueryable<BaseOrder> query = companyId == _processingService.GetWBRId()
-            ? _db.WbrOrders.Where(o => o.Register.CompanyId == companyId)
-            : _db.OzonOrders.Where(o => o.Register.CompanyId == companyId);
-
-        return asNoTracking ? query.AsNoTracking() : query;
     }
 }
