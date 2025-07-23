@@ -48,8 +48,8 @@ namespace Logibooks.Core.Data
         public DbSet<FeacnOrder> FeacnOrders => Set<FeacnOrder>();
         public DbSet<FeacnPrefix> FeacnPrefixes => Set<FeacnPrefix>();
         public DbSet<FeacnPrefixException> FeacnPrefixExceptions => Set<FeacnPrefixException>();
-        public DbSet<TransportationType> TransportationTypes => Set<TransportationType>();
         public DbSet<BaseOrderFeacnPrefix> BaseOrderFeacnPrefixes => Set<BaseOrderFeacnPrefix>();
+        public DbSet<TransportationType> TransportationTypes => Set<TransportationType>();
         public async Task<bool> CheckAdmin(int cuid)
         {
             var user = await Users
