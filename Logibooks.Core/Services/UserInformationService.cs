@@ -64,7 +64,7 @@ public class UserInformationService(AppDbContext db) : IUserInformationService
             .Where(x => x.Id == id)
             .Select(x => new UserViewItem(x))
             .FirstOrDefaultAsync();
-        return user ?? null;
+        return user;
     }
 
     public async Task<List<UserViewItem>> UserViewItems()
