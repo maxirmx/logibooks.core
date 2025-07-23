@@ -52,7 +52,7 @@ public class UserInformationService(AppDbContext db) : IUserInformationService
 
     public bool Exists(string email)
     {
-        return _db.Users.Any(u => u.Email.ToLower() == email.ToLower());
+        return _db.Users.Any(u => string.Equals(u.Email, email, StringComparison.OrdinalIgnoreCase));
     }
 
     public async Task<UserViewItem?> UserViewItem(int id)
