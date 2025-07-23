@@ -254,7 +254,7 @@ public class UserInformationServiceTests
         var result = await svc.CheckAdminOrSameUser(5, 5);
 
         // Assert
-        Assert.That(result.Value, Is.True);
+        Assert.That(result, Is.True);
     }
 
     [Test]
@@ -268,7 +268,7 @@ public class UserInformationServiceTests
         var result = await svc.CheckAdminOrSameUser(5, 0);
 
         // Assert
-        Assert.That(result.Value, Is.False);
+        Assert.That(result, Is.False);
     }
 
     [Test]
@@ -285,7 +285,7 @@ public class UserInformationServiceTests
         var result = await svc.CheckAdminOrSameUser(5, 20);
 
         // Assert
-        Assert.That(result.Value, Is.True);
+        Assert.That(result, Is.True);
     }
 
     [Test]
@@ -302,7 +302,7 @@ public class UserInformationServiceTests
         var result = await svc.CheckAdminOrSameUser(5, 21);
 
         // Assert
-        Assert.That(result.Value, Is.False);
+        Assert.That(result, Is.False);
     }
 
     #endregion

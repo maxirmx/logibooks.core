@@ -82,7 +82,7 @@ public class UsersController(
     {
         _logger.LogDebug("GetUser for id={id}", id);
         var ch = await _userService.CheckAdminOrSameUser(id, _curUserId);
-        if (ch == null || !ch.Value)
+        if (!ch)
         {
             _logger.LogDebug("GetUser returning '403 Forbidden'");
             return _403();
