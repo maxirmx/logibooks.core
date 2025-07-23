@@ -42,9 +42,11 @@ namespace Logibooks.Core.Controllers;
 public class StopWordsController(
     IHttpContextAccessor httpContextAccessor,
     AppDbContext db,
+    IUserInformationService userService,
     ILogger<StopWordsController> logger,
     IMorphologySearchService morphologySearchService) : LogibooksControllerBase(httpContextAccessor, db, logger)
 {
+    private readonly IUserInformationService _userService = userService;
     private readonly IMorphologySearchService _morphologySearchService = morphologySearchService;
 
     [HttpGet]
@@ -71,7 +73,7 @@ public class StopWordsController(
     [ProducesResponseType(StatusCodes.Status501NotImplemented, Type = typeof(ErrMessage))]
     public async Task<ActionResult<StopWordDto>> PostStopWord(StopWordDto dto)
     {
-        if (!await _db.CheckAdmin(_curUserId)) return _403();
+        if (!await _userService.CheckAdmin(_curUserId)) return _403();
         
         if (!dto.ExactMatch)
         {
@@ -110,7 +112,7 @@ public class StopWordsController(
     [ProducesResponseType(StatusCodes.Status501NotImplemented, Type = typeof(ErrMessage))]
     public async Task<IActionResult> PutStopWord(int id, StopWordDto dto)
     {
-        if (!await _db.CheckAdmin(_curUserId)) return _403();
+        if (!await _userService.CheckAdmin(_curUserId)) return _403();
         if (id != dto.Id) return BadRequest();
         var sw = await _db.StopWords.FindAsync(id);
         if (sw == null) return _404Object(id);
@@ -152,7 +154,7 @@ public class StopWordsController(
     [ProducesResponseType(StatusCodes.Status409Conflict, Type = typeof(ErrMessage))]
     public async Task<IActionResult> DeleteStopWord(int id)
     {
-        if (!await _db.CheckAdmin(_curUserId)) return _403();
+        if (!await _userService.CheckAdmin(_curUserId)) return _403();
         var sw = await _db.StopWords.FindAsync(id);
         if (sw == null) return _404Object(id);
 

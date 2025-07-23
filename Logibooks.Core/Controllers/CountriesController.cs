@@ -42,9 +42,11 @@ namespace Logibooks.Core.Controllers;
 public class CountriesController(
     IHttpContextAccessor httpContextAccessor,
     AppDbContext db,
+    IUserInformationService userService,
     IUpdateCountriesService service,
     ILogger<CountriesController> logger) : LogibooksControllerBase(httpContextAccessor, db, logger)
 {
+    private readonly IUserInformationService _userService = userService;
     private readonly IUpdateCountriesService _service = service;
 
     [HttpGet]
@@ -87,7 +89,7 @@ public class CountriesController(
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     public async Task<IActionResult> Update()
     {
-        if (!await _db.CheckAdmin(_curUserId)) return _403();
+        if (!await _userService.CheckAdmin(_curUserId)) return _403();
         await _service.RunAsync();
         return NoContent();
     }

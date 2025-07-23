@@ -56,6 +56,7 @@ public class OrdersControllerTests
     private IMorphologySearchService _morphologyService;
     private Mock<IRegisterProcessingService> _mockProcessingService;
     private ILogger<OrdersController> _logger;
+    private IUserInformationService _userService;
     private OrdersController _controller;
     private Role _logistRole;
     private User _logistUser;
@@ -95,6 +96,7 @@ public class OrdersControllerTests
         _mockProcessingService = new Mock<IRegisterProcessingService>();
         // Note: Cannot mock static methods GetWBRId() and GetOzonId() - they return constants
         _morphologyService = new MorphologySearchService();
+        _userService = new UserInformationService(_dbContext);
         _controller = CreateController();
     }
 
@@ -111,6 +113,7 @@ public class OrdersControllerTests
         return new OrdersController(
             _mockHttpContextAccessor.Object,
             _dbContext,
+            _userService,
             _logger,
             mockMapper.Object,
             _mockValidationService.Object,
@@ -175,6 +178,7 @@ public class OrdersControllerTests
         _controller = new OrdersController(
             _mockHttpContextAccessor.Object,
             _dbContext,
+            _userService,
             _logger,
             mockMapper.Object,
             _mockValidationService.Object,
@@ -283,6 +287,7 @@ public class OrdersControllerTests
         _controller = new OrdersController(
             _mockHttpContextAccessor.Object,
             _dbContext,
+            _userService,
             _logger,
             mockMapper.Object,
             _mockValidationService.Object,
@@ -320,6 +325,7 @@ public class OrdersControllerTests
         _controller = new OrdersController(
             _mockHttpContextAccessor.Object,
             _dbContext,
+            _userService,
             _logger,
             mockMapper.Object,
             _mockValidationService.Object,
@@ -786,6 +792,7 @@ public class OrdersControllerTests
         var ctrl = new OrdersController(
             _mockHttpContextAccessor.Object,
             _dbContext,
+            _userService,
             _logger,
             new Mock<IMapper>().Object,
             validationSvc,

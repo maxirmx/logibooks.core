@@ -51,6 +51,7 @@ public class StopWordsControllerTests
     private Mock<IHttpContextAccessor> _mockHttpContextAccessor;
     private Mock<IMorphologySearchService> _mockMorphologySearchService;
     private ILogger<StopWordsController> _logger;
+    private IUserInformationService _userService;
     private StopWordsController _controller;
     private Role _adminRole;
     private Role _logistRole;
@@ -94,9 +95,10 @@ public class StopWordsControllerTests
         // Setup default behavior: return true for all words unless specifically overridden
         _mockMorphologySearchService.Setup(x => x.CheckWord(It.IsAny<string>()))
             .Returns(true);
-        
+
         _logger = new LoggerFactory().CreateLogger<StopWordsController>();
-        _controller = new StopWordsController(_mockHttpContextAccessor.Object, _dbContext, _logger, _mockMorphologySearchService.Object);
+        _userService = new UserInformationService(_dbContext);
+        _controller = new StopWordsController(_mockHttpContextAccessor.Object, _dbContext, _userService, _logger, _mockMorphologySearchService.Object);
     }
 
     private static bool IsEnglishWord(string word)
@@ -117,7 +119,7 @@ public class StopWordsControllerTests
         var ctx = new DefaultHttpContext();
         ctx.Items["UserId"] = id;
         _mockHttpContextAccessor.Setup(x => x.HttpContext).Returns(ctx);
-        _controller = new StopWordsController(_mockHttpContextAccessor.Object, _dbContext, _logger, _mockMorphologySearchService.Object);
+        _controller = new StopWordsController(_mockHttpContextAccessor.Object, _dbContext, _userService, _logger, _mockMorphologySearchService.Object);
     }
 
     [Test]

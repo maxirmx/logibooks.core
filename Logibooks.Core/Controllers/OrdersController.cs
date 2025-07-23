@@ -45,6 +45,7 @@ namespace Logibooks.Core.Controllers;
 public class OrdersController(
     IHttpContextAccessor httpContextAccessor,
     AppDbContext db,
+    IUserInformationService userService,
     ILogger<OrdersController> logger,
     IMapper mapper,
     IOrderValidationService validationService,
@@ -52,6 +53,7 @@ public class OrdersController(
     IRegisterProcessingService processingService) : LogibooksControllerBase(httpContextAccessor, db, logger)
 {
     private const int MaxPageSize = 1000;
+    private readonly IUserInformationService _userService = userService;
     private readonly IMapper _mapper = mapper;
     private readonly IOrderValidationService _validationService = validationService;
     private readonly IMorphologySearchService _morphologyService = morphologyService;
@@ -65,7 +67,7 @@ public class OrdersController(
     {
         _logger.LogDebug("GetOrder for id={id}", id);
 
-        var ok = await _db.CheckLogist(_curUserId);
+        var ok = await _userService.CheckLogist(_curUserId);
         if (!ok)
         {
             _logger.LogDebug("GetOrder returning '403 Forbidden'");
@@ -134,7 +136,7 @@ public class OrdersController(
     {
         _logger.LogDebug("UpdateOrder for id={id}", id);
 
-        var ok = await _db.CheckLogist(_curUserId);
+        var ok = await _userService.CheckLogist(_curUserId);
         if (!ok)
         {
             _logger.LogDebug("UpdateOrder returning '403 Forbidden'");
@@ -206,7 +208,7 @@ public class OrdersController(
     {
         _logger.LogDebug("DeleteOrder for id={id}", id);
 
-        if (!await _db.CheckLogist(_curUserId))
+        if (!await _userService.CheckLogist(_curUserId))
         {
             _logger.LogDebug("DeleteOrder returning '403 Forbidden'");
             return _403();
@@ -276,7 +278,7 @@ public class OrdersController(
             return _400();
         }
 
-        var ok = await _db.CheckLogist(_curUserId);
+        var ok = await _userService.CheckLogist(_curUserId);
         if (!ok)
         {
             _logger.LogDebug("GetOrders returning '403 Forbidden'");
@@ -356,7 +358,7 @@ public class OrdersController(
     {
         _logger.LogDebug("ValidateOrder for id={id}", id);
 
-        if (!await _db.CheckLogist(_curUserId))
+        if (!await _userService.CheckLogist(_curUserId))
         {
             _logger.LogDebug("ValidateOrder returning '403 Forbidden'");
             return _403();

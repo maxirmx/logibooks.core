@@ -5,6 +5,7 @@ using Logibooks.Core.Authorization;
 using Logibooks.Core.Data;
 using Logibooks.Core.Models;
 using Logibooks.Core.RestModels;
+using Logibooks.Core.Services;
 
 namespace Logibooks.Core.Controllers;
 
@@ -17,8 +18,10 @@ namespace Logibooks.Core.Controllers;
 public class OrderStatusesController(
     IHttpContextAccessor httpContextAccessor,
     AppDbContext db,
+    IUserInformationService userService,
     ILogger<OrderStatusesController> logger) : LogibooksControllerBase(httpContextAccessor, db, logger)
 {
+    private readonly IUserInformationService _userService = userService;
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<OrderStatusDto>))]
     public async Task<ActionResult<IEnumerable<OrderStatusDto>>> GetStatuses()
@@ -42,7 +45,7 @@ public class OrderStatusesController(
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     public async Task<ActionResult<Reference>> CreateStatus(OrderStatusDto dto)
     {
-        if (!await _db.CheckAdmin(_curUserId)) return _403();
+        if (!await _userService.CheckAdmin(_curUserId)) return _403();
         var status = dto.ToModel();
         _db.Statuses.Add(status);
         await _db.SaveChangesAsync();
@@ -56,7 +59,7 @@ public class OrderStatusesController(
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
     public async Task<IActionResult> UpdateStatus(int id, OrderStatusDto dto)
     {
-        if (!await _db.CheckAdmin(_curUserId)) return _403();
+        if (!await _userService.CheckAdmin(_curUserId)) return _403();
         if (id != dto.Id) return BadRequest();
         var status = await _db.Statuses.FindAsync(id);
         if (status == null) return _404Object(id);
@@ -73,7 +76,7 @@ public class OrderStatusesController(
     [ProducesResponseType(StatusCodes.Status409Conflict, Type = typeof(ErrMessage))]
     public async Task<IActionResult> DeleteStatus(int id)
     {
-        if (!await _db.CheckAdmin(_curUserId)) return _403();
+        if (!await _userService.CheckAdmin(_curUserId)) return _403();
         var status = await _db.Statuses.FindAsync(id);
         if (status == null) return _404Object(id);
 

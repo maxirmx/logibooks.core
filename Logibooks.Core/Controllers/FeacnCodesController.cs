@@ -43,9 +43,11 @@ namespace Logibooks.Core.Controllers;
 public class FeacnCodesController(
     IHttpContextAccessor httpContextAccessor,
     AppDbContext db,
+    IUserInformationService userService,
     IUpdateFeacnCodesService service,
     ILogger<FeacnCodesController> logger) : LogibooksControllerBase(httpContextAccessor, db, logger)
 {
+    private readonly IUserInformationService _userService = userService;
     private readonly IUpdateFeacnCodesService _service = service;
 
     private async Task<List<TDto>> FetchAndConvertAsync<TEntity, TDto>(
@@ -90,7 +92,7 @@ public class FeacnCodesController(
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     public async Task<IActionResult> Update()
     {
-        if (!await _db.CheckAdmin(_curUserId)) return _403();
+        if (!await _userService.CheckAdmin(_curUserId)) return _403();
         await _service.RunAsync();
         return NoContent();
     }
