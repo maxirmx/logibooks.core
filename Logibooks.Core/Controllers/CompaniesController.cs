@@ -28,6 +28,7 @@ using Microsoft.EntityFrameworkCore;
 
 using Logibooks.Core.Authorization;
 using Logibooks.Core.Data;
+using Logibooks.Core.Services;
 using Logibooks.Core.RestModels;
 
 namespace Logibooks.Core.Controllers;
@@ -40,8 +41,10 @@ namespace Logibooks.Core.Controllers;
 public class CompaniesController(
     IHttpContextAccessor httpContextAccessor,
     AppDbContext db,
+    IUserInformationService userService,
     ILogger<CompaniesController> logger) : LogibooksControllerBase(httpContextAccessor, db, logger)
 {
+    private readonly IUserInformationService _userService = userService;
 
     const int _companyOzon = 1; // Ozon company ID
     const int _companyWBR = 2;  // WBR company ID
@@ -69,7 +72,7 @@ public class CompaniesController(
     [ProducesResponseType(StatusCodes.Status409Conflict, Type = typeof(ErrMessage))]
     public async Task<ActionResult<CompanyDto>> PostCompany(CompanyDto dto)
     {
-        if (!await _db.CheckAdmin(_curUserId)) return _403();
+        if (!await _userService.CheckAdmin(_curUserId)) return _403();
         if (await _db.Companies.AnyAsync(c => c.Inn == dto.Inn))
         {
             return _409CompanyInn(dto.Inn);
@@ -97,7 +100,7 @@ public class CompaniesController(
     [ProducesResponseType(StatusCodes.Status409Conflict, Type = typeof(ErrMessage))]
     public async Task<IActionResult> PutCompany(int id, CompanyDto dto)
     {
-        if (!await _db.CheckAdmin(_curUserId)) return _403();
+        if (!await _userService.CheckAdmin(_curUserId)) return _403();
         if (id != dto.Id) return BadRequest();
 
         var company = await _db.Companies.FindAsync(id);
@@ -136,7 +139,7 @@ public class CompaniesController(
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
     public async Task<IActionResult> DeleteCompany(int id)
     {
-        if (!await _db.CheckAdmin(_curUserId)) return _403();
+        if (!await _userService.CheckAdmin(_curUserId)) return _403();
         var company = await _db.Companies.FindAsync(id);
         if (company == null) return _404Object(id);
 

@@ -43,10 +43,12 @@ namespace Logibooks.Core.Controllers;
 public class RegistersController(
     IHttpContextAccessor httpContextAccessor,
     AppDbContext db,
+    IUserInformationService userService,
     ILogger<RegistersController> logger,
     IRegisterValidationService validationService,
     IRegisterProcessingService processingService) : LogibooksControllerBase(httpContextAccessor, db, logger)
 {
+    private readonly IUserInformationService _userService = userService;
 
     private readonly string[] allowedSortBy = ["id", "filename", "date", "orderstotal"];
     private readonly int maxPageSize = 100;
@@ -62,7 +64,7 @@ public class RegistersController(
     {
         _logger.LogDebug("GetRegister for id={id}", id);
 
-        var ok = await _db.CheckLogist(_curUserId);
+        var ok = await _userService.CheckLogist(_curUserId);
         if (!ok)
         {
             _logger.LogDebug("GetRegister returning '403 Forbidden'");
@@ -133,7 +135,7 @@ public class RegistersController(
             return _400();
         }
 
-        var ok = await _db.CheckLogist(_curUserId);
+        var ok = await _userService.CheckLogist(_curUserId);
         if (!ok)
         {
             _logger.LogDebug("GetRegisters returning '403 Forbidden'");
@@ -225,7 +227,7 @@ public class RegistersController(
 
         int cId = companyId ?? IRegisterProcessingService.GetWBRId();
 
-        var ok = await _db.CheckLogist(_curUserId);
+        var ok = await _userService.CheckLogist(_curUserId);
         if (!ok)
         {
             _logger.LogDebug("UploadRegister returning '403 Forbidden'");
@@ -333,7 +335,7 @@ public class RegistersController(
     {
         _logger.LogDebug("DeleteRegister for id={id}", id);
 
-        var ok = await _db.CheckLogist(_curUserId);
+        var ok = await _userService.CheckLogist(_curUserId);
         if (!ok)
         {
             _logger.LogDebug("DeleteRegister returning '403 Forbidden'");
@@ -370,7 +372,7 @@ public class RegistersController(
     {
         _logger.LogDebug("SetOrderStatuses for registerId={id} statusId={statusId}", id, statusId);
 
-        if (!await _db.CheckLogist(_curUserId))
+        if (!await _userService.CheckLogist(_curUserId))
         {
             _logger.LogDebug("SetOrderStatuses returning '403 Forbidden'");
             return _403();
@@ -404,7 +406,7 @@ public class RegistersController(
     {
         _logger.LogDebug("ValidateRegister for id={id}", id);
 
-        if (!await _db.CheckLogist(_curUserId))
+        if (!await _userService.CheckLogist(_curUserId))
         {
             _logger.LogDebug("ValidateRegister returning '403 Forbidden'");
             return _403();
@@ -428,7 +430,7 @@ public class RegistersController(
     {
         _logger.LogDebug("GetValidationProgress for handle={handle}", handleId);
 
-        if (!await _db.CheckLogist(_curUserId))
+        if (!await _userService.CheckLogist(_curUserId))
         {
             _logger.LogDebug("GetValidationProgress returning '403 Forbidden'");
             return _403();
@@ -452,7 +454,7 @@ public class RegistersController(
     {
         _logger.LogDebug("CancelValidation for handle={handle}", handleId);
 
-        if (!await _db.CheckLogist(_curUserId))
+        if (!await _userService.CheckLogist(_curUserId))
         {
             _logger.LogDebug("CancelValidation returning '403 Forbidden'");
             return _403();

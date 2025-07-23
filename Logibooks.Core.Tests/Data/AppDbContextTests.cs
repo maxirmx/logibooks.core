@@ -27,13 +27,14 @@ using NUnit.Framework;
 using Microsoft.EntityFrameworkCore;
 using Logibooks.Core.Data;
 using Logibooks.Core.Models;
+using Logibooks.Core.Services;
 using System.Threading.Tasks;
 using System.Linq;
 using System.Collections.Generic;
 
 namespace Logibooks.Core.Tests.Data;
 
-public class AppDbContextTests
+public class UserInformationServiceTests
 {
     private static readonly int LogistRoleId = 1;
     private static readonly int AdminRoleId = 2;
@@ -91,21 +92,24 @@ public class AppDbContextTests
     public void CheckSameUser_ReturnsTrue_WhenIdsMatch()
     {
         using var ctx = CreateContext();
-        Assert.That(ctx.CheckSameUser(1, 1), Is.True);
+        var svc = new UserInformationService(ctx);
+        Assert.That(svc.CheckSameUser(1, 1), Is.True);
     }
 
     [Test]
     public void CheckSameUser_ReturnsFalse_WhenIdsDiffer()
     {
         using var ctx = CreateContext();
-        Assert.That(ctx.CheckSameUser(1, 2), Is.False);
+        var svc = new UserInformationService(ctx);
+        Assert.That(svc.CheckSameUser(1, 2), Is.False);
     }
 
     [Test]
     public void CheckSameUser_ReturnsFalse_WhenCuidZero()
     {
         using var ctx = CreateContext();
-        Assert.That(ctx.CheckSameUser(1, 0), Is.False);
+        var svc = new UserInformationService(ctx);
+        Assert.That(svc.CheckSameUser(1, 0), Is.False);
     }
 
     #endregion
@@ -117,12 +121,13 @@ public class AppDbContextTests
     {
         // Arrange
         using var ctx = CreateContext();
+        var svc = new UserInformationService(ctx);
         var user = CreateUser(10, "admin@test.com", "password", "Admin", "User", null, [GetAdminRole(ctx)]);
         ctx.Users.Add(user);
         await ctx.SaveChangesAsync();
 
         // Act
-        var result = await ctx.CheckAdmin(10);
+        var result = await svc.CheckAdmin(10);
 
         // Assert
         Assert.That(result, Is.True);
@@ -133,13 +138,14 @@ public class AppDbContextTests
     {
         // Arrange
         using var ctx = CreateContext();
+        var svc = new UserInformationService(ctx);
 
         var user = CreateUser(11, "logist@test.com", "password", "Logist", "User", null, [GetLogistRole(ctx)]);
         ctx.Users.Add(user);
         await ctx.SaveChangesAsync();
 
         // Act
-        var result = await ctx.CheckAdmin(11);
+        var result = await svc.CheckAdmin(11);
 
         // Assert
         Assert.That(result, Is.False);
@@ -150,9 +156,10 @@ public class AppDbContextTests
     {
         // Arrange
         using var ctx = CreateContext();
+        var svc = new UserInformationService(ctx);
 
         // Act
-        var result = await ctx.CheckAdmin(999);
+        var result = await svc.CheckAdmin(999);
 
         // Assert
         Assert.That(result, Is.False);
@@ -163,12 +170,13 @@ public class AppDbContextTests
     {
         // Arrange
         using var ctx = CreateContext();
+        var svc = new UserInformationService(ctx);
         var user = CreateUser(12, "norole@test.com", "password", "No", "Role", null, []);
         ctx.Users.Add(user);
         await ctx.SaveChangesAsync();
 
         // Act
-        var result = await ctx.CheckAdmin(12);
+        var result = await svc.CheckAdmin(12);
 
         // Assert
         Assert.That(result, Is.False);
@@ -182,11 +190,12 @@ public class AppDbContextTests
     public async Task CheckLogist_ReturnsTrue_WhenUserIsLogist()
     {
         using var ctx = CreateContext();
+        var svc = new UserInformationService(ctx);
         var user = CreateUser(30, "logist@test.com", "password", "Log", "User", null, [GetLogistRole(ctx)]);
         ctx.Users.Add(user);
         await ctx.SaveChangesAsync();
 
-        var result = await ctx.CheckLogist(30);
+        var result = await svc.CheckLogist(30);
 
         Assert.That(result, Is.True);
     }
@@ -195,11 +204,12 @@ public class AppDbContextTests
     public async Task CheckLogist_ReturnsFalse_WhenUserIsNotLogist()
     {
         using var ctx = CreateContext();
+        var svc = new UserInformationService(ctx);
         var user = CreateUser(31, "adminonly@test.com", "password", "Adm", "User", null, [GetAdminRole(ctx)]);
         ctx.Users.Add(user);
         await ctx.SaveChangesAsync();
 
-        var result = await ctx.CheckLogist(31);
+        var result = await svc.CheckLogist(31);
 
         Assert.That(result, Is.False);
     }
@@ -208,8 +218,9 @@ public class AppDbContextTests
     public async Task CheckLogist_ReturnsFalse_WhenUserDoesNotExist()
     {
         using var ctx = CreateContext();
+        var svc = new UserInformationService(ctx);
 
-        var result = await ctx.CheckLogist(999);
+        var result = await svc.CheckLogist(999);
 
         Assert.That(result, Is.False);
     }
@@ -218,11 +229,12 @@ public class AppDbContextTests
     public async Task CheckLogist_ReturnsFalse_WhenUserHasNoRoles()
     {
         using var ctx = CreateContext();
+        var svc = new UserInformationService(ctx);
         var user = CreateUser(32, "norolelogist@test.com", "password", "No", "Role", null, []);
         ctx.Users.Add(user);
         await ctx.SaveChangesAsync();
 
-        var result = await ctx.CheckLogist(32);
+        var result = await svc.CheckLogist(32);
 
         Assert.That(result, Is.False);
     }
@@ -236,9 +248,10 @@ public class AppDbContextTests
     {
         // Arrange
         using var ctx = CreateContext();
+        var svc = new UserInformationService(ctx);
 
         // Act
-        var result = await ctx.CheckAdminOrSameUser(5, 5);
+        var result = await svc.CheckAdminOrSameUser(5, 5);
 
         // Assert
         Assert.That(result.Value, Is.True);
@@ -249,9 +262,10 @@ public class AppDbContextTests
     {
         // Arrange
         using var ctx = CreateContext();
+        var svc = new UserInformationService(ctx);
 
         // Act
-        var result = await ctx.CheckAdminOrSameUser(5, 0);
+        var result = await svc.CheckAdminOrSameUser(5, 0);
 
         // Assert
         Assert.That(result.Value, Is.False);
@@ -262,12 +276,13 @@ public class AppDbContextTests
     {
         // Arrange
         using var ctx = CreateContext();
+        var svc = new UserInformationService(ctx);
         var user = CreateUser(20, "admin2@test.com", "password", "Admin", "Two", null, [GetAdminRole(ctx)]);
         ctx.Users.Add(user);
         await ctx.SaveChangesAsync();
 
         // Act
-        var result = await ctx.CheckAdminOrSameUser(5, 20);
+        var result = await svc.CheckAdminOrSameUser(5, 20);
 
         // Assert
         Assert.That(result.Value, Is.True);
@@ -278,12 +293,13 @@ public class AppDbContextTests
     {
         // Arrange
         using var ctx = CreateContext();
+        var svc = new UserInformationService(ctx);
         var user = CreateUser(21, "logist2@test.com", "password", "Logist", "Two", null, [GetLogistRole(ctx)]);
         ctx.Users.Add(user);
         await ctx.SaveChangesAsync();
 
         // Act
-        var result = await ctx.CheckAdminOrSameUser(5, 21);
+        var result = await svc.CheckAdminOrSameUser(5, 21);
 
         // Assert
         Assert.That(result.Value, Is.False);
@@ -298,10 +314,11 @@ public class AppDbContextTests
     {
         // Arrange
         using var ctx = CreateContext();
+        var svc = new UserInformationService(ctx);
         ctx.Users.Add(CreateUser(30, "exists@test.com", "password", "Exists", "User", null, []));
         ctx.SaveChanges();
         // Act
-        var result = ctx.Exists(30);
+        var result = svc.Exists(30);
 
         // Assert
         Assert.That(result, Is.True);
@@ -312,9 +329,10 @@ public class AppDbContextTests
     {
         // Arrange
         using var ctx = CreateContext();
+        var svc = new UserInformationService(ctx);
 
         // Act
-        var result = ctx.Exists(999);
+        var result = svc.Exists(999);
 
         // Assert
         Assert.That(result, Is.False);
@@ -325,10 +343,11 @@ public class AppDbContextTests
     {
         // Arrange
         using var ctx = CreateContext();
+        var svc = new UserInformationService(ctx);
         ctx.Users.Add(CreateUser(31, "email_exists@test.com", "password", "Email", "Exists", null, []));
         ctx.SaveChanges();
         // Act
-        var result = ctx.Exists("email_exists@test.com");
+        var result = svc.Exists("email_exists@test.com");
 
         // Assert
         Assert.That(result, Is.True);
@@ -339,9 +358,10 @@ public class AppDbContextTests
     {
         // Arrange
         using var ctx = CreateContext();
+        var svc = new UserInformationService(ctx);
 
         // Act
-        var result = ctx.Exists("nonexistent@test.com");
+        var result = svc.Exists("nonexistent@test.com");
 
         // Assert
         Assert.That(result, Is.False);
@@ -352,10 +372,11 @@ public class AppDbContextTests
     {
         // Arrange
         using var ctx = CreateContext();
+        var svc = new UserInformationService(ctx);
         ctx.Users.Add(CreateUser(32, "case_test@test.com", "password", "Case", "Test", null, []));
         ctx.SaveChanges();
         // Act
-        var result = ctx.Exists("CASE_TEST@test.com");
+        var result = svc.Exists("CASE_TEST@test.com");
 
         // Assert
         Assert.That(result, Is.True);
@@ -370,12 +391,13 @@ public class AppDbContextTests
     {
         // Arrange
         using var ctx = CreateContext();
+        var svc = new UserInformationService(ctx);
         var user = CreateUser(40, "viewitem@test.com", "password", "View", "Item", "Test", [GetLogistRole(ctx)]);
         ctx.Users.Add(user);
         await ctx.SaveChangesAsync();
 
         // Act
-        var result = await ctx.UserViewItem(40);
+        var result = await svc.UserViewItem(40);
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -393,9 +415,10 @@ public class AppDbContextTests
     {
         // Arrange
         using var ctx = CreateContext();
+        var svc = new UserInformationService(ctx);
 
         // Act
-        var result = await ctx.UserViewItem(999);
+        var result = await svc.UserViewItem(999);
 
         // Assert
         Assert.That(result, Is.Null);
@@ -406,12 +429,13 @@ public class AppDbContextTests
     {
         // Arrange
         using var ctx = CreateContext();
+        var svc = new UserInformationService(ctx);
         var user = CreateUser(41, "multirole@test.com", "password", "Multi", "Role", "", [GetLogistRole(ctx), GetAdminRole(ctx)]);
         ctx.Users.Add(user);
         await ctx.SaveChangesAsync();
 
         // Act
-        var result = await ctx.UserViewItem(41);
+        var result = await svc.UserViewItem(41);
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -429,13 +453,14 @@ public class AppDbContextTests
     {
         // Arrange
         using var ctx = CreateContext();
+        var svc = new UserInformationService(ctx);
         ctx.Users.Add(CreateUser(50, "user1@test.com", "password", "User", "One", null, [GetLogistRole(ctx)]));
         ctx.Users.Add(CreateUser(51, "user2@test.com", "password", "User", "Two", null, [GetAdminRole(ctx)]));
 
         await ctx.SaveChangesAsync();
 
         // Act
-        var results = await ctx.UserViewItems();
+        var results = await svc.UserViewItems();
 
         // Assert
         Assert.That(results, Has.Count.GreaterThanOrEqualTo(2));
@@ -454,6 +479,7 @@ public class AppDbContextTests
     {
         // Arrange
         using var ctx = CreateContext();
+        var svc = new UserInformationService(ctx);
         // Clear users table - only do this in a test-specific database
         foreach (var user in ctx.Users.ToList())
         {
@@ -462,7 +488,7 @@ public class AppDbContextTests
         await ctx.SaveChangesAsync();
 
         // Act
-        var results = await ctx.UserViewItems();
+        var results = await svc.UserViewItems();
 
         // Assert
         Assert.That(results, Is.Empty);

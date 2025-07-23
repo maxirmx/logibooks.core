@@ -39,6 +39,7 @@ using Logibooks.Core.Controllers;
 using Logibooks.Core.Data;
 using Logibooks.Core.Models;
 using Logibooks.Core.RestModels;
+using Logibooks.Core.Services;
 
 namespace Logibooks.Core.Tests.Controllers;
 
@@ -49,6 +50,7 @@ public class UsersControllerTests
     private Mock<IHttpContextAccessor> _mockHttpContextAccessor;
     private Mock<ILogger<UsersController>> _mockLogger;
     private AppDbContext _dbContext;
+    private IUserInformationService _userService;
     private UsersController _controller;
     private User _adminUser;
     private User _regularUser;
@@ -105,6 +107,8 @@ public class UsersControllerTests
         // Setup mocks
         _mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
         _mockLogger = new Mock<ILogger<UsersController>>();
+
+        _userService = new UserInformationService(_dbContext);
 
         // Save entities to database
         _dbContext.SaveChanges();
@@ -576,6 +580,6 @@ public class UsersControllerTests
         var httpContext = new DefaultHttpContext();
         httpContext.Items["UserId"] = userId;
         _mockHttpContextAccessor.Setup(x => x.HttpContext).Returns(httpContext);
-        _controller = new UsersController(_mockHttpContextAccessor.Object, _dbContext, _mockLogger.Object);
+        _controller = new UsersController(_mockHttpContextAccessor.Object, _dbContext, _userService, _mockLogger.Object);
     }
 }

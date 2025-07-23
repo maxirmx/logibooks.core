@@ -52,6 +52,7 @@ public class RegistersControllerTests
     private Mock<IHttpContextAccessor> _mockHttpContextAccessor;
     private Mock<IRegisterValidationService> _mockRegValidationService;
     private ILogger<RegistersController> _logger;
+    private IUserInformationService _userService;
     private Role _logistRole;
     private Role _adminRole;
     private User _logistUser;
@@ -102,7 +103,8 @@ public class RegistersControllerTests
         _mockRegValidationService = new Mock<IRegisterValidationService>();
         _mockProcessingService = new Mock<IRegisterProcessingService>();
         _logger = new LoggerFactory().CreateLogger<RegistersController>();
-        _controller = new RegistersController(_mockHttpContextAccessor.Object, _dbContext, _logger, _mockRegValidationService.Object, _mockProcessingService.Object);
+        _userService = new UserInformationService(_dbContext);
+        _controller = new RegistersController(_mockHttpContextAccessor.Object, _dbContext, _userService, _logger, _mockRegValidationService.Object, _mockProcessingService.Object);
     }
 
     [TearDown]
@@ -117,7 +119,7 @@ public class RegistersControllerTests
         var ctx = new DefaultHttpContext();
         ctx.Items["UserId"] = id;
         _mockHttpContextAccessor.Setup(x => x.HttpContext).Returns(ctx);
-        _controller = new RegistersController(_mockHttpContextAccessor.Object, _dbContext, _logger, _mockRegValidationService.Object, _mockProcessingService.Object);
+        _controller = new RegistersController(_mockHttpContextAccessor.Object, _dbContext, _userService, _logger, _mockRegValidationService.Object, _mockProcessingService.Object);
     }
 
     [Test]
@@ -1563,7 +1565,7 @@ public class RegistersControllerTests
 
         // Update the logger type to match the expected type for RegisterValidationService
         var realRegSvc = new RegisterValidationService(_dbContext, scopeFactoryMock.Object, new LoggerFactory().CreateLogger<RegisterValidationService>(), new MorphologySearchService(), new FeacnPrefixCheckService(_dbContext));
-        _controller = new RegistersController(_mockHttpContextAccessor.Object, _dbContext, _logger, realRegSvc, _mockProcessingService.Object);
+        _controller = new RegistersController(_mockHttpContextAccessor.Object, _dbContext, _userService, _logger, realRegSvc, _mockProcessingService.Object);
 
         var result = await _controller.ValidateRegister(200);
         var handle = ((GuidReference)((OkObjectResult)result.Result!).Value!).Id;
