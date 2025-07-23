@@ -48,6 +48,7 @@ namespace Logibooks.Core.Data
         public DbSet<FeacnOrder> FeacnOrders => Set<FeacnOrder>();
         public DbSet<FeacnPrefix> FeacnPrefixes => Set<FeacnPrefix>();
         public DbSet<FeacnPrefixException> FeacnPrefixExceptions => Set<FeacnPrefixException>();
+        public DbSet<CustomsProcedure> CustomsProcedures => Set<CustomsProcedure>();
         public DbSet<BaseOrderFeacnPrefix> BaseOrderFeacnPrefixes => Set<BaseOrderFeacnPrefix>();
         public DbSet<TransportationType> TransportationTypes => Set<TransportationType>();
         public async Task<bool> CheckAdmin(int cuid)
@@ -338,8 +339,8 @@ namespace Logibooks.Core.Data
             );
 
             modelBuilder.Entity<FeacnOrder>().HasData(
-                new FeacnOrder { 
-                    Id = 1, 
+                new FeacnOrder {
+                    Id = 1,
                     Title  = "Решение Комиссии Таможенного союза от 18 июня 2010 г. N 317 \"О применении ветеринарно-санитарных мер в Евразийском экономическом союзе\"", 
                     Url = "10sr0317", 
                     Comment = "Подлежит ветеринарному контролю" 
@@ -362,12 +363,17 @@ namespace Logibooks.Core.Data
                     Url = "22ps0311", 
                     Comment = "Временный запрет на вывоз" 
                 },
-                new FeacnOrder { 
-                    Id = 5, 
-                    Title = "Постановление Правительства Российской Федерации от 9 марта 2022 г. N 312 \"О введении на временной основе разрешительного порядка вывоза отдельных видов товаров за пределы территории Российской Федерации\"", 
-                    Url = "22ps0312", 
-                    Comment = "Разрешительный порядок вывоза" 
+                new FeacnOrder {
+                    Id = 5,
+                    Title = "Постановление Правительства Российской Федерации от 9 марта 2022 г. N 312 \"О введении на временной основе разрешительного порядка вывоза отдельных видов товаров за пределы территории Российской Федерации\"",
+                    Url = "22ps0312",
+                    Comment = "Разрешительный порядок вывоза"
                 }
+            );
+
+            modelBuilder.Entity<CustomsProcedure>().HasData(
+                new CustomsProcedure { Id = 1, Code = 10, Name = "Экспорт" },
+                new CustomsProcedure { Id = 2, Code = 60, Name = "Реимпорт" }
             );
         }
     }
