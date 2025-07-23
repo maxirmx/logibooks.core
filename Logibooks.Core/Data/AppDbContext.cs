@@ -49,6 +49,7 @@ namespace Logibooks.Core.Data
         public DbSet<FeacnPrefix> FeacnPrefixes => Set<FeacnPrefix>();
         public DbSet<FeacnPrefixException> FeacnPrefixExceptions => Set<FeacnPrefixException>();
         public DbSet<BaseOrderFeacnPrefix> BaseOrderFeacnPrefixes => Set<BaseOrderFeacnPrefix>();
+        public DbSet<TransportationType> TransportationTypes => Set<TransportationType>();
         public async Task<bool> CheckAdmin(int cuid)
         {
             var user = await Users
@@ -313,6 +314,11 @@ namespace Logibooks.Core.Data
                     City = "д. Коледино",
                     Street = "Индустриальный Парк Коледино, д.6, стр.1"
                 }
+            );
+
+            modelBuilder.Entity<TransportationType>().HasData(
+                new TransportationType { Id = 1, Code = TransportationTypeCode.Avia, Name = "Авиа" },
+                new TransportationType { Id = 2, Code = TransportationTypeCode.Auto, Name = "Авто" }
             );
 
             modelBuilder.Entity<UserRole>().HasData(
