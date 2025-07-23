@@ -33,7 +33,6 @@ public class TransportationTypeDto
     public TransportationTypeCode Code { get; set; }
     public string Name { get; set; } = string.Empty;
 
-    public TransportationTypeDto() {}
     public TransportationTypeDto(TransportationType type)
     {
         Id = type.Id;
