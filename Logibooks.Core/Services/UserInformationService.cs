@@ -31,7 +31,7 @@ public class UserInformationService(AppDbContext db) : IUserInformationService
         return user != null && user.IsLogist();
     }
 
-    public async Task<ActionResult<bool>> CheckAdminOrSameUser(int id, int cuid)
+    public async Task<bool> CheckAdminOrSameUser(int id, int cuid)
     {
         if (cuid == 0) return false;
         if (cuid == id) return true;
