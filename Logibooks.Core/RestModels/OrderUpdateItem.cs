@@ -35,7 +35,7 @@ public class OrderUpdateItem
     public string? Shk { get; set; }
     public string? TnVed { get; set; }
     public string? ProductName { get; set; }
-    public string? Country { get; set; }
+    public short? CountryCode { get; set; }
     public decimal? WeightKg { get; set; }
     public decimal? Quantity { get; set; }
     public decimal? UnitPrice { get; set; }

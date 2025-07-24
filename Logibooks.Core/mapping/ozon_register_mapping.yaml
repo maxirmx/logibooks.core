@@ -7,7 +7,7 @@ header_mappings:
   "Штрих код": Barcode
   "Артикул": Article
   "Производитель": Manufacturer
-  "Страна": Country
+  "Страна": CountryCode
   "Описание на английском": DescriptionEn
   "Описание на русском": ProductName
   "Вес": WeightKg

@@ -61,8 +61,6 @@ public class WbrOrder : BaseOrder
     [Column("sole")]
     public string? Sole { get; set; }
 
-    [Column("country")]
-    public string? Country { get; set; }
 
     [Column("factory_address")]
     public string? FactoryAddress { get; set; }

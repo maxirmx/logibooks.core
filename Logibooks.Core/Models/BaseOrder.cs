@@ -31,6 +31,11 @@ public abstract class BaseOrder
     [Column("tn_ved")]
     public string? TnVed { get; set; }
 
+    [Column("country_code")]
+    public short CountryCode { get; set; }
+
+    public Country Country { get; set; } = null!;
+
     public ICollection<BaseOrderStopWord> BaseOrderStopWords { get; set; } = new List<BaseOrderStopWord>();
 
     public ICollection<BaseOrderFeacnPrefix> BaseOrderFeacnPrefixes { get; set; } = new List<BaseOrderFeacnPrefix>();
