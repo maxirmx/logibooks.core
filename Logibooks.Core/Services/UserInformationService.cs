@@ -47,7 +47,7 @@ public class UserInformationService(AppDbContext db) : IUserInformationService
 
     public bool Exists(int id)
     {
-        return _db.Users.Any(e => e.Id == id);
+        return _db.Users.AsNoTracking().Any(e => e.Id == id);
     }
 
     public bool Exists(string email)
