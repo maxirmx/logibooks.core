@@ -34,7 +34,7 @@ public abstract class BaseOrder
     [Column("country_code")]
     public short CountryCode { get; set; }
 
-    public Country Country { get; set; } = null!;
+    public Country? Country { get; set; } = null;
 
     public ICollection<BaseOrderStopWord> BaseOrderStopWords { get; set; } = new List<BaseOrderStopWord>();
 
