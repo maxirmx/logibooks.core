@@ -42,7 +42,7 @@ public class OrderViewItem
     public string? OrderNumber { get; set; }
     public string? Shk { get; set; }
     public string? Description { get; set; }
-    public string? Country { get; set; }
+    public short CountryCode { get; set; }
     public decimal? WeightKg { get; set; }
     public decimal? Quantity { get; set; }
     public decimal? UnitPrice { get; set; }
@@ -70,12 +70,13 @@ public class OrderViewItem
         ProductName = order.ProductName;
         TnVed = order.TnVed;
 
+        CountryCode = order.CountryCode;
+
         if (order is WbrOrder wbr)
         {
             OrderNumber = wbr.OrderNumber;
             Shk = wbr.Shk;
             Description = wbr.Description;
-            Country = wbr.Country;
             WeightKg = wbr.WeightKg;
             Quantity = wbr.Quantity;
             UnitPrice = wbr.UnitPrice;
@@ -89,7 +90,6 @@ public class OrderViewItem
         {
             PostingNumber = ozon.PostingNumber;
             OzonId = ozon.OzonId;
-            Country = ozon.Country;
             WeightKg = ozon.WeightKg;
             Quantity = ozon.Quantity;
             UnitPrice = ozon.UnitPrice;

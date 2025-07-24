@@ -126,8 +126,15 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
                 {
                     try
                     {
-                        object? convertedValue = ConvertValueToPropertyType(val, propInfo.PropertyType, propInfo.Name);
-                        propInfo.SetValue(order, convertedValue);
+                        if (propInfo.Name == nameof(BaseOrder.CountryCode))
+                        {
+                            order.CountryCode = LookupWbrCountryCode(val);
+                        }
+                        else
+                        {
+                            object? convertedValue = ConvertValueToPropertyType(val, propInfo.PropertyType, propInfo.Name);
+                            propInfo.SetValue(order, convertedValue);
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -159,8 +166,15 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
                 {
                     try
                     {
-                        object? convertedValue = ConvertValueToPropertyType(val, propInfo.PropertyType, propInfo.Name);
-                        propInfo.SetValue(order, convertedValue);
+                        if (propInfo.Name == nameof(BaseOrder.CountryCode))
+                        {
+                            order.CountryCode = LookupOzonCountryCode(val);
+                        }
+                        else
+                        {
+                            object? convertedValue = ConvertValueToPropertyType(val, propInfo.PropertyType, propInfo.Name);
+                            propInfo.SetValue(order, convertedValue);
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -235,5 +249,23 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
             _logger.LogWarning(ex, "Could not convert '{Value}' to type {Type} for property {Property}", value, targetType.Name, propertyName);
             return targetType.IsValueType ? Activator.CreateInstance(targetType) : null;
         }
+    }
+
+    private short LookupWbrCountryCode(string value)
+    {
+        var code = value.Trim().ToUpperInvariant();
+        var country = _db.Countries.AsNoTracking()
+            .FirstOrDefault(c => c.IsoAlpha2.ToUpper() == code);
+        return country?.IsoNumeric ?? 0;
+    }
+
+    private short LookupOzonCountryCode(string value)
+    {
+        if (string.Equals(value.Trim(), "Россия", StringComparison.InvariantCultureIgnoreCase))
+            return 643;
+
+        var country = _db.Countries.AsNoTracking()
+            .FirstOrDefault(c => c.NameRuShort.Equals(value.Trim(), StringComparison.InvariantCultureIgnoreCase));
+        return country?.IsoNumeric ?? 0;
     }
 }

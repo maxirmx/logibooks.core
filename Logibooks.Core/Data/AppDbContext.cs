@@ -109,6 +109,12 @@ namespace Logibooks.Core.Data
                 .HasForeignKey(o => o.CheckStatusId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            modelBuilder.Entity<BaseOrder>()
+                .HasOne(o => o.Country)
+                .WithMany()
+                .HasForeignKey(o => o.CountryCode)
+                .OnDelete(DeleteBehavior.Restrict);
+
             modelBuilder.Entity<BaseOrder>().ToTable("base_orders");
             modelBuilder.Entity<WbrOrder>().ToTable("wbr_orders");
             modelBuilder.Entity<OzonOrder>().ToTable("ozon_orders");
