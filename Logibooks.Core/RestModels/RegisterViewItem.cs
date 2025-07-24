@@ -33,7 +33,7 @@ public class RegisterViewItem
     public DateTime Date { get; set; }
     public string? InvoiceNumber { get; set; }
     public DateOnly? InvoiceDate { get; set; }
-    public short? DestinationCountryIsoNumeric { get; set; }
+    public short? DestCountryCode { get; set; }
     public int TransportationTypeId { get; set; }
     public int CustomsProcedureId { get; set; }
     public int OrdersTotal { get; set; }

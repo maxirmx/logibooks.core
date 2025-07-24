@@ -52,8 +52,8 @@ public class Register
     [Column("invoice_date")]
     public DateOnly? InvoiceDate { get; set; }
 
-    [Column("dest_country_iso_numeric")]
-    public short? DestinationCountryIsoNumeric { get; set; }
+    [Column("dest_country_code")]
+    public short? DestCountryCode { get; set; }
 
     [JsonIgnore]
     public Country? DestinationCountry { get; set; }

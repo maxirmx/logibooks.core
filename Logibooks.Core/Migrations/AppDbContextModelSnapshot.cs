@@ -518,9 +518,9 @@ namespace Logibooks.Core.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("dtime");
 
-                    b.Property<short?>("DestinationCountryIsoNumeric")
+                    b.Property<short?>("DestCountryCode")
                         .HasColumnType("smallint")
-                        .HasColumnName("dest_country_iso_numeric");
+                        .HasColumnName("dest_country_code");
 
                     b.Property<string>("FileName")
                         .IsRequired()
@@ -545,7 +545,7 @@ namespace Logibooks.Core.Migrations
 
                     b.HasIndex("CustomsProcedureId");
 
-                    b.HasIndex("DestinationCountryIsoNumeric");
+                    b.HasIndex("DestCountryCode");
 
                     b.HasIndex("TransportationTypeId");
 
@@ -1206,7 +1206,7 @@ namespace Logibooks.Core.Migrations
 
                     b.HasOne("Logibooks.Core.Models.Country", "DestinationCountry")
                         .WithMany()
-                        .HasForeignKey("DestinationCountryIsoNumeric")
+                        .HasForeignKey("DestCountryCode")
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Logibooks.Core.Models.TransportationType", "TransportationType")

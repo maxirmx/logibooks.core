@@ -82,7 +82,7 @@ public class RegistersController(
                 r.CompanyId,
                 r.InvoiceNumber,
                 r.InvoiceDate,
-                r.DestinationCountryIsoNumeric,
+                r.DestCountryCode,
                 r.TransportationTypeId,
                 r.CustomsProcedureId
             })
@@ -105,7 +105,7 @@ public class RegistersController(
             CompanyId = register.CompanyId,
             InvoiceNumber = register.InvoiceNumber,
             InvoiceDate = register.InvoiceDate,
-            DestinationCountryIsoNumeric = register.DestinationCountryIsoNumeric,
+            DestCountryCode = register.DestCountryCode,
             TransportationTypeId = register.TransportationTypeId,
             CustomsProcedureId = register.CustomsProcedureId,
             OrdersTotal = ordersByStatus.Values.Sum(),
@@ -174,7 +174,7 @@ public class RegistersController(
                 Date = r.DTime,
                 InvoiceNumber = r.InvoiceNumber,
                 InvoiceDate = r.InvoiceDate,
-                DestinationCountryIsoNumeric = r.DestinationCountryIsoNumeric,
+                DestCountryCode = r.DestCountryCode,
                 TransportationTypeId = r.TransportationTypeId,
                 CustomsProcedureId = r.CustomsProcedureId,
                 OrdersTotal = r.Orders.Count()

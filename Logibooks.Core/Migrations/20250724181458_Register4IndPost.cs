@@ -14,6 +14,47 @@ namespace Logibooks.Core.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.AddColumn<short>(
+                name: "country_code",
+                table: "base_orders",
+                type: "smallint",
+                nullable: false,
+                defaultValue: (short)0);
+
+            // First, migrate country data from WBR and Ozon orders to base_orders before dropping the columns
+            migrationBuilder.Sql(@"
+                -- Migrate WBR country data (ISO Alpha2 codes to numeric)
+                UPDATE base_orders 
+                SET country_code = COALESCE(
+                    (SELECT c.iso_numeric 
+                     FROM countries c 
+                     WHERE UPPER(c.iso_alpha2) = UPPER(TRIM(w.country))
+                     LIMIT 1), 
+                    0
+                )
+                FROM wbr_orders w 
+                WHERE base_orders.id = w.id 
+                AND w.country IS NOT NULL 
+                AND TRIM(w.country) != '';
+
+                -- Migrate Ozon country data (Russian names to numeric)
+                UPDATE base_orders 
+                SET country_code = CASE 
+                    WHEN TRIM(o.country) ILIKE 'Россия' THEN 643
+                    ELSE COALESCE(
+                        (SELECT c.iso_numeric 
+                         FROM countries c 
+                         WHERE c.name_ru_short ILIKE TRIM(o.country)
+                         LIMIT 1), 
+                        0
+                    )
+                END
+                FROM ozon_orders o 
+                WHERE base_orders.id = o.id 
+                AND o.country IS NOT NULL 
+                AND TRIM(o.country) != '';
+            ");
+
             migrationBuilder.DropColumn(
                 name: "country",
                 table: "wbr_orders");
@@ -30,7 +71,7 @@ namespace Logibooks.Core.Migrations
                 defaultValue: 0);
 
             migrationBuilder.AddColumn<short>(
-                name: "dest_country_iso_numeric",
+                name: "dest_country_code",
                 table: "registers",
                 type: "smallint",
                 nullable: true);
@@ -53,13 +94,6 @@ namespace Logibooks.Core.Migrations
                 type: "integer",
                 nullable: false,
                 defaultValue: 0);
-
-            migrationBuilder.AddColumn<short>(
-                name: "country_code",
-                table: "base_orders",
-                type: "smallint",
-                nullable: false,
-                defaultValue: (short)0);
 
             migrationBuilder.CreateTable(
                 name: "customs_procedures",
@@ -113,9 +147,9 @@ namespace Logibooks.Core.Migrations
                 column: "customs_procedure_id");
 
             migrationBuilder.CreateIndex(
-                name: "IX_registers_dest_country_iso_numeric",
+                name: "IX_registers_dest_country_code",
                 table: "registers",
-                column: "dest_country_iso_numeric");
+                column: "dest_country_code");
 
             migrationBuilder.CreateIndex(
                 name: "IX_registers_transportation_type_id",
@@ -136,9 +170,9 @@ namespace Logibooks.Core.Migrations
                 onDelete: ReferentialAction.Restrict);
 
             migrationBuilder.AddForeignKey(
-                name: "FK_registers_countries_dest_country_iso_numeric",
+                name: "FK_registers_countries_dest_country_code",
                 table: "registers",
-                column: "dest_country_iso_numeric",
+                column: "dest_country_code",
                 principalTable: "countries",
                 principalColumn: "iso_numeric",
                 onDelete: ReferentialAction.Restrict);
@@ -168,7 +202,7 @@ namespace Logibooks.Core.Migrations
                 table: "base_orders");
 
             migrationBuilder.DropForeignKey(
-                name: "FK_registers_countries_dest_country_iso_numeric",
+                name: "FK_registers_countries_dest_country_code",
                 table: "registers");
 
             migrationBuilder.DropForeignKey(
@@ -190,7 +224,7 @@ namespace Logibooks.Core.Migrations
                 table: "registers");
 
             migrationBuilder.DropIndex(
-                name: "IX_registers_dest_country_iso_numeric",
+                name: "IX_registers_dest_country_code",
                 table: "registers");
 
             migrationBuilder.DropIndex(
@@ -206,7 +240,7 @@ namespace Logibooks.Core.Migrations
                 table: "registers");
 
             migrationBuilder.DropColumn(
-                name: "dest_country_iso_numeric",
+                name: "dest_country_code",
                 table: "registers");
 
             migrationBuilder.DropColumn(
@@ -221,10 +255,6 @@ namespace Logibooks.Core.Migrations
                 name: "transportation_type_id",
                 table: "registers");
 
-            migrationBuilder.DropColumn(
-                name: "country_code",
-                table: "base_orders");
-
             migrationBuilder.AddColumn<string>(
                 name: "country",
                 table: "wbr_orders",
@@ -236,6 +266,41 @@ namespace Logibooks.Core.Migrations
                 table: "ozon_orders",
                 type: "text",
                 nullable: true);
+
+            // Restore country data when rolling back
+            migrationBuilder.Sql(@"
+                -- Restore WBR country data (numeric to ISO Alpha2 codes)
+                UPDATE wbr_orders 
+                SET country = COALESCE(
+                    (SELECT c.iso_alpha2 
+                     FROM countries c 
+                     JOIN base_orders b ON b.country_code = c.iso_numeric
+                     WHERE b.id = wbr_orders.id
+                     LIMIT 1), 
+                    NULL
+                );
+
+                -- Restore Ozon country data (numeric to Russian names)
+                UPDATE ozon_orders 
+                SET country = CASE 
+                    WHEN b.country_code = 643 THEN 'Россия'
+                    ELSE COALESCE(
+                        (SELECT c.name_ru_short 
+                         FROM countries c 
+                         WHERE c.iso_numeric = b.country_code
+                         LIMIT 1), 
+                        NULL
+                    )
+                END
+                FROM base_orders b 
+                WHERE b.id = ozon_orders.id 
+                AND b.country_code != 0;
+            ");
+
+            migrationBuilder.DropColumn(
+                name: "country_code",
+                table: "base_orders");
+
         }
     }
 }
