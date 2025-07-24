@@ -74,7 +74,18 @@ public class RegistersController(
         var register = await _db.Registers
             .AsNoTracking()
             .Where(r => r.Id == id)
-            .Select(r => new { r.Id, r.FileName, r.DTime, r.CompanyId })
+            .Select(r => new
+            {
+                r.Id,
+                r.FileName,
+                r.DTime,
+                r.CompanyId,
+                r.InvoiceNumber,
+                r.InvoiceDate,
+                r.DestinationCountryIsoNumeric,
+                r.TransportationTypeId,
+                r.CustomsProcedureId
+            })
             .FirstOrDefaultAsync();
 
         if (register == null)
@@ -91,7 +102,12 @@ public class RegistersController(
             Id = register.Id,
             FileName = register.FileName,
             Date = register.DTime,
-            CompanyId = register.CompanyId, 
+            CompanyId = register.CompanyId,
+            InvoiceNumber = register.InvoiceNumber,
+            InvoiceDate = register.InvoiceDate,
+            DestinationCountryIsoNumeric = register.DestinationCountryIsoNumeric,
+            TransportationTypeId = register.TransportationTypeId,
+            CustomsProcedureId = register.CustomsProcedureId,
             OrdersTotal = ordersByStatus.Values.Sum(),
             OrdersByStatus = ordersByStatus
         };
@@ -156,6 +172,11 @@ public class RegistersController(
                 FileName = r.FileName,
                 CompanyId = r.CompanyId,
                 Date = r.DTime,
+                InvoiceNumber = r.InvoiceNumber,
+                InvoiceDate = r.InvoiceDate,
+                DestinationCountryIsoNumeric = r.DestinationCountryIsoNumeric,
+                TransportationTypeId = r.TransportationTypeId,
+                CustomsProcedureId = r.CustomsProcedureId,
                 OrdersTotal = r.Orders.Count()
             });
 

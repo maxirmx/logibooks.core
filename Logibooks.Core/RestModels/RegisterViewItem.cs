@@ -31,6 +31,11 @@ public class RegisterViewItem
     public int CompanyId { get; set; }
     public string FileName { get; set; } = string.Empty;
     public DateTime Date { get; set; }
+    public string? InvoiceNumber { get; set; }
+    public DateOnly? InvoiceDate { get; set; }
+    public short? DestinationCountryIsoNumeric { get; set; }
+    public int TransportationTypeId { get; set; }
+    public int CustomsProcedureId { get; set; }
     public int OrdersTotal { get; set; }
     public Dictionary<int, int> OrdersByStatus { get; set; } = new();
 }

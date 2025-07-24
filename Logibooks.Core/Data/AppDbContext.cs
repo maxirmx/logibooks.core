@@ -92,6 +92,24 @@ namespace Logibooks.Core.Data
                 .HasForeignKey(o => o.CompanyId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            modelBuilder.Entity<Register>()
+                .HasOne(r => r.DestinationCountry)
+                .WithMany()
+                .HasForeignKey(r => r.DestinationCountryIsoNumeric)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Register>()
+                .HasOne(r => r.TransportationType)
+                .WithMany()
+                .HasForeignKey(r => r.TransportationTypeId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Register>()
+                .HasOne(r => r.CustomsProcedure)
+                .WithMany()
+                .HasForeignKey(r => r.CustomsProcedureId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             modelBuilder.Entity<BaseOrder>()
                 .HasOne(o => o.Register)
                 .WithMany(r => r.Orders)
