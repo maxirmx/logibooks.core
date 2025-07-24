@@ -1,6 +1,5 @@
 namespace Logibooks.Core.Services;
 
-using Microsoft.AspNetCore.Mvc;
 using Logibooks.Core.RestModels;
 
 public interface IUserInformationService
