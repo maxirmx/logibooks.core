@@ -46,6 +46,28 @@ public class Register
     [JsonIgnore]
     public Company Company { get; set; } = null!;
 
+    [Column("invoice_number")]
+    public string? InvoiceNumber { get; set; }
+
+    [Column("invoice_date")]
+    public DateOnly? InvoiceDate { get; set; }
+
+    [Column("dest_country_iso_numeric")]
+    public short? DestinationCountryIsoNumeric { get; set; }
+
+    [JsonIgnore]
+    public Country? DestinationCountry { get; set; }
+
+    [Column("transportation_type_id")]
+    public int TransportationTypeId { get; set; } = 1;
+
+    public TransportationType TransportationType { get; set; } = null!;
+
+    [Column("customs_procedure_id")]
+    public int CustomsProcedureId { get; set; } = 1;
+
+    public CustomsProcedure CustomsProcedure { get; set; } = null!;
+
     [JsonIgnore]
     public ICollection<BaseOrder> Orders { get; set; } = new List<BaseOrder>();
 }
