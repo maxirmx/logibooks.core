@@ -29,8 +29,6 @@ public class OzonOrder : BaseOrder
     [Column("manufacturer")]
     public string? Manufacturer { get; set; }
 
-    [Column("country")]
-    public string? Country { get; set; }
 
     [Column("description_en")]
     public string? DescriptionEn { get; set; }

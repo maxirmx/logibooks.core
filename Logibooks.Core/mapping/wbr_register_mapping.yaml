@@ -19,7 +19,7 @@ header_mappings:
   "Подкладка": Lining
   "Стелька": Insole
   "Подошва": Sole
-  "страна": Country
+  "страна": CountryCode
   "завод адрес": FactoryAddress
   "единица измерения (шт., пара)": Unit
   "Масса, кг,": WeightKg
