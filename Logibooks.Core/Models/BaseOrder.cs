@@ -34,9 +34,9 @@ public abstract class BaseOrder
     [Column("country_code")]
     public short CountryCode { get; set; }
 
-    public Country Country { get; set; } = null!;
+    public virtual Country Country { get; set; } = null!;
 
-    public ICollection<BaseOrderStopWord> BaseOrderStopWords { get; set; } = new List<BaseOrderStopWord>();
+    public virtual ICollection<BaseOrderStopWord> BaseOrderStopWords { get; set; } = new List<BaseOrderStopWord>();
 
-    public ICollection<BaseOrderFeacnPrefix> BaseOrderFeacnPrefixes { get; set; } = new List<BaseOrderFeacnPrefix>();
+    public virtual ICollection<BaseOrderFeacnPrefix> BaseOrderFeacnPrefixes { get; set; } = new List<BaseOrderFeacnPrefix>();
 }
