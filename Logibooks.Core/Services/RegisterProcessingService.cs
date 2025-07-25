@@ -39,6 +39,10 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
     private readonly ILogger<RegisterProcessingService> _logger = logger;
     private static readonly CultureInfo RussianCulture = new("ru-RU");
 
+    // Cache dictionaries for country lookups
+    private Dictionary<string, short>? _wbrCountryLookup;
+    private Dictionary<string, short>? _ozonCountryLookup;
+
     public int GetOzonId() => IRegisterProcessingService.GetOzonId();
     public int GetWBRId() => IRegisterProcessingService.GetWBRId();
 
@@ -48,6 +52,9 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
         string fileName,
         CancellationToken cancellationToken = default)
     {
+        // Pre-load country lookup dictionaries
+        await InitializeCountryLookupsAsync(cancellationToken);
+
         // Determine company type and method name from companyId
         bool isWbr = companyId == 2; // WBR company ID
         string methodName = isWbr ? "UploadWbrRegisterFromExcelAsync" : "UploadOzonRegisterFromExcelAsync";
@@ -108,6 +115,31 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
         return new Reference { Id = register.Id };
     }
 
+    private async Task InitializeCountryLookupsAsync(CancellationToken cancellationToken = default)
+    {
+        if (_wbrCountryLookup == null || _ozonCountryLookup == null)
+        {
+            var countries = await _db.Countries.AsNoTracking().ToListAsync(cancellationToken);
+            
+            // Build WBR lookup dictionary (ISO Alpha2 codes)
+            _wbrCountryLookup = countries.ToDictionary(
+                c => c.IsoAlpha2.ToUpperInvariant(),
+                c => c.IsoNumeric,
+                StringComparer.OrdinalIgnoreCase
+            );
+
+            // Build Ozon lookup dictionary (Russian names + special case for Russia)
+            _ozonCountryLookup = countries.ToDictionary(
+                c => c.NameRuShort,
+                c => c.IsoNumeric,
+                StringComparer.InvariantCultureIgnoreCase
+            );
+            
+            // Add special case for Russia if not already present
+            _ozonCountryLookup["Россия"] = 643;
+        }
+    }
+
     private List<WbrOrder> CreateWbrOrders(System.Data.DataTable table, int registerId, Dictionary<int, string> columnMap)
     {
         var orders = new List<WbrOrder>();
@@ -126,8 +158,15 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
                 {
                     try
                     {
-                        object? convertedValue = ConvertValueToPropertyType(val, propInfo.PropertyType, propInfo.Name);
-                        propInfo.SetValue(order, convertedValue);
+                        if (propInfo.Name == nameof(BaseOrder.CountryCode))
+                        {
+                            order.CountryCode = LookupWbrCountryCode(val);
+                        }
+                        else
+                        {
+                            object? convertedValue = ConvertValueToPropertyType(val, propInfo.PropertyType, propInfo.Name);
+                            propInfo.SetValue(order, convertedValue);
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -159,8 +198,15 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
                 {
                     try
                     {
-                        object? convertedValue = ConvertValueToPropertyType(val, propInfo.PropertyType, propInfo.Name);
-                        propInfo.SetValue(order, convertedValue);
+                        if (propInfo.Name == nameof(BaseOrder.CountryCode))
+                        {
+                            order.CountryCode = LookupOzonCountryCode(val);
+                        }
+                        else
+                        {
+                            object? convertedValue = ConvertValueToPropertyType(val, propInfo.PropertyType, propInfo.Name);
+                            propInfo.SetValue(order, convertedValue);
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -235,5 +281,17 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
             _logger.LogWarning(ex, "Could not convert '{Value}' to type {Type} for property {Property}", value, targetType.Name, propertyName);
             return targetType.IsValueType ? Activator.CreateInstance(targetType) : null;
         }
+    }
+
+    private short LookupWbrCountryCode(string value)
+    {
+        var code = value.Trim().ToUpperInvariant();
+        return _wbrCountryLookup?.GetValueOrDefault(code, (short)0) ?? 0;
+    }
+
+    private short LookupOzonCountryCode(string value)
+    {
+        var name = value.Trim();
+        return _ozonCountryLookup?.GetValueOrDefault(name, (short)0) ?? 0;
     }
 }

@@ -23,53 +23,10 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-using System.ComponentModel.DataAnnotations.Schema;
-using System.Text.Json.Serialization;
-
 namespace Logibooks.Core.Models;
 
-[Table("registers")]
-public class Register
+public enum TransportationTypeCode
 {
-    [Column("id")]
-    public int Id { get; set; }
-
-    [Column("filename")]
-    public required string FileName { get; set; }
-
-    [Column("dtime")]
-    public DateTime DTime { get; set; } = DateTime.UtcNow;
-
-    [Column("company_id")]
-    public int CompanyId { get; set; }
-
-    [JsonIgnore]
-    public Company? Company { get; set; }
-
-    [Column("invoice_number")]
-    public string? InvoiceNumber { get; set; }
-
-    [Column("invoice_date")]
-    public DateOnly? InvoiceDate { get; set; }
-
-    [Column("dest_country_code")]
-    public short? DestCountryCode { get; set; }
-
-    [JsonIgnore]
-    public Country? DestinationCountry { get; set; }
-
-    [Column("transportation_type_id")]
-    public int TransportationTypeId { get; set; } = 1;
-    // { Id = 1, Code = TransportationTypeCode.Avia, Name = "Авиа" }
-    [JsonIgnore]
-    public TransportationType? TransportationType { get; set; }
-
-    [Column("customs_procedure_id")]
-    public int CustomsProcedureId { get; set; } = 1;
-    // { Id = 1, Code = 10, Name = "Экспорт" }
-    [JsonIgnore]
-    public CustomsProcedure? CustomsProcedure { get; set; }
-
-    [JsonIgnore]
-    public ICollection<BaseOrder> Orders { get; set; } = new List<BaseOrder>();
+    Avia = 0,
+    Auto = 1
 }

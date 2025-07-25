@@ -52,6 +52,7 @@ public class RegistersControllerTests
     private Mock<IHttpContextAccessor> _mockHttpContextAccessor;
     private Mock<IRegisterValidationService> _mockRegValidationService;
     private ILogger<RegistersController> _logger;
+    private IUserInformationService _userService;
     private Role _logistRole;
     private Role _adminRole;
     private User _logistUser;
@@ -102,7 +103,8 @@ public class RegistersControllerTests
         _mockRegValidationService = new Mock<IRegisterValidationService>();
         _mockProcessingService = new Mock<IRegisterProcessingService>();
         _logger = new LoggerFactory().CreateLogger<RegistersController>();
-        _controller = new RegistersController(_mockHttpContextAccessor.Object, _dbContext, _logger, _mockRegValidationService.Object, _mockProcessingService.Object);
+        _userService = new UserInformationService(_dbContext);
+        _controller = new RegistersController(_mockHttpContextAccessor.Object, _dbContext, _userService, _logger, _mockRegValidationService.Object, _mockProcessingService.Object);
     }
 
     [TearDown]
@@ -117,7 +119,7 @@ public class RegistersControllerTests
         var ctx = new DefaultHttpContext();
         ctx.Items["UserId"] = id;
         _mockHttpContextAccessor.Setup(x => x.HttpContext).Returns(ctx);
-        _controller = new RegistersController(_mockHttpContextAccessor.Object, _dbContext, _logger, _mockRegValidationService.Object, _mockProcessingService.Object);
+        _controller = new RegistersController(_mockHttpContextAccessor.Object, _dbContext, _userService, _logger, _mockRegValidationService.Object, _mockProcessingService.Object);
     }
 
     [Test]
@@ -1367,6 +1369,64 @@ public class RegistersControllerTests
     }
 
     [Test]
+    public async Task PutRegister_UpdatesData_WhenUserIsLogist()
+    {
+        SetCurrentUserId(1);
+        _dbContext.Countries.Add(new Country { IsoNumeric = 100, IsoAlpha2 = "XX", NameRuShort = "XX" });
+        _dbContext.TransportationTypes.Add(new TransportationType { Id = 1, Code = TransportationTypeCode.Avia, Name = "Авиа" });
+        _dbContext.CustomsProcedures.Add(new CustomsProcedure { Id = 1, Code = 10, Name = "Экспорт" });
+        var register = new Register { Id = 1, FileName = "r.xlsx" };
+        _dbContext.Registers.Add(register);
+        await _dbContext.SaveChangesAsync();
+
+        var update = new RegisterUpdateItem
+        {
+            InvoiceNumber = "INV",
+            InvoiceDate = new DateOnly(2025, 1, 2),
+            DestCountryCode = 100,
+            TransportationTypeId = 1,
+            CustomsProcedureId = 1
+        };
+
+        var result = await _controller.PutRegister(1, update);
+
+        Assert.That(result, Is.TypeOf<NoContentResult>());
+        var saved = await _dbContext.Registers.FindAsync(1);
+        Assert.That(saved!.InvoiceNumber, Is.EqualTo("INV"));
+        Assert.That(saved.InvoiceDate, Is.EqualTo(new DateOnly(2025, 1, 2)));
+        Assert.That(saved.DestCountryCode, Is.EqualTo((short)100));
+        Assert.That(saved.TransportationTypeId, Is.EqualTo(1));
+        Assert.That(saved.CustomsProcedureId, Is.EqualTo(1));
+    }
+
+    [Test]
+    public async Task PutRegister_ReturnsForbidden_ForNonLogist()
+    {
+        SetCurrentUserId(2);
+        var register = new Register { Id = 1, FileName = "r.xlsx" };
+        _dbContext.Registers.Add(register);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.PutRegister(1, new RegisterUpdateItem());
+
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
+    }
+
+    [Test]
+    public async Task PutRegister_ReturnsNotFound_WhenRegisterMissing()
+    {
+        SetCurrentUserId(1);
+
+        var result = await _controller.PutRegister(99, new RegisterUpdateItem());
+
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+    }
+
+    [Test]
     public async Task SetOrderStatuses_ReturnsNotFound_WhenRegisterMissing()
     {
         SetCurrentUserId(1);
@@ -1563,7 +1623,7 @@ public class RegistersControllerTests
 
         // Update the logger type to match the expected type for RegisterValidationService
         var realRegSvc = new RegisterValidationService(_dbContext, scopeFactoryMock.Object, new LoggerFactory().CreateLogger<RegisterValidationService>(), new MorphologySearchService(), new FeacnPrefixCheckService(_dbContext));
-        _controller = new RegistersController(_mockHttpContextAccessor.Object, _dbContext, _logger, realRegSvc, _mockProcessingService.Object);
+        _controller = new RegistersController(_mockHttpContextAccessor.Object, _dbContext, _userService, _logger, realRegSvc, _mockProcessingService.Object);
 
         var result = await _controller.ValidateRegister(200);
         var handle = ((GuidReference)((OkObjectResult)result.Result!).Value!).Id;

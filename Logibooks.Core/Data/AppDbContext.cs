@@ -24,8 +24,6 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 using Logibooks.Core.Models;
-using Logibooks.Core.RestModels;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 namespace Logibooks.Core.Data
 {
@@ -48,67 +46,9 @@ namespace Logibooks.Core.Data
         public DbSet<FeacnOrder> FeacnOrders => Set<FeacnOrder>();
         public DbSet<FeacnPrefix> FeacnPrefixes => Set<FeacnPrefix>();
         public DbSet<FeacnPrefixException> FeacnPrefixExceptions => Set<FeacnPrefixException>();
+        public DbSet<CustomsProcedure> CustomsProcedures => Set<CustomsProcedure>();
         public DbSet<BaseOrderFeacnPrefix> BaseOrderFeacnPrefixes => Set<BaseOrderFeacnPrefix>();
-        public async Task<bool> CheckAdmin(int cuid)
-        {
-            var user = await Users
-                .AsNoTracking()
-                .Include(u => u.UserRoles)
-                    .ThenInclude(ur => ur.Role)
-                .Where(x => x.Id == cuid)
-                .FirstOrDefaultAsync(); 
-            return user != null && user.IsAdministrator();
-        }
-        public async Task<bool> CheckLogist(int cuid)
-        {
-            var user = await Users
-                .AsNoTracking()
-                .Include(u => u.UserRoles)
-                    .ThenInclude(ur => ur.Role)
-                .Where(x => x.Id == cuid)
-                .FirstOrDefaultAsync();
-            return user != null && user.IsLogist();
-        }
-        public async Task<ActionResult<bool>> CheckAdminOrSameUser(int id, int cuid)
-        {
-            if (cuid == 0) return false;
-            if (cuid == id) return true;
-            return await CheckAdmin(cuid);
-        }
-        public bool CheckSameUser(int id, int cuid)
-        {
-            if (cuid == 0) return false;
-            if (cuid == id) return true;
-            return false;
-        }
-        public bool Exists(int id)
-        {
-            return Users.Any(e => e.Id == id);
-        }
-        public bool Exists(string email)
-        {
-            return Users.Any(u => u.Email.ToLower() == email.ToLower());
-        }
-        public async Task<UserViewItem?> UserViewItem(int id)
-        {
-            var user = await Users
-                .AsNoTracking()
-                .Include(u => u.UserRoles)
-                    .ThenInclude(ur => ur.Role)
-                .Where(x => x.Id == id)
-                .Select(x => new UserViewItem(x))
-                .FirstOrDefaultAsync();
-            return user ?? null;
-        }
-        public async Task<List<UserViewItem>> UserViewItems()
-        {
-            return await Users
-                .AsNoTracking()
-                .Include(u => u.UserRoles)
-                    .ThenInclude(ur => ur.Role)
-                .Select(x => new UserViewItem(x))
-                .ToListAsync();
-        }
+        public DbSet<TransportationType> TransportationTypes => Set<TransportationType>();
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -152,6 +92,24 @@ namespace Logibooks.Core.Data
                 .HasForeignKey(o => o.CompanyId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            modelBuilder.Entity<Register>()
+                .HasOne(r => r.DestinationCountry)
+                .WithMany()
+                .HasForeignKey(r => r.DestCountryCode)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Register>()
+                .HasOne(r => r.TransportationType)
+                .WithMany()
+                .HasForeignKey(r => r.TransportationTypeId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Register>()
+                .HasOne(r => r.CustomsProcedure)
+                .WithMany()
+                .HasForeignKey(r => r.CustomsProcedureId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             modelBuilder.Entity<BaseOrder>()
                 .HasOne(o => o.Register)
                 .WithMany(r => r.Orders)
@@ -167,6 +125,12 @@ namespace Logibooks.Core.Data
                 .HasOne(o => o.CheckStatus)
                 .WithMany(s => s.Orders)
                 .HasForeignKey(o => o.CheckStatusId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<BaseOrder>()
+                .HasOne(o => o.Country)
+                .WithMany()
+                .HasForeignKey(o => o.CountryCode)
                 .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<BaseOrder>().ToTable("base_orders");
@@ -315,6 +279,11 @@ namespace Logibooks.Core.Data
                 }
             );
 
+            modelBuilder.Entity<TransportationType>().HasData(
+                new TransportationType { Id = 1, Code = TransportationTypeCode.Avia, Name = "Авиа" },
+                new TransportationType { Id = 2, Code = TransportationTypeCode.Auto, Name = "Авто" }
+            );
+
             modelBuilder.Entity<UserRole>().HasData(
                 new UserRole { UserId = 1, RoleId = 1 }
             );
@@ -332,8 +301,8 @@ namespace Logibooks.Core.Data
             );
 
             modelBuilder.Entity<FeacnOrder>().HasData(
-                new FeacnOrder { 
-                    Id = 1, 
+                new FeacnOrder {
+                    Id = 1,
                     Title  = "Решение Комиссии Таможенного союза от 18 июня 2010 г. N 317 \"О применении ветеринарно-санитарных мер в Евразийском экономическом союзе\"", 
                     Url = "10sr0317", 
                     Comment = "Подлежит ветеринарному контролю" 
@@ -356,12 +325,17 @@ namespace Logibooks.Core.Data
                     Url = "22ps0311", 
                     Comment = "Временный запрет на вывоз" 
                 },
-                new FeacnOrder { 
-                    Id = 5, 
-                    Title = "Постановление Правительства Российской Федерации от 9 марта 2022 г. N 312 \"О введении на временной основе разрешительного порядка вывоза отдельных видов товаров за пределы территории Российской Федерации\"", 
-                    Url = "22ps0312", 
-                    Comment = "Разрешительный порядок вывоза" 
+                new FeacnOrder {
+                    Id = 5,
+                    Title = "Постановление Правительства Российской Федерации от 9 марта 2022 г. N 312 \"О введении на временной основе разрешительного порядка вывоза отдельных видов товаров за пределы территории Российской Федерации\"",
+                    Url = "22ps0312",
+                    Comment = "Разрешительный порядок вывоза"
                 }
+            );
+
+            modelBuilder.Entity<CustomsProcedure>().HasData(
+                new CustomsProcedure { Id = 1, Code = 10, Name = "Экспорт" },
+                new CustomsProcedure { Id = 2, Code = 60, Name = "Реимпорт" }
             );
         }
     }

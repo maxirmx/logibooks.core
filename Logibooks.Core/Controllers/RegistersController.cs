@@ -43,10 +43,12 @@ namespace Logibooks.Core.Controllers;
 public class RegistersController(
     IHttpContextAccessor httpContextAccessor,
     AppDbContext db,
+    IUserInformationService userService,
     ILogger<RegistersController> logger,
     IRegisterValidationService validationService,
     IRegisterProcessingService processingService) : LogibooksControllerBase(httpContextAccessor, db, logger)
 {
+    private readonly IUserInformationService _userService = userService;
 
     private readonly string[] allowedSortBy = ["id", "filename", "date", "orderstotal"];
     private readonly int maxPageSize = 100;
@@ -62,7 +64,7 @@ public class RegistersController(
     {
         _logger.LogDebug("GetRegister for id={id}", id);
 
-        var ok = await _db.CheckLogist(_curUserId);
+        var ok = await _userService.CheckLogist(_curUserId);
         if (!ok)
         {
             _logger.LogDebug("GetRegister returning '403 Forbidden'");
@@ -72,7 +74,18 @@ public class RegistersController(
         var register = await _db.Registers
             .AsNoTracking()
             .Where(r => r.Id == id)
-            .Select(r => new { r.Id, r.FileName, r.DTime, r.CompanyId })
+            .Select(r => new
+            {
+                r.Id,
+                r.FileName,
+                r.DTime,
+                r.CompanyId,
+                r.InvoiceNumber,
+                r.InvoiceDate,
+                r.DestCountryCode,
+                r.TransportationTypeId,
+                r.CustomsProcedureId
+            })
             .FirstOrDefaultAsync();
 
         if (register == null)
@@ -89,7 +102,12 @@ public class RegistersController(
             Id = register.Id,
             FileName = register.FileName,
             Date = register.DTime,
-            CompanyId = register.CompanyId, 
+            CompanyId = register.CompanyId,
+            InvoiceNumber = register.InvoiceNumber,
+            InvoiceDate = register.InvoiceDate,
+            DestCountryCode = register.DestCountryCode,
+            TransportationTypeId = register.TransportationTypeId,
+            CustomsProcedureId = register.CustomsProcedureId,
             OrdersTotal = ordersByStatus.Values.Sum(),
             OrdersByStatus = ordersByStatus
         };
@@ -133,7 +151,7 @@ public class RegistersController(
             return _400();
         }
 
-        var ok = await _db.CheckLogist(_curUserId);
+        var ok = await _userService.CheckLogist(_curUserId);
         if (!ok)
         {
             _logger.LogDebug("GetRegisters returning '403 Forbidden'");
@@ -154,6 +172,11 @@ public class RegistersController(
                 FileName = r.FileName,
                 CompanyId = r.CompanyId,
                 Date = r.DTime,
+                InvoiceNumber = r.InvoiceNumber,
+                InvoiceDate = r.InvoiceDate,
+                DestCountryCode = r.DestCountryCode,
+                TransportationTypeId = r.TransportationTypeId,
+                CustomsProcedureId = r.CustomsProcedureId,
                 OrdersTotal = r.Orders.Count()
             });
 
@@ -225,7 +248,7 @@ public class RegistersController(
 
         int cId = companyId ?? IRegisterProcessingService.GetWBRId();
 
-        var ok = await _db.CheckLogist(_curUserId);
+        var ok = await _userService.CheckLogist(_curUserId);
         if (!ok)
         {
             _logger.LogDebug("UploadRegister returning '403 Forbidden'");
@@ -325,6 +348,61 @@ public class RegistersController(
         }
     }
 
+    [HttpPut("{id}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
+    [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
+    public async Task<IActionResult> PutRegister(int id, RegisterUpdateItem update)
+    {
+        _logger.LogDebug("PutRegister for id={id}", id);
+
+        if (!await _userService.CheckLogist(_curUserId))
+        {
+            _logger.LogDebug("PutRegister returning '403 Forbidden'");
+            return _403();
+        }
+
+        var register = await _db.Registers.FindAsync(id);
+        if (register == null)
+        {
+            _logger.LogDebug("PutRegister returning '404 Not Found'");
+            return _404Register(id);
+        }
+
+        if (update.DestCountryCode != null &&
+            !await _db.Countries.AsNoTracking().AnyAsync(c => c.IsoNumeric == update.DestCountryCode))
+        {
+            _logger.LogDebug("PutRegister returning '404 Not Found' - country");
+            return _404Object(update.DestCountryCode.Value);
+        }
+
+        if (update.TransportationTypeId != null &&
+            !await _db.TransportationTypes.AsNoTracking().AnyAsync(t => t.Id == update.TransportationTypeId))
+        {
+            _logger.LogDebug("PutRegister returning '404 Not Found' - transportation type");
+            return _404Object(update.TransportationTypeId.Value);
+        }
+
+        if (update.CustomsProcedureId != null &&
+            !await _db.CustomsProcedures.AsNoTracking().AnyAsync(c => c.Id == update.CustomsProcedureId))
+        {
+            _logger.LogDebug("PutRegister returning '404 Not Found' - customs procedure");
+            return _404Object(update.CustomsProcedureId.Value);
+        }
+
+        if (update.InvoiceNumber != null) register.InvoiceNumber = update.InvoiceNumber;
+        if (update.InvoiceDate != null) register.InvoiceDate = update.InvoiceDate;
+        if (update.DestCountryCode != null) register.DestCountryCode = update.DestCountryCode;
+        if (update.TransportationTypeId != null) register.TransportationTypeId = update.TransportationTypeId.Value;
+        if (update.CustomsProcedureId != null) register.CustomsProcedureId = update.CustomsProcedureId.Value;
+
+        _db.Entry(register).State = EntityState.Modified;
+        await _db.SaveChangesAsync();
+
+        _logger.LogDebug("PutRegister updated register {id}", id);
+        return NoContent();
+    }
+
     [HttpDelete("{id}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
@@ -333,7 +411,7 @@ public class RegistersController(
     {
         _logger.LogDebug("DeleteRegister for id={id}", id);
 
-        var ok = await _db.CheckLogist(_curUserId);
+        var ok = await _userService.CheckLogist(_curUserId);
         if (!ok)
         {
             _logger.LogDebug("DeleteRegister returning '403 Forbidden'");
@@ -370,7 +448,7 @@ public class RegistersController(
     {
         _logger.LogDebug("SetOrderStatuses for registerId={id} statusId={statusId}", id, statusId);
 
-        if (!await _db.CheckLogist(_curUserId))
+        if (!await _userService.CheckLogist(_curUserId))
         {
             _logger.LogDebug("SetOrderStatuses returning '403 Forbidden'");
             return _403();
@@ -404,7 +482,7 @@ public class RegistersController(
     {
         _logger.LogDebug("ValidateRegister for id={id}", id);
 
-        if (!await _db.CheckLogist(_curUserId))
+        if (!await _userService.CheckLogist(_curUserId))
         {
             _logger.LogDebug("ValidateRegister returning '403 Forbidden'");
             return _403();
@@ -428,7 +506,7 @@ public class RegistersController(
     {
         _logger.LogDebug("GetValidationProgress for handle={handle}", handleId);
 
-        if (!await _db.CheckLogist(_curUserId))
+        if (!await _userService.CheckLogist(_curUserId))
         {
             _logger.LogDebug("GetValidationProgress returning '403 Forbidden'");
             return _403();
@@ -452,7 +530,7 @@ public class RegistersController(
     {
         _logger.LogDebug("CancelValidation for handle={handle}", handleId);
 
-        if (!await _db.CheckLogist(_curUserId))
+        if (!await _userService.CheckLogist(_curUserId))
         {
             _logger.LogDebug("CancelValidation returning '403 Forbidden'");
             return _403();

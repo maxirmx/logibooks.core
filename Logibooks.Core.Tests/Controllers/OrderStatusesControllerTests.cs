@@ -2,6 +2,7 @@ using Logibooks.Core.Controllers;
 using Logibooks.Core.Data;
 using Logibooks.Core.Models;
 using Logibooks.Core.RestModels;
+using Logibooks.Core.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -22,6 +23,7 @@ public class OrderStatusesControllerTests
     private AppDbContext _dbContext;
     private Mock<IHttpContextAccessor> _mockHttpContextAccessor;
     private ILogger<OrderStatusesController> _logger;
+    private IUserInformationService _userService;
     private OrderStatusesController _controller;
     private Role _adminRole;
     private Role _logistRole;
@@ -61,7 +63,8 @@ public class OrderStatusesControllerTests
 
         _mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
         _logger = new LoggerFactory().CreateLogger<OrderStatusesController>();
-        _controller = new OrderStatusesController(_mockHttpContextAccessor.Object, _dbContext, _logger);
+        _userService = new UserInformationService(_dbContext);
+        _controller = new OrderStatusesController(_mockHttpContextAccessor.Object, _dbContext, _userService, _logger);
     }
 
     [TearDown]
@@ -76,7 +79,7 @@ public class OrderStatusesControllerTests
         var ctx = new DefaultHttpContext();
         ctx.Items["UserId"] = id;
         _mockHttpContextAccessor.Setup(x => x.HttpContext).Returns(ctx);
-        _controller = new OrderStatusesController(_mockHttpContextAccessor.Object, _dbContext, _logger);
+        _controller = new OrderStatusesController(_mockHttpContextAccessor.Object, _dbContext, _userService, _logger);
     }
 
     [Test]

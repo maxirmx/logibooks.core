@@ -23,45 +23,40 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.ComponentModel.DataAnnotations.Schema;
-using System.Text.Json.Serialization;
 
-namespace Logibooks.Core.Models;
+using Logibooks.Core.Authorization;
+using Logibooks.Core.Data;
+using Logibooks.Core.RestModels;
 
-[Table("base_orders")]
-[Index(nameof(TnVed), Name = "IX_base_orders_tn_ved")]
-public abstract class BaseOrder
+namespace Logibooks.Core.Controllers;
+
+[ApiController]
+[Authorize]
+[Route("api/[controller]")]
+[ProducesResponseType(StatusCodes.Status401Unauthorized, Type = typeof(ErrMessage))]
+[ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(ErrMessage))]
+public class CustomsProceduresController(
+    IHttpContextAccessor httpContextAccessor,
+    AppDbContext db,
+    ILogger<CustomsProceduresController> logger) : LogibooksControllerBase(httpContextAccessor, db, logger)
 {
-    [Column("id")]
-    public int Id { get; set; }
+    [HttpGet]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<CustomsProcedureDto>))]
+    public async Task<ActionResult<IEnumerable<CustomsProcedureDto>>> GetProcedures()
+    {
+        var list = await _db.CustomsProcedures.AsNoTracking().OrderBy(p => p.Id).ToListAsync();
+        return list.Select(p => new CustomsProcedureDto(p)).ToList();
+    }
 
-    [Column("register_id")]
-    public int RegisterId { get; set; }
-
-    [JsonIgnore]
-    public Register Register { get; set; } = null!;
-
-    [Column("status_id")]
-    public int StatusId { get; set; }
-    public OrderStatus Status { get; set; } = null!;
-
-    [Column("check_status_id")]
-    public int CheckStatusId { get; set; }
-    public OrderCheckStatus CheckStatus { get; set; } = null!;
-
-    [Column("product_name")]
-    public string? ProductName { get; set; }
-
-    [Column("tn_ved")]
-    public string? TnVed { get; set; }
-
-    [Column("country_code")]
-    public short CountryCode { get; set; } = 643; // Default to Russia
-    [JsonIgnore]
-    public Country? Country { get; set; }
-
-    public ICollection<BaseOrderStopWord> BaseOrderStopWords { get; set; } = new List<BaseOrderStopWord>();
-
-    public ICollection<BaseOrderFeacnPrefix> BaseOrderFeacnPrefixes { get; set; } = new List<BaseOrderFeacnPrefix>();
+    [HttpGet("{id}")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(CustomsProcedureDto))]
+    [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
+    public async Task<ActionResult<CustomsProcedureDto>> GetProcedure(int id)
+    {
+        var proc = await _db.CustomsProcedures.AsNoTracking().FirstOrDefaultAsync(p => p.Id == id);
+        if (proc == null) return _404Object(id);
+        return new CustomsProcedureDto(proc);
+    }
 }

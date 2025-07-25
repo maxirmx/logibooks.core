@@ -38,6 +38,7 @@ using Logibooks.Core.Controllers;
 using Logibooks.Core.Data;
 using Logibooks.Core.Models;
 using Logibooks.Core.RestModels;
+using Logibooks.Core.Services;
 
 namespace Logibooks.Core.Tests.Controllers;
 
@@ -48,6 +49,7 @@ public class CompaniesControllerTests
     private AppDbContext _dbContext;
     private Mock<IHttpContextAccessor> _mockHttpContextAccessor;
     private Mock<ILogger<CompaniesController>> _mockLogger;
+    private IUserInformationService _userService;
     private CompaniesController _controller;
     private Role _adminRole;
     private Role _userRole;
@@ -90,7 +92,8 @@ public class CompaniesControllerTests
 
         _mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
         _mockLogger = new Mock<ILogger<CompaniesController>>();
-        _controller = new CompaniesController(_mockHttpContextAccessor.Object, _dbContext, _mockLogger.Object);
+        _userService = new UserInformationService(_dbContext);
+        _controller = new CompaniesController(_mockHttpContextAccessor.Object, _dbContext, _userService, _mockLogger.Object);
     }
 
     [TearDown]
@@ -105,7 +108,7 @@ public class CompaniesControllerTests
         var ctx = new DefaultHttpContext();
         ctx.Items["UserId"] = id;
         _mockHttpContextAccessor.Setup(x => x.HttpContext).Returns(ctx);
-        _controller = new CompaniesController(_mockHttpContextAccessor.Object, _dbContext, _mockLogger.Object);
+        _controller = new CompaniesController(_mockHttpContextAccessor.Object, _dbContext, _userService, _mockLogger.Object);
     }
 
     [Test]

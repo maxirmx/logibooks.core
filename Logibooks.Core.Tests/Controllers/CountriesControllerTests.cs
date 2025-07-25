@@ -25,6 +25,7 @@ public class CountriesControllerTests
     private Mock<IHttpContextAccessor> _mockHttpContextAccessor;
     private Mock<ILogger<CountriesController>> _mockLogger;
     private Mock<IUpdateCountriesService> _mockService;
+    private IUserInformationService _userService;
     private CountriesController _controller;
     private Role _adminRole;
     private Role _userRole;
@@ -65,7 +66,8 @@ public class CountriesControllerTests
         _mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
         _mockLogger = new Mock<ILogger<CountriesController>>();
         _mockService = new Mock<IUpdateCountriesService>();
-        _controller = new CountriesController(_mockHttpContextAccessor.Object, _dbContext, _mockService.Object, _mockLogger.Object);
+        _userService = new UserInformationService(_dbContext);
+        _controller = new CountriesController(_mockHttpContextAccessor.Object, _dbContext, _userService, _mockService.Object, _mockLogger.Object);
     }
 
     [TearDown]
@@ -80,7 +82,7 @@ public class CountriesControllerTests
         var ctx = new DefaultHttpContext();
         ctx.Items["UserId"] = id;
         _mockHttpContextAccessor.Setup(x => x.HttpContext).Returns(ctx);
-        _controller = new CountriesController(_mockHttpContextAccessor.Object, _dbContext, _mockService.Object, _mockLogger.Object);
+        _controller = new CountriesController(_mockHttpContextAccessor.Object, _dbContext, _userService, _mockService.Object, _mockLogger.Object);
     }
 
     [Test]
