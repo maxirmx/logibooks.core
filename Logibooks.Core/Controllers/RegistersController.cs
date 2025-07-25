@@ -348,6 +348,61 @@ public class RegistersController(
         }
     }
 
+    [HttpPut("{id}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
+    [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
+    public async Task<IActionResult> PutRegister(int id, RegisterUpdateItem update)
+    {
+        _logger.LogDebug("PutRegister for id={id}", id);
+
+        if (!await _userService.CheckLogist(_curUserId))
+        {
+            _logger.LogDebug("PutRegister returning '403 Forbidden'");
+            return _403();
+        }
+
+        var register = await _db.Registers.FindAsync(id);
+        if (register == null)
+        {
+            _logger.LogDebug("PutRegister returning '404 Not Found'");
+            return _404Register(id);
+        }
+
+        if (update.DestCountryCode != null &&
+            !await _db.Countries.AsNoTracking().AnyAsync(c => c.IsoNumeric == update.DestCountryCode))
+        {
+            _logger.LogDebug("PutRegister returning '404 Not Found' - country");
+            return _404Object(update.DestCountryCode.Value);
+        }
+
+        if (update.TransportationTypeId != null &&
+            !await _db.TransportationTypes.AsNoTracking().AnyAsync(t => t.Id == update.TransportationTypeId))
+        {
+            _logger.LogDebug("PutRegister returning '404 Not Found' - transportation type");
+            return _404Object(update.TransportationTypeId.Value);
+        }
+
+        if (update.CustomsProcedureId != null &&
+            !await _db.CustomsProcedures.AsNoTracking().AnyAsync(c => c.Id == update.CustomsProcedureId))
+        {
+            _logger.LogDebug("PutRegister returning '404 Not Found' - customs procedure");
+            return _404Object(update.CustomsProcedureId.Value);
+        }
+
+        if (update.InvoiceNumber != null) register.InvoiceNumber = update.InvoiceNumber;
+        if (update.InvoiceDate != null) register.InvoiceDate = update.InvoiceDate;
+        if (update.DestCountryCode != null) register.DestCountryCode = update.DestCountryCode;
+        if (update.TransportationTypeId != null) register.TransportationTypeId = update.TransportationTypeId.Value;
+        if (update.CustomsProcedureId != null) register.CustomsProcedureId = update.CustomsProcedureId.Value;
+
+        _db.Entry(register).State = EntityState.Modified;
+        await _db.SaveChangesAsync();
+
+        _logger.LogDebug("PutRegister updated register {id}", id);
+        return NoContent();
+    }
+
     [HttpDelete("{id}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
