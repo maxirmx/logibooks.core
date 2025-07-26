@@ -1033,7 +1033,6 @@ public class OrdersControllerTests
         var obj = result as ObjectResult;
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
     }
-      
     public async Task ApproveOrder_SetsCheckStatusToApproved_ForLogist()
     {
         SetCurrentUserId(1);
