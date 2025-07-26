@@ -55,6 +55,7 @@ public class OrdersControllerTests
     private Mock<IOrderValidationService> _mockValidationService;
     private IMorphologySearchService _morphologyService;
     private Mock<IRegisterProcessingService> _mockProcessingService;
+    private Mock<IOrderIndPostGenerator> _mockIndPostGenerator;
     private ILogger<OrdersController> _logger;
     private IUserInformationService _userService;
     private OrdersController _controller;
@@ -94,6 +95,7 @@ public class OrdersControllerTests
         _logger = new LoggerFactory().CreateLogger<OrdersController>();
         _mockValidationService = new Mock<IOrderValidationService>();
         _mockProcessingService = new Mock<IRegisterProcessingService>();
+        _mockIndPostGenerator = new Mock<IOrderIndPostGenerator>();
         // Note: Cannot mock static methods GetWBRId() and GetOzonId() - they return constants
         _morphologyService = new MorphologySearchService();
         _userService = new UserInformationService(_dbContext);
@@ -118,7 +120,8 @@ public class OrdersControllerTests
             mockMapper.Object,
             _mockValidationService.Object,
             _morphologyService,
-            _mockProcessingService.Object);
+            _mockProcessingService.Object,
+            _mockIndPostGenerator.Object);
     }
 
     private void SetCurrentUserId(int id)
@@ -183,7 +186,8 @@ public class OrdersControllerTests
             mockMapper.Object,
             _mockValidationService.Object,
             _morphologyService,
-            _mockProcessingService.Object
+            _mockProcessingService.Object,
+            _mockIndPostGenerator.Object
         );
 
         var result = await _controller.UpdateOrder(2, updated);
@@ -292,7 +296,8 @@ public class OrdersControllerTests
             mockMapper.Object,
             _mockValidationService.Object,
             _morphologyService,
-            _mockProcessingService.Object
+            _mockProcessingService.Object,
+            _mockIndPostGenerator.Object
         );
 
         var updated = new OrderUpdateItem { StatusId = 3, OrderNumber = "WBR456" };
@@ -330,7 +335,8 @@ public class OrdersControllerTests
             mockMapper.Object,
             _mockValidationService.Object,
             _morphologyService,
-            _mockProcessingService.Object
+            _mockProcessingService.Object,
+            _mockIndPostGenerator.Object
         );
 
         var updated = new OrderUpdateItem { StatusId = 3, PostingNumber = "POST123" };
@@ -797,7 +803,8 @@ public class OrdersControllerTests
             new Mock<IMapper>().Object,
             validationSvc,
             _morphologyService,
-            _mockProcessingService.Object);
+            _mockProcessingService.Object,
+            _mockIndPostGenerator.Object);
 
         await ctrl.ValidateOrder(20);
         var res = await ctrl.GetOrder(20);
@@ -983,6 +990,49 @@ public class OrdersControllerTests
         // Should return 404 because the order is in the wrong table for the company type
         Assert.That(result.Result, Is.TypeOf<ObjectResult>());
         var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+    }
+
+    [Test]
+    public async Task Generate_ReturnsFile_ForLogist()
+    {
+        SetCurrentUserId(1);
+        var register = new Register { Id = 5, CompanyId = 2, FileName = "r.xlsx" };
+        var order = new WbrOrder { Id = 5, RegisterId = 5, StatusId = 1, Shk = "123" };
+        _dbContext.Registers.Add(register);
+        _dbContext.Orders.Add(order);
+        await _dbContext.SaveChangesAsync();
+
+        _mockIndPostGenerator.Setup(x => x.GenerateXML(order)).ReturnsAsync("<AltaIndPost />");
+        _mockIndPostGenerator.Setup(x => x.GenerateFilename(order)).Returns("IndPost_123.xml");
+
+        var result = await _controller.Generate(5);
+
+        Assert.That(result, Is.TypeOf<FileContentResult>());
+        var file = result as FileContentResult;
+        Assert.That(file!.FileDownloadName, Is.EqualTo("IndPost_123.xml"));
+        Assert.That(file.ContentType, Is.EqualTo("application/xml"));
+    }
+
+    [Test]
+    public async Task Generate_ReturnsForbidden_ForNonLogist()
+    {
+        SetCurrentUserId(99);
+        var result = await _controller.Generate(1);
+
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
+    }
+
+    [Test]
+    public async Task Generate_ReturnsNotFound_WhenMissing()
+    {
+        SetCurrentUserId(1);
+        var result = await _controller.Generate(999);
+
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
     }
 }
