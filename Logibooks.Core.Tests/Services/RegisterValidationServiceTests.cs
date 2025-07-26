@@ -152,7 +152,6 @@ public class RegisterValidationServiceTests
         var svc = new RegisterValidationService(ctx, scopeFactory, logger, new MorphologySearchService(), feacnSvc);
 
         var h1 = await svc.StartValidationAsync(3);
-        await Task.Delay(50);
         var h2 = await svc.StartValidationAsync(3);
 
         Assert.That(h1, Is.EqualTo(h2));

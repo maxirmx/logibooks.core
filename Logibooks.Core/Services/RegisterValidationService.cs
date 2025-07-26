@@ -61,23 +61,16 @@ public class RegisterValidationService(
     private static readonly ConcurrentDictionary<Guid, ValidationProcess> _byHandle = new();
 
     public async Task<Guid> StartValidationAsync(int registerId, CancellationToken cancellationToken = default)
-    {
-        if (_byRegister.TryGetValue(registerId, out var existing))
-        {
-            return existing.HandleId;
-        }
-
-        var allStopWords = await _db.StopWords.AsNoTracking()
-            .ToListAsync(cancellationToken);
-        
-        var morphologyContext = _morphologyService.InitializeContext(allStopWords.Where(sw => !sw.ExactMatch));
-        
+    {    
         var process = new ValidationProcess(registerId);
         if (!_byRegister.TryAdd(registerId, process))
         {
             return _byRegister[registerId].HandleId;
         }
         _byHandle[process.HandleId] = process;
+
+        var allStopWords = await _db.StopWords.AsNoTracking().ToListAsync(cancellationToken);
+        var morphologyContext = _morphologyService.InitializeContext(allStopWords.Where(sw => !sw.ExactMatch));
 
         var tcs = new TaskCompletionSource();
 
