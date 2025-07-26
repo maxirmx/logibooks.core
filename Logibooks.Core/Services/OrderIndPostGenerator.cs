@@ -22,7 +22,10 @@ public class OrderIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServic
 
     public Task<string> GenerateXML(BaseOrder order)
     {
-        var xml = _xmlService.CreateXml([], []);
+        var fields = new Dictionary<string, string?>();
+        var goodsItems = new List<IDictionary<string, string?>>();
+
+        var xml = _xmlService.CreateXml(fields, goodsItems);
         return Task.FromResult(xml);
     }
 

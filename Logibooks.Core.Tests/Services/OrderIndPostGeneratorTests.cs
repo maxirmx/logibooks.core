@@ -1,10 +1,10 @@
-using System.Text;
 using System.Xml.Linq;
 using Microsoft.EntityFrameworkCore;
 using NUnit.Framework;
 using Logibooks.Core.Data;
 using Logibooks.Core.Models;
 using Logibooks.Core.Services;
+using System.Threading.Tasks;
 
 namespace Logibooks.Core.Tests.Services;
 
