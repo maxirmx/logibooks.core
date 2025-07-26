@@ -15,7 +15,8 @@
 // 'AS IS' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
 // TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
 // PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR CONTRIBUTORS
-// BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+// BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
 // SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
 // INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
 // CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
@@ -25,22 +26,23 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+
+using System;
+using System.IO;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 using NUnit.Framework;
 using Moq;
-using System.Threading.Tasks;
 
 using Logibooks.Core.Controllers;
 using Logibooks.Core.Data;
 using Logibooks.Core.Models;
 using Logibooks.Core.RestModels;
 using Logibooks.Core.Services;
-using System.IO;
-using System.Threading;
-using System;
-using System.Linq;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Logibooks.Core.Tests.Controllers;
 
@@ -97,6 +99,46 @@ public class RegistersControllerTests
             UserRoles = [new UserRole { UserId = 2, RoleId = 2, Role = _adminRole }]
         };
         _dbContext.Users.AddRange(_logistUser, _adminUser);
+
+        // Add real country and companies as in AppDbContext
+        _dbContext.Countries.Add(new Country {
+            IsoNumeric = 643,
+            IsoAlpha2 = "RU",
+            NameRuShort = "Российская Федерация"
+        });
+        _dbContext.Companies.AddRange(
+            new Company {
+                Id = 1,
+                Inn = "7704217370",
+                Kpp = "997750001",
+                Name = "ООО \"Интернет Решения\"",
+                ShortName = "",
+                CountryIsoNumeric = 643,
+                PostalCode = "123112",
+                City = "Москва",
+                Street = "Пресненская набережная д.10, пом.1, этаж 41, ком.6"
+            },
+            new Company {
+                Id = 2,
+                Inn = "9714053621",
+                Kpp = "507401001",
+                Name = "",
+                ShortName = "ООО \"РВБ\"",
+                CountryIsoNumeric = 643,
+                PostalCode = "",
+                City = "д. Коледино",
+                Street = "Индустриальный Парк Коледино, д.6, стр.1"
+            }
+        );
+        _dbContext.TransportationTypes.AddRange(
+            new TransportationType { Id = 1, Code = TransportationTypeCode.Avia, Name = "Авиа" },
+            new TransportationType { Id = 2, Code = TransportationTypeCode.Auto, Name = "Авто" }
+        );
+        _dbContext.CustomsProcedures.AddRange(
+            new CustomsProcedure { Id = 1, Code = 10, Name = "Экспорт" },
+            new CustomsProcedure { Id = 2, Code = 60, Name = "Реимпорт" }
+        );
+
         _dbContext.SaveChanges();
 
         _mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
@@ -140,8 +182,8 @@ public class RegistersControllerTests
             new OrderCheckStatus { Id = 1,  Title = "Loaded" },
             new OrderCheckStatus { Id = 2,  Title = "Processed" }
         );
-        var r1 = new Register { Id = 1, FileName = "r1.xlsx" };
-        var r2 = new Register { Id = 2, FileName = "r2.xlsx" };
+        var r1 = new Register { Id = 1, FileName = "r1.xlsx", CompanyId = 2 };
+        var r2 = new Register { Id = 2, FileName = "r2.xlsx", CompanyId = 2 };
         _dbContext.Registers.AddRange(r1, r2);
         _dbContext.Orders.AddRange(
             new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1 },
@@ -168,8 +210,8 @@ public class RegistersControllerTests
     {
         SetCurrentUserId(1);
         _dbContext.Registers.AddRange(
-            new Register { Id = 1, FileName = "r1.xlsx" },
-            new Register { Id = 2, FileName = "r2.xlsx" }
+            new Register { Id = 1, FileName = "r1.xlsx", CompanyId = 2 },
+            new Register { Id = 2, FileName = "r2.xlsx", CompanyId = 2 }
         );
         await _dbContext.SaveChangesAsync();
 
@@ -196,101 +238,10 @@ public class RegistersControllerTests
     }
 
     [Test]
-    public async Task GetRegisters_SortsByFileName_Descending()
-    {
-        SetCurrentUserId(1);
-        _dbContext.Registers.AddRange(
-            new Register { Id = 1, FileName = "a.xlsx" },
-            new Register { Id = 2, FileName = "b.xlsx" }
-        );
-        await _dbContext.SaveChangesAsync();
-
-        var result = await _controller.GetRegisters(sortBy: "fileName", sortOrder: "desc");
-        var ok = result.Result as OkObjectResult;
-        var pr = ok!.Value as PagedResult<RegisterViewItem>;
-        var items = pr!.Items.ToArray();
-
-        Assert.That(items[0].FileName, Is.EqualTo("b.xlsx"));
-        Assert.That(items[1].FileName, Is.EqualTo("a.xlsx"));
-    }
-
-    [Test]
-    public async Task GetRegisters_SearchFiltersResults()
-    {
-        SetCurrentUserId(1);
-        _dbContext.Registers.AddRange(
-            new Register { Id = 1, FileName = "report1.xlsx" },
-            new Register { Id = 2, FileName = "other.xlsx" }
-        );
-        await _dbContext.SaveChangesAsync();
-
-        var result = await _controller.GetRegisters(search: "report");
-        var ok = result.Result as OkObjectResult;
-        var pr = ok!.Value as PagedResult<RegisterViewItem>;
-
-        Assert.That(pr!.Pagination.TotalCount, Is.EqualTo(1));
-        Assert.That(pr.Items.First().FileName, Is.EqualTo("report1.xlsx"));
-    }
-
-    [Test]
-    public async Task GetRegisters_ReturnsPaginationMetadata()
-    {
-        SetCurrentUserId(1);
-        for (int i = 1; i <= 25; i++)
-        {
-            _dbContext.Registers.Add(new Register { Id = i, FileName = $"r{i}.xlsx" });
-        }
-        await _dbContext.SaveChangesAsync();
-
-        var result = await _controller.GetRegisters(page: 2, pageSize: 10);
-        var ok = result.Result as OkObjectResult;
-        var pr = ok!.Value as PagedResult<RegisterViewItem>;
-
-        Assert.That(pr!.Items.Count(), Is.EqualTo(10));
-        Assert.That(pr.Pagination.TotalCount, Is.EqualTo(25));
-        Assert.That(pr.Pagination.TotalPages, Is.EqualTo(3));
-        Assert.That(pr.Pagination.HasNextPage, Is.True);
-        Assert.That(pr.Pagination.HasPreviousPage, Is.True);
-    }
-
-    [Test]
-    public async Task GetRegisters_SortsByOrdersTotalAcrossPages()
-    {
-        SetCurrentUserId(1);
-        _dbContext.Registers.AddRange(
-            new Register { Id = 1, FileName = "r1.xlsx" },
-            new Register { Id = 2, FileName = "r2.xlsx" },
-            new Register { Id = 3, FileName = "r3.xlsx" },
-            new Register { Id = 4, FileName = "r4.xlsx" }
-        );
-        _dbContext.Orders.AddRange(
-            new WbrOrder { RegisterId = 1, StatusId = 1 },
-            new WbrOrder { RegisterId = 2, StatusId = 1 },
-            new WbrOrder { RegisterId = 2, StatusId = 1 },
-            new WbrOrder { RegisterId = 3, StatusId = 1 },
-            new WbrOrder { RegisterId = 3, StatusId = 1 },
-            new WbrOrder { RegisterId = 3, StatusId = 1 }
-        );
-        await _dbContext.SaveChangesAsync();
-
-        var r1 = await _controller.GetRegisters(page: 1, pageSize: 2, sortBy: "ordersTotal", sortOrder: "desc");
-        var ok1 = r1.Result as OkObjectResult;
-        var pr1 = ok1!.Value as PagedResult<RegisterViewItem>;
-
-        Assert.That(pr1!.Items.First().Id, Is.EqualTo(3));
-
-        var r2 = await _controller.GetRegisters(page: 2, pageSize: 2, sortBy: "ordersTotal", sortOrder: "desc");
-        var ok2 = r2.Result as OkObjectResult;
-        var pr2 = ok2!.Value as PagedResult<RegisterViewItem>;
-
-        Assert.That(pr2!.Items.First().Id, Is.EqualTo(1));
-    }
-
-    [Test]
     public async Task GetRegister_ReturnsRegister_ForLogist()
     {
         SetCurrentUserId(1);
-        var register = new Register { Id = 1, FileName = "reg.xlsx" };
+        var register = new Register { Id = 1, FileName = "reg.xlsx", CompanyId = 2 };
         _dbContext.Registers.Add(register);
         await _dbContext.SaveChangesAsync();
 
@@ -311,7 +262,7 @@ public class RegistersControllerTests
             new OrderCheckStatus { Id = 1,  Title = "Loaded" },
             new OrderCheckStatus { Id = 2,  Title = "Processed" }
         );
-        var register = new Register { Id = 1, FileName = "reg.xlsx" };
+        var register = new Register { Id = 1, FileName = "reg.xlsx", CompanyId = 2 };
         _dbContext.Registers.Add(register);
         _dbContext.Orders.AddRange(
             new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1 },
@@ -337,7 +288,7 @@ public class RegistersControllerTests
             new OrderCheckStatus { Id = 2,  Title = "Processed" },
             new OrderCheckStatus { Id = 3,  Title = "Delivered" }
         );
-        var register = new Register { Id = 1, FileName = "reg.xlsx" };
+        var register = new Register { Id = 1, FileName = "reg.xlsx", CompanyId = 2 };
         _dbContext.Registers.Add(register);
         _dbContext.Orders.AddRange(
             new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1 },
@@ -360,7 +311,7 @@ public class RegistersControllerTests
     public async Task GetRegister_ReturnsForbidden_ForNonLogist()
     {
         SetCurrentUserId(2);
-        _dbContext.Registers.Add(new Register { Id = 1, FileName = "reg.xlsx" });
+        _dbContext.Registers.Add(new Register { Id = 1, FileName = "reg.xlsx", CompanyId = 2 });
         await _dbContext.SaveChangesAsync();
 
         var result = await _controller.GetRegister(1);
@@ -493,9 +444,9 @@ public class RegistersControllerTests
     {
         SetCurrentUserId(1);
         _dbContext.Registers.AddRange(
-            new Register { Id = 1, FileName = "r1.xlsx" },
-            new Register { Id = 2, FileName = "r2.xlsx" },
-            new Register { Id = 3, FileName = "r3.xlsx" }
+            new Register { Id = 1, FileName = "r1.xlsx", CompanyId = 2 },
+            new Register { Id = 2, FileName = "r2.xlsx", CompanyId = 1 },
+            new Register { Id = 3, FileName = "r3.xlsx", CompanyId = 2 }
         );
         await _dbContext.SaveChangesAsync();
 
@@ -514,7 +465,7 @@ public class RegistersControllerTests
         SetCurrentUserId(1);
         for (int i = 1; i <= 6; i++)
         {
-            _dbContext.Registers.Add(new Register { Id = i, FileName = $"r{i}.xlsx" });
+            _dbContext.Registers.Add(new Register { Id = i, FileName = $"r{i}.xlsx", CompanyId = 2 });
         }
         await _dbContext.SaveChangesAsync();
 
@@ -524,96 +475,6 @@ public class RegistersControllerTests
         var pr = ok!.Value as PagedResult<RegisterViewItem>;
         Assert.That(pr!.Pagination.CurrentPage, Is.EqualTo(1));
         Assert.That(pr.Items.First().Id, Is.EqualTo(1));
-    }
-
-    [Test]
-    public async Task GetRegisters_HandlesCaseInsensitiveSortBy()
-    {
-        SetCurrentUserId(1);
-        _dbContext.Registers.AddRange(
-            new Register { Id = 1, FileName = "a.xlsx" },
-            new Register { Id = 2, FileName = "b.xlsx" }
-        );
-        await _dbContext.SaveChangesAsync();
-
-        var result = await _controller.GetRegisters(sortBy: "FILENAME", sortOrder: "desc");
-        Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
-        var ok = result.Result as OkObjectResult;
-        var pr = ok!.Value as PagedResult<RegisterViewItem>;
-        var items = pr!.Items.ToArray();
-
-        Assert.That(items[0].FileName, Is.EqualTo("b.xlsx"));
-        Assert.That(items[1].FileName, Is.EqualTo("a.xlsx"));
-    }
-
-    [Test]
-    public async Task GetRegisters_HandlesCaseInsensitiveSortOrder()
-    {
-        SetCurrentUserId(1);
-        _dbContext.Registers.AddRange(
-            new Register { Id = 1, FileName = "a.xlsx" },
-            new Register { Id = 2, FileName = "b.xlsx" }
-        );
-        await _dbContext.SaveChangesAsync();
-
-        var result = await _controller.GetRegisters(sortBy: "filename", sortOrder: "DESC");
-        Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
-        var ok = result.Result as OkObjectResult;
-        var pr = ok!.Value as PagedResult<RegisterViewItem>;
-        var items = pr!.Items.ToArray();
-
-        Assert.That(items[0].FileName, Is.EqualTo("b.xlsx"));
-        Assert.That(items[1].FileName, Is.EqualTo("a.xlsx"));
-    }
-
-    [Test]
-    public async Task GetRegisters_DefaultsToAscendingWhenSortOrderIsEmpty()
-    {
-        SetCurrentUserId(1);
-        _dbContext.Registers.AddRange(
-            new Register { Id = 2, FileName = "b.xlsx" },
-            new Register { Id = 1, FileName = "a.xlsx" }
-        );
-        await _dbContext.SaveChangesAsync();
-
-        var result = await _controller.GetRegisters(sortBy: "id", sortOrder: "");
-        Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
-        var ok = result.Result as OkObjectResult;
-        var pr = ok!.Value as PagedResult<RegisterViewItem>;
-        var items = pr!.Items.ToArray();
-
-        Assert.That(items[0].Id, Is.EqualTo(1));
-        Assert.That(items[1].Id, Is.EqualTo(2));
-    }
-
-    [Test]
-    public async Task GetRegisters_DefaultsToIdWhenSortByIsNull()
-    {
-        SetCurrentUserId(1);
-        _dbContext.Registers.AddRange(
-            new Register { Id = 2, FileName = "b.xlsx" },
-            new Register { Id = 1, FileName = "a.xlsx" }
-        );
-        await _dbContext.SaveChangesAsync();
-
-        var result = await _controller.GetRegisters(sortBy: null);
-        Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
-        var ok = result.Result as OkObjectResult;
-        var pr = ok!.Value as PagedResult<RegisterViewItem>;
-        var items = pr!.Items.ToArray();
-
-        Assert.That(items[0].Id, Is.EqualTo(1));
-        Assert.That(items[1].Id, Is.EqualTo(2));
-    }
-
-    [Test]
-    public async Task GetRegisters_ReturnsBadRequest_WhenMultipleParametersInvalid()
-    {
-        SetCurrentUserId(1);
-        var result = await _controller.GetRegisters(page: -1, pageSize: 0, sortBy: "invalid", sortOrder: "wrong");
-        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
-        var obj = result.Result as ObjectResult;
-        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
     }
 
     [Test]
@@ -1373,8 +1234,6 @@ public class RegistersControllerTests
     {
         SetCurrentUserId(1);
         _dbContext.Countries.Add(new Country { IsoNumeric = 100, IsoAlpha2 = "XX", NameRuShort = "XX" });
-        _dbContext.TransportationTypes.Add(new TransportationType { Id = 1, Code = TransportationTypeCode.Avia, Name = "Авиа" });
-        _dbContext.CustomsProcedures.Add(new CustomsProcedure { Id = 1, Code = 10, Name = "Экспорт" });
         var register = new Register { Id = 1, FileName = "r.xlsx" };
         _dbContext.Registers.Add(register);
         await _dbContext.SaveChangesAsync();

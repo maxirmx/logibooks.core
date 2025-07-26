@@ -38,4 +38,10 @@ public class RegisterViewItem
     public int CustomsProcedureId { get; set; }
     public int OrdersTotal { get; set; }
     public Dictionary<int, int> OrdersByStatus { get; set; } = new();
+
+    // Added for sorting by reference fields
+    public string CompanyShortName { get; set; } = string.Empty;
+    public string CountryAlpha2 { get; set; } = string.Empty;
+    public string TransportationTypeName { get; set; } = string.Empty;
+    public string CustomsProcedureName { get; set; } = string.Empty;
 }

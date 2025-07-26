@@ -58,10 +58,13 @@ public abstract class BaseOrder
 
     [Column("country_code")]
     public short CountryCode { get; set; } = 643; // Default to Russia
+
     [JsonIgnore]
     public Country? Country { get; set; }
 
     public ICollection<BaseOrderStopWord> BaseOrderStopWords { get; set; } = new List<BaseOrderStopWord>();
-
     public ICollection<BaseOrderFeacnPrefix> BaseOrderFeacnPrefixes { get; set; } = new List<BaseOrderFeacnPrefix>();
+
+    // IndPost generation API
+    public abstract string GetParcelNumber();
 }
