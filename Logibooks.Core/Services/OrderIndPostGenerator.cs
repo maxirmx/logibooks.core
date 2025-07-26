@@ -12,7 +12,7 @@ public class OrderIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServic
 
     public async Task<string> GenerateXML(int orderId)
     {
-        var order = await _db.Orders.FindAsync(orderId);
+        var order = await _db.Orders.AsNoTracking().FirstOrDefaultAsync(o => o.Id == orderId);
         if (order == null)
         {
             throw new InvalidOperationException($"Order not found [id={orderId}]");
