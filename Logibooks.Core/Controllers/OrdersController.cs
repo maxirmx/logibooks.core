@@ -26,6 +26,7 @@
 using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Text;
 
 using Logibooks.Core.Authorization;
 using Logibooks.Core.Data;
@@ -50,7 +51,8 @@ public class OrdersController(
     IMapper mapper,
     IOrderValidationService validationService,
     IMorphologySearchService morphologyService,
-    IRegisterProcessingService processingService) : LogibooksControllerBase(httpContextAccessor, db, logger)
+    IRegisterProcessingService processingService,
+    IOrderIndPostGenerator indPostGenerator) : LogibooksControllerBase(httpContextAccessor, db, logger)
 {
     private const int MaxPageSize = 1000;
     private readonly IUserInformationService _userService = userService;
@@ -58,6 +60,7 @@ public class OrdersController(
     private readonly IOrderValidationService _validationService = validationService;
     private readonly IMorphologySearchService _morphologyService = morphologyService;
     private readonly IRegisterProcessingService _processingService = processingService;
+    private readonly IOrderIndPostGenerator _indPostGenerator = indPostGenerator;
 
     [HttpGet("{id}")]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(OrderViewItem))]
@@ -378,6 +381,33 @@ public class OrdersController(
         await _validationService.ValidateAsync(order, morphologyContext, stopWordsContext, null);
 
         return NoContent();
+    }
+
+    [HttpGet("{id}/generate")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(FileContentResult))]
+    [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
+    [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
+    public async Task<IActionResult> Generate(int id)
+    {
+        _logger.LogDebug("Generate for id={id}", id);
+
+        if (!await _userService.CheckLogist(_curUserId))
+        {
+            _logger.LogDebug("Generate returning '403 Forbidden'");
+            return _403();
+        }
+
+        var order = await _db.Orders.AsNoTracking().FirstOrDefaultAsync(o => o.Id == id);
+        if (order == null)
+        {
+            _logger.LogDebug("Generate returning '404 Not Found'");
+            return _404Order(id);
+        }
+
+        var xml = await _indPostGenerator.GenerateXML(order);
+        var fileName = _indPostGenerator.GenerateFilename(order);
+        var bytes = Encoding.UTF8.GetBytes(xml);
+        return File(bytes, "application/xml", fileName);
     }
 
     [HttpGet("checkstatuses")]
