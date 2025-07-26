@@ -392,9 +392,9 @@ public class RegistersController(
 
         if (update.InvoiceNumber != null) register.InvoiceNumber = update.InvoiceNumber;
         if (update.InvoiceDate != null) register.InvoiceDate = update.InvoiceDate;
-        if (update.DestCountryCode != null) register.DestCountryCode = update?.DestCountryCode ?? 643;
-        if (update.TransportationTypeId != null) register.TransportationTypeId = update.TransportationTypeId.Value;
-        if (update.CustomsProcedureId != null) register.CustomsProcedureId = update.CustomsProcedureId.Value;
+        if (update.DestCountryCode != null) register.DestCountryCode = update.DestCountryCode ?? 643;
+        if (update.TransportationTypeId != null) register.TransportationTypeId = update.TransportationTypeId ?? 1;
+        if (update.CustomsProcedureId != null) register.CustomsProcedureId = update.CustomsProcedureId ?? 1;
 
         _db.Entry(register).State = EntityState.Modified;
         await _db.SaveChangesAsync();
