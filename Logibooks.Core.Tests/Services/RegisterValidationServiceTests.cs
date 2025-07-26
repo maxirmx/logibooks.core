@@ -154,7 +154,7 @@ public class RegisterValidationServiceTests
             It.IsAny<CancellationToken>()))
             .Returns(async () =>
             {
-                await Task.Delay(50);
+                await Task.Delay(500);
             }); var logger = new LoggerFactory().CreateLogger<RegisterValidationService>();
         var feacnSvc = new Mock<IFeacnPrefixCheckService>().Object;
         var scopeFactory = CreateMockScopeFactory(ctx, mock.Object, feacnSvc);
