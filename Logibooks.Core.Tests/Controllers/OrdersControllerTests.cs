@@ -1002,8 +1002,8 @@ public class OrdersControllerTests
         _dbContext.Registers.Add(register);
         _dbContext.Orders.Add(order);
         await _dbContext.SaveChangesAsync();
-        _mockIndPostGenerator.Setup(x => x.GenerateXML(order)).ReturnsAsync("<AltaIndPost />");
-        _mockIndPostGenerator.Setup(x => x.GenerateFilename(order)).Returns("IndPost_123.xml");
+        _mockIndPostGenerator.Setup(x => x.GenerateXML(It.IsAny<BaseOrder>())).ReturnsAsync("<AltaIndPost />");
+        _mockIndPostGenerator.Setup(x => x.GenerateFilename(It.IsAny<BaseOrder>())).Returns("IndPost_123.xml");
 
         var result = await _controller.Generate(5);
 
