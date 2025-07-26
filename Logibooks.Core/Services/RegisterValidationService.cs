@@ -24,9 +24,11 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 using System.Collections.Concurrent;
-using Logibooks.Core.Data;
-using Logibooks.Core.RestModels;
 using Microsoft.EntityFrameworkCore;
+
+using Logibooks.Core.Data;
+using Logibooks.Core.Models;
+using Logibooks.Core.RestModels;
 
 namespace Logibooks.Core.Services;
 
@@ -65,24 +67,19 @@ public class RegisterValidationService(
             return existing.HandleId;
         }
 
-        var orders = await _db.Orders
-            .Where(o => o.RegisterId == registerId)
-            .Select(o => o.Id)
-            .ToListAsync(cancellationToken);
-
-        // Load all stop words once for the entire register validation
         var allStopWords = await _db.StopWords.AsNoTracking()
             .ToListAsync(cancellationToken);
-            
-
+        
         var morphologyContext = _morphologyService.InitializeContext(allStopWords.Where(sw => !sw.ExactMatch));
         
-        var process = new ValidationProcess(registerId) { Total = orders.Count };
+        var process = new ValidationProcess(registerId);
         if (!_byRegister.TryAdd(registerId, process))
         {
             return _byRegister[registerId].HandleId;
         }
         _byHandle[process.HandleId] = process;
+
+        var tcs = new TaskCompletionSource();
 
         _ = Task.Run(async () =>
         {
@@ -95,6 +92,7 @@ public class RegisterValidationService(
             {
                 process.Error = "Failed to resolve required services";
                 process.Finished = true;
+                tcs.TrySetResult();
                 _byRegister.TryRemove(registerId, out _);
                 _byHandle.TryRemove(process.HandleId, out _);
                 return;
@@ -102,7 +100,13 @@ public class RegisterValidationService(
 
             try
             {
-                // Initialize StopWordContext and FeacnPrefixContext once for all orders in this register
+                var orders = await scopedDb.Orders
+                    .Where(o => o.RegisterId == registerId && o.CheckStatusId < (int)OrderCheckStatusCode.Approved)
+                    .Select(o => o.Id)
+                    .ToListAsync(process.Cts.Token);
+                process.Total = orders.Count;
+                tcs.TrySetResult();
+
                 var stopWordsContext = scopedOrderSvc.InitializeStopWordsContext(allStopWords);
                 var feacnContext = await scopedFeacnSvc.CreateContext(process.Cts.Token);
 
@@ -124,6 +128,7 @@ public class RegisterValidationService(
             }
             catch (Exception ex)
             {
+                tcs.TrySetResult();
                 process.Error = ex.Message;
                 _logger.LogError(ex, "Register validation failed");
             }
@@ -135,6 +140,7 @@ public class RegisterValidationService(
             }
         });
 
+        await tcs.Task;
         return process.HandleId;
     }
 

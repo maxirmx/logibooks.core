@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Logibooks.Core.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250724181458_Register4IndPost")]
-    partial class Register4IndPost
+    [Migration("20250726192610_0_8_0_Register4IndPost")]
+    partial class _0_8_0_Register4IndPost
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -316,6 +316,10 @@ namespace Logibooks.Core.Migrations
                         .HasColumnType("text")
                         .HasColumnName("comment");
 
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("enabled");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasColumnType("text")
@@ -333,6 +337,7 @@ namespace Logibooks.Core.Migrations
                         {
                             Id = 1,
                             Comment = "Подлежит ветеринарному контролю",
+                            Enabled = true,
                             Title = "Решение Комиссии Таможенного союза от 18 июня 2010 г. N 317 \"О применении ветеринарно-санитарных мер в Евразийском экономическом союзе\"",
                             Url = "10sr0317"
                         },
@@ -340,6 +345,7 @@ namespace Logibooks.Core.Migrations
                         {
                             Id = 2,
                             Comment = "Подлежит карантинному фитосанитарному контролю",
+                            Enabled = true,
                             Title = "Решение Комиссии Таможенного союза от 18 июня 2010 г. N 318 \"Об обеспечении карантина растений в Евразийском экономическом союзе\"",
                             Url = "10sr0318"
                         },
@@ -347,6 +353,7 @@ namespace Logibooks.Core.Migrations
                         {
                             Id = 3,
                             Comment = "Операции в отношении драгоценных металлов и драгоценных камней",
+                            Enabled = true,
                             Title = "Приказ ФТС России от 12 мая 2011 г. N 971 \"О компетенции таможенных органов по совершению таможенных операций в отношении драгоценных металлов и драгоценных камней\"",
                             Url = "11pr0971"
                         },
@@ -354,6 +361,7 @@ namespace Logibooks.Core.Migrations
                         {
                             Id = 4,
                             Comment = "Временный запрет на вывоз",
+                            Enabled = true,
                             Title = "Постановление Правительства РФ от 09.03.2022 № 311 \"О мерах по реализации Указа Президента Российской Федерации от 8 марта 2022 г. N 100\"",
                             Url = "22ps0311"
                         },
@@ -361,6 +369,7 @@ namespace Logibooks.Core.Migrations
                         {
                             Id = 5,
                             Comment = "Разрешительный порядок вывоза",
+                            Enabled = true,
                             Title = "Постановление Правительства Российской Федерации от 9 марта 2022 г. N 312 \"О введении на временной основе разрешительного порядка вывоза отдельных видов товаров за пределы территории Российской Федерации\"",
                             Url = "22ps0312"
                         });
@@ -471,6 +480,11 @@ namespace Logibooks.Core.Migrations
                         {
                             Id = 201,
                             Title = "Не выявлено проблем"
+                        },
+                        new
+                        {
+                            Id = 301,
+                            Title = "Согласовано логистом"
                         });
                 });
 
@@ -906,6 +920,8 @@ namespace Logibooks.Core.Migrations
                     b.Property<decimal?>("WeightKg")
                         .HasColumnType("numeric(10,2)")
                         .HasColumnName("weight_kg");
+
+                    b.HasIndex("PostingNumber");
 
                     b.ToTable("ozon_orders", (string)null);
                 });

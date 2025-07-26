@@ -59,6 +59,7 @@ builder.Services
     .AddScoped<IOrderValidationService, OrderValidationService>()
     .AddScoped<IRegisterValidationService, RegisterValidationService>()
     .AddScoped<IRegisterProcessingService, RegisterProcessingService>()
+    .AddScoped<IIndPostXmlService, IndPostXmlService>()
     .AddScoped<IUserInformationService, UserInformationService>()
     .AddSingleton<IMorphologySearchService, MorphologySearchService>()
     .AddScoped<UnhandledExceptionFilter>()

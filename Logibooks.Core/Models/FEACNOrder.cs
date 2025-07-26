@@ -47,5 +47,7 @@ public class FeacnOrder
     [Column("comment")]
     public string? Comment { get; set; }
 
+    [Column("enabled")]
+    public bool Enabled { get; set; } = true;
     public ICollection<FeacnPrefix> FeacnPrefixes { get; set; } = [];
 }

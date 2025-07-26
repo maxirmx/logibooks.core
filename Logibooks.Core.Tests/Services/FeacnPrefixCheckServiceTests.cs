@@ -265,9 +265,11 @@ public class FeacnPrefixCheckServiceTests
     public async Task CreateContext_GroupsPrefixesByTwoDigits()
     {
         using var ctx = CreateContext();
-        var p1 = new FeacnPrefix { Id = 1, Code = "1200", FeacnOrderId = 1 };
-        var p2 = new FeacnPrefix { Id = 2, Code = "1299", FeacnOrderId = 1 };
-        var p3 = new FeacnPrefix { Id = 3, Code = "9900", FeacnOrderId = 1 };
+        var enabledOrder = new FeacnOrder { Id = 1, Title = "Enabled", Enabled = true };
+        ctx.FeacnOrders.Add(enabledOrder);
+        var p1 = new FeacnPrefix { Id = 1, Code = "1200", FeacnOrderId = 1, FeacnOrder = enabledOrder };
+        var p2 = new FeacnPrefix { Id = 2, Code = "1299", FeacnOrderId = 1, FeacnOrder = enabledOrder };
+        var p3 = new FeacnPrefix { Id = 3, Code = "9900", FeacnOrderId = 1, FeacnOrder = enabledOrder };
         ctx.FeacnPrefixes.AddRange(p1, p2, p3);
         await ctx.SaveChangesAsync();
 
@@ -299,7 +301,9 @@ public class FeacnPrefixCheckServiceTests
     public async Task CreateContext_LoadsExceptions()
     {
         using var ctx = CreateContext();
-        var prefix = new FeacnPrefix { Id = 10, Code = "1234", FeacnOrderId = 1 };
+        var enabledOrder = new FeacnOrder { Id = 1, Title = "Enabled", Enabled = true };
+        ctx.FeacnOrders.Add(enabledOrder);
+        var prefix = new FeacnPrefix { Id = 10, Code = "1234", FeacnOrderId = 1, FeacnOrder = enabledOrder };
         prefix.FeacnPrefixExceptions.Add(new FeacnPrefixException { Id = 20, Code = "123455" });
         ctx.FeacnPrefixes.Add(prefix);
         await ctx.SaveChangesAsync();
@@ -310,6 +314,43 @@ public class FeacnPrefixCheckServiceTests
         var loaded = context.Prefixes["12"].First(p => p.Id == 10);
         Assert.That(loaded.FeacnPrefixExceptions.Count, Is.EqualTo(1));
         Assert.That(loaded.FeacnPrefixExceptions.First().Code, Is.EqualTo("123455"));
+    }
+
+    [Test]
+    public async Task CreateContext_SkipsPrefixesWithDisabledFeacnOrder()
+    {
+        using var ctx = CreateContext();
+        var enabledOrder = new FeacnOrder { Id = 1, Title = "Enabled", Enabled = true };
+        var disabledOrder = new FeacnOrder { Id = 2, Title = "Disabled", Enabled = false };
+        ctx.FeacnOrders.AddRange(enabledOrder, disabledOrder);
+        var p1 = new FeacnPrefix { Id = 1, Code = "1200", FeacnOrderId = 1, FeacnOrder = enabledOrder };
+        var p2 = new FeacnPrefix { Id = 2, Code = "1299", FeacnOrderId = 2, FeacnOrder = disabledOrder };
+        ctx.FeacnPrefixes.AddRange(p1, p2);
+        await ctx.SaveChangesAsync();
+
+        var svc = new FeacnPrefixCheckService(ctx);
+        var context = await svc.CreateContext();
+
+        var allIds = context.Prefixes.SelectMany(kvp => kvp.Value).Select(p => p.Id).ToList();
+        Assert.That(allIds, Does.Contain(1));
+        Assert.That(allIds, Does.Not.Contain(2));
+    }
+
+    [Test]
+    public async Task CreateContext_IncludesPrefixesWithEnabledFeacnOrder()
+    {
+        using var ctx = CreateContext();
+        var enabledOrder = new FeacnOrder { Id = 1, Title = "Enabled", Enabled = true };
+        ctx.FeacnOrders.Add(enabledOrder);
+        var p1 = new FeacnPrefix { Id = 1, Code = "1200", FeacnOrderId = 1, FeacnOrder = enabledOrder };
+        ctx.FeacnPrefixes.Add(p1);
+        await ctx.SaveChangesAsync();
+
+        var svc = new FeacnPrefixCheckService(ctx);
+        var context = await svc.CreateContext();
+
+        var allIds = context.Prefixes.SelectMany(kvp => kvp.Value).Select(p => p.Id).ToList();
+        Assert.That(allIds, Does.Contain(1));
     }
 
 }

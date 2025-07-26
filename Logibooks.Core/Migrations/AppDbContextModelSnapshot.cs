@@ -86,7 +86,7 @@ namespace Logibooks.Core.Migrations
 
                     b.HasIndex("FeacnPrefixId");
 
-                    b.ToTable("base_order_feacn_prefixes");
+                    b.ToTable("base_order_feacn_prefixes", (string)null);
                 });
 
             modelBuilder.Entity("Logibooks.Core.Models.BaseOrderStopWord", b =>
@@ -103,7 +103,7 @@ namespace Logibooks.Core.Migrations
 
                     b.HasIndex("StopWordId");
 
-                    b.ToTable("base_order_stop_words");
+                    b.ToTable("base_order_stop_words", (string)null);
                 });
 
             modelBuilder.Entity("Logibooks.Core.Models.Company", b =>
@@ -161,7 +161,7 @@ namespace Logibooks.Core.Migrations
                     b.HasIndex("Inn")
                         .IsUnique();
 
-                    b.ToTable("companies");
+                    b.ToTable("companies", (string)null);
 
                     b.HasData(
                         new
@@ -245,7 +245,7 @@ namespace Logibooks.Core.Migrations
 
                     b.HasKey("IsoNumeric");
 
-                    b.ToTable("countries");
+                    b.ToTable("countries", (string)null);
 
                     b.HasData(
                         new
@@ -283,7 +283,7 @@ namespace Logibooks.Core.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("customs_procedures");
+                    b.ToTable("customs_procedures", (string)null);
 
                     b.HasData(
                         new
@@ -313,6 +313,10 @@ namespace Logibooks.Core.Migrations
                         .HasColumnType("text")
                         .HasColumnName("comment");
 
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("enabled");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasColumnType("text")
@@ -323,13 +327,14 @@ namespace Logibooks.Core.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("feacn_orders");
+                    b.ToTable("feacn_orders", (string)null);
 
                     b.HasData(
                         new
                         {
                             Id = 1,
                             Comment = "Подлежит ветеринарному контролю",
+                            Enabled = true,
                             Title = "Решение Комиссии Таможенного союза от 18 июня 2010 г. N 317 \"О применении ветеринарно-санитарных мер в Евразийском экономическом союзе\"",
                             Url = "10sr0317"
                         },
@@ -337,6 +342,7 @@ namespace Logibooks.Core.Migrations
                         {
                             Id = 2,
                             Comment = "Подлежит карантинному фитосанитарному контролю",
+                            Enabled = true,
                             Title = "Решение Комиссии Таможенного союза от 18 июня 2010 г. N 318 \"Об обеспечении карантина растений в Евразийском экономическом союзе\"",
                             Url = "10sr0318"
                         },
@@ -344,6 +350,7 @@ namespace Logibooks.Core.Migrations
                         {
                             Id = 3,
                             Comment = "Операции в отношении драгоценных металлов и драгоценных камней",
+                            Enabled = true,
                             Title = "Приказ ФТС России от 12 мая 2011 г. N 971 \"О компетенции таможенных органов по совершению таможенных операций в отношении драгоценных металлов и драгоценных камней\"",
                             Url = "11pr0971"
                         },
@@ -351,6 +358,7 @@ namespace Logibooks.Core.Migrations
                         {
                             Id = 4,
                             Comment = "Временный запрет на вывоз",
+                            Enabled = true,
                             Title = "Постановление Правительства РФ от 09.03.2022 № 311 \"О мерах по реализации Указа Президента Российской Федерации от 8 марта 2022 г. N 100\"",
                             Url = "22ps0311"
                         },
@@ -358,6 +366,7 @@ namespace Logibooks.Core.Migrations
                         {
                             Id = 5,
                             Comment = "Разрешительный порядок вывоза",
+                            Enabled = true,
                             Title = "Постановление Правительства Российской Федерации от 9 марта 2022 г. N 312 \"О введении на временной основе разрешительного порядка вывоза отдельных видов товаров за пределы территории Российской Федерации\"",
                             Url = "22ps0312"
                         });
@@ -397,7 +406,7 @@ namespace Logibooks.Core.Migrations
 
                     b.HasIndex("FeacnOrderId");
 
-                    b.ToTable("feacn_prefixes");
+                    b.ToTable("feacn_prefixes", (string)null);
                 });
 
             modelBuilder.Entity("Logibooks.Core.Models.FeacnPrefixException", b =>
@@ -422,7 +431,7 @@ namespace Logibooks.Core.Migrations
 
                     b.HasIndex("FeacnPrefixId");
 
-                    b.ToTable("feacn_prefix_exceptions");
+                    b.ToTable("feacn_prefix_exceptions", (string)null);
                 });
 
             modelBuilder.Entity("Logibooks.Core.Models.OrderCheckStatus", b =>
@@ -441,7 +450,7 @@ namespace Logibooks.Core.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("check_statuses");
+                    b.ToTable("check_statuses", (string)null);
 
                     b.HasData(
                         new
@@ -468,6 +477,11 @@ namespace Logibooks.Core.Migrations
                         {
                             Id = 201,
                             Title = "Не выявлено проблем"
+                        },
+                        new
+                        {
+                            Id = 301,
+                            Title = "Согласовано логистом"
                         });
                 });
 
@@ -487,7 +501,7 @@ namespace Logibooks.Core.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("statuses");
+                    b.ToTable("statuses", (string)null);
 
                     b.HasData(
                         new
@@ -549,7 +563,7 @@ namespace Logibooks.Core.Migrations
 
                     b.HasIndex("TransportationTypeId");
 
-                    b.ToTable("registers");
+                    b.ToTable("registers", (string)null);
                 });
 
             modelBuilder.Entity("Logibooks.Core.Models.Role", b =>
@@ -573,7 +587,7 @@ namespace Logibooks.Core.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("roles");
+                    b.ToTable("roles", (string)null);
 
                     b.HasData(
                         new
@@ -613,7 +627,7 @@ namespace Logibooks.Core.Migrations
                     b.HasIndex("Word")
                         .IsUnique();
 
-                    b.ToTable("stop_words");
+                    b.ToTable("stop_words", (string)null);
                 });
 
             modelBuilder.Entity("Logibooks.Core.Models.TransportationType", b =>
@@ -636,7 +650,7 @@ namespace Logibooks.Core.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("transportation_types");
+                    b.ToTable("transportation_types", (string)null);
 
                     b.HasData(
                         new
@@ -692,7 +706,7 @@ namespace Logibooks.Core.Migrations
                     b.HasIndex("Email")
                         .IsUnique();
 
-                    b.ToTable("users");
+                    b.ToTable("users", (string)null);
 
                     b.HasData(
                         new
@@ -738,7 +752,7 @@ namespace Logibooks.Core.Migrations
 
                     b.HasIndex("RoleId");
 
-                    b.ToTable("user_roles");
+                    b.ToTable("user_roles", (string)null);
 
                     b.HasData(
                         new
@@ -903,6 +917,8 @@ namespace Logibooks.Core.Migrations
                     b.Property<decimal?>("WeightKg")
                         .HasColumnType("numeric(10,2)")
                         .HasColumnName("weight_kg");
+
+                    b.HasIndex("PostingNumber");
 
                     b.ToTable("ozon_orders", (string)null);
                 });

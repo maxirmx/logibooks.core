@@ -101,7 +101,8 @@ public class FeacnPrefixCheckService(AppDbContext db) : IFeacnPrefixCheckService
     public async Task<FeacnPrefixCheckContext> CreateContext(CancellationToken cancellationToken = default)
     {
         var prefixes = await _db.FeacnPrefixes
-            .Where(p => !string.IsNullOrEmpty(p.Code) && p.Code.Length >= 2)
+            .Where(p => !string.IsNullOrEmpty(p.Code) && p.Code.Length >= 2 && p.FeacnOrder.Enabled)
+            .Include(p => p.FeacnOrder)
             .Include(p => p.FeacnPrefixExceptions)
             .AsNoTracking()
             .ToListAsync(cancellationToken);

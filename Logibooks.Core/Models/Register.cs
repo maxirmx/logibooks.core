@@ -53,7 +53,7 @@ public class Register
     public DateOnly? InvoiceDate { get; set; }
 
     [Column("dest_country_code")]
-    public short? DestCountryCode { get; set; }
+    public short? DestCountryCode { get; set; } 
 
     [JsonIgnore]
     public Country? DestinationCountry { get; set; }
@@ -61,12 +61,14 @@ public class Register
     [Column("transportation_type_id")]
     public int TransportationTypeId { get; set; } = 1;
     // { Id = 1, Code = TransportationTypeCode.Avia, Name = "Авиа" }
+
     [JsonIgnore]
     public TransportationType? TransportationType { get; set; }
 
     [Column("customs_procedure_id")]
     public int CustomsProcedureId { get; set; } = 1;
     // { Id = 1, Code = 10, Name = "Экспорт" }
+
     [JsonIgnore]
     public CustomsProcedure? CustomsProcedure { get; set; }
 

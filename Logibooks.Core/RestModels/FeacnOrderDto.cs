@@ -33,11 +33,13 @@ public class FeacnOrderDto
     public string Title { get; set; } = string.Empty;
     public string? Url { get; set; }
     public string? Comment { get; set; }
+    public bool Enabled { get; set; }
     public FeacnOrderDto(FeacnOrder o)
     {
         Id = o.Id;
         Title = o.Title;
         Url = o.Url;
         Comment = o.Comment;
+        Enabled = o.Enabled;
     }
 }

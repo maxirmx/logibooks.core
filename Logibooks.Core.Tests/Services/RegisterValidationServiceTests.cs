@@ -262,4 +262,54 @@ public class RegisterValidationServiceTests
         // Order 2 should have no stop word links
         Assert.That(order2.BaseOrderStopWords, Is.Empty);
     }
+
+    [Test]
+    public async Task StartValidationAsync_SkipsOrdersWithApprovedOrGreaterCheckStatusId()
+    {
+        using var ctx = CreateContext();
+        ctx.Registers.Add(new Register { Id = 200, FileName = "r.xlsx" });
+        ctx.Orders.AddRange(
+            new WbrOrder { Id = 201, RegisterId = 200, StatusId = 1, CheckStatusId = 1 }, // should be validated
+            new WbrOrder { Id = 202, RegisterId = 200, StatusId = 1, CheckStatusId = 301 }, // should be skipped
+            new WbrOrder { Id = 203, RegisterId = 200, StatusId = 1, CheckStatusId = 400 }  // should be skipped
+        );
+        await ctx.SaveChangesAsync();
+
+        var mock = new Mock<IOrderValidationService>();
+        mock.Setup(m => m.ValidateAsync(
+            It.IsAny<BaseOrder>(),
+            It.IsAny<MorphologyContext>(),
+            It.IsAny<StopWordsContext>(),
+            It.IsAny<FeacnPrefixCheckContext?>(),
+            It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        var logger = new LoggerFactory().CreateLogger<RegisterValidationService>();
+        var feacnSvc = new Mock<IFeacnPrefixCheckService>().Object;
+        var scopeFactory = CreateMockScopeFactory(ctx, mock.Object, feacnSvc);
+        var svc = new RegisterValidationService(ctx, scopeFactory, logger, new MorphologySearchService(), feacnSvc);
+
+        var handle = await svc.StartValidationAsync(200);
+        await Task.Delay(100); // Give time for background task
+        mock.Verify(m => m.ValidateAsync(
+            It.Is<BaseOrder>(o => o.Id == 201),
+            It.IsAny<MorphologyContext>(),
+            It.IsAny<StopWordsContext>(),
+            It.IsAny<FeacnPrefixCheckContext?>(),
+            It.IsAny<CancellationToken>()),
+            Times.Once);
+        mock.Verify(m => m.ValidateAsync(
+            It.Is<BaseOrder>(o => o.Id == 202),
+            It.IsAny<MorphologyContext>(),
+            It.IsAny<StopWordsContext>(),
+            It.IsAny<FeacnPrefixCheckContext?>(),
+            It.IsAny<CancellationToken>()),
+            Times.Never);
+        mock.Verify(m => m.ValidateAsync(
+            It.Is<BaseOrder>(o => o.Id == 203),
+            It.IsAny<MorphologyContext>(),
+            It.IsAny<StopWordsContext>(),
+            It.IsAny<FeacnPrefixCheckContext?>(),
+            It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
 }
