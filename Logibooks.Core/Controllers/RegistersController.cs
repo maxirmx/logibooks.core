@@ -392,7 +392,7 @@ public class RegistersController(
 
         if (update.InvoiceNumber != null) register.InvoiceNumber = update.InvoiceNumber;
         if (update.InvoiceDate != null) register.InvoiceDate = update.InvoiceDate;
-        if (update.DestCountryCode != null) register.DestCountryCode = update.DestCountryCode;
+        if (update.DestCountryCode != null) register.DestCountryCode = update?.DestCountryCode ?? 643;
         if (update.TransportationTypeId != null) register.TransportationTypeId = update.TransportationTypeId.Value;
         if (update.CustomsProcedureId != null) register.CustomsProcedureId = update.CustomsProcedureId.Value;
 

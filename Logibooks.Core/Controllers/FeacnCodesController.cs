@@ -50,7 +50,7 @@ public class FeacnCodesController(
     private readonly IUserInformationService _userService = userService;
     private readonly IUpdateFeacnCodesService _service = service;
 
-    private async Task<List<TDto>> FetchAndConvertAsync<TEntity, TDto>(
+    private static async Task<List<TDto>> FetchAndConvertAsync<TEntity, TDto>(
         IQueryable<TEntity> query,
         Expression<Func<TEntity, bool>>? filter,
         Func<TEntity, TDto> convertToDto)
@@ -86,6 +86,33 @@ public class FeacnCodesController(
         return prefixes;
     }
 
+    [HttpPost("orders/{orderId}/enable")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
+    [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
+    public async Task<IActionResult> EnableOrder(int orderId)
+    {
+        if (!await _userService.CheckAdmin(_curUserId)) return _403();
+        var order = await _db.FeacnOrders.FindAsync(orderId);
+        if (order == null) return _404FeacnOrder(orderId);
+        order.Enabled = true;
+        await _db.SaveChangesAsync();
+        return NoContent();
+    }
+
+    [HttpPost("orders/{orderId}/disable")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
+    [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
+    public async Task<IActionResult> DisableOrder(int orderId)
+    {
+        if (!await _userService.CheckAdmin(_curUserId)) return _403();
+        var order = await _db.FeacnOrders.FindAsync(orderId);
+        if (order == null) return _404FeacnOrder(orderId);
+        order.Enabled = false;
+        await _db.SaveChangesAsync();
+        return NoContent();
+    }
 
     [HttpPost("update")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]

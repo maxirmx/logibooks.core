@@ -143,6 +143,9 @@ namespace Logibooks.Core.Data
             modelBuilder.Entity<OzonOrder>()
                 .HasBaseType<BaseOrder>();
 
+            modelBuilder.Entity<OzonOrder>()
+                .HasIndex(o => o.PostingNumber);
+
             modelBuilder.Entity<BaseOrderStopWord>()
                 .HasKey(bosw => new { bosw.BaseOrderId, bosw.StopWordId });
 
@@ -197,7 +200,8 @@ namespace Logibooks.Core.Data
                 new OrderCheckStatus { Id = 101, Title = "Выявлены проблемы" },
                 new OrderCheckStatus { Id = 102, Title = "Неправильный формат ТН ВЭД" },
                 new OrderCheckStatus { Id = 103, Title = "Несуществующий ТН ВЭД" },
-                new OrderCheckStatus { Id = 201, Title = "Не выявлено проблем" }
+                new OrderCheckStatus { Id = 201, Title = "Не выявлено проблем" },
+                new OrderCheckStatus { Id = 301, Title = "Согласовано логистом" }
             );
 
             modelBuilder.Entity<User>().HasData(

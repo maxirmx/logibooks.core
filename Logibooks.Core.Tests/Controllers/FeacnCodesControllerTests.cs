@@ -173,4 +173,70 @@ public class FeacnCodesControllerTests
         Assert.That(result.Value!.First().Exceptions.Count, Is.EqualTo(1));
     }
 
+    [Test]
+    public async Task EnableOrder_SetsEnabledTrue_ForAdmin()
+    {
+        SetCurrentUserId(1);
+        var order = new FeacnOrder { Id = 10, Title = "TestOrder", Enabled = false };
+        _dbContext.FeacnOrders.Add(order);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.EnableOrder(10);
+        Assert.That(result, Is.TypeOf<NoContentResult>());
+        var updated = await _dbContext.FeacnOrders.FindAsync(10);
+        Assert.That(updated!.Enabled, Is.True);
+    }
+
+    [Test]
+    public async Task DisableOrder_SetsEnabledFalse_ForAdmin()
+    {
+        SetCurrentUserId(1);
+        var order = new FeacnOrder { Id = 11, Title = "TestOrder2", Enabled = true };
+        _dbContext.FeacnOrders.Add(order);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.DisableOrder(11);
+        Assert.That(result, Is.TypeOf<NoContentResult>());
+        var updated = await _dbContext.FeacnOrders.FindAsync(11);
+        Assert.That(updated!.Enabled, Is.False);
+    }
+
+    [Test]
+    public async Task EnableOrder_Returns404_IfNotFound()
+    {
+        SetCurrentUserId(1);
+        var result = await _controller.EnableOrder(999);
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+    }
+
+    [Test]
+    public async Task EnableOrder_Returns403_ForNonAdmin()
+    {
+        SetCurrentUserId(2);
+        var order = new FeacnOrder { Id = 12, Title = "TestOrder3", Enabled = false };
+        _dbContext.FeacnOrders.Add(order);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.EnableOrder(12);
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
+    }
+
+    [Test]
+    public async Task DisableOrder_Returns403_ForNonAdmin()
+    {
+        SetCurrentUserId(2);
+        var order = new FeacnOrder { Id = 13, Title = "TestOrder4", Enabled = true };
+        _dbContext.FeacnOrders.Add(order);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.DisableOrder(13);
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
+    }
+
 }

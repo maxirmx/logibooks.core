@@ -171,6 +171,12 @@ public class LogibooksControllerPreBase(AppDbContext db, ILogger logger) : Contr
                           new ErrMessage { Msg = $"Не удалось найти операцию проверки [id={handleId}]" });
     }
 
+    protected ObjectResult _404FeacnOrder(int id)
+    {
+        return StatusCode(StatusCodes.Status404NotFound,
+                          new ErrMessage { Msg = $"Не удалось найти постановление (приказ, решение) [id={id}]" });
+    }
+
 }
 
 public class LogibooksControllerBase : LogibooksControllerPreBase
