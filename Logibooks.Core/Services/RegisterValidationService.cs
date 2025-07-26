@@ -63,11 +63,14 @@ public class RegisterValidationService(
     public async Task<Guid> StartValidationAsync(int registerId, CancellationToken cancellationToken = default)
     {    
         var process = new ValidationProcess(registerId);
+        Console.WriteLine($"[1] Starting validation for register {registerId} with handle {process.HandleId}");
         if (!_byRegister.TryAdd(registerId, process))
         {
             return _byRegister[registerId].HandleId;
         }
+        Console.WriteLine($"[2] Starting validation for register {registerId} with handle {process.HandleId}");
         _byHandle[process.HandleId] = process;
+        Console.WriteLine($"[3] Starting validation for register {registerId} with handle {process.HandleId}");
 
         var allStopWords = await _db.StopWords.AsNoTracking().ToListAsync(cancellationToken);
         var morphologyContext = _morphologyService.InitializeContext(allStopWords.Where(sw => !sw.ExactMatch));
