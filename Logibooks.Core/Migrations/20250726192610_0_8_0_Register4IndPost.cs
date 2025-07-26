@@ -9,17 +9,69 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Logibooks.Core.Migrations
 {
     /// <inheritdoc />
-    public partial class Register4IndPost : Migration
+    public partial class _0_8_0_Register4IndPost : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.CreateTable(
+                name: "customs_procedures",
+                columns: table => new
+                {
+                    id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    code = table.Column<short>(type: "smallint", nullable: false),
+                    name = table.Column<string>(type: "text", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_customs_procedures", x => x.id);
+                });
+
+            migrationBuilder.InsertData(
+                table: "customs_procedures",
+                columns: new[] { "id", "code", "name" },
+                values: new object[,]
+                {
+                    { 1, (short)10, "Экспорт" },
+                    { 2, (short)60, "Реимпорт" }
+                });
+
+            migrationBuilder.CreateTable(
+                name: "transportation_types",
+                columns: table => new
+                {
+                    id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    code = table.Column<decimal>(type: "numeric(2,0)", nullable: false),
+                    name = table.Column<string>(type: "text", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_transportation_types", x => x.id);
+                });
+
+            migrationBuilder.InsertData(
+                table: "transportation_types",
+                columns: new[] { "id", "code", "name" },
+                values: new object[,]
+                {
+                    { 1, 0m, "Авиа" },
+                    { 2, 1m, "Авто" }
+                });
+
+            migrationBuilder.AddColumn<short>(
+                name: "dest_country_code",
+                table: "registers",
+                type: "smallint",
+                nullable: true);
+
             migrationBuilder.AddColumn<short>(
                 name: "country_code",
                 table: "base_orders",
                 type: "smallint",
                 nullable: false,
-                defaultValue: (short)0);
+                defaultValue: (short)643);
 
             // First, migrate country data from WBR and Ozon orders to base_orders before dropping the columns
             migrationBuilder.Sql(@"
@@ -68,13 +120,7 @@ namespace Logibooks.Core.Migrations
                 table: "registers",
                 type: "integer",
                 nullable: false,
-                defaultValue: 0);
-
-            migrationBuilder.AddColumn<short>(
-                name: "dest_country_code",
-                table: "registers",
-                type: "smallint",
-                nullable: true);
+                defaultValue: 1);
 
             migrationBuilder.AddColumn<DateOnly>(
                 name: "invoice_date",
@@ -93,53 +139,19 @@ namespace Logibooks.Core.Migrations
                 table: "registers",
                 type: "integer",
                 nullable: false,
-                defaultValue: 0);
+                defaultValue: 1);
 
-            migrationBuilder.CreateTable(
-                name: "customs_procedures",
-                columns: table => new
-                {
-                    id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    code = table.Column<short>(type: "smallint", nullable: false),
-                    name = table.Column<string>(type: "text", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_customs_procedures", x => x.id);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "transportation_types",
-                columns: table => new
-                {
-                    id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    code = table.Column<decimal>(type: "numeric(2,0)", nullable: false),
-                    name = table.Column<string>(type: "text", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_transportation_types", x => x.id);
-                });
+            migrationBuilder.AddColumn<bool>(
+                name: "enabled",
+                table: "feacn_orders",
+                type: "boolean",
+                nullable: false,
+                defaultValue: true);
 
             migrationBuilder.InsertData(
-                table: "customs_procedures",
-                columns: new[] { "id", "code", "name" },
-                values: new object[,]
-                {
-                    { 1, (short)10, "Экспорт" },
-                    { 2, (short)60, "Реимпорт" }
-                });
-
-            migrationBuilder.InsertData(
-                table: "transportation_types",
-                columns: new[] { "id", "code", "name" },
-                values: new object[,]
-                {
-                    { 1, 0m, "Авиа" },
-                    { 2, 1m, "Авто" }
-                });
+                table: "check_statuses",
+                columns: new[] { "id", "title" },
+                values: new object[] { 301, "Согласовано логистом" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_registers_customs_procedure_id",
@@ -155,6 +167,11 @@ namespace Logibooks.Core.Migrations
                 name: "IX_registers_transportation_type_id",
                 table: "registers",
                 column: "transportation_type_id");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ozon_orders_posting_number",
+                table: "ozon_orders",
+                column: "posting_number");
 
             migrationBuilder.CreateIndex(
                 name: "IX_base_orders_country_code",
@@ -232,8 +249,17 @@ namespace Logibooks.Core.Migrations
                 table: "registers");
 
             migrationBuilder.DropIndex(
+                name: "IX_ozon_orders_posting_number",
+                table: "ozon_orders");
+
+            migrationBuilder.DropIndex(
                 name: "IX_base_orders_country_code",
                 table: "base_orders");
+
+            migrationBuilder.DeleteData(
+                table: "check_statuses",
+                keyColumn: "id",
+                keyValue: 301);
 
             migrationBuilder.DropColumn(
                 name: "customs_procedure_id",
@@ -254,6 +280,10 @@ namespace Logibooks.Core.Migrations
             migrationBuilder.DropColumn(
                 name: "transportation_type_id",
                 table: "registers");
+
+            migrationBuilder.DropColumn(
+                name: "enabled",
+                table: "feacn_orders");
 
             migrationBuilder.AddColumn<string>(
                 name: "country",

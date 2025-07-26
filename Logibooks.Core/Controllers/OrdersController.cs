@@ -409,6 +409,36 @@ public class OrdersController(
         var bytes = Encoding.UTF8.GetBytes(xml);
         return File(bytes, "application/xml", fileName);
     }
+  
+    [HttpPost("{id}/approve")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
+    [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
+    public async Task<IActionResult> ApproveOrder(int id)
+    {
+        _logger.LogDebug("ApproveOrder for id={id}", id);
+
+        var ok = await _userService.CheckLogist(_curUserId);
+        if (!ok)
+        {
+            _logger.LogDebug("ApproveOrder returning '403 Forbidden'");
+            return _403();
+        }
+
+        var order = await _db.Orders.FindAsync(id);
+        if (order == null)
+        {
+            _logger.LogDebug("ApproveOrder returning '404 Not Found'");
+            return _404Order(id);
+        }
+
+        order.CheckStatusId = (int)OrderCheckStatusCode.Approved;
+        _db.Entry(order).State = EntityState.Modified;
+        await _db.SaveChangesAsync();
+
+        _logger.LogDebug("ApproveOrder returning '204 No content' for id={id}", id);
+        return NoContent();
+    }
 
     [HttpGet("checkstatuses")]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<OrderCheckStatus>))]

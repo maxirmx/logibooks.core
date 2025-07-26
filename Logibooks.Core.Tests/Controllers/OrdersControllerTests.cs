@@ -1002,7 +1002,6 @@ public class OrdersControllerTests
         _dbContext.Registers.Add(register);
         _dbContext.Orders.Add(order);
         await _dbContext.SaveChangesAsync();
-
         _mockIndPostGenerator.Setup(x => x.GenerateXML(order)).ReturnsAsync("<AltaIndPost />");
         _mockIndPostGenerator.Setup(x => x.GenerateFilename(order)).Returns("IndPost_123.xml");
 
@@ -1030,7 +1029,48 @@ public class OrdersControllerTests
     {
         SetCurrentUserId(1);
         var result = await _controller.Generate(999);
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+    }
+      
+    public async Task ApproveOrder_SetsCheckStatusToApproved_ForLogist()
+    {
+        SetCurrentUserId(1);
+        var register = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
+        var order = new WbrOrder { Id = 100, RegisterId = 1, StatusId = 1, CheckStatusId = 1 };
+        _dbContext.Registers.Add(register);
+        _dbContext.Orders.Add(order);
+        await _dbContext.SaveChangesAsync();
+        var result = await _controller.ApproveOrder(100);
+        Assert.That(result, Is.TypeOf<NoContentResult>());
+        var saved = await _dbContext.Orders.FindAsync(100);
+        Assert.That(saved!.CheckStatusId, Is.EqualTo(301));
+    }
 
+    [Test]
+    public async Task ApproveOrder_ReturnsForbidden_ForNonLogist()
+    {
+        SetCurrentUserId(99); // unknown user
+        var register = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
+        var order = new WbrOrder { Id = 101, RegisterId = 1, StatusId = 1, CheckStatusId = 1 };
+        _dbContext.Registers.Add(register);
+        _dbContext.Orders.Add(order);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.ApproveOrder(101);
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
+        var saved = await _dbContext.Orders.FindAsync(101);
+        Assert.That(saved!.CheckStatusId, Is.EqualTo(1)); // Should not change
+    }
+
+    [Test]
+    public async Task ApproveOrder_ReturnsNotFound_WhenOrderMissing()
+    {
+        SetCurrentUserId(1);
+        var result = await _controller.ApproveOrder(999);
         Assert.That(result, Is.TypeOf<ObjectResult>());
         var obj = result as ObjectResult;
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
