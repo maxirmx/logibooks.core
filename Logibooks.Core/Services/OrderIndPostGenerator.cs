@@ -40,6 +40,10 @@ public class OrderIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServic
                     : NotDefined;
         var typeValue = register.TransportationType?.Code.ToString() ?? NotDefined;
 
+        var originCountryCode = register.CustomsProcedure?.Code == 10
+            ? "RU"
+            : register.DestinationCountry?.IsoAlpha2 ?? NotDefined;
+        
         var fields = new Dictionary<string, string?>
         {
             { "NUM", order.GetParcelNumber() },
@@ -49,7 +53,12 @@ public class OrderIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServic
             { "INVDATE", date },
             { "TYPE", typeValue },
             { "ARRIVEDATE", date },
-            { "SERVICE", "0" },
+            { "CURRENCY", order.GetCurrency() },
+            { "ORGCOUNTRY", originCountryCode },
+            { "DELIVERYTERMS_TRADINGCOUNTRYCODE", originCountryCode },
+            { "DELIVERYTERMS_DISPATCHCOUNTRYCODE", originCountryCode },
+            { "DELIVERYTERMS_DELIVERYTERMSSTRINGCODE", "CPT" },
+            { "SERVICE", "0" }
         };
 
         var goodsItems = new List<IDictionary<string, string?>>();

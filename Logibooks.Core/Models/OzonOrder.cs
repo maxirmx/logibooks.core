@@ -132,5 +132,5 @@ public class OzonOrder : BaseOrder
 
     // IndPost generation API
     public override string GetParcelNumber() => PostingNumber ?? $"заказ_без_номера_{Id}";
-
+    public override string GetCurrency() => Currency ?? "RUB";
 }
