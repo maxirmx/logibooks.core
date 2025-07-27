@@ -553,8 +553,10 @@ public class RegistersController(
                         o.CheckStatusId >= 101 && o.CheckStatusId < 200)
             .OrderBy(o => o.Id);
 
-        var next = await query.FirstOrDefaultAsync(o => o.Id > orderId) ??
-                   await query.FirstOrDefaultAsync(o => o.Id < orderId);
+        var next = await query
+            .OrderBy(o => o.Id > orderId ? 0 : 1) // Prioritize Id > orderId
+            .ThenBy(o => o.Id)                   // Then order by Id
+            .FirstOrDefaultAsync();
 
         if (next == null)
         {
