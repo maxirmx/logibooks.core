@@ -44,8 +44,9 @@ public class FeacnPrefixCheckService(AppDbContext db) : IFeacnPrefixCheckService
         var twoDigitPrefix = tnVed[..2];
         
         var prefixes = await _db.FeacnPrefixes
-            .Where(p => p.Code.StartsWith(twoDigitPrefix))
+            .Where(p => p.Code.StartsWith(twoDigitPrefix) && p.FeacnOrder.Enabled)
             .Include(p => p.FeacnPrefixExceptions)
+            .Include(p => p.FeacnOrder)
             .AsNoTracking()
             .ToListAsync(cancellationToken);
 
