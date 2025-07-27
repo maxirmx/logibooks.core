@@ -163,5 +163,9 @@ public class WbrOrder : BaseOrder
     public override string GetParcelNumber() => 
         string.IsNullOrEmpty(Shk) ? $"заказ_без_номера_{Id}" : Shk.PadLeft(20, '0');
     public override string GetCurrency() => Currency ?? "RUB";
-
+    public override string GetDescription() => $"УИН:{GetParcelNumber()}; {ProductName ?? "Не указано"}";
+    public override string GetQuantity() => Quantity?.ToString() ?? "1";
+    public override string GetCost() => (UnitPrice * Quantity)?.ToString("F2") ?? "0.00";
+    public override string GetWeight() => WeightKg?.ToString("F3") ?? "0.000";
+    public override string GetUrl() => ProductLink ?? "https://www.ozon.ru/product/unknown-product";
 }

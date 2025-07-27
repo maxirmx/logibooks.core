@@ -54,7 +54,6 @@ public class OzonOrder : BaseOrder
     [Column("manufacturer")]
     public string? Manufacturer { get; set; }
 
-
     [Column("description_en")]
     public string? DescriptionEn { get; set; }
 
@@ -133,4 +132,10 @@ public class OzonOrder : BaseOrder
     // IndPost generation API
     public override string GetParcelNumber() => PostingNumber ?? $"заказ_без_номера_{Id}";
     public override string GetCurrency() => Currency ?? "RUB";
+    public override string GetDescription() =>  ProductName ?? "Не указано";
+    public override string GetQuantity() => Quantity?.ToString() ?? "1";
+    public override string GetCost() => (UnitPrice * Quantity)?.ToString("F2") ?? "0.00";
+    public override string GetWeight() => WeightKg?.ToString("F3") ?? "0.000";
+    public override string GetUrl() => ProductLink ?? "https://www.ozon.ru/product/unknown-product";
+
 }
