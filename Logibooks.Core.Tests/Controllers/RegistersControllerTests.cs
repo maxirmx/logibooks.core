@@ -1501,5 +1501,85 @@ public class RegistersControllerTests
         var orderReloaded = await _dbContext.Orders.Include(o => o.BaseOrderFeacnPrefixes).FirstAsync(o => o.Id == 201);
         Assert.That(orderReloaded.BaseOrderFeacnPrefixes.Any(l => l.FeacnPrefixId == 400), Is.True);
     }
+
+    [Test]
+    public async Task NextOrder_ReturnsNextOrder_AfterGiven()
+    {
+        SetCurrentUserId(1);
+        _dbContext.CheckStatuses.AddRange(
+            new OrderCheckStatus { Id = 101, Title = "Has" },
+            new OrderCheckStatus { Id = 201, Title = "Ok" });
+        var reg = new Register { Id = 1, FileName = "r.xlsx", CompanyId = 2 };
+        _dbContext.Registers.Add(reg);
+        _dbContext.Orders.AddRange(
+            new WbrOrder { Id = 10, RegisterId = 1, StatusId = 1, CheckStatusId = 101 },
+            new WbrOrder { Id = 20, RegisterId = 1, StatusId = 1, CheckStatusId = 101 },
+            new WbrOrder { Id = 30, RegisterId = 1, StatusId = 1, CheckStatusId = 201 }
+        );
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.NextOrder(10);
+
+        Assert.That(result.Value, Is.Not.Null);
+        Assert.That(result.Value!.Id, Is.EqualTo(20));
+    }
+
+    [Test]
+    public async Task NextOrder_PerformsCircularSearch()
+    {
+        SetCurrentUserId(1);
+        _dbContext.CheckStatuses.Add(new OrderCheckStatus { Id = 101, Title = "Has" });
+        var reg = new Register { Id = 1, FileName = "r.xlsx", CompanyId = 1 }; // Ozon company
+        _dbContext.Registers.Add(reg);
+        var ozonOrder1 = new OzonOrder { Id = 1, RegisterId = 1, StatusId = 1, CheckStatusId = 101 };
+        var ozonOrder2 = new OzonOrder { Id = 2, RegisterId = 1, StatusId = 1, CheckStatusId = 201 };
+        var ozonOrder3 = new OzonOrder { Id = 3, RegisterId = 1, StatusId = 1, CheckStatusId = 101 };
+        _dbContext.Orders.AddRange(ozonOrder1, ozonOrder2, ozonOrder3);
+        _dbContext.OzonOrders.AddRange(ozonOrder1, ozonOrder2, ozonOrder3);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.NextOrder(3);
+
+        Assert.That(result.Value, Is.Not.Null);
+        Assert.That(result.Value!.Id, Is.EqualTo(1));
+    }
+
+    [Test]
+    public async Task NextOrder_ReturnsNoContent_WhenNoMatches()
+    {
+        SetCurrentUserId(1);
+        _dbContext.CheckStatuses.Add(new OrderCheckStatus { Id = 201, Title = "Ok" });
+        var reg = new Register { Id = 1, FileName = "r.xlsx", CompanyId = 2 };
+        _dbContext.Registers.Add(reg);
+        _dbContext.Orders.Add(new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1, CheckStatusId = 201 });
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.NextOrder(1);
+
+        Assert.That(result.Result, Is.TypeOf<NoContentResult>());
+    }
+
+    [Test]
+    public async Task NextOrder_ReturnsNotFound_WhenOrderMissing()
+    {
+        SetCurrentUserId(1);
+        var result = await _controller.NextOrder(99);
+
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+    }
+
+    [Test]
+    public async Task NextOrder_ReturnsForbidden_ForNonLogist()
+    {
+        SetCurrentUserId(2);
+        var result = await _controller.NextOrder(1);
+
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
+    }
+
 }
 
