@@ -534,14 +534,14 @@ public class RegistersController(
             return _403();
         }
 
-        var register = await _db.Registers.AsNoTracking().FirstOrDefaultAsync(r => r.Id == id);
+        var register = await _db.Registers.AsNoTracking().FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
         if (register == null)
         {
             _logger.LogDebug("DownloadRegister returning '404 Not Found'");
             return _404Register(id);
         }
 
-        var bytes = await _processingService.DownloadRegisterToExcelAsync(id);
+        var bytes = await _processingService.DownloadRegisterToExcelAsync(id, cancellationToken);
         var fileName = register.FileName;
 
         return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
