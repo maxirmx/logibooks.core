@@ -208,7 +208,7 @@ public class RegistersController(
                 CustomsProcedureId = r.CustomsProcedureId,
                 OrdersTotal = r.Orders.Count(),
                 CompanyShortName = r.Company != null ? r.Company.ShortName : string.Empty,
-                CountryAlpha2 = r.DestinationCountry != null ? r.DestinationCountry.IsoAlpha2 : string.Empty,
+                CountryAlpha2 = r.DestinationCountry != null ? r.DestinationCountry.NameRuOfficial : string.Empty,
                 TransportationTypeName = r.TransportationType != null ? r.TransportationType.Name : string.Empty,
                 CustomsProcedureName = r.CustomsProcedure != null ? r.CustomsProcedure.Name : string.Empty
             });
