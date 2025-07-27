@@ -177,10 +177,19 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
         foreach (var baseOrder in orders)
         {
             var orderType = baseOrder.GetType();
+            var propertyCache = new Dictionary<string, PropertyInfo>();
+
             for (int c = 0; c < headers.Count; c++)
             {
                 var propName = propMap[headers[c]];
-                var prop = orderType.GetProperty(propName, BindingFlags.Public | BindingFlags.Instance);
+                if (!propertyCache.TryGetValue(propName, out var prop))
+                {
+                    prop = orderType.GetProperty(propName, BindingFlags.Public | BindingFlags.Instance);
+                    if (prop != null)
+                    {
+                        propertyCache[propName] = prop;
+                    }
+                }
                 object? val = prop?.GetValue(baseOrder);
                 string cellValue = string.Empty;
                 if (val is DateOnly dOnly)
