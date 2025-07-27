@@ -50,7 +50,23 @@ public class RegistersController(
 {
     private readonly IUserInformationService _userService = userService;
 
-    private readonly string[] allowedSortBy = ["id", "filename", "date", "orderstotal"];
+    private readonly string[] allowedSortBy = [
+        "id", 
+        "filename", 
+        "date", 
+        "orderstotal", 
+        "companyid", 
+        "companyshortname", 
+        "destcountrycode", 
+        "countryalpha2", 
+        "transportationtypeid", 
+        "transportationtypename", 
+        "customsprocedureid", 
+        "customsprocedurename", 
+        "invoicenumber", 
+        "invoicedate"
+    ];
+
     private readonly int maxPageSize = 100;
     private readonly IRegisterValidationService _validationService = validationService;
     private readonly IRegisterProcessingService _processingService = processingService;
@@ -129,6 +145,13 @@ public class RegistersController(
         _logger.LogDebug("GetRegisters for page={page} pageSize={size} sortBy={sortBy} sortOrder={sortOrder} search={search}",
             page, pageSize, sortBy, sortOrder, search);
 
+        var ok = await _userService.CheckLogist(_curUserId);
+        if (!ok)
+        {
+            _logger.LogDebug("GetRegisters returning '403 Forbidden'");
+            return _403();
+        }
+
         if (page <= 0 ||
             (pageSize != -1 && (pageSize <= 0 || pageSize > maxPageSize)))
         {
@@ -151,19 +174,25 @@ public class RegistersController(
             return _400();
         }
 
-        var ok = await _userService.CheckLogist(_curUserId);
-        if (!ok)
-        {
-            _logger.LogDebug("GetRegisters returning '403 Forbidden'");
-            return _403();
-        }
-
-        IQueryable<Register> baseQuery = _db.Registers.AsNoTracking();
+        IQueryable<Register> baseQuery = _db.Registers
+            .Include(r => r.Company)
+            .Include(r => r.DestinationCountry)
+            .Include(r => r.TransportationType)
+            .Include(r => r.CustomsProcedure)
+            .AsNoTracking();
 
         if (!string.IsNullOrWhiteSpace(search))
         {
-            baseQuery = baseQuery.Where(r => EF.Functions.Like(r.FileName, $"%{search}%"));
+            baseQuery = baseQuery.Where(r => 
+                   EF.Functions.Like(r.FileName, $"%{search}%")
+                || EF.Functions.Like(r.InvoiceNumber, $"%{search}%")
+                || (r.Company != null && EF.Functions.Like(r.Company.ShortName, $"%{search}%"))
+                || (r.DestinationCountry != null && EF.Functions.Like(r.DestinationCountry.NameRuOfficial, $"%{search}%"))
+                || (r.TransportationType != null && EF.Functions.Like(r.TransportationType.Name, $"%{search}%"))
+                || (r.CustomsProcedure != null && EF.Functions.Like(r.CustomsProcedure.Name, $"%{search}%"))
+            );
         }
+
         // Project to view items with orders total included for sorting
         IQueryable<RegisterViewItem> query = baseQuery
             .Select(r => new RegisterViewItem
@@ -177,7 +206,11 @@ public class RegistersController(
                 DestCountryCode = r.DestCountryCode,
                 TransportationTypeId = r.TransportationTypeId,
                 CustomsProcedureId = r.CustomsProcedureId,
-                OrdersTotal = r.Orders.Count()
+                OrdersTotal = r.Orders.Count(),
+                CompanyShortName = r.Company != null ? r.Company.ShortName : string.Empty,
+                NameRuOfficial = r.DestinationCountry != null ? r.DestinationCountry.NameRuOfficial : string.Empty,
+                TransportationTypeName = r.TransportationType != null ? r.TransportationType.Name : string.Empty,
+                CustomsProcedureName = r.CustomsProcedure != null ? r.CustomsProcedure.Name : string.Empty
             });
 
         query = (sortBy.ToLower(), sortOrder) switch
@@ -188,6 +221,18 @@ public class RegistersController(
             ("date", "desc") => query.OrderByDescending(r => r.Date),
             ("orderstotal", "asc") => query.OrderBy(r => r.OrdersTotal),
             ("orderstotal", "desc") => query.OrderByDescending(r => r.OrdersTotal),
+            ("companyid", "asc") => query.OrderBy(r => r.CompanyShortName),
+            ("companyid", "desc") => query.OrderByDescending(r => r.CompanyShortName),
+            ("destcountrycode", "asc") => query.OrderBy(r => r.NameRuOfficial),
+            ("destcountrycode", "desc") => query.OrderByDescending(r => r.NameRuOfficial),
+            ("transportationtypeid", "asc") => query.OrderBy(r => r.TransportationTypeName),
+            ("transportationtypeid", "desc") => query.OrderByDescending(r => r.TransportationTypeName),
+            ("customsprocedureid", "asc") => query.OrderBy(r => r.CustomsProcedureName),
+            ("customsprocedureid", "desc") => query.OrderByDescending(r => r.CustomsProcedureName),
+            ("invoicenumber", "asc") => query.OrderBy(r => r.InvoiceNumber),
+            ("invoicenumber", "desc") => query.OrderByDescending(r => r.InvoiceNumber),
+            ("invoicedate", "asc") => query.OrderBy(r => r.InvoiceDate),
+            ("invoicedate", "desc") => query.OrderByDescending(r => r.InvoiceDate),
             ("id", "desc") => query.OrderByDescending(r => r.Id),
             _ => query.OrderBy(r => r.Id)
         };
@@ -208,6 +253,7 @@ public class RegistersController(
             .Skip((actualPage - 1) * actualPageSize)
             .Take(actualPageSize)
             .ToListAsync();
+
         var ids = items.Select(r => r.Id).ToList();
         var stats = await FetchOrdersStatsAsync(ids);
 
@@ -392,9 +438,9 @@ public class RegistersController(
 
         if (update.InvoiceNumber != null) register.InvoiceNumber = update.InvoiceNumber;
         if (update.InvoiceDate != null) register.InvoiceDate = update.InvoiceDate;
-        if (update.DestCountryCode != null) register.DestCountryCode = update.DestCountryCode;
-        if (update.TransportationTypeId != null) register.TransportationTypeId = update.TransportationTypeId.Value;
-        if (update.CustomsProcedureId != null) register.CustomsProcedureId = update.CustomsProcedureId.Value;
+        if (update.DestCountryCode != null) register.DestCountryCode = update.DestCountryCode ?? 643;
+        if (update.TransportationTypeId != null) register.TransportationTypeId = update.TransportationTypeId ?? 1;
+        if (update.CustomsProcedureId != null) register.CustomsProcedureId = update.CustomsProcedureId ?? 1;
 
         _db.Entry(register).State = EntityState.Modified;
         await _db.SaveChangesAsync();

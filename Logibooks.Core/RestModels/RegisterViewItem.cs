@@ -23,6 +23,8 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+using System.Text.Json.Serialization;
+
 namespace Logibooks.Core.RestModels;
 
 public class RegisterViewItem
@@ -38,4 +40,14 @@ public class RegisterViewItem
     public int CustomsProcedureId { get; set; }
     public int OrdersTotal { get; set; }
     public Dictionary<int, int> OrdersByStatus { get; set; } = new();
+
+    // Added for sorting by reference fields
+    [JsonIgnore]
+    public string CompanyShortName { get; set; } = string.Empty;
+    [JsonIgnore]
+    public string NameRuOfficial { get; set; } = string.Empty;
+    [JsonIgnore]
+    public string TransportationTypeName { get; set; } = string.Empty;
+    [JsonIgnore]
+    public string CustomsProcedureName { get; set; } = string.Empty;
 }

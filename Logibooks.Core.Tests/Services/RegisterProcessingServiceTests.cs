@@ -9,6 +9,7 @@ using System.IO;
 using System.Threading.Tasks;
 using System.Reflection;
 using ExcelDataReader.Exceptions;
+using Logibooks.Core.Models;
 
 namespace Logibooks.Core.Tests.Services;
 
@@ -128,6 +129,7 @@ public class UploadOzonRegisterTests
 {
 #pragma warning disable CS8618
     private RegisterProcessingService _service;
+    private AppDbContext _dbContext;
 #pragma warning restore CS8618
 
     [SetUp]
@@ -137,9 +139,18 @@ public class UploadOzonRegisterTests
             .UseInMemoryDatabase($"ozon_{Guid.NewGuid()}")
             .Options;
 
-        var dbContext = new AppDbContext(options);
+        _dbContext = new AppDbContext(options);
         var logger = new LoggerFactory().CreateLogger<RegisterProcessingService>();
-        _service = new RegisterProcessingService(dbContext, logger);
+        _service = new RegisterProcessingService(_dbContext, logger);
+
+        // Add Uzbekistan to Countries
+        _dbContext.Countries.Add(new Country
+        {
+            IsoAlpha2 = "UZ",
+            NameRuShort = "Узбекистан",
+            IsoNumeric = 860
+        });
+        _dbContext.SaveChanges();
     }
 
     [Test]
@@ -153,10 +164,13 @@ public class UploadOzonRegisterTests
             .GetField("_db", BindingFlags.NonPublic | BindingFlags.Instance)!
             .GetValue(_service)!;
 
+        var register = ctx.Registers.FirstOrDefault(r => r.Id == reference.Id);
         Assert.That(reference.Id, Is.GreaterThan(0));
         Assert.That(ctx.Registers.Count(), Is.EqualTo(1));
         Assert.That(ctx.OzonOrders.Count(), Is.EqualTo(3));
         Assert.That(ctx.OzonOrders.OrderBy(o => o.Id).First().PostingNumber, Is.EqualTo("0180993146-0049-7"));
+        Assert.That(register, Is.Not.Null);
+        Assert.That(register!.DestCountryCode, Is.EqualTo(860));
     }
 }
 
@@ -164,6 +178,7 @@ public class UploadWbrRegisterTests
 {
 #pragma warning disable CS8618
     private RegisterProcessingService _service;
+    private AppDbContext _dbContext;
 #pragma warning restore CS8618
 
     [SetUp]
@@ -173,9 +188,18 @@ public class UploadWbrRegisterTests
             .UseInMemoryDatabase($"wbr_{Guid.NewGuid()}")
             .Options;
 
-        var dbContext = new AppDbContext(options);
+        _dbContext = new AppDbContext(options);
         var logger = new LoggerFactory().CreateLogger<RegisterProcessingService>();
-        _service = new RegisterProcessingService(dbContext, logger);
+        _service = new RegisterProcessingService(_dbContext, logger);
+
+        // Add Uzbekistan to Countries
+        _dbContext.Countries.Add(new Country
+        {
+            IsoAlpha2 = "UZ",
+            NameRuShort = "Узбекистан",
+            IsoNumeric = 860
+        });
+        _dbContext.SaveChanges();
     }
 
     [Test]
@@ -189,10 +213,13 @@ public class UploadWbrRegisterTests
             .GetField("_db", BindingFlags.NonPublic | BindingFlags.Instance)!
             .GetValue(_service)!;
 
+        var register = ctx.Registers.FirstOrDefault(r => r.Id == reference.Id);
         Assert.That(reference.Id, Is.GreaterThan(0));
         Assert.That(ctx.Registers.Count(), Is.EqualTo(1));
         Assert.That(ctx.WbrOrders.Count(), Is.EqualTo(3));
         Assert.That(ctx.WbrOrders.OrderBy(o => o.Id).First().RowNumber, Is.EqualTo(3101));
+        Assert.That(register, Is.Not.Null);
+        Assert.That(register!.DestCountryCode, Is.EqualTo(860));
     }
 }
 

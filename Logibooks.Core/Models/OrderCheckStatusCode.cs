@@ -30,5 +30,6 @@ public enum OrderCheckStatusCode
     HasIssues = 101,
     InvalidFeacnFormat = 102,
     NonexistingFeacn = 103,
-    NoIssues = 201
+    NoIssues = 201,
+    Approved = 301
 }

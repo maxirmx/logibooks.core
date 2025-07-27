@@ -129,4 +129,8 @@ public class OzonOrder : BaseOrder
 
     [Column("comment")]
     public string? Comment { get; set; }
+
+    // IndPost generation API
+    public override string GetParcelNumber() => PostingNumber ?? $"заказ_без_номера_{Id}";
+
 }

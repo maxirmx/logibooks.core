@@ -158,4 +158,9 @@ public class WbrOrder : BaseOrder
 
     [Column("other_reason")]
     public string? OtherReason { get; set; }
+
+    // IndPost generation API
+    public override string GetParcelNumber() => 
+        string.IsNullOrEmpty(Shk) ? $"заказ_без_номера_{Id}" : Shk.PadLeft(20, '0');
+
 }
