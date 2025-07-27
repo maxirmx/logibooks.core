@@ -72,7 +72,7 @@ public class RegisterValidationService(
         var allStopWords = await _db.StopWords.AsNoTracking().ToListAsync(cancellationToken);
         var morphologyContext = _morphologyService.InitializeContext(allStopWords.Where(sw => !sw.ExactMatch));
 
-        var tcs = new TaskCompletionSource();
+        var tcs = new TaskCompletionSource<bool>();
 
         _ = Task.Run(async () =>
         {
