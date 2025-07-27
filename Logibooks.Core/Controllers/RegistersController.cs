@@ -208,7 +208,7 @@ public class RegistersController(
                 CustomsProcedureId = r.CustomsProcedureId,
                 OrdersTotal = r.Orders.Count(),
                 CompanyShortName = r.Company != null ? r.Company.ShortName : string.Empty,
-                CountryAlpha2 = r.DestinationCountry != null ? r.DestinationCountry.NameRuOfficial : string.Empty,
+                NameRuOfficial = r.DestinationCountry != null ? r.DestinationCountry.NameRuOfficial : string.Empty,
                 TransportationTypeName = r.TransportationType != null ? r.TransportationType.Name : string.Empty,
                 CustomsProcedureName = r.CustomsProcedure != null ? r.CustomsProcedure.Name : string.Empty
             });
@@ -223,8 +223,8 @@ public class RegistersController(
             ("orderstotal", "desc") => query.OrderByDescending(r => r.OrdersTotal),
             ("companyid", "asc") => query.OrderBy(r => r.CompanyShortName),
             ("companyid", "desc") => query.OrderByDescending(r => r.CompanyShortName),
-            ("destcountrycode", "asc") => query.OrderBy(r => r.CountryAlpha2),
-            ("destcountrycode", "desc") => query.OrderByDescending(r => r.CountryAlpha2),
+            ("destcountrycode", "asc") => query.OrderBy(r => r.NameRuOfficial),
+            ("destcountrycode", "desc") => query.OrderByDescending(r => r.NameRuOfficial),
             ("transportationtypeid", "asc") => query.OrderBy(r => r.TransportationTypeName),
             ("transportationtypeid", "desc") => query.OrderByDescending(r => r.TransportationTypeName),
             ("customsprocedureid", "asc") => query.OrderBy(r => r.CustomsProcedureName),
