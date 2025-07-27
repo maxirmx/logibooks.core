@@ -3,6 +3,8 @@ using System.IO.Compression;
 using Logibooks.Core.Data;
 using Logibooks.Core.Models;
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
+using System.Text;
 
 namespace Logibooks.Core.Services;
 
@@ -61,7 +63,59 @@ public class OrderIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServic
             { "SERVICE", "0" }
         };
 
+
+        if (register?.CustomsProcedure?.Code == 10)
+        {
+            fields["CONSIGNOR_CHOICE"] = "2";
+            fields["SENDER"] = register?.Company?.ShortName ?? NotDefined;
+            fields["CONSIGNOR_RFORGANIZATIONFEATURES_KPP"] = register?.Company?.Kpp ?? NotDefined;
+            fields["CONSIGNOR_RFORGANIZATIONFEATURES_INN"] = register?.Company?.Inn ?? NotDefined; 
+            fields["CONSIGNOR_ADDRESS_POSTALCODE"] = register?.Company?.PostalCode ?? NotDefined;
+            fields["CONSIGNOR_ADDRESS_CITY"] = register?.Company?.City ?? NotDefined;
+            fields["CONSIGNOR_ADDRESS_STREETHOUSE"] = register?.Company?.Street ?? NotDefined;
+            fields["COUNTRYCODE"] = register?.Company?.Country.IsoAlpha2 ?? NotDefined;
+            fields["COUNTRYNAME"] = register?.Company?.Country.NameRuShort ?? NotDefined;
+        }
+
         var goodsItems = new List<IDictionary<string, string?>>();
+
+
+        IEnumerable<BaseOrder> ordersForGoods;
+        if (order is OzonOrder ozonOrder)
+        {
+            ordersForGoods = _db.OzonOrders.AsNoTracking()
+                .Where(o => o.PostingNumber == ozonOrder.PostingNumber)
+                .ToList<BaseOrder>();
+        }
+        else
+        {
+            ordersForGoods = [order];
+        }
+
+        decimal totalCost = 0m;
+        decimal totalWeight = 0m;
+
+        foreach (var o in ordersForGoods)
+        {
+            goodsItems.Add(new Dictionary<string, string?>
+            {
+                { "DESCR", o.GetDescription() },
+                { "QTY", o.GetQuantity() },
+                { "COST", o.GetCost() },
+                { "COSTRUB", o.GetCost() },
+                { "WEIGHT", o.GetWeight() },
+                { "URL", o.GetUrl() },
+                { "TNVED", o.GetTnVed() }
+            });
+
+            if (decimal.TryParse(o.GetCost(), NumberStyles.Any, CultureInfo.InvariantCulture, out var cost))
+                totalCost += cost;
+            if (decimal.TryParse(o.GetWeight(), NumberStyles.Any, CultureInfo.InvariantCulture, out var weight))
+                totalWeight += weight;
+        }
+
+        fields["ALLWEIGHT"] = totalWeight.ToString(CultureInfo.InvariantCulture);
+        fields["ALLCOST"] = totalCost.ToString(CultureInfo.InvariantCulture);
         var xml = _xmlService.CreateXml(fields, goodsItems);
         return xml;
     }
