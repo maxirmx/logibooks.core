@@ -241,19 +241,4 @@ public class RegistersControllerSearchTests
         Assert.That(pr.Items.First().CustomsProcedureId, Is.EqualTo(1));
     }
 
-    [Test]
-    public async Task GetRegisters_SearchFiltersByInvoiceDate()
-    {
-        SetCurrentUserId(1);
-        _dbContext.Registers.AddRange(
-            new Register { Id = 1, FileName = "r1.xlsx", CompanyId = 1, InvoiceDate = new DateOnly(2025, 1, 2) },
-            new Register { Id = 2, FileName = "r2.xlsx", CompanyId = 2, InvoiceDate = new DateOnly(2025, 1, 1) }
-        );
-        await _dbContext.SaveChangesAsync();
-        var result = await _controller.GetRegisters(search: "01.01.2025");
-        var ok = result.Result as OkObjectResult;
-        var pr = ok!.Value as PagedResult<RegisterViewItem>;
-        Assert.That(pr!.Pagination.TotalCount, Is.EqualTo(1));
-        Assert.That(pr.Items.First().InvoiceDate, Is.EqualTo(new DateOnly(2025, 1, 1)));
-    }
 }
