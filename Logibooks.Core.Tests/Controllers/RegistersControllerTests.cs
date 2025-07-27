@@ -1581,5 +1581,54 @@ public class RegistersControllerTests
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
     }
 
+    [Test]
+    public async Task DownloadRegister_ReturnsFile_ForLogist()
+    {
+        SetCurrentUserId(1);
+        var register = new Register { Id = 10, FileName = "reg.xlsx", CompanyId = 2 };
+        _dbContext.Registers.Add(register);
+        await _dbContext.SaveChangesAsync();
+
+        byte[] bytes = [1, 2, 3];
+        _mockProcessingService.Setup(s => s.DownloadRegisterToExcelAsync(10, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(bytes);
+
+        var result = await _controller.DownloadRegister(10);
+
+        Assert.That(result, Is.TypeOf<FileContentResult>());
+        var file = result as FileContentResult;
+        Assert.That(file!.FileDownloadName, Is.EqualTo("reg.xlsx"));
+        Assert.That(file.ContentType, Is.EqualTo("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+        Assert.That(file.FileContents, Is.EqualTo(bytes));
+    }
+
+    [Test]
+    public async Task DownloadRegister_ReturnsNotFound_WhenMissing()
+    {
+        SetCurrentUserId(1);
+        var result = await _controller.DownloadRegister(99);
+
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+        _mockProcessingService.Verify(s => s.DownloadRegisterToExcelAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Test]
+    public async Task DownloadRegister_ReturnsForbidden_ForNonLogist()
+    {
+        SetCurrentUserId(2);
+        var register = new Register { Id = 11, FileName = "r.xlsx", CompanyId = 2 };
+        _dbContext.Registers.Add(register);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.DownloadRegister(11);
+
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
+        _mockProcessingService.Verify(s => s.DownloadRegisterToExcelAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
 }
 
