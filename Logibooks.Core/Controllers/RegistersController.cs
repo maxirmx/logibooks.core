@@ -550,7 +550,8 @@ public class RegistersController(
 
         IQueryable<BaseOrder> query = _db.Orders.AsNoTracking()
             .Where(o => o.RegisterId == registerId &&
-                        o.CheckStatusId >= 101 && o.CheckStatusId < 200)
+                        o.CheckStatusId >= (int)OrderCheckStatusCode.HasIssues && 
+                        o.CheckStatusId < (int)OrderCheckStatusCode.NoIssues)
             .OrderBy(o => o.Id);
 
         var next = await query
@@ -568,22 +569,12 @@ public class RegistersController(
 
         if (companyId == IRegisterProcessingService.GetWBRId())
         {
-            order = await _db.WbrOrders.AsNoTracking()
-                .Include(o => o.Register)
-                .Include(o => o.BaseOrderStopWords)
-                .Include(o => o.BaseOrderFeacnPrefixes)
-                    .ThenInclude(bofp => bofp.FeacnPrefix)
-                        .ThenInclude(fp => fp.FeacnOrder)
+            order = await ApplyOrderIncludes(_db.WbrOrders.AsNoTracking())
                 .FirstOrDefaultAsync(o => o.Id == next.Id);
         }
         else if (companyId == IRegisterProcessingService.GetOzonId())
         {
-            order = await _db.OzonOrders.AsNoTracking()
-                .Include(o => o.Register)
-                .Include(o => o.BaseOrderStopWords)
-                .Include(o => o.BaseOrderFeacnPrefixes)
-                    .ThenInclude(bofp => bofp.FeacnPrefix)
-                        .ThenInclude(fp => fp.FeacnOrder)
+            order = await ApplyOrderIncludes(_db.OzonOrders.AsNoTracking())
                 .FirstOrDefaultAsync(o => o.Id == next.Id);
         }
 
@@ -683,6 +674,17 @@ public class RegistersController(
             .ToDictionary(
                 g => g.Key,
                 g => g.ToDictionary(x => x.StatusId, x => x.Count));
+    }
+
+    // Helper method to apply common Include chains for order queries
+    private static IQueryable<TOrder> ApplyOrderIncludes<TOrder>(IQueryable<TOrder> query) where TOrder : BaseOrder
+    {
+        return query
+            .Include(o => o.Register)
+            .Include(o => o.BaseOrderStopWords)
+            .Include(o => o.BaseOrderFeacnPrefixes)
+                .ThenInclude(bofp => bofp.FeacnPrefix)
+                    .ThenInclude(fp => fp.FeacnOrder);
     }
 
 }
