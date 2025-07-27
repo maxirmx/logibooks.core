@@ -56,14 +56,19 @@ namespace Logibooks.Core.Services
                 root.Add(goods);
             }
 
-            var doc = new XDocument(new XDeclaration("1.0", "windows-1251", null), root);
-            using var ms = new MemoryStream();
-            using var writer = new StreamWriter(ms, Encoding.GetEncoding("windows-1251"));
-            doc.Save(writer);
-            writer.Flush();
-            ms.Position = 0;
-            using var reader = new StreamReader(ms, Encoding.GetEncoding("windows-1251"));
-            return reader.ReadToEnd();
+            var doc = new XDocument(new XDeclaration("1.0", "utf-8", null), root);
+            var settings = new System.Xml.XmlWriterSettings
+            {
+                Encoding = Encoding.UTF8,
+                Indent = true,
+                OmitXmlDeclaration = false
+            };
+            using var sw = new StringWriter();
+            using (var xw = System.Xml.XmlWriter.Create(sw, settings))
+            {
+                doc.Save(xw);
+            }
+            return sw.ToString();
         }
     }
 }

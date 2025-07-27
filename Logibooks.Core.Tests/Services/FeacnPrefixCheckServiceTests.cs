@@ -44,17 +44,37 @@ public class FeacnPrefixCheckServiceTests
         return new AppDbContext(options);
     }
 
+
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
+    private FeacnOrder _enabledOrder;
+    private AppDbContext _context;
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
+
+    [SetUp]
+    public void Setup()
+    {
+        _context = CreateContext();
+        _enabledOrder = new FeacnOrder { Id = 1, Title = "Enabled", Enabled = true };
+        _context.FeacnOrders.Add(_enabledOrder);
+        _context.SaveChanges();
+    }
+
+    [TearDown]
+    public void TearDown()
+    {
+        _context.Dispose();
+    }
+
     [Test]
     public async Task CheckOrderAsync_MatchesPrefix_AddsLink()
     {
-        using var ctx = CreateContext();
         var prefix = new FeacnPrefix { Id = 10, Code = "1234", FeacnOrderId = 1 };
-        ctx.FeacnPrefixes.Add(prefix);
+        _context.FeacnPrefixes.Add(prefix);
         var order = new WbrOrder { Id = 1, RegisterId = 1, CheckStatusId = 1, TnVed = "1234567890" };
-        ctx.Orders.Add(order);
-        await ctx.SaveChangesAsync();
+        _context.Orders.Add(order);
+        await _context.SaveChangesAsync();
 
-        var svc = new FeacnPrefixCheckService(ctx);
+        var svc = new FeacnPrefixCheckService(_context);
         var links = await svc.CheckOrderAsync(order);
 
         Assert.That(order.CheckStatusId, Is.EqualTo(1));
@@ -68,51 +88,48 @@ public class FeacnPrefixCheckServiceTests
     [Test]
     public async Task CheckOrderAsync_NoMatch_SetsStatusNoIssuesAndReturnsEmptyList()
     {
-        using var ctx = CreateContext();
-        ctx.FeacnPrefixes.Add(new FeacnPrefix { Id = 10, Code = "9999", FeacnOrderId = 1 });
+        _context.FeacnPrefixes.Add(new FeacnPrefix { Id = 10, Code = "9999", FeacnOrderId = 1 });
         var order = new WbrOrder { Id = 1, RegisterId = 1, CheckStatusId = 1, TnVed = "1234567890" };
-        ctx.Orders.Add(order);
-        await ctx.SaveChangesAsync();
+        _context.Orders.Add(order);
+        await _context.SaveChangesAsync();
 
-        var svc = new FeacnPrefixCheckService(ctx);
+        var svc = new FeacnPrefixCheckService(_context);
         var links = await svc.CheckOrderAsync(order);
 
         Assert.That(order.CheckStatusId, Is.EqualTo(1));
         Assert.That(links.Count(), Is.EqualTo(0));
-        Assert.That(ctx.Set<BaseOrderFeacnPrefix>().Any(), Is.False);
+        Assert.That(_context.Set<BaseOrderFeacnPrefix>().Any(), Is.False);
     }
 
     [Test]
     public async Task CheckOrderAsync_ExceptionPreventsMatch_ReturnsEmptyList()
     {
-        using var ctx = CreateContext();
         var prefix = new FeacnPrefix { Id = 10, Code = "1234", IntervalCode = "56", FeacnOrderId = 1 };
         prefix.FeacnPrefixExceptions.Add(new FeacnPrefixException { Id = 20, Code = "123455" });
-        ctx.FeacnPrefixes.Add(prefix);
+        _context.FeacnPrefixes.Add(prefix);
         var order = new WbrOrder { Id = 1, RegisterId = 1, CheckStatusId = 1, TnVed = "1234550000" };
-        ctx.Orders.Add(order);
-        await ctx.SaveChangesAsync();
+        _context.Orders.Add(order);
+        await _context.SaveChangesAsync();
 
-        var svc = new FeacnPrefixCheckService(ctx);
+        var svc = new FeacnPrefixCheckService(_context);
         var links = await svc.CheckOrderAsync(order);
 
         Assert.That(order.CheckStatusId, Is.EqualTo(1));
         Assert.That(links.Count(), Is.EqualTo(0));
-        Assert.That(ctx.Set<BaseOrderFeacnPrefix>().Any(), Is.False);
+        Assert.That(_context.Set<BaseOrderFeacnPrefix>().Any(), Is.False);
     }
 
     [Test]
     public async Task CheckOrderAsync_MultipleMatches_ReturnsAllLinks()
     {
-        using var ctx = CreateContext();
         var prefix1 = new FeacnPrefix { Id = 10, Code = "12", FeacnOrderId = 1 };
         var prefix2 = new FeacnPrefix { Id = 11, Code = "1234", FeacnOrderId = 1 };
-        ctx.FeacnPrefixes.AddRange(prefix1, prefix2);
+        _context.FeacnPrefixes.AddRange(prefix1, prefix2);
         var order = new WbrOrder { Id = 1, RegisterId = 1, CheckStatusId = 1, TnVed = "1234567890" };
-        ctx.Orders.Add(order);
-        await ctx.SaveChangesAsync();
+        _context.Orders.Add(order);
+        await _context.SaveChangesAsync();
 
-        var svc = new FeacnPrefixCheckService(ctx);
+        var svc = new FeacnPrefixCheckService(_context);
         var links = await svc.CheckOrderAsync(order);
 
         Assert.That(order.CheckStatusId, Is.EqualTo(1));
@@ -123,14 +140,13 @@ public class FeacnPrefixCheckServiceTests
     [Test]
     public async Task CheckOrderAsync_IntervalMatch_ReturnsLink()
     {
-        using var ctx = CreateContext();
         var prefix = new FeacnPrefix { Id = 10, Code = "1200000000", IntervalCode = "1299999999", FeacnOrderId = 1 };
-        ctx.FeacnPrefixes.Add(prefix);
+        _context.FeacnPrefixes.Add(prefix);
         var order = new WbrOrder { Id = 1, RegisterId = 1, CheckStatusId = 1, TnVed = "1234567890" };
-        ctx.Orders.Add(order);
-        await ctx.SaveChangesAsync();
+        _context.Orders.Add(order);
+        await _context.SaveChangesAsync();
 
-        var svc = new FeacnPrefixCheckService(ctx);
+        var svc = new FeacnPrefixCheckService(_context);
         var links = await svc.CheckOrderAsync(order);
 
         Assert.That(order.CheckStatusId, Is.EqualTo(1));
@@ -142,14 +158,13 @@ public class FeacnPrefixCheckServiceTests
     [Test]
     public async Task CheckOrderAsync_IntervalNoMatch_ReturnsEmptyList()
     {
-        using var ctx = CreateContext();
         var prefix = new FeacnPrefix { Id = 10, Code = "1300000000", IntervalCode = "1399999999", FeacnOrderId = 1 };
-        ctx.FeacnPrefixes.Add(prefix);
+        _context.FeacnPrefixes.Add(prefix);
         var order = new WbrOrder { Id = 1, RegisterId = 1, CheckStatusId = 1, TnVed = "1234567890" };
-        ctx.Orders.Add(order);
-        await ctx.SaveChangesAsync();
+        _context.Orders.Add(order);
+        await _context.SaveChangesAsync();
 
-        var svc = new FeacnPrefixCheckService(ctx);
+        var svc = new FeacnPrefixCheckService(_context);
         var links = await svc.CheckOrderAsync(order);
 
         Assert.That(order.CheckStatusId, Is.EqualTo(1));
@@ -159,14 +174,13 @@ public class FeacnPrefixCheckServiceTests
     [Test]
     public async Task CheckOrderAsync_TnVedTooShort_ReturnsEmptyList()
     {
-        using var ctx = CreateContext();
         var prefix = new FeacnPrefix { Id = 10, Code = "1234", FeacnOrderId = 1 };
-        ctx.FeacnPrefixes.Add(prefix);
+        _context.FeacnPrefixes.Add(prefix);
         var order = new WbrOrder { Id = 1, RegisterId = 1, CheckStatusId = 1, TnVed = "1" };
-        ctx.Orders.Add(order);
-        await ctx.SaveChangesAsync();
+        _context.Orders.Add(order);
+        await _context.SaveChangesAsync();
 
-        var svc = new FeacnPrefixCheckService(ctx);
+        var svc = new FeacnPrefixCheckService(_context);
         var links = await svc.CheckOrderAsync(order);
 
         Assert.That(order.CheckStatusId, Is.EqualTo(1));
@@ -176,14 +190,13 @@ public class FeacnPrefixCheckServiceTests
     [Test]
     public async Task CheckOrderAsync_PrefixTooShort_ReturnsEmptyList()
     {
-        using var ctx = CreateContext();
         var prefix = new FeacnPrefix { Id = 10, Code = "1", FeacnOrderId = 1 };
-        ctx.FeacnPrefixes.Add(prefix);
+        _context.FeacnPrefixes.Add(prefix);
         var order = new WbrOrder { Id = 1, RegisterId = 1, CheckStatusId = 1, TnVed = "1234567890" };
-        ctx.Orders.Add(order);
-        await ctx.SaveChangesAsync();
+        _context.Orders.Add(order);
+        await _context.SaveChangesAsync();
 
-        var svc = new FeacnPrefixCheckService(ctx);
+        var svc = new FeacnPrefixCheckService(_context);
         var links = await svc.CheckOrderAsync(order);
 
         Assert.That(order.CheckStatusId, Is.EqualTo(1));
@@ -193,14 +206,13 @@ public class FeacnPrefixCheckServiceTests
     [Test]
     public async Task CheckOrderAsync_TnVedNotStartingWithPrefix_ReturnsEmptyList()
     {
-        using var ctx = CreateContext();
         var prefix = new FeacnPrefix { Id = 10, Code = "99", FeacnOrderId = 1 };
-        ctx.FeacnPrefixes.Add(prefix);
+        _context.FeacnPrefixes.Add(prefix);
         var order = new WbrOrder { Id = 1, RegisterId = 1, CheckStatusId = 1, TnVed = "1234567890" };
-        ctx.Orders.Add(order);
-        await ctx.SaveChangesAsync();
+        _context.Orders.Add(order);
+        await _context.SaveChangesAsync();
 
-        var svc = new FeacnPrefixCheckService(ctx);
+        var svc = new FeacnPrefixCheckService(_context);
         var links = await svc.CheckOrderAsync(order);
 
         Assert.That(order.CheckStatusId, Is.EqualTo(1));
@@ -210,14 +222,13 @@ public class FeacnPrefixCheckServiceTests
     [Test]
     public async Task CheckOrderAsync_InvalidTnVedForInterval_ReturnsEmptyList()
     {
-        using var ctx = CreateContext();
         var prefix = new FeacnPrefix { Id = 10, Code = "1200000000", IntervalCode = "1299999999", FeacnOrderId = 1 };
-        ctx.FeacnPrefixes.Add(prefix);
+        _context.FeacnPrefixes.Add(prefix);
         var order = new WbrOrder { Id = 1, RegisterId = 1, CheckStatusId = 1, TnVed = "abcd567890" };
-        ctx.Orders.Add(order);
-        await ctx.SaveChangesAsync();
+        _context.Orders.Add(order);
+        await _context.SaveChangesAsync();
 
-        var svc = new FeacnPrefixCheckService(ctx);
+        var svc = new FeacnPrefixCheckService(_context);
         var links = await svc.CheckOrderAsync(order);
 
         Assert.That(order.CheckStatusId, Is.EqualTo(1));
@@ -227,17 +238,16 @@ public class FeacnPrefixCheckServiceTests
     [Test]
     public async Task CheckOrderAsync_EmptyExceptionCode_DoesNotPreventMatch()
     {
-        using var ctx = CreateContext();
         var prefix = new FeacnPrefix { Id = 10, Code = "1234", FeacnOrderId = 1 };
         // Use valid non-empty codes for the exceptions since Code is required
         prefix.FeacnPrefixExceptions.Add(new FeacnPrefixException { Id = 20, Code = "9999" }); // Different code that won't match
         prefix.FeacnPrefixExceptions.Add(new FeacnPrefixException { Id = 21, Code = "8888" }); // Different code that won't match
-        ctx.FeacnPrefixes.Add(prefix);
+        _context.FeacnPrefixes.Add(prefix);
         var order = new WbrOrder { Id = 1, RegisterId = 1, CheckStatusId = 1, TnVed = "1234567890" };
-        ctx.Orders.Add(order);
-        await ctx.SaveChangesAsync();
+        _context.Orders.Add(order);
+        await _context.SaveChangesAsync();
 
-        var svc = new FeacnPrefixCheckService(ctx);
+        var svc = new FeacnPrefixCheckService(_context);
         var links = await svc.CheckOrderAsync(order);
 
         Assert.That(order.CheckStatusId, Is.EqualTo(1));
@@ -247,14 +257,13 @@ public class FeacnPrefixCheckServiceTests
     [Test]
     public async Task CheckOrderAsync_NoPrefixesForTwoDigitPrefix_ReturnsEmptyList()
     {
-        using var ctx = CreateContext();
         var prefix = new FeacnPrefix { Id = 10, Code = "9999", FeacnOrderId = 1 };
-        ctx.FeacnPrefixes.Add(prefix);
+        _context.FeacnPrefixes.Add(prefix);
         var order = new WbrOrder { Id = 1, RegisterId = 1, CheckStatusId = 1, TnVed = "1234567890" };
-        ctx.Orders.Add(order);
-        await ctx.SaveChangesAsync();
+        _context.Orders.Add(order);
+        await _context.SaveChangesAsync();
 
-        var svc = new FeacnPrefixCheckService(ctx);
+        var svc = new FeacnPrefixCheckService(_context);
         var links = await svc.CheckOrderAsync(order);
 
         Assert.That(order.CheckStatusId, Is.EqualTo(1));
@@ -264,16 +273,15 @@ public class FeacnPrefixCheckServiceTests
     [Test]
     public async Task CreateContext_GroupsPrefixesByTwoDigits()
     {
-        using var ctx = CreateContext();
-        var enabledOrder = new FeacnOrder { Id = 1, Title = "Enabled", Enabled = true };
-        ctx.FeacnOrders.Add(enabledOrder);
+        var enabledOrder = new FeacnOrder { Id = 2, Title = "Enabled", Enabled = true };
+        _context.FeacnOrders.Add(enabledOrder);
         var p1 = new FeacnPrefix { Id = 1, Code = "1200", FeacnOrderId = 1, FeacnOrder = enabledOrder };
         var p2 = new FeacnPrefix { Id = 2, Code = "1299", FeacnOrderId = 1, FeacnOrder = enabledOrder };
         var p3 = new FeacnPrefix { Id = 3, Code = "9900", FeacnOrderId = 1, FeacnOrder = enabledOrder };
-        ctx.FeacnPrefixes.AddRange(p1, p2, p3);
-        await ctx.SaveChangesAsync();
+        _context.FeacnPrefixes.AddRange(p1, p2, p3);
+        await _context.SaveChangesAsync();
 
-        var svc = new FeacnPrefixCheckService(ctx);
+        var svc = new FeacnPrefixCheckService(_context);
         var context = await svc.CreateContext();
 
         Assert.That(context.Prefixes.ContainsKey("12"));
@@ -285,12 +293,11 @@ public class FeacnPrefixCheckServiceTests
     [Test]
     public async Task CreateContext_IgnoresShortCodes()
     {
-        using var ctx = CreateContext();
         var shortPrefix = new FeacnPrefix { Id = 5, Code = "1", FeacnOrderId = 1 };
-        ctx.FeacnPrefixes.Add(shortPrefix);
-        await ctx.SaveChangesAsync();
+        _context.FeacnPrefixes.Add(shortPrefix);
+        await _context.SaveChangesAsync();
 
-        var svc = new FeacnPrefixCheckService(ctx);
+        var svc = new FeacnPrefixCheckService(_context);
         var context = await svc.CreateContext();
 
         var allIds = context.Prefixes.SelectMany(kvp => kvp.Value).Select(p => p.Id);
@@ -300,15 +307,14 @@ public class FeacnPrefixCheckServiceTests
     [Test]
     public async Task CreateContext_LoadsExceptions()
     {
-        using var ctx = CreateContext();
-        var enabledOrder = new FeacnOrder { Id = 1, Title = "Enabled", Enabled = true };
-        ctx.FeacnOrders.Add(enabledOrder);
+        var enabledOrder = new FeacnOrder { Id = 2, Title = "Enabled", Enabled = true };
+        _context.FeacnOrders.Add(enabledOrder);
         var prefix = new FeacnPrefix { Id = 10, Code = "1234", FeacnOrderId = 1, FeacnOrder = enabledOrder };
         prefix.FeacnPrefixExceptions.Add(new FeacnPrefixException { Id = 20, Code = "123455" });
-        ctx.FeacnPrefixes.Add(prefix);
-        await ctx.SaveChangesAsync();
+        _context.FeacnPrefixes.Add(prefix);
+        await _context.SaveChangesAsync();
 
-        var svc = new FeacnPrefixCheckService(ctx);
+        var svc = new FeacnPrefixCheckService(_context);
         var context = await svc.CreateContext();
 
         var loaded = context.Prefixes["12"].First(p => p.Id == 10);
@@ -319,16 +325,15 @@ public class FeacnPrefixCheckServiceTests
     [Test]
     public async Task CreateContext_SkipsPrefixesWithDisabledFeacnOrder()
     {
-        using var ctx = CreateContext();
-        var enabledOrder = new FeacnOrder { Id = 1, Title = "Enabled", Enabled = true };
-        var disabledOrder = new FeacnOrder { Id = 2, Title = "Disabled", Enabled = false };
-        ctx.FeacnOrders.AddRange(enabledOrder, disabledOrder);
+        var enabledOrder = new FeacnOrder { Id = 2, Title = "Enabled", Enabled = true };
+        var disabledOrder = new FeacnOrder { Id = 3, Title = "Disabled", Enabled = false };
+        _context.FeacnOrders.AddRange(enabledOrder, disabledOrder);
         var p1 = new FeacnPrefix { Id = 1, Code = "1200", FeacnOrderId = 1, FeacnOrder = enabledOrder };
         var p2 = new FeacnPrefix { Id = 2, Code = "1299", FeacnOrderId = 2, FeacnOrder = disabledOrder };
-        ctx.FeacnPrefixes.AddRange(p1, p2);
-        await ctx.SaveChangesAsync();
+        _context.FeacnPrefixes.AddRange(p1, p2);
+        await _context.SaveChangesAsync();
 
-        var svc = new FeacnPrefixCheckService(ctx);
+        var svc = new FeacnPrefixCheckService(_context);
         var context = await svc.CreateContext();
 
         var allIds = context.Prefixes.SelectMany(kvp => kvp.Value).Select(p => p.Id).ToList();
@@ -339,14 +344,13 @@ public class FeacnPrefixCheckServiceTests
     [Test]
     public async Task CreateContext_IncludesPrefixesWithEnabledFeacnOrder()
     {
-        using var ctx = CreateContext();
-        var enabledOrder = new FeacnOrder { Id = 1, Title = "Enabled", Enabled = true };
-        ctx.FeacnOrders.Add(enabledOrder);
+        var enabledOrder = new FeacnOrder { Id = 2, Title = "Enabled", Enabled = true };
+        _context.FeacnOrders.Add(enabledOrder);
         var p1 = new FeacnPrefix { Id = 1, Code = "1200", FeacnOrderId = 1, FeacnOrder = enabledOrder };
-        ctx.FeacnPrefixes.Add(p1);
-        await ctx.SaveChangesAsync();
+        _context.FeacnPrefixes.Add(p1);
+        await _context.SaveChangesAsync();
 
-        var svc = new FeacnPrefixCheckService(ctx);
+        var svc = new FeacnPrefixCheckService(_context);
         var context = await svc.CreateContext();
 
         var allIds = context.Prefixes.SelectMany(kvp => kvp.Value).Select(p => p.Id).ToList();
