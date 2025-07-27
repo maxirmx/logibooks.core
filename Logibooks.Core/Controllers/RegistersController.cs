@@ -520,6 +520,33 @@ public class RegistersController(
         return NoContent();
     }
 
+    [HttpGet("{id}/download")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(FileContentResult))]
+    [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
+    [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
+    public async Task<IActionResult> DownloadRegister(int id)
+    {
+        _logger.LogDebug("DownloadRegister for id={id}", id);
+
+        if (!await _userService.CheckLogist(_curUserId))
+        {
+            _logger.LogDebug("DownloadRegister returning '403 Forbidden'");
+            return _403();
+        }
+
+        var register = await _db.Registers.AsNoTracking().FirstOrDefaultAsync(r => r.Id == id);
+        if (register == null)
+        {
+            _logger.LogDebug("DownloadRegister returning '404 Not Found'");
+            return _404Register(id);
+        }
+
+        var bytes = await _processingService.DownloadRegisterToExcelAsync(id);
+        var fileName = register.FileName;
+
+        return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
+    }
+
     [HttpGet("nextorder/{orderId}")]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(OrderViewItem))]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
