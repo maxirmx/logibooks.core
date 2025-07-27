@@ -580,8 +580,8 @@ public class RegistersController(
 
         if (order == null)
         {
-            _logger.LogDebug("NextOrder returning '404 Not Found' - derived order not found");
-            return _404Order(next.Id);
+            _logger.LogDebug("NextOrder returning '204 No Content' - derived order not found");
+            return NoContent();
         }
 
         _logger.LogDebug("NextOrder returning order {id}", order.Id);

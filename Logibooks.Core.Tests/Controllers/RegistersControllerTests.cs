@@ -1529,13 +1529,13 @@ public class RegistersControllerTests
     {
         SetCurrentUserId(1);
         _dbContext.CheckStatuses.Add(new OrderCheckStatus { Id = 101, Title = "Has" });
-        var reg = new Register { Id = 1, FileName = "r.xlsx", CompanyId = 2 };
+        var reg = new Register { Id = 1, FileName = "r.xlsx", CompanyId = 1 }; // Ozon company
         _dbContext.Registers.Add(reg);
-        _dbContext.Orders.AddRange(
-            new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1, CheckStatusId = 101 },
-            new WbrOrder { Id = 2, RegisterId = 1, StatusId = 1, CheckStatusId = 201 },
-            new WbrOrder { Id = 3, RegisterId = 1, StatusId = 1, CheckStatusId = 101 }
-        );
+        var ozonOrder1 = new OzonOrder { Id = 1, RegisterId = 1, StatusId = 1, CheckStatusId = 101 };
+        var ozonOrder2 = new OzonOrder { Id = 2, RegisterId = 1, StatusId = 1, CheckStatusId = 201 };
+        var ozonOrder3 = new OzonOrder { Id = 3, RegisterId = 1, StatusId = 1, CheckStatusId = 101 };
+        _dbContext.Orders.AddRange(ozonOrder1, ozonOrder2, ozonOrder3);
+        _dbContext.OzonOrders.AddRange(ozonOrder1, ozonOrder2, ozonOrder3);
         await _dbContext.SaveChangesAsync();
 
         var result = await _controller.NextOrder(3);
@@ -1580,5 +1580,6 @@ public class RegistersControllerTests
         var obj = result.Result as ObjectResult;
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
     }
+
 }
 
