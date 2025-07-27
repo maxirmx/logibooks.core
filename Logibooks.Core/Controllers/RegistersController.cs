@@ -187,10 +187,9 @@ public class RegistersController(
                    EF.Functions.Like(r.FileName, $"%{search}%")
                 || EF.Functions.Like(r.InvoiceNumber, $"%{search}%")
                 || (r.Company != null && EF.Functions.Like(r.Company.ShortName, $"%{search}%"))
-                || (r.DestinationCountry != null && EF.Functions.Like(r.DestinationCountry.IsoAlpha2, $"%{search}%"))
+                || (r.DestinationCountry != null && EF.Functions.Like(r.DestinationCountry.NameRuOfficial, $"%{search}%"))
                 || (r.TransportationType != null && EF.Functions.Like(r.TransportationType.Name, $"%{search}%"))
                 || (r.CustomsProcedure != null && EF.Functions.Like(r.CustomsProcedure.Name, $"%{search}%"))
-                || (r.InvoiceDate != null && EF.Functions.Like(r.InvoiceDate.Value.ToString("dd.MM.yyyy"), $"%{search}%"))
             );
         }
 

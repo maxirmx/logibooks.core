@@ -1032,6 +1032,8 @@ public class OrdersControllerTests
         var obj = result as ObjectResult;
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
     }
+
+    [Test]
     public async Task ApproveOrder_SetsCheckStatusToApproved_ForLogist()
     {
         SetCurrentUserId(1);
@@ -1043,7 +1045,7 @@ public class OrdersControllerTests
         var result = await _controller.ApproveOrder(100);
         Assert.That(result, Is.TypeOf<NoContentResult>());
         var saved = await _dbContext.Orders.FindAsync(100);
-        Assert.That(saved!.CheckStatusId, Is.EqualTo(301));
+        Assert.That(saved!.CheckStatusId, Is.EqualTo((int)OrderCheckStatusCode.Approved));
     }
 
     [Test]
