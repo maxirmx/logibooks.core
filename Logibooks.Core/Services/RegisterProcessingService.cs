@@ -30,6 +30,8 @@ using Logibooks.Core.Models;
 using Logibooks.Core.RestModels;
 using Logibooks.Core.Settings;
 using Microsoft.EntityFrameworkCore;
+using ClosedXML.Excel;
+using System.Reflection;
 
 namespace Logibooks.Core.Services;
 
@@ -125,6 +127,98 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
         await _db.SaveChangesAsync(cancellationToken);
         _logger.LogDebug("{MethodName} imported {count} orders", methodName, count);
         return new Reference { Id = register.Id };
+    }
+
+    public async Task<byte[]> DownloadRegisterToExcelAsync(
+        int registerId,
+        CancellationToken cancellationToken = default)
+    {
+        var register = await _db.Registers.AsNoTracking()
+            .FirstOrDefaultAsync(r => r.Id == registerId, cancellationToken);
+        if (register == null)
+            throw new InvalidOperationException($"Register {registerId} not found");
+
+        bool isWbr = register.CompanyId == GetWBRId();
+        string mappingFile = isWbr ? "wbr_register_mapping.yaml" : "ozon_register_mapping.yaml";
+        var mappingPath = Path.Combine(AppContext.BaseDirectory, "mapping", mappingFile);
+        if (!System.IO.File.Exists(mappingPath))
+        {
+            throw new FileNotFoundException("Mapping file not found", mappingPath);
+        }
+        var mapping = RegisterMapping.Load(mappingPath);
+        var headers = mapping.HeaderMappings.Keys.ToList();
+        var propMap = mapping.HeaderMappings.ToDictionary(k => k.Key, v => v.Value);
+
+        List<BaseOrder> orders;
+        if (isWbr)
+        {
+            orders = await _db.WbrOrders.AsNoTracking()
+                .Where(o => o.RegisterId == registerId)
+                .Cast<BaseOrder>()
+                .ToListAsync(cancellationToken);
+        }
+        else
+        {
+            orders = await _db.OzonOrders.AsNoTracking()
+                .Where(o => o.RegisterId == registerId)
+                .Cast<BaseOrder>()
+                .ToListAsync(cancellationToken);
+        }
+
+        using var wb = new XLWorkbook();
+        var ws = wb.Worksheets.Add("register");
+
+        for (int i = 0; i < headers.Count; i++)
+        {
+            ws.Cell(1, i + 1).Value = headers[i];
+        }
+
+        int row = 2;
+        foreach (var baseOrder in orders)
+        {
+            var orderType = baseOrder.GetType();
+            var propertyCache = new Dictionary<string, PropertyInfo>();
+
+            for (int c = 0; c < headers.Count; c++)
+            {
+                var propName = propMap[headers[c]];
+                if (!propertyCache.TryGetValue(propName, out var prop))
+                {
+                    prop = orderType.GetProperty(propName, BindingFlags.Public | BindingFlags.Instance);
+                    if (prop != null)
+                    {
+                        propertyCache[propName] = prop;
+                    }
+                }
+                object? val = prop?.GetValue(baseOrder);
+                string cellValue = string.Empty;
+                if (val is DateOnly dOnly)
+                {
+                    cellValue = dOnly.ToString("yyyy-MM-dd", RussianCulture);
+                }
+                else if (val is DateTime dt)
+                {
+                    cellValue = dt.ToString(RussianCulture);
+                }
+                else if (val != null)
+                {
+                    cellValue = Convert.ToString(val, RussianCulture) ?? string.Empty;
+                }
+                ws.Cell(row, c + 1).Value = cellValue;
+            }
+
+            if (baseOrder.CheckStatusId >= (int)OrderCheckStatusCode.HasIssues &&
+                baseOrder.CheckStatusId < (int)OrderCheckStatusCode.NoIssues)
+            {
+                ws.Row(row).Style.Fill.BackgroundColor = XLColor.LightPink;
+            }
+
+            row++;
+        }
+
+        using var ms = new MemoryStream();
+        wb.SaveAs(ms);
+        return ms.ToArray();
     }
 
     private async Task InitializeCountryLookupsAsync(bool isWbr, CancellationToken cancellationToken = default)

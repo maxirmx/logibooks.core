@@ -9,6 +9,7 @@ using System.IO;
 using System.Threading.Tasks;
 using System.Reflection;
 using ExcelDataReader.Exceptions;
+using ExcelDataReader;
 using Logibooks.Core.Models;
 
 namespace Logibooks.Core.Tests.Services;
@@ -273,5 +274,83 @@ public class UploadRegisterErrorTests
         {
             File.Move(backup, mappingPath);
         }
+    }
+}
+
+public class DownloadRegisterTests
+{
+#pragma warning disable CS8618
+    private RegisterProcessingService _service;
+    private AppDbContext _dbContext;
+#pragma warning restore CS8618
+
+    [SetUp]
+    public void Setup()
+    {
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase($"download_{Guid.NewGuid()}")
+            .Options;
+
+        _dbContext = new AppDbContext(options);
+        var logger = new LoggerFactory().CreateLogger<RegisterProcessingService>();
+        _service = new RegisterProcessingService(_dbContext, logger);
+
+        _dbContext.Countries.Add(new Country
+        {
+            IsoAlpha2 = "UZ",
+            NameRuShort = "Узбекистан",
+            IsoNumeric = 860
+        });
+        _dbContext.SaveChanges();
+    }
+
+    [Test]
+    public async Task DownloadWbrRegister_ReturnsExcel()
+    {
+        var content = await File.ReadAllBytesAsync(Path.Combine("test.data", "Реестр_207730349.xlsx"));
+        var reference = await _service.UploadRegisterFromExcelAsync(_service.GetWBRId(), content, "Реестр_207730349.xlsx");
+
+        var first = _dbContext.WbrOrders.OrderBy(o => o.Id).First();
+        first.CheckStatusId = (int)OrderCheckStatusCode.HasIssues;
+        await _dbContext.SaveChangesAsync();
+
+        var bytes = await _service.DownloadRegisterToExcelAsync(reference.Id);
+
+        System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+        using var ms = new MemoryStream(bytes);
+        using var reader = ExcelReaderFactory.CreateReader(ms);
+        var ds = reader.AsDataSet();
+        var table = ds.Tables[0];
+
+        Assert.That(table.Rows.Count, Is.EqualTo(4));
+        Assert.That(table.Rows[1][0].ToString(), Is.EqualTo(first.RowNumber.ToString()));
+    }
+
+    [Test]
+    public async Task DownloadOzonRegister_ReturnsExcel()
+    {
+        var content = await File.ReadAllBytesAsync(Path.Combine("test.data", "Озон_Short.xlsx"));
+        var reference = await _service.UploadRegisterFromExcelAsync(_service.GetOzonId(), content, "Озон_Short.xlsx");
+
+        var first = _dbContext.OzonOrders.OrderBy(o => o.Id).First();
+        first.CheckStatusId = (int)OrderCheckStatusCode.HasIssues;
+        await _dbContext.SaveChangesAsync();
+
+        var bytes = await _service.DownloadRegisterToExcelAsync(reference.Id);
+
+        System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+        using var ms = new MemoryStream(bytes);
+        using var reader = ExcelReaderFactory.CreateReader(ms);
+        var ds = reader.AsDataSet();
+        var table = ds.Tables[0];
+
+        Assert.That(table.Rows.Count, Is.EqualTo(4));
+        Assert.That(table.Rows[1][2].ToString(), Is.EqualTo(first.PostingNumber));
+
+        using var archive = new System.IO.Compression.ZipArchive(new MemoryStream(bytes));
+        var entry = archive.GetEntry("xl/styles.xml");
+        using var sr = new StreamReader(entry!.Open());
+        var styles = sr.ReadToEnd();
+        Assert.That(styles.Contains("FFB6C1"), Is.True);
     }
 }
