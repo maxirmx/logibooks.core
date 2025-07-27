@@ -520,6 +520,81 @@ public class RegistersController(
         return NoContent();
     }
 
+    [HttpGet("nextorder/{orderId}")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(OrderViewItem))]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
+    [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
+    public async Task<ActionResult<OrderViewItem>> NextOrder(int orderId)
+    {
+        _logger.LogDebug("NextOrder for orderId={orderId}", orderId);
+
+        if (!await _userService.CheckLogist(_curUserId))
+        {
+            _logger.LogDebug("NextOrder returning '403 Forbidden'");
+            return _403();
+        }
+
+        var current = await _db.Orders.AsNoTracking()
+            .Include(o => o.Register)
+            .FirstOrDefaultAsync(o => o.Id == orderId);
+
+        if (current == null)
+        {
+            _logger.LogDebug("NextOrder returning '404 Not Found' - order");
+            return _404Order(orderId);
+        }
+
+        int registerId = current.RegisterId;
+        int companyId = current.Register.CompanyId;
+
+        IQueryable<BaseOrder> query = _db.Orders.AsNoTracking()
+            .Where(o => o.RegisterId == registerId &&
+                        o.CheckStatusId >= 101 && o.CheckStatusId < 200)
+            .OrderBy(o => o.Id);
+
+        var next = await query.FirstOrDefaultAsync(o => o.Id > orderId) ??
+                   await query.FirstOrDefaultAsync(o => o.Id < orderId);
+
+        if (next == null)
+        {
+            _logger.LogDebug("NextOrder returning '204 No Content'");
+            return NoContent();
+        }
+
+        BaseOrder? order = null;
+
+        if (companyId == IRegisterProcessingService.GetWBRId())
+        {
+            order = await _db.WbrOrders.AsNoTracking()
+                .Include(o => o.Register)
+                .Include(o => o.BaseOrderStopWords)
+                .Include(o => o.BaseOrderFeacnPrefixes)
+                    .ThenInclude(bofp => bofp.FeacnPrefix)
+                        .ThenInclude(fp => fp.FeacnOrder)
+                .FirstOrDefaultAsync(o => o.Id == next.Id);
+        }
+        else if (companyId == IRegisterProcessingService.GetOzonId())
+        {
+            order = await _db.OzonOrders.AsNoTracking()
+                .Include(o => o.Register)
+                .Include(o => o.BaseOrderStopWords)
+                .Include(o => o.BaseOrderFeacnPrefixes)
+                    .ThenInclude(bofp => bofp.FeacnPrefix)
+                        .ThenInclude(fp => fp.FeacnOrder)
+                .FirstOrDefaultAsync(o => o.Id == next.Id);
+        }
+
+        if (order == null)
+        {
+            _logger.LogDebug("NextOrder returning '404 Not Found' - derived order not found");
+            return _404Order(next.Id);
+        }
+
+        _logger.LogDebug("NextOrder returning order {id}", order.Id);
+        return new OrderViewItem(order);
+    }
+
     [HttpPost("{id}/validate")]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(GuidReference))]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
