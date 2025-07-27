@@ -162,5 +162,6 @@ public class WbrOrder : BaseOrder
     // IndPost generation API
     public override string GetParcelNumber() => 
         string.IsNullOrEmpty(Shk) ? $"заказ_без_номера_{Id}" : Shk.PadLeft(20, '0');
+    public override string GetCurrency() => Currency ?? "RUB";
 
 }

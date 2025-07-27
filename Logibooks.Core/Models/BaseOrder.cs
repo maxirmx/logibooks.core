@@ -67,4 +67,5 @@ public abstract class BaseOrder
 
     // IndPost generation API
     public abstract string GetParcelNumber();
+    public abstract string GetCurrency();
 }
