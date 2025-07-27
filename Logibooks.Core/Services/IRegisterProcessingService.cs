@@ -39,4 +39,8 @@ public interface IRegisterProcessingService
         byte[] content,
         string fileName,
         CancellationToken cancellationToken = default);
+
+    Task<byte[]> DownloadRegisterToExcelAsync(
+        int registerId,
+        CancellationToken cancellationToken = default);
 }
