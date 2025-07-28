@@ -1,12 +1,9 @@
-using DocumentFormat.OpenXml.Bibliography;
 using System.Text;
 using System.IO.Compression;
-using DocumentFormat.OpenXml.Bibliography;
 using Logibooks.Core.Data;
 using Logibooks.Core.Models;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;
-using System.Text;
 
 namespace Logibooks.Core.Services;
 
