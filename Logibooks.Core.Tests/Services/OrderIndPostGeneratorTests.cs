@@ -4,6 +4,8 @@ using Logibooks.Core.Services;
 using Microsoft.EntityFrameworkCore;
 using NUnit.Framework;
 using System;
+using System.IO;
+using System.IO.Compression;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 
@@ -28,44 +30,44 @@ public class OrderIndPostGeneratorTests
         _dbContext.Countries.Add(new Country {
             IsoNumeric = 643,
             IsoAlpha2 = "RU",
-            NameRuShort = "Российская Федерация"
+            NameRuShort = "Р РѕСЃСЃРёР№СЃРєР°СЏ Р¤РµРґРµСЂР°С†РёСЏ"
         });
         _dbContext.Countries.Add(new Country {
             IsoNumeric = 860,
             IsoAlpha2 = "UZ",
-            NameRuShort = "Узбекистан"
+            NameRuShort = "РЈР·Р±РµРєРёСЃС‚Р°РЅ"
         });
         _dbContext.Companies.AddRange(
             new Company {
                 Id = 1,
                 Inn = "7704217370",
                 Kpp = "997750001",
-                Name = "ООО \"Интернет Решения\"",
+                Name = "РћРћРћ \"РРЅС‚РµСЂРЅРµС‚ Р РµС€РµРЅРёСЏ\"",
                 ShortName = "",
                 CountryIsoNumeric = 643,
                 PostalCode = "123112",
-                City = "Москва",
-                Street = "Пресненская набережная д.10, пом.1, этаж 41, ком.6"
+                City = "РњРѕСЃРєРІР°",
+                Street = "РџСЂРµСЃРЅРµРЅСЃРєР°СЏ РЅР°Р±РµСЂРµР¶РЅР°СЏ Рґ.10, РїРѕРј.1, СЌС‚Р°Р¶ 41, РєРѕРј.6"
             },
             new Company {
                 Id = 2,
                 Inn = "9714053621",
                 Kpp = "507401001",
                 Name = "",
-                ShortName = "ООО \"РВБ\"",
+                ShortName = "РћРћРћ \"Р Р’Р‘\"",
                 CountryIsoNumeric = 643,
                 PostalCode = "",
-                City = "д. Коледино",
-                Street = "Индустриальный Парк Коледино, д.6, стр.1"
+                City = "Рґ. РљРѕР»РµРґРёРЅРѕ",
+                Street = "РРЅРґСѓСЃС‚СЂРёР°Р»СЊРЅС‹Р№ РџР°СЂРє РљРѕР»РµРґРёРЅРѕ, Рґ.6, СЃС‚СЂ.1"
             }
         );
         _dbContext.TransportationTypes.AddRange(
-            new TransportationType { Id = 1, Code = TransportationTypeCode.Avia, Name = "Авиа" },
-            new TransportationType { Id = 2, Code = TransportationTypeCode.Auto, Name = "Авто" }
+            new TransportationType { Id = 1, Code = TransportationTypeCode.Avia, Name = "РђРІРёР°" },
+            new TransportationType { Id = 2, Code = TransportationTypeCode.Auto, Name = "РђРІС‚Рѕ" }
         );
         _dbContext.CustomsProcedures.AddRange(
-            new CustomsProcedure { Id = 1, Code = 10, Name = "Экспорт" },
-            new CustomsProcedure { Id = 2, Code = 60, Name = "Реимпорт" }
+            new CustomsProcedure { Id = 1, Code = 10, Name = "Р­РєСЃРїРѕСЂС‚" },
+            new CustomsProcedure { Id = 2, Code = 60, Name = "Р РµРёРјРїРѕСЂС‚" }
         );
         _dbContext.SaveChanges();
     }
@@ -104,5 +106,58 @@ public class OrderIndPostGeneratorTests
         var (filename, xml) = await svc.GenerateXML(3);
         var doc = XDocument.Parse(xml);
         Assert.That(doc.Root?.Name.LocalName, Is.EqualTo("AltaIndPost"));
+    }
+    [Test]
+    public async Task GenerateXML4R_ReturnsZipWithUniqueOrders_ForWbr()
+    {
+        var register = new Register { Id = 20, CompanyId = 2, TransportationTypeId = 1, CustomsProcedureId = 1, FileName = "w.xlsx" };
+        _dbContext.Registers.Add(register);
+        _dbContext.WbrOrders.AddRange(
+            new WbrOrder { Id = 21, RegisterId = 20, StatusId = 1, CountryCode = 643, Shk = "A" },
+            new WbrOrder { Id = 22, RegisterId = 20, StatusId = 1, CountryCode = 643, Shk = "A" },
+            new WbrOrder { Id = 23, RegisterId = 20, StatusId = 1, CountryCode = 643, Shk = "B" }
+        );
+        _dbContext.SaveChanges();
+
+        var svc = new OrderIndPostGenerator(_dbContext, new IndPostXmlService());
+        var (fileName, zipData) = await svc.GenerateXML4R(20);
+
+        using var ms = new MemoryStream(zipData);
+        using var archive = new ZipArchive(ms, ZipArchiveMode.Read);
+        Assert.That(archive.Entries.Count, Is.EqualTo(2));
+        foreach (var entry in archive.Entries)
+        {
+            using var reader = new StreamReader(entry.Open());
+            var xmlContent = reader.ReadToEnd();
+            var doc = XDocument.Parse(xmlContent);
+            Assert.That(doc.Root?.Name.LocalName, Is.EqualTo("AltaIndPost"));
+        }
+    }
+
+    [Test]
+    public async Task GenerateXML4R_ReturnsZipWithUniqueOrders_ForOzon()
+    {
+        var register = new Register { Id = 30, CompanyId = 1, TransportationTypeId = 1, CustomsProcedureId = 1, FileName = "o.xlsx" };
+        _dbContext.Registers.Add(register);
+        _dbContext.OzonOrders.AddRange(
+            new OzonOrder { Id = 31, RegisterId = 30, StatusId = 1, CountryCode = 643, PostingNumber = "P1" },
+            new OzonOrder { Id = 32, RegisterId = 30, StatusId = 1, CountryCode = 643, PostingNumber = "P1" },
+            new OzonOrder { Id = 33, RegisterId = 30, StatusId = 1, CountryCode = 643, PostingNumber = "P2" }
+        );
+        _dbContext.SaveChanges();
+
+        var svc = new OrderIndPostGenerator(_dbContext, new IndPostXmlService());
+        var (fileName, zipData) = await svc.GenerateXML4R(30);
+
+        using var ms = new MemoryStream(zipData);
+        using var archive = new ZipArchive(ms, ZipArchiveMode.Read);
+        Assert.That(archive.Entries.Count, Is.EqualTo(2));
+        foreach (var entry in archive.Entries)
+        {
+            using var reader = new StreamReader(entry.Open());
+            var xmlContent = reader.ReadToEnd();
+            var doc = XDocument.Parse(xmlContent);
+            Assert.That(doc.Root?.Name.LocalName, Is.EqualTo("AltaIndPost"));
+        }
     }
 }
