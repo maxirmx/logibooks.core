@@ -1,4 +1,4 @@
-// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
+п»ї// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
 // All rights reserved.
 // This file is a part of Logibooks Core application
 //
@@ -71,20 +71,20 @@ namespace Logibooks.Core.Tests.Services
         public void GenerateXML_CustomsProcedure10_IndividualFieldsGenerated()
         {
             // Arrange
-            var country = new Country { IsoNumeric = 643, IsoAlpha2 = "RU", NameRuShort = "Россия" };
+            var country = new Country { IsoNumeric = 643, IsoAlpha2 = "RU", NameRuShort = "Р РѕСЃСЃРёСЏ" };
             var company = new Company { 
                 Id = 1, 
-                ShortName = "ООО Тест", 
+                ShortName = "РћРћРћ РўРµСЃС‚", 
                 Kpp = "123456789", 
                 Inn = "987654321", 
                 PostalCode = "101000", 
-                City = "Москва", 
-                Street = "ул. Тест",
+                City = "РњРѕСЃРєРІР°", 
+                Street = "СѓР». РўРµСЃС‚",
                 CountryIsoNumeric = 643,
-                Name = "ООО Тест Полное"
+                Name = "РћРћРћ РўРµСЃС‚ РџРѕР»РЅРѕРµ"
             };
-            var transportationType = new TransportationType { Id = 1, Code = TransportationTypeCode.Avia, Name = "Авиа" };
-            var customsProcedure = new CustomsProcedure { Id = 1, Code = 10, Name = "Экспорт" };
+            var transportationType = new TransportationType { Id = 1, Code = TransportationTypeCode.Avia, Name = "РђРІРёР°" };
+            var customsProcedure = new CustomsProcedure { Id = 1, Code = 10, Name = "Р­РєСЃРїРѕСЂС‚" };
             var register = new Register {
                 Id = 1,
                 InvoiceDate = DateOnly.FromDateTime(DateTime.Today),
@@ -116,11 +116,11 @@ namespace Logibooks.Core.Tests.Services
                 Register = loadedRegister, 
                 RegisterId = 1,
                 PostingNumber = "POST123", 
-                LastName = "Иванов", 
-                FirstName = "Иван", 
-                Patronymic = "Иванович", 
-                City = "Москва", 
-                Address = "ул. Тест, д.1" 
+                LastName = "РРІР°РЅРѕРІ", 
+                FirstName = "РРІР°РЅ", 
+                Patronymic = "РРІР°РЅРѕРІРёС‡", 
+                City = "РњРѕСЃРєРІР°", 
+                Address = "СѓР». РўРµСЃС‚, Рґ.1" 
             };
 
             _dbContext.OzonOrders.Add(order);
@@ -135,15 +135,15 @@ namespace Logibooks.Core.Tests.Services
             // Assert
             _xmlServiceMock.Verify(x => x.CreateXml(It.Is<IDictionary<string, string?>>(fields =>
                 fields["CONSIGNEE_CHOICE"] == "1" &&
-                fields["PERSONSURNAME"] == "Иванов" &&
-                fields["PERSONNAME"] == "Иван" &&
-                fields["PERSONMIDDLENAME"] == "Иванович" &&
-                fields["CITY"] == "Москва" &&
-                fields["STREETHOUSE"] == "ул. Тест, д.1" &&
+                fields["PERSONSURNAME"] == "РРІР°РЅРѕРІ" &&
+                fields["PERSONNAME"] == "РРІР°РЅ" &&
+                fields["PERSONMIDDLENAME"] == "РРІР°РЅРѕРІРёС‡" &&
+                fields["CITY"] == "РњРѕСЃРєРІР°" &&
+                fields["STREETHOUSE"] == "СѓР». РўРµСЃС‚, Рґ.1" &&
                 fields["CONSIGNEE_ADDRESS_COUNTRYCODE"] == "RU" &&
-                fields["CONSIGNEE_ADDRESS_COUNRYNAME"] == "Россия" &&
+                fields["CONSIGNEE_ADDRESS_COUNRYNAME"] == "Р РѕСЃСЃРёСЏ" &&
                 fields["CONSIGNOR_CHOICE"] == "2" &&
-                fields["SENDER"] == "ООО Тест"
+                fields["SENDER"] == "РћРћРћ РўРµСЃС‚"
             ), It.IsAny<IEnumerable<IDictionary<string, string?>>>()), Times.Once);
         }
 
@@ -151,20 +151,20 @@ namespace Logibooks.Core.Tests.Services
         public void GenerateXML_CustomsProcedure60_CompanyFieldsGenerated()
         {
             // Arrange
-            var country = new Country { IsoNumeric = 643, IsoAlpha2 = "RU", NameRuShort = "Россия" };
+            var country = new Country { IsoNumeric = 643, IsoAlpha2 = "RU", NameRuShort = "Р РѕСЃСЃРёСЏ" };
             var company = new Company { 
                 Id = 1, 
-                ShortName = "ООО Тест", 
+                ShortName = "РћРћРћ РўРµСЃС‚", 
                 Kpp = "123456789", 
                 Inn = "987654321", 
-                City = "Москва", 
-                Street = "ул. Тест",
+                City = "РњРѕСЃРєРІР°", 
+                Street = "СѓР». РўРµСЃС‚",
                 CountryIsoNumeric = 643,
-                Name = "ООО Тест Полное",
+                Name = "РћРћРћ РўРµСЃС‚ РџРѕР»РЅРѕРµ",
                 PostalCode = "101000"
             };
-            var transportationType = new TransportationType { Id = 1, Code = TransportationTypeCode.Avia, Name = "Авиа" };
-            var customsProcedure = new CustomsProcedure { Id = 1, Code = 60, Name = "Реимпорт" };
+            var transportationType = new TransportationType { Id = 1, Code = TransportationTypeCode.Avia, Name = "РђРІРёР°" };
+            var customsProcedure = new CustomsProcedure { Id = 1, Code = 60, Name = "Р РµРёРјРїРѕСЂС‚" };
             var register = new Register {
                 Id = 1,
                 InvoiceDate = DateOnly.FromDateTime(DateTime.Today),
@@ -195,11 +195,11 @@ namespace Logibooks.Core.Tests.Services
                 Id = 1,
                 Register = loadedRegister,
                 RegisterId = 1,
-                LastName = "Иванов", 
-                FirstName = "Иван", 
-                Patronymic = "Иванович", 
-                City = "Москва", 
-                Address = "ул. Тест, д.1", 
+                LastName = "РРІР°РЅРѕРІ", 
+                FirstName = "РРІР°РЅ", 
+                Patronymic = "РРІР°РЅРѕРІРёС‡", 
+                City = "РњРѕСЃРєРІР°", 
+                Address = "СѓР». РўРµСЃС‚, Рґ.1", 
                 PassportSeries = "AB", 
                 PassportNumber = "123456" 
             };
@@ -216,9 +216,9 @@ namespace Logibooks.Core.Tests.Services
             // Assert
             _xmlServiceMock.Verify(x => x.CreateXml(It.Is<IDictionary<string, string?>>(fields =>
                 fields["CONSIGNEE_CHOICE"] == "2" &&
-                fields["CONSIGNEE_SHORTNAME"] == "ООО Тест" &&
+                fields["CONSIGNEE_SHORTNAME"] == "РћРћРћ РўРµСЃС‚" &&
                 fields["CONSIGNOR_CHOICE"] == "1" &&
-                fields["SENDER"] == "Иванов Иван Иванович" &&
+                fields["SENDER"] == "РРІР°РЅРѕРІ РРІР°РЅ РРІР°РЅРѕРІРёС‡" &&
                 fields["CONSIGNOR_IDENTITYCARD_IDENTITYCARDCODE"] == "10" &&
                 fields["CONSIGNOR_IDENTITYCARD_IDENTITYCARDSERIES"] == "AB" &&
                 fields["CONSIGNOR_IDENTITYCARD_IDENTITYCARDNUMBER"] == "123456"
@@ -229,20 +229,20 @@ namespace Logibooks.Core.Tests.Services
         public void GenerateXML_OtherCustomsProcedure_DefaultFieldsGenerated()
         {
             // Arrange
-            var country = new Country { IsoNumeric = 643, IsoAlpha2 = "RU", NameRuShort = "Россия" };
+            var country = new Country { IsoNumeric = 643, IsoAlpha2 = "RU", NameRuShort = "Р РѕСЃСЃРёСЏ" };
             var company = new Company { 
                 Id = 1, 
-                ShortName = "ООО Тест", 
+                ShortName = "РћРћРћ РўРµСЃС‚", 
                 Kpp = "123456789", 
                 Inn = "987654321", 
-                City = "Москва", 
-                Street = "ул. Тест",
+                City = "РњРѕСЃРєРІР°", 
+                Street = "СѓР». РўРµСЃС‚",
                 CountryIsoNumeric = 643,
-                Name = "ООО Тест Полное",
+                Name = "РћРћРћ РўРµСЃС‚ РџРѕР»РЅРѕРµ",
                 PostalCode = "101000"
             };
-            var transportationType = new TransportationType { Id = 1, Code = TransportationTypeCode.Avia, Name = "Авиа" };
-            var customsProcedure = new CustomsProcedure { Id = 1, Code = 99, Name = "Другое" };
+            var transportationType = new TransportationType { Id = 1, Code = TransportationTypeCode.Avia, Name = "РђРІРёР°" };
+            var customsProcedure = new CustomsProcedure { Id = 1, Code = 99, Name = "Р”СЂСѓРіРѕРµ" };
             var register = new Register {
                 Id = 1,
                 InvoiceDate = DateOnly.FromDateTime(DateTime.Today),
@@ -273,11 +273,11 @@ namespace Logibooks.Core.Tests.Services
                 Id = 1,
                 Register = loadedRegister,
                 RegisterId = 1,
-                LastName = "Иванов", 
-                FirstName = "Иван", 
-                Patronymic = "Иванович", 
-                City = "Москва", 
-                Address = "ул. Тест, д.1" 
+                LastName = "РРІР°РЅРѕРІ", 
+                FirstName = "РРІР°РЅ", 
+                Patronymic = "РРІР°РЅРѕРІРёС‡", 
+                City = "РњРѕСЃРєРІР°", 
+                Address = "СѓР». РўРµСЃС‚, Рґ.1" 
             };
 
             _dbContext.OzonOrders.Add(order);
@@ -300,20 +300,20 @@ namespace Logibooks.Core.Tests.Services
         public void GenerateXML_OzonOrder_GoodsItemsGenerated()
         {
             // Arrange
-            var country = new Country { IsoNumeric = 643, IsoAlpha2 = "RU", NameRuShort = "Россия" };
+            var country = new Country { IsoNumeric = 643, IsoAlpha2 = "RU", NameRuShort = "Р РѕСЃСЃРёСЏ" };
             var company = new Company { 
                 Id = 1, 
-                ShortName = "ООО Тест", 
+                ShortName = "РћРћРћ РўРµСЃС‚", 
                 Kpp = "123456789", 
                 Inn = "987654321", 
                 PostalCode = "101000", 
-                City = "Москва", 
-                Street = "ул. Тест",
+                City = "РњРѕСЃРєРІР°", 
+                Street = "СѓР». РўРµСЃС‚",
                 CountryIsoNumeric = 643,
-                Name = "ООО Тест Полное"
+                Name = "РћРћРћ РўРµСЃС‚ РџРѕР»РЅРѕРµ"
             };
-            var transportationType = new TransportationType { Id = 1, Code = TransportationTypeCode.Avia, Name = "Авиа" };
-            var customsProcedure = new CustomsProcedure { Id = 1, Code = 10, Name = "Экспорт" };
+            var transportationType = new TransportationType { Id = 1, Code = TransportationTypeCode.Avia, Name = "РђРІРёР°" };
+            var customsProcedure = new CustomsProcedure { Id = 1, Code = 10, Name = "Р­РєСЃРїРѕСЂС‚" };
             var register = new Register {
                 Id = 1,
                 InvoiceDate = DateOnly.FromDateTime(DateTime.Today),
@@ -345,12 +345,12 @@ namespace Logibooks.Core.Tests.Services
                 Register = loadedRegister,
                 RegisterId = 1,
                 PostingNumber = "POST123", 
-                LastName = "Иванов", 
-                FirstName = "Иван", 
-                Patronymic = "Иванович", 
-                City = "Москва", 
-                Address = "ул. Тест, д.1", 
-                ProductName = "Товар", 
+                LastName = "РРІР°РЅРѕРІ", 
+                FirstName = "РРІР°РЅ", 
+                Patronymic = "РРІР°РЅРѕРІРёС‡", 
+                City = "РњРѕСЃРєРІР°", 
+                Address = "СѓР». РўРµСЃС‚, Рґ.1", 
+                ProductName = "РўРѕРІР°СЂ", 
                 Article = "ART123", 
                 Quantity = 2, 
                 UnitPrice = 10.5m, 
@@ -371,7 +371,7 @@ namespace Logibooks.Core.Tests.Services
             _xmlServiceMock.Verify(x => x.CreateXml(It.IsAny<IDictionary<string, string?>>(), It.Is<IEnumerable<IDictionary<string, string?>>>(goodsItems =>
                 goodsItems != null &&
                 goodsItems.Any(item => 
-                    item["DESCR"] != null && item["DESCR"]!.Contains("УИН:") &&
+                    item["DESCR"] != null && item["DESCR"]!.Contains("РЈРРќ:") &&
                     item["QTY"] == "2" && 
                     item["COST"] != null &&
                     item["WEIGHT"] != null &&
@@ -383,20 +383,20 @@ namespace Logibooks.Core.Tests.Services
         public void GenerateXML_WbrOrder_GoodsItemsGenerated()
         {
             // Arrange
-            var country = new Country { IsoNumeric = 643, IsoAlpha2 = "RU", NameRuShort = "Россия" };
+            var country = new Country { IsoNumeric = 643, IsoAlpha2 = "RU", NameRuShort = "Р РѕСЃСЃРёСЏ" };
             var company = new Company { 
                 Id = 1, 
-                ShortName = "ООО Тест", 
+                ShortName = "РћРћРћ РўРµСЃС‚", 
                 Kpp = "123456789", 
                 Inn = "987654321", 
                 PostalCode = "101000", 
-                City = "Москва", 
-                Street = "ул. Тест",
+                City = "РњРѕСЃРєРІР°", 
+                Street = "СѓР». РўРµСЃС‚",
                 CountryIsoNumeric = 643,
-                Name = "ООО Тест Полное"
+                Name = "РћРћРћ РўРµСЃС‚ РџРѕР»РЅРѕРµ"
             };
-            var transportationType = new TransportationType { Id = 1, Code = TransportationTypeCode.Avia, Name = "Авиа" };
-            var customsProcedure = new CustomsProcedure { Id = 1, Code = 10, Name = "Экспорт" };
+            var transportationType = new TransportationType { Id = 1, Code = TransportationTypeCode.Avia, Name = "РђРІРёР°" };
+            var customsProcedure = new CustomsProcedure { Id = 1, Code = 10, Name = "Р­РєСЃРїРѕСЂС‚" };
             var register = new Register {
                 Id = 1,
                 InvoiceDate = DateOnly.FromDateTime(DateTime.Today),
@@ -428,9 +428,9 @@ namespace Logibooks.Core.Tests.Services
                 Register = loadedRegister,
                 RegisterId = 1,
                 Shk = "SHK123", 
-                RecipientName = "Иванов Иван Иванович", 
-                RecipientAddress = "Россия, Москва, ул. Тест, д.1", 
-                ProductName = "Товар", 
+                RecipientName = "РРІР°РЅРѕРІ РРІР°РЅ РРІР°РЅРѕРІРёС‡", 
+                RecipientAddress = "Р РѕСЃСЃРёСЏ, РњРѕСЃРєРІР°, СѓР». РўРµСЃС‚, Рґ.1", 
+                ProductName = "РўРѕРІР°СЂ", 
                 Quantity = 2, 
                 UnitPrice = 10.5m, 
                 WeightKg = 1.234m, 
@@ -450,7 +450,7 @@ namespace Logibooks.Core.Tests.Services
             _xmlServiceMock.Verify(x => x.CreateXml(It.IsAny<IDictionary<string, string?>>(), It.Is<IEnumerable<IDictionary<string, string?>>>(goodsItems =>
                 goodsItems != null &&
                 goodsItems.Any(item => 
-                    item["DESCR"] != null && item["DESCR"]!.Contains("УИН:") && item["DESCR"]!.Contains("Товар") &&
+                    item["DESCR"] != null && item["DESCR"]!.Contains("РЈРРќ:") && item["DESCR"]!.Contains("РўРѕРІР°СЂ") &&
                     item["QTY"] == "2" && 
                     item["COST"] != null &&
                     item["WEIGHT"] != null &&
