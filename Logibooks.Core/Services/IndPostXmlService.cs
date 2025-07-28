@@ -56,7 +56,7 @@ namespace Logibooks.Core.Services
                 root.Add(goods);
             }
 
-            var doc = new XDocument(new XDeclaration("1.0", "utf-8", null), root);
+            var doc = new XDocument(new XDeclaration("1.0", "utf-8  ", null), root);
             var settings = new System.Xml.XmlWriterSettings
             {
                 Encoding = Encoding.UTF8,
