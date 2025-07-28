@@ -26,7 +26,10 @@
 using Microsoft.EntityFrameworkCore;
 
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Globalization;
 using System.Text.Json.Serialization;
+
+using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace Logibooks.Core.Models;
 
@@ -84,4 +87,6 @@ public abstract class BaseOrder
     public abstract string GetNumber();
 
     public string GetTnVed() => TnVed ?? string.Empty;
+    public static string FormatCost(decimal? cost) => cost?.ToString("F2", new CultureInfo("en-US")) ?? "0.00";
+    public static string FormatWeight(decimal? cost) => cost?.ToString("F3", new CultureInfo("en-US")) ?? "0.000";
 }

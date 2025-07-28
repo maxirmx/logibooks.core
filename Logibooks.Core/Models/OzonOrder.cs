@@ -136,8 +136,8 @@ public class OzonOrder : BaseOrder
     public override string GetCurrency() => Currency ?? "RUB";
     public override string GetDescription() => $"УИН:{(Article ?? "").PadLeft(20, '0')}; {ProductName ?? Placeholders.NotSet}";
     public override string GetQuantity() => Quantity?.ToString() ?? "1";
-    public override string GetCost() => (UnitPrice * Quantity)?.ToString("F2", new CultureInfo("en-US")) ?? "0.00";
-    public override string GetWeight() => WeightKg?.ToString("F3", new CultureInfo("en-US")) ?? "0.000";
+    public override string GetCost() => FormatCost(UnitPrice * Quantity);
+    public override string GetWeight() => FormatWeight(WeightKg);
     public override string GetUrl() => ProductLink ?? "https://www.ozon.ru/product/unknown-product";
     public override string GetCity() => City ?? Placeholders.NotSet;
     public override string GetStreet() => Address ?? Placeholders.NotSet;

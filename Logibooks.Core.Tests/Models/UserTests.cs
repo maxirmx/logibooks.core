@@ -23,9 +23,10 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-using NUnit.Framework;
-using Logibooks.Core.Models;
 using System.Collections.Generic;
+using NUnit.Framework;
+
+using Logibooks.Core.Models;
 
 namespace Logibooks.Core.Tests.Models;
 

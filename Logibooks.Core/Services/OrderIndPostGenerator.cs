@@ -178,8 +178,8 @@ public class OrderIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServic
                 totalWeight += weight;
         }
 
-        fields["ALLWEIGHT"] = totalWeight.ToString(CultureInfo.InvariantCulture);
-        fields["ALLCOST"] = totalCost.ToString(CultureInfo.InvariantCulture);
+        fields["ALLWEIGHT"] = BaseOrder.FormatWeight(totalWeight);
+        fields["ALLCOST"] = BaseOrder.FormatCost(totalCost);
         var xml = _xmlService.CreateXml(fields, goodsItems);
         return xml;
     }
