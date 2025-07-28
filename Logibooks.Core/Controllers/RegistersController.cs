@@ -520,6 +520,101 @@ public class RegistersController(
         return NoContent();
     }
 
+    [HttpGet("{id}/download")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(FileContentResult))]
+    [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
+    [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
+    public async Task<IActionResult> DownloadRegister(int id)
+    {
+        _logger.LogDebug("DownloadRegister for id={id}", id);
+
+        if (!await _userService.CheckLogist(_curUserId))
+        {
+            _logger.LogDebug("DownloadRegister returning '403 Forbidden'");
+            return _403();
+        }
+
+        var register = await _db.Registers.AsNoTracking().FirstOrDefaultAsync(r => r.Id == id);
+        if (register == null)
+        {
+            _logger.LogDebug("DownloadRegister returning '404 Not Found'");
+            return _404Register(id);
+        }
+
+        var bytes = await _processingService.DownloadRegisterToExcelAsync(id);
+        var fileName = register.FileName;
+
+        return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
+    }
+
+    [HttpGet("nextorder/{orderId}")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(OrderViewItem))]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
+    [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
+    public async Task<ActionResult<OrderViewItem>> NextOrder(int orderId)
+    {
+        _logger.LogDebug("NextOrder for orderId={orderId}", orderId);
+
+        if (!await _userService.CheckLogist(_curUserId))
+        {
+            _logger.LogDebug("NextOrder returning '403 Forbidden'");
+            return _403();
+        }
+
+        var current = await _db.Orders.AsNoTracking()
+            .Include(o => o.Register)
+            .FirstOrDefaultAsync(o => o.Id == orderId);
+
+        if (current == null)
+        {
+            _logger.LogDebug("NextOrder returning '404 Not Found' - order");
+            return _404Order(orderId);
+        }
+
+        int registerId = current.RegisterId;
+        int companyId = current.Register.CompanyId;
+
+        IQueryable<BaseOrder> query = _db.Orders.AsNoTracking()
+            .Where(o => o.RegisterId == registerId &&
+                        o.CheckStatusId >= (int)OrderCheckStatusCode.HasIssues && 
+                        o.CheckStatusId < (int)OrderCheckStatusCode.NoIssues)
+            .OrderBy(o => o.Id);
+
+        var next = await query
+            .OrderBy(o => o.Id > orderId ? 0 : 1) // Prioritize Id > orderId
+            .ThenBy(o => o.Id)                   // Then order by Id
+            .FirstOrDefaultAsync();
+
+        if (next == null)
+        {
+            _logger.LogDebug("NextOrder returning '204 No Content'");
+            return NoContent();
+        }
+
+        BaseOrder? order = null;
+
+        if (companyId == IRegisterProcessingService.GetWBRId())
+        {
+            order = await ApplyOrderIncludes(_db.WbrOrders.AsNoTracking())
+                .FirstOrDefaultAsync(o => o.Id == next.Id);
+        }
+        else if (companyId == IRegisterProcessingService.GetOzonId())
+        {
+            order = await ApplyOrderIncludes(_db.OzonOrders.AsNoTracking())
+                .FirstOrDefaultAsync(o => o.Id == next.Id);
+        }
+
+        if (order == null)
+        {
+            _logger.LogDebug("NextOrder returning '204 No Content' - derived order not found");
+            return NoContent();
+        }
+
+        _logger.LogDebug("NextOrder returning order {id}", order.Id);
+        return new OrderViewItem(order);
+    }
+
     [HttpPost("{id}/validate")]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(GuidReference))]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
@@ -606,6 +701,17 @@ public class RegistersController(
             .ToDictionary(
                 g => g.Key,
                 g => g.ToDictionary(x => x.StatusId, x => x.Count));
+    }
+
+    // Helper method to apply common Include chains for order queries
+    private static IQueryable<TOrder> ApplyOrderIncludes<TOrder>(IQueryable<TOrder> query) where TOrder : BaseOrder
+    {
+        return query
+            .Include(o => o.Register)
+            .Include(o => o.BaseOrderStopWords)
+            .Include(o => o.BaseOrderFeacnPrefixes)
+                .ThenInclude(bofp => bofp.FeacnPrefix)
+                    .ThenInclude(fp => fp.FeacnOrder);
     }
 
 }

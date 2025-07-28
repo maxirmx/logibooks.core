@@ -23,8 +23,11 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+using DocumentFormat.OpenXml.Bibliography;
+using DocumentFormat.OpenXml.Wordprocessing;
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Net;
 
 namespace Logibooks.Core.Models;
 
@@ -85,7 +88,6 @@ public class WbrOrder : BaseOrder
 
     [Column("sole")]
     public string? Sole { get; set; }
-
 
     [Column("factory_address")]
     public string? FactoryAddress { get; set; }
@@ -162,5 +164,56 @@ public class WbrOrder : BaseOrder
     // IndPost generation API
     public override string GetParcelNumber() => 
         string.IsNullOrEmpty(Shk) ? $"заказ_без_номера_{Id}" : Shk.PadLeft(20, '0');
+    public override string GetCurrency() => Currency ?? "RUB";
+    public override string GetDescription() => $"УИН:{GetParcelNumber()}; {ProductName ?? "Не указано"}";
+    public override string GetQuantity() => Quantity?.ToString() ?? "1";
+    public override string GetCost() => (UnitPrice * Quantity)?.ToString("F2") ?? "0.00";
+    public override string GetWeight() => WeightKg?.ToString("F3") ?? "0.000";
+    public override string GetUrl() => ProductLink ?? "https://www.ozon.ru/product/unknown-product";
+    public override string GetCity()
+    {
+        if (string.IsNullOrWhiteSpace(RecipientAddress)) return "Не указано";
+        var parts = RecipientAddress.Split(',');
+        return parts.Length > 1 ? parts[1].Trim() : RecipientAddress;
+    }
+    public override string GetStreet()
+    {
+        if (string.IsNullOrWhiteSpace(RecipientAddress)) return "Не указано";
+        var parts = RecipientAddress.Split(',');
+        return parts.Length > 2 ? string.Join(",", parts.Skip(2).Select(p => p.Trim())) : RecipientAddress;
+    }
 
+    public override string GetSurName()
+    {
+        if (string.IsNullOrWhiteSpace(RecipientName)) return "Не указано";
+        var parts = RecipientName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length > 0 ? parts[0].Trim() : "Не указано";
+    }
+    public override string GetName()
+    {
+        if (string.IsNullOrWhiteSpace(RecipientName)) return "Не указано";
+        var parts = RecipientName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length > 1 ? parts[1].Trim() : "Не указано";
+    }
+    public override string GetMiddleName()
+    {
+        if (string.IsNullOrWhiteSpace(RecipientName)) return "Не указано";
+        var parts = RecipientName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length > 2 ? string.Join(" ", parts.Skip(2).Select(p => p.Trim())) : "Не указано";
+    }
+
+    public override string GetSeries()
+    {
+        if (string.IsNullOrWhiteSpace(PassportNumber) || PassportNumber.Length < 5)
+            return "Не указано";
+        return PassportNumber.Substring(0, 5);
+    }
+    public override string GetNumber()
+    {
+        if (string.IsNullOrWhiteSpace(PassportNumber) || PassportNumber.Length <= 5)
+            return "Не указано";
+        return PassportNumber.Substring(5);
+    }
+
+    public override string GetFullName() => RecipientName ?? "Не указано";
 }

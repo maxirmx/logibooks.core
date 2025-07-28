@@ -67,4 +67,20 @@ public abstract class BaseOrder
 
     // IndPost generation API
     public abstract string GetParcelNumber();
+    public abstract string GetCurrency();
+    public abstract string GetDescription();
+    public abstract string GetQuantity();
+    public abstract string GetCost();
+    public abstract string GetWeight();
+    public abstract string GetUrl();
+    public abstract string GetCity();
+    public abstract string GetStreet();
+    public abstract string GetSurName();
+    public abstract string GetName();
+    public abstract string GetMiddleName();
+    public abstract string GetFullName();
+    public abstract string GetSeries();
+    public abstract string GetNumber();
+
+    public string GetTnVed() => TnVed ?? string.Empty;
 }
