@@ -1,5 +1,6 @@
 using System.Text;
 using System.IO.Compression;
+using DocumentFormat.OpenXml.Bibliography;
 using Logibooks.Core.Data;
 using Logibooks.Core.Models;
 using Microsoft.EntityFrameworkCore;
@@ -26,6 +27,7 @@ public class OrderIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServic
                 .ThenInclude(r => r.CustomsProcedure)
             .Include(o => o.Register)
                 .ThenInclude(r => r.Company)
+                    .ThenInclude(c => c!.Country)
             .FirstOrDefaultAsync(o => o.Id == orderId);
 
         return order == null
@@ -66,6 +68,16 @@ public class OrderIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServic
 
         if (register?.CustomsProcedure?.Code == 10)
         {
+
+            fields["CONSIGNEE_CHOICE"] = "1";
+            fields["PERSONSURNAME"] = order.GetSurName();
+            fields["PERSONNAME"] = order.GetName();
+            fields["PERSONMIDDLENAME"] = order.GetMiddleName();
+            fields["CONSIGNEE_ADDRESS_COUNTRYCODE"] = register?.DestinationCountry?.IsoAlpha2 ?? NotDefined;
+            fields["CONSIGNEE_ADDRESS_COUNRYNAME"] = register?.DestinationCountry?.NameRuShort ?? NotDefined;
+            fields["CITY"] = order.GetCity();
+            fields["STREETHOUSE"] = order.GetStreet();
+
             fields["CONSIGNOR_CHOICE"] = "2";
             fields["SENDER"] = register?.Company?.ShortName ?? NotDefined;
             fields["CONSIGNOR_RFORGANIZATIONFEATURES_KPP"] = register?.Company?.Kpp ?? NotDefined;
@@ -76,20 +88,47 @@ public class OrderIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServic
             fields["COUNTRYCODE"] = register?.Company?.Country.IsoAlpha2 ?? NotDefined;
             fields["COUNTRYNAME"] = register?.Company?.Country.NameRuShort ?? NotDefined;
         }
+        else if (register?.CustomsProcedure?.Code == 60)
+        {
+            fields["CONSIGNEE_CHOICE"] = "2";
+            fields["CONSIGNEE_SHORTNAME"] = register?.Company?.ShortName ?? NotDefined;
+            fields["CONSIGNEE_RFORGANIZATIONFEATURES_KPP"] = register?.Company?.Kpp ?? NotDefined;
+            fields["CONSIGNEE_ADDRESS_COUNTRYCODE"] = register?.Company?.Country.IsoAlpha2 ?? NotDefined;
+            fields["CONSIGNEE_ADDRESS_COUNRYNAME"] = register?.Company?.Country.NameRuShort ?? NotDefined;
+            fields["RFORGANIZATIONFEATURES_INN"] = register?.Company?.Inn ?? NotDefined;
+            fields["CITY"] = register?.Company?.City ?? NotDefined;
+            fields["STREETHOUSE"] = register?.Company?.Street ?? NotDefined;
+
+            fields["CONSIGNOR_CHOICE"] = "1";
+            fields["SENDER"] = order.GetFullName();
+            fields["CONSIGNOR_IDENTITYCARD_IDENTITYCARDCODE"] = "10";
+            fields["CONSIGNOR_IDENTITYCARD_IDENTITYCARDSERIES"] = order.GetSeries();
+            fields["CONSIGNOR_IDENTITYCARD_IDENTITYCARDNUMBER"] = order.GetNumber();
+            fields["CONSIGNOR_ADDRESS_CITY"] = order.GetCity();
+            fields["CONSIGNOR_ADDRESS_STREETHOUSE"] = order.GetStreet();
+            fields["COUNTRYCODE"] = register?.DestinationCountry?.IsoAlpha2 ?? NotDefined;
+            fields["COUNTRYNAME"] = register?.DestinationCountry?.NameRuShort ?? NotDefined;
+
+        }
 
         var goodsItems = new List<IDictionary<string, string?>>();
-
 
         IEnumerable<BaseOrder> ordersForGoods;
         if (order is OzonOrder ozonOrder)
         {
             ordersForGoods = _db.OzonOrders.AsNoTracking()
-                .Where(o => o.PostingNumber == ozonOrder.PostingNumber)
+                .Where(o => o.PostingNumber == ozonOrder.PostingNumber && o.RegisterId == ozonOrder.RegisterId)
+                .ToList<BaseOrder>();
+        }
+        else if (order is WbrOrder wbrOrder)
+        {
+            ordersForGoods = _db.WbrOrders.AsNoTracking()
+                .Where(o => o.Shk == wbrOrder.Shk && o.RegisterId == wbrOrder.RegisterId)
                 .ToList<BaseOrder>();
         }
         else
         {
-            ordersForGoods = [order];
+            ordersForGoods = [];
         }
 
         decimal totalCost = 0m;
