@@ -1,15 +1,42 @@
-using System.Text;
+﻿// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
+// All rights reserved.
+// This file is a part of Logibooks Core application
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions
+// are met:
+// 1. Redistributions of source code must retain the above copyright
+// notice, this list of conditions and the following disclaimer.
+// 2. Redistributions in binary form must reproduce the above copyright
+// notice, this list of conditions and the following disclaimer in the
+// documentation and/or other materials provided with the distribution.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+// 'AS IS' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+// TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+// PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR CONTRIBUTORS
+// BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+// POSSIBILITY OF SUCH DAMAGE.
+
+using Microsoft.EntityFrameworkCore;
+
+using System.Globalization;
 using System.IO.Compression;
+using System.Text;
+
+using Logibooks.Core.Constants;
 using Logibooks.Core.Data;
 using Logibooks.Core.Models;
-using Microsoft.EntityFrameworkCore;
-using System.Globalization;
 
 namespace Logibooks.Core.Services;
 
 public class OrderIndPostGenerator(AppDbContext db, IIndPostXmlService xmlService) : IOrderIndPostGenerator
 {
-    private const string NotDefined = "не задано";
     private readonly AppDbContext _db = db;
     private readonly IIndPostXmlService _xmlService = xmlService;
 
@@ -39,17 +66,17 @@ public class OrderIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServic
 
         var date = register.InvoiceDate.HasValue == true
                     ? register.InvoiceDate.Value.ToString("yyyy-MM-dd")
-                    : NotDefined;
-        var typeValue = register.TransportationType?.Code.ToString() ?? NotDefined;
+                    : Placeholders.NotSet;
+        var typeValue = register.TransportationType?.Code.ToString() ?? Placeholders.NotSet;
 
         var originCountryCode = register.CustomsProcedure?.Code == 10
             ? "RU"
-            : register.DestinationCountry?.IsoAlpha2 ?? NotDefined;
+            : register.DestinationCountry?.IsoAlpha2 ?? Placeholders.NotSet;
         
         var fields = new Dictionary<string, string?>
         {
             { "NUM", order.GetParcelNumber() },
-            { "AVIANUM", register?.InvoiceNumber ?? NotDefined },
+            { "AVIANUM", register?.InvoiceNumber ?? Placeholders.NotSet },
             { "AVIADATE", date },
             { "INVNUM", order.GetParcelNumber() },
             { "INVDATE", date },
@@ -71,31 +98,31 @@ public class OrderIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServic
             fields["PERSONSURNAME"] = order.GetSurName();
             fields["PERSONNAME"] = order.GetName();
             fields["PERSONMIDDLENAME"] = order.GetMiddleName();
-            fields["CONSIGNEE_ADDRESS_COUNTRYCODE"] = register?.DestinationCountry?.IsoAlpha2 ?? NotDefined;
-            fields["CONSIGNEE_ADDRESS_COUNRYNAME"] = register?.DestinationCountry?.NameRuShort ?? NotDefined;
+            fields["CONSIGNEE_ADDRESS_COUNTRYCODE"] = register?.DestinationCountry?.IsoAlpha2 ?? Placeholders.NotSet;
+            fields["CONSIGNEE_ADDRESS_COUNRYNAME"] = register?.DestinationCountry?.NameRuShort ?? Placeholders.NotSet;
             fields["CITY"] = order.GetCity();
             fields["STREETHOUSE"] = order.GetStreet();
 
             fields["CONSIGNOR_CHOICE"] = "2";
-            fields["SENDER"] = register?.Company?.ShortName ?? NotDefined;
-            fields["CONSIGNOR_RFORGANIZATIONFEATURES_KPP"] = register?.Company?.Kpp ?? NotDefined;
-            fields["CONSIGNOR_RFORGANIZATIONFEATURES_INN"] = register?.Company?.Inn ?? NotDefined; 
-            fields["CONSIGNOR_ADDRESS_POSTALCODE"] = register?.Company?.PostalCode ?? NotDefined;
-            fields["CONSIGNOR_ADDRESS_CITY"] = register?.Company?.City ?? NotDefined;
-            fields["CONSIGNOR_ADDRESS_STREETHOUSE"] = register?.Company?.Street ?? NotDefined;
-            fields["COUNTRYCODE"] = register?.Company?.Country.IsoAlpha2 ?? NotDefined;
-            fields["COUNTRYNAME"] = register?.Company?.Country.NameRuShort ?? NotDefined;
+            fields["SENDER"] = register?.Company?.ShortName ?? Placeholders.NotSet;
+            fields["CONSIGNOR_RFORGANIZATIONFEATURES_KPP"] = register?.Company?.Kpp ?? Placeholders.NotSet;
+            fields["CONSIGNOR_RFORGANIZATIONFEATURES_INN"] = register?.Company?.Inn ?? Placeholders.NotSet; 
+            fields["CONSIGNOR_ADDRESS_POSTALCODE"] = register?.Company?.PostalCode ?? Placeholders.NotSet;
+            fields["CONSIGNOR_ADDRESS_CITY"] = register?.Company?.City ?? Placeholders.NotSet;
+            fields["CONSIGNOR_ADDRESS_STREETHOUSE"] = register?.Company?.Street ?? Placeholders.NotSet;
+            fields["COUNTRYCODE"] = register?.Company?.Country.IsoAlpha2 ?? Placeholders.NotSet;
+            fields["COUNTRYNAME"] = register?.Company?.Country.NameRuShort ?? Placeholders.NotSet;
         }
         else if (register?.CustomsProcedure?.Code == 60)
         {
             fields["CONSIGNEE_CHOICE"] = "2";
-            fields["CONSIGNEE_SHORTNAME"] = register?.Company?.ShortName ?? NotDefined;
-            fields["CONSIGNEE_RFORGANIZATIONFEATURES_KPP"] = register?.Company?.Kpp ?? NotDefined;
-            fields["CONSIGNEE_ADDRESS_COUNTRYCODE"] = register?.Company?.Country.IsoAlpha2 ?? NotDefined;
-            fields["CONSIGNEE_ADDRESS_COUNRYNAME"] = register?.Company?.Country.NameRuShort ?? NotDefined;
-            fields["RFORGANIZATIONFEATURES_INN"] = register?.Company?.Inn ?? NotDefined;
-            fields["CITY"] = register?.Company?.City ?? NotDefined;
-            fields["STREETHOUSE"] = register?.Company?.Street ?? NotDefined;
+            fields["CONSIGNEE_SHORTNAME"] = register?.Company?.ShortName ?? Placeholders.NotSet;
+            fields["CONSIGNEE_RFORGANIZATIONFEATURES_KPP"] = register?.Company?.Kpp ?? Placeholders.NotSet;
+            fields["CONSIGNEE_ADDRESS_COUNTRYCODE"] = register?.Company?.Country.IsoAlpha2 ?? Placeholders.NotSet;
+            fields["CONSIGNEE_ADDRESS_COUNRYNAME"] = register?.Company?.Country.NameRuShort ?? Placeholders.NotSet;
+            fields["RFORGANIZATIONFEATURES_INN"] = register?.Company?.Inn ?? Placeholders.NotSet;
+            fields["CITY"] = register?.Company?.City ?? Placeholders.NotSet;
+            fields["STREETHOUSE"] = register?.Company?.Street ?? Placeholders.NotSet;
 
             fields["CONSIGNOR_CHOICE"] = "1";
             fields["SENDER"] = order.GetFullName();
@@ -104,8 +131,8 @@ public class OrderIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServic
             fields["CONSIGNOR_IDENTITYCARD_IDENTITYCARDNUMBER"] = order.GetNumber();
             fields["CONSIGNOR_ADDRESS_CITY"] = order.GetCity();
             fields["CONSIGNOR_ADDRESS_STREETHOUSE"] = order.GetStreet();
-            fields["COUNTRYCODE"] = register?.DestinationCountry?.IsoAlpha2 ?? NotDefined;
-            fields["COUNTRYNAME"] = register?.DestinationCountry?.NameRuShort ?? NotDefined;
+            fields["COUNTRYCODE"] = register?.DestinationCountry?.IsoAlpha2 ?? Placeholders.NotSet;
+            fields["COUNTRYNAME"] = register?.DestinationCountry?.NameRuShort ?? Placeholders.NotSet;
 
         }
 

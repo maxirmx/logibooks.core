@@ -1,4 +1,4 @@
-// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
+﻿// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
 // All rights reserved.
 // This file is a part of Logibooks Core application
 //
@@ -24,6 +24,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 using Microsoft.EntityFrameworkCore;
+
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 
@@ -57,13 +58,13 @@ public abstract class BaseOrder
     public string? TnVed { get; set; }
 
     [Column("country_code")]
-    public short CountryCode { get; set; } = 643; // Default to Russia
+    public short CountryCode { get; set; } = 643; 
 
     [JsonIgnore]
     public Country? Country { get; set; }
 
-    public ICollection<BaseOrderStopWord> BaseOrderStopWords { get; set; } = new List<BaseOrderStopWord>();
-    public ICollection<BaseOrderFeacnPrefix> BaseOrderFeacnPrefixes { get; set; } = new List<BaseOrderFeacnPrefix>();
+    public ICollection<BaseOrderStopWord> BaseOrderStopWords { get; set; } = [];
+    public ICollection<BaseOrderFeacnPrefix> BaseOrderFeacnPrefixes { get; set; } = [];
 
     // IndPost generation API
     public abstract string GetParcelNumber();
