@@ -141,7 +141,7 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
         bool isWbr = register.CompanyId == GetWBRId();
         string mappingFile = isWbr ? "wbr_register_mapping.yaml" : "ozon_register_mapping.yaml";
         var mappingPath = Path.Combine(AppContext.BaseDirectory, "mapping", mappingFile);
-        if (!System.IO.File.Exists(mappingPath))
+        if (!File.Exists(mappingPath))
         {
             throw new FileNotFoundException("Mapping file not found", mappingPath);
         }
@@ -210,7 +210,7 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
             if (baseOrder.CheckStatusId >= (int)OrderCheckStatusCode.HasIssues &&
                 baseOrder.CheckStatusId < (int)OrderCheckStatusCode.NoIssues)
             {
-                ws.Row(row).Style.Fill.BackgroundColor = XLColor.LightPink;
+                ws.Row(row).Style.Fill.BackgroundColor = XLColor.Red;
             }
 
             row++;

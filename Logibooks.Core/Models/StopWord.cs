@@ -23,11 +23,14 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations.Schema;
+using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace Logibooks.Core.Models;
 
 [Table("stop_words")]
+[Index(nameof(Word), IsUnique = true, Name = "IX_stop_words_word")]
 public class StopWord
 {
     [Column("id")]
@@ -36,8 +39,9 @@ public class StopWord
     [Column("word")]
     public required string Word { get; set; } = string.Empty;
 
-    [Column("exact_match")]
-    public Boolean ExactMatch { get; set; } = false;
+    [Column("match_type_id")]
+    public int MatchTypeId { get; set; } = 1;
+    public StopWordMatchType MatchType { get; set; } = null!;
 
     public ICollection<BaseOrderStopWord> BaseOrderStopWords { get; set; } = new List<BaseOrderStopWord>();
 }

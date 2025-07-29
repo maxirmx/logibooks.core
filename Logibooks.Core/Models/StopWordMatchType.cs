@@ -23,31 +23,20 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-namespace Logibooks.Core.RestModels;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
-using Logibooks.Core.Models;
+namespace Logibooks.Core.Models;
 
-public class StopWordDto
+[Table("stop_word_match_type")]
+public class StopWordMatchType
 {
+    [Column("id")]
     public int Id { get; set; }
-    public string Word { get; set; } = string.Empty;
-    public int MatchTypeId { get; set; }
 
-    public StopWordDto() {}
-    public StopWordDto(StopWord sw)
-    {
-        Id = sw.Id;
-        Word = sw.Word;
-        MatchTypeId = (int)sw.MatchTypeId;
-    }
+    [Column("name")]
+    public required string Name { get; set; }
 
-    public StopWord ToModel()
-    {
-        return new StopWord
-        {
-            Id = Id,
-            Word = Word,
-            MatchTypeId = MatchTypeId
-        };
-    }
+    [JsonIgnore]
+    public ICollection<StopWord> StopWords { get; set; } = [];
 }

@@ -19,7 +19,7 @@
 // CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
 // SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
 // INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE),
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
@@ -27,27 +27,26 @@ namespace Logibooks.Core.RestModels;
 
 using Logibooks.Core.Models;
 
-public class StopWordDto
+public class StopWordMatchTypeDto
 {
     public int Id { get; set; }
-    public string Word { get; set; } = string.Empty;
-    public int MatchTypeId { get; set; }
+    public string Name { get; set; } = string.Empty;
 
-    public StopWordDto() {}
-    public StopWordDto(StopWord sw)
+    public StopWordMatchTypeDto()
     {
-        Id = sw.Id;
-        Word = sw.Word;
-        MatchTypeId = (int)sw.MatchTypeId;
+    }
+    public StopWordMatchTypeDto(StopWordMatchType matchType)
+    {
+        Id = matchType.Id;
+        Name = matchType.Name;
     }
 
-    public StopWord ToModel()
+    public StopWordMatchType ToModel()
     {
-        return new StopWord
+        return new StopWordMatchType
         {
             Id = Id,
-            Word = Word,
-            MatchTypeId = MatchTypeId
+            Name = Name
         };
     }
 }

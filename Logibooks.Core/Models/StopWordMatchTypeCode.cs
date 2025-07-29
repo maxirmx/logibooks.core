@@ -23,31 +23,14 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-namespace Logibooks.Core.RestModels;
+namespace Logibooks.Core.Models;
 
-using Logibooks.Core.Models;
-
-public class StopWordDto
+public enum StopWordMatchTypeCode
 {
-    public int Id { get; set; }
-    public string Word { get; set; } = string.Empty;
-    public int MatchTypeId { get; set; }
-
-    public StopWordDto() {}
-    public StopWordDto(StopWord sw)
-    {
-        Id = sw.Id;
-        Word = sw.Word;
-        MatchTypeId = (int)sw.MatchTypeId;
-    }
-
-    public StopWord ToModel()
-    {
-        return new StopWord
-        {
-            Id = Id,
-            Word = Word,
-            MatchTypeId = MatchTypeId
-        };
-    }
+    ExactSymbols = 1,
+    ExactWord = 11,
+    Phrase = 21,
+    AllWords = 31,
+    WeakMorphology = 41,
+    StrongMorphology = 51
 }

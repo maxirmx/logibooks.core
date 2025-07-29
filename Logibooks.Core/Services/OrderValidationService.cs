@@ -131,7 +131,7 @@ public class OrderValidationService(
     public StopWordsContext InitializeStopWordsContext(IEnumerable<StopWord> exactMatchStopWords)
     {
         var context = new StopWordsContext();
-        context.ExactMatchStopWords.AddRange(exactMatchStopWords.Where(sw => sw.ExactMatch));
+        context.ExactMatchStopWords.AddRange(exactMatchStopWords.Where(sw => (int)sw.MatchTypeId == (int)StopWordMatchTypeCode.ExactSymbols));
         return context;
     }
 }

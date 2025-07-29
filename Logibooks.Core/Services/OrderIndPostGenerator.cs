@@ -205,6 +205,7 @@ public class OrderIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServic
                 .Include(o => o.Register).ThenInclude(r => r.TransportationType)
                 .Include(o => o.Register).ThenInclude(r => r.CustomsProcedure)
                 .Include(o => o.Register).ThenInclude(r => r.Company)
+                    .ThenInclude(c => c.Country)
                 .Where(o => o.RegisterId == registerId)
                 .GroupBy(o => o.Shk)
                 .Select(g => g.First())
@@ -219,6 +220,7 @@ public class OrderIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServic
                 .Include(o => o.Register).ThenInclude(r => r.TransportationType)
                 .Include(o => o.Register).ThenInclude(r => r.CustomsProcedure)
                 .Include(o => o.Register).ThenInclude(r => r.Company)
+                    .ThenInclude(c => c.Country)
                 .Where(o => o.RegisterId == registerId)
                 .GroupBy(o => o.PostingNumber)
                 .Select(g => g.First())
@@ -233,22 +235,25 @@ public class OrderIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServic
                 .Include(o => o.Register).ThenInclude(r => r.TransportationType)
                 .Include(o => o.Register).ThenInclude(r => r.CustomsProcedure)
                 .Include(o => o.Register).ThenInclude(r => r.Company)
+                    .ThenInclude(c => c.Country)
                 .Where(o => o.RegisterId == registerId)
                 .ToListAsync();
         }
+
+        var fileBase = !string.IsNullOrWhiteSpace(register.InvoiceNumber) ? register.InvoiceNumber : registerId.ToString();
 
         using var ms = new MemoryStream();
         using (var archive = new ZipArchive(ms, ZipArchiveMode.Create, true))
         {
             foreach (var order in orders)
             {
-                var entry = archive.CreateEntry(GenerateFilename(order));
+                var entry = archive.CreateEntry($"{fileBase}_{order.GetParcelNumber()}.xml");
                 using var writer = new StreamWriter(entry.Open(), Encoding.UTF8);
                 var xml = GenerateXML(order);
                 writer.Write(xml);
             }
         }
 
-        return ($"IndPost_{registerId}.zip", ms.ToArray());
+        return ($"IndPost_{fileBase}.zip", ms.ToArray());
     }
 }

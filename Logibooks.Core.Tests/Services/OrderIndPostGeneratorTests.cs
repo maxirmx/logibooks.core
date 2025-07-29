@@ -112,7 +112,7 @@ public class OrderIndPostGeneratorTests
         Assert.That(doc.Root?.Name.LocalName, Is.EqualTo("AltaIndPost"));
     }
 
-/*    [Test]
+    [Test]
     public async Task GenerateXML_WbrOrder_IndPostApi_CorrectXmlGenerated()
     {
         var register = new Register
@@ -187,14 +187,48 @@ public class OrderIndPostGeneratorTests
     [Test]
     public async Task GenerateXML4R_WbrOrder_IndPostApi_CreatesZipWithUniqueOrders()
     {
-        var register = new Register { Id = 300, CompanyId = 2, TransportationTypeId = 1, CustomsProcedureId = 1, FileName = "wbr_zip.xlsx" };
+        // Fetch required related entities from the context
+        var countryRu = await _dbContext.Countries.FirstAsync(c => c.IsoNumeric == 643);
+        var countryUz = await _dbContext.Countries.FirstAsync(c => c.IsoNumeric == 860);
+        var company = await _dbContext.Companies.FirstAsync(c => c.Id == 2);
+        var transportationType = await _dbContext.TransportationTypes.FirstAsync(t => t.Id == 1);
+        var customsProcedure = await _dbContext.CustomsProcedures.FirstAsync(c => c.Id == 1);
+
+        // Ensure company navigation property is set
+        company.Country = countryRu;
+        _dbContext.Companies.Update(company);
+        await _dbContext.SaveChangesAsync();
+
+        var register = new Register {
+            Id = 300,
+            CompanyId = company.Id,
+            Company = company,
+            TransportationTypeId = transportationType.Id,
+            TransportationType = transportationType,
+            CustomsProcedureId = customsProcedure.Id,
+            CustomsProcedure = customsProcedure,
+            FileName = "wbr_zip.xlsx",
+            DTime = DateTime.Now,
+            DestCountryCode = countryUz.IsoNumeric,
+            DestinationCountry = countryUz
+        };
         _dbContext.Registers.Add(register);
+        await _dbContext.SaveChangesAsync();
+
+        var loadedRegister = await _dbContext.Registers
+            .Include(r => r.Company)
+            .Include(r => r.TransportationType)
+            .Include(r => r.CustomsProcedure)
+            .Include(r => r.DestinationCountry)
+            .FirstAsync(r => r.Id == 300);
+
         _dbContext.WbrOrders.AddRange(
-            new WbrOrder { Id = 301, RegisterId = 300, StatusId = 1, CountryCode = 643, Shk = "A" },
-            new WbrOrder { Id = 302, RegisterId = 300, StatusId = 1, CountryCode = 643, Shk = "A" },
-            new WbrOrder { Id = 303, RegisterId = 300, StatusId = 1, CountryCode = 643, Shk = "B" }
+            new WbrOrder { Id = 301, RegisterId = 300, Register = loadedRegister, StatusId = 1, CountryCode = countryRu.IsoNumeric, Shk = "A" },
+            new WbrOrder { Id = 302, RegisterId = 300, Register = loadedRegister, StatusId = 1, CountryCode = countryRu.IsoNumeric, Shk = "A" },
+            new WbrOrder { Id = 303, RegisterId = 300, Register = loadedRegister, StatusId = 1, CountryCode = countryRu.IsoNumeric, Shk = "B" }
         );
-        _dbContext.SaveChanges();
+        await _dbContext.SaveChangesAsync();
+
         var svc = new OrderIndPostGenerator(_dbContext, new IndPostXmlService());
         var (fileName, zipData) = await svc.GenerateXML4R(300);
         using var ms = new MemoryStream(zipData);
@@ -208,30 +242,4 @@ public class OrderIndPostGeneratorTests
             Assert.That(doc.Root?.Name.LocalName, Is.EqualTo("AltaIndPost"));
         }
     }
-
-    [Test]
-    public async Task GenerateXML4R_OzonOrder_IndPostApi_CreatesZipWithUniqueOrders()
-    {
-        var register = new Register { Id = 400, CompanyId = 1, TransportationTypeId = 1, CustomsProcedureId = 1, FileName = "ozon_zip.xlsx" };
-        _dbContext.Registers.Add(register);
-        _dbContext.OzonOrders.AddRange(
-            new OzonOrder { Id = 401, RegisterId = 400, StatusId = 1, CountryCode = 643, PostingNumber = "P1" },
-            new OzonOrder { Id = 402, RegisterId = 400, StatusId = 1, CountryCode = 643, PostingNumber = "P1" },
-            new OzonOrder { Id = 403, RegisterId = 400, StatusId = 1, CountryCode = 643, PostingNumber = "P2" }
-        );
-        _dbContext.SaveChanges();
-        var svc = new OrderIndPostGenerator(_dbContext, new IndPostXmlService());
-        var (fileName, zipData) = await svc.GenerateXML4R(400);
-        using var ms = new MemoryStream(zipData);
-        using var archive = new ZipArchive(ms, ZipArchiveMode.Read);
-        Assert.That(archive.Entries.Count, Is.EqualTo(2));
-        foreach (var entry in archive.Entries)
-        {
-            using var reader = new StreamReader(entry.Open());
-            var xmlContent = reader.ReadToEnd();
-            var doc = XDocument.Parse(xmlContent);
-            Assert.That(doc.Root?.Name.LocalName, Is.EqualTo("AltaIndPost"));
-        }
-    }
-*/
 }

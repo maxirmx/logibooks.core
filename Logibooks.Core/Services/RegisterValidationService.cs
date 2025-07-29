@@ -70,7 +70,7 @@ public class RegisterValidationService(
         _byHandle[process.HandleId] = process;
 
         var allStopWords = await _db.StopWords.AsNoTracking().ToListAsync(cancellationToken);
-        var morphologyContext = _morphologyService.InitializeContext(allStopWords.Where(sw => !sw.ExactMatch));
+        var morphologyContext = _morphologyService.InitializeContext(allStopWords.Where(sw => sw.MatchTypeId == (int)StopWordMatchTypeCode.StrongMorphology));
 
         var tcs = new TaskCompletionSource();
 

@@ -30,6 +30,7 @@ using Logibooks.Core.Authorization;
 using Logibooks.Core.Data;
 using Logibooks.Core.RestModels;
 using Logibooks.Core.Services;
+using Logibooks.Core.Models;
 
 namespace Logibooks.Core.Controllers;
 
@@ -75,7 +76,7 @@ public class StopWordsController(
     {
         if (!await _userService.CheckAdmin(_curUserId)) return _403();
         
-        if (!dto.ExactMatch)
+        if (dto.MatchTypeId == (int)StopWordMatchTypeCode.StrongMorphology)
         {
             if (!_morphologySearchService.CheckWord(dto.Word))
             {
@@ -116,9 +117,8 @@ public class StopWordsController(
         if (id != dto.Id) return BadRequest();
         var sw = await _db.StopWords.FindAsync(id);
         if (sw == null) return _404Object(id);
-        
-        // Check for morphology validation if exact match is not requested
-        if (!dto.ExactMatch)
+
+        if (dto.MatchTypeId == (int)StopWordMatchTypeCode.StrongMorphology)
         {
             if (!_morphologySearchService.CheckWord(dto.Word))
             {
@@ -133,7 +133,7 @@ public class StopWordsController(
             return _409StopWord(dto.Word);
         }
         sw.Word = dto.Word;
-        sw.ExactMatch = dto.ExactMatch;
+        sw.MatchTypeId = dto.MatchTypeId;
         try
         {
             _db.Entry(sw).State = EntityState.Modified;
@@ -162,5 +162,15 @@ public class StopWordsController(
         await _db.SaveChangesAsync();
         return NoContent();
     }
+
+    [HttpGet("matchtypes")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<StopWordMatchType>))]
+    public async Task<ActionResult<IEnumerable<StopWordMatchType>>> GetMatchTypes()
+    {
+        var matchTypes = await _db.StopWordMatchTypes.AsNoTracking().OrderBy(s => s.Id).ToListAsync();
+        _logger.LogDebug("GetMatchTypes returning {count} items", matchTypes.Count);
+        return Ok(matchTypes);
+    }
+
 
 }

@@ -31,6 +31,7 @@ using Moq;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -76,8 +77,8 @@ public class OrderValidationServiceTests
         var order = new WbrOrder { Id = 1, RegisterId = 1, CheckStatusId = 1, ProductName = "This is SPAM", TnVed = "1234567890" };
         ctx.Orders.Add(order);
         ctx.StopWords.AddRange(
-            new StopWord { Id = 2, Word = "spam", ExactMatch = true },
-            new StopWord { Id = 3, Word = "other", ExactMatch = true }
+            new StopWord { Id = 2, Word = "spam", MatchTypeId = (int)StopWordMatchTypeCode.ExactSymbols },
+            new StopWord { Id = 3, Word = "other", MatchTypeId = (int)StopWordMatchTypeCode.ExactSymbols }
         );
         ctx.Set<BaseOrderStopWord>().Add(new BaseOrderStopWord { BaseOrderId = 1, StopWordId = 99 });
         await ctx.SaveChangesAsync();
@@ -99,7 +100,7 @@ public class OrderValidationServiceTests
         using var ctx = CreateContext();
         var order = new WbrOrder { Id = 1, RegisterId = 1, CheckStatusId = 1, ProductName = "clean", TnVed = "1234567890" };
         ctx.Orders.Add(order);
-        ctx.StopWords.Add(new StopWord { Id = 2, Word = "spam", ExactMatch = true });
+        ctx.StopWords.Add(new StopWord { Id = 2, Word = "spam", MatchTypeId = (int)StopWordMatchTypeCode.ExactSymbols });
         await ctx.SaveChangesAsync();
 
         var svc = CreateService(ctx);
@@ -117,7 +118,7 @@ public class OrderValidationServiceTests
         using var ctx = CreateContext();
         var order = new WbrOrder { Id = 1, RegisterId = 1, CheckStatusId = 1, ProductName = "bad WORD", TnVed = "1234567890" };
         ctx.Orders.Add(order);
-        ctx.StopWords.Add(new StopWord { Id = 5, Word = "word", ExactMatch = true });
+        ctx.StopWords.Add(new StopWord { Id = 5, Word = "word", MatchTypeId = (int)StopWordMatchTypeCode.ExactSymbols });
         await ctx.SaveChangesAsync();
 
         var svc = CreateService(ctx);
@@ -135,7 +136,7 @@ public class OrderValidationServiceTests
         using var ctx = CreateContext();
         var order = new WbrOrder { Id = 1, RegisterId = 1, CheckStatusId = 1, ProductName = "золотой браслет", TnVed = "1234567890" };
         ctx.Orders.Add(order);
-        var sw = new StopWord { Id = 7, Word = "золото", ExactMatch = false };
+        var sw = new StopWord { Id = 7, Word = "золото", MatchTypeId = (int)StopWordMatchTypeCode.StrongMorphology };
         ctx.StopWords.Add(sw);
         await ctx.SaveChangesAsync();
 
@@ -159,17 +160,17 @@ public class OrderValidationServiceTests
 
         var stopWords = new[]
         {
-            new StopWord { Id = 10, Word = "spam", ExactMatch = true },      // Should match via exact
-            new StopWord { Id = 20, Word = "золото", ExactMatch = false },   // Should match via morphology
-            new StopWord { Id = 30, Word = "silver", ExactMatch = true }     // Should NOT match
+            new StopWord { Id = 10, Word = "spam", MatchTypeId = (int)StopWordMatchTypeCode.ExactSymbols },      // Should match via exact
+            new StopWord { Id = 20, Word = "золото", MatchTypeId = (int)StopWordMatchTypeCode.StrongMorphology },   // Should match via morphology
+            new StopWord { Id = 30, Word = "silver", MatchTypeId = (int)StopWordMatchTypeCode.ExactSymbols }     // Should NOT match
         };
         ctx.StopWords.AddRange(stopWords);
         await ctx.SaveChangesAsync();
 
         var morph = new MorphologySearchService();
-        var morphologyContext = morph.InitializeContext(stopWords.Where(sw => !sw.ExactMatch));
+        var morphologyContext = morph.InitializeContext(stopWords.Where(sw => sw.MatchTypeId == (int)StopWordMatchTypeCode.StrongMorphology));
         var svc = CreateServiceWithMorphology(ctx, morph);
-        var stopWordsContext = svc.InitializeStopWordsContext(stopWords.Where(sw => sw.ExactMatch));
+        var stopWordsContext = svc.InitializeStopWordsContext(stopWords.Where(sw => sw.MatchTypeId == (int)StopWordMatchTypeCode.ExactSymbols));
         await svc.ValidateAsync(order, morphologyContext, stopWordsContext);
 
         var links = ctx.Set<BaseOrderStopWord>().ToList();
@@ -195,7 +196,7 @@ public class OrderValidationServiceTests
 
         var stopWords = new[]
         {
-            new StopWord { Id = 800, Word = "spam", ExactMatch = true }
+            new StopWord { Id = 800, Word = "spam", MatchTypeId = (int)StopWordMatchTypeCode.ExactSymbols }
         };
         ctx.StopWords.AddRange(stopWords);
         await ctx.SaveChangesAsync();
@@ -234,9 +235,9 @@ public class OrderValidationServiceTests
         var svc = CreateService(ctx);
         var stopWords = new[]
         {
-            new StopWord { Id = 1, Word = "spam", ExactMatch = true },
-            new StopWord { Id = 2, Word = "virus", ExactMatch = true },
-            new StopWord { Id = 3, Word = "malware", ExactMatch = true }
+            new StopWord { Id = 1, Word = "spam", MatchTypeId = (int)StopWordMatchTypeCode.ExactSymbols },
+            new StopWord { Id = 2, Word = "virus", MatchTypeId = (int)StopWordMatchTypeCode.ExactSymbols },
+            new StopWord { Id = 3, Word = "malware", MatchTypeId = (int)StopWordMatchTypeCode.ExactSymbols }
         };
 
         var context = svc.InitializeStopWordsContext(stopWords);
@@ -246,7 +247,7 @@ public class OrderValidationServiceTests
         Assert.That(context.ExactMatchStopWords.Any(sw => sw.Word == "spam"), Is.True);
         Assert.That(context.ExactMatchStopWords.Any(sw => sw.Word == "virus"), Is.True);
         Assert.That(context.ExactMatchStopWords.Any(sw => sw.Word == "malware"), Is.True);
-        Assert.That(context.ExactMatchStopWords.All(sw => sw.ExactMatch), Is.True);
+        Assert.That(context.ExactMatchStopWords.All(sw => sw.MatchTypeId == (int)StopWordMatchTypeCode.ExactSymbols), Is.True);
     }
 
     [Test]
@@ -256,11 +257,11 @@ public class OrderValidationServiceTests
         var svc = CreateService(ctx);
         var stopWords = new[]
         {
-            new StopWord { Id = 1, Word = "spam", ExactMatch = true },       // Should be included
-            new StopWord { Id = 2, Word = "золото", ExactMatch = false },    // Should NOT be included
-            new StopWord { Id = 3, Word = "virus", ExactMatch = true },      // Should be included
-            new StopWord { Id = 4, Word = "дом", ExactMatch = false },       // Should NOT be included
-            new StopWord { Id = 5, Word = "malware", ExactMatch = true }     // Should be included
+            new StopWord { Id = 1, Word = "spam", MatchTypeId = (int)StopWordMatchTypeCode.ExactSymbols },       // Should be included
+            new StopWord { Id = 2, Word = "золото", MatchTypeId = (int)StopWordMatchTypeCode.StrongMorphology },    // Should NOT be included
+            new StopWord { Id = 3, Word = "virus", MatchTypeId = (int)StopWordMatchTypeCode.ExactSymbols },      // Should be included
+            new StopWord { Id = 4, Word = "дом", MatchTypeId = (int)StopWordMatchTypeCode.StrongMorphology },       // Should NOT be included
+            new StopWord { Id = 5, Word = "malware", MatchTypeId = (int)StopWordMatchTypeCode.ExactSymbols }     // Should be included
         };
 
         var context = svc.InitializeStopWordsContext(stopWords);
@@ -275,7 +276,7 @@ public class OrderValidationServiceTests
         Assert.That(exactMatchWords, Does.Not.Contain("золото"));
         Assert.That(exactMatchWords, Does.Not.Contain("дом"));
 
-        Assert.That(context.ExactMatchStopWords.All(sw => sw.ExactMatch), Is.True);
+        Assert.That(context.ExactMatchStopWords.All(sw => sw.MatchTypeId == (int)StopWordMatchTypeCode.ExactSymbols), Is.True);
     }
 
     [Test]
@@ -285,8 +286,8 @@ public class OrderValidationServiceTests
         var order = new WbrOrder { Id = 1, RegisterId = 1, ProductName = "", TnVed = "1234567890" };
         ctx.Orders.Add(order);
         ctx.StopWords.AddRange(
-            new StopWord { Id = 1, Word = "spam", ExactMatch = true },
-            new StopWord { Id = 2, Word = "malware", ExactMatch = true }
+            new StopWord { Id = 1, Word = "spam", MatchTypeId = (int)StopWordMatchTypeCode.ExactSymbols },
+            new StopWord { Id = 2, Word = "malware", MatchTypeId = (int)StopWordMatchTypeCode.ExactSymbols }
         );
         await ctx.SaveChangesAsync();
 
@@ -307,14 +308,14 @@ public class OrderValidationServiceTests
         ctx.Orders.Add(order);
 
         // Add stop words to database (should be ignored when context is provided)
-        ctx.StopWords.Add(new StopWord { Id = 999, Word = "spam", ExactMatch = true });
+        ctx.StopWords.Add(new StopWord { Id = 999, Word = "spam", MatchTypeId = (int)StopWordMatchTypeCode.ExactSymbols });
         await ctx.SaveChangesAsync();
 
         // Create context with different stop words
         var contextStopWords = new[]
         {
-            new StopWord { Id = 100, Word = "spam", ExactMatch = true },
-            new StopWord { Id = 200, Word = "virus", ExactMatch = true }
+            new StopWord { Id = 100, Word = "spam", MatchTypeId = (int)StopWordMatchTypeCode.ExactSymbols },
+            new StopWord { Id = 200, Word = "virus", MatchTypeId = (int)StopWordMatchTypeCode.ExactSymbols }
         };
 
         var svc = CreateService(ctx);
@@ -334,7 +335,7 @@ public class OrderValidationServiceTests
         using var ctx = CreateContext();
         var order = new WbrOrder { Id = 1, RegisterId = 1, ProductName = null, TnVed = "1234567890" };
         ctx.Orders.Add(order);
-        ctx.StopWords.Add(new StopWord { Id = 1, Word = "spam", ExactMatch = true });
+        ctx.StopWords.Add(new StopWord { Id = 1, Word = "spam", MatchTypeId = (int)StopWordMatchTypeCode.ExactSymbols });
         await ctx.SaveChangesAsync();
 
         var svc = CreateService(ctx);
@@ -352,7 +353,7 @@ public class OrderValidationServiceTests
         using var ctx = CreateContext();
         var order = new WbrOrder { Id = 1, RegisterId = 1, CheckStatusId = 1, ProductName = "Test product", TnVed = "123abc7890" };
         ctx.Orders.Add(order);
-        ctx.StopWords.Add(new StopWord { Id = 2, Word = "test", ExactMatch = true });
+        ctx.StopWords.Add(new StopWord { Id = 2, Word = "test", MatchTypeId = (int)StopWordMatchTypeCode.ExactSymbols });
         await ctx.SaveChangesAsync();
 
         var svc = CreateService(ctx);
@@ -371,7 +372,7 @@ public class OrderValidationServiceTests
         using var ctx = CreateContext();
         var order = new WbrOrder { Id = 1, RegisterId = 1, CheckStatusId = 1, ProductName = "Test product", TnVed = "12345" };
         ctx.Orders.Add(order);
-        ctx.StopWords.Add(new StopWord { Id = 2, Word = "test", ExactMatch = true });
+        ctx.StopWords.Add(new StopWord { Id = 2, Word = "test", MatchTypeId = (int)StopWordMatchTypeCode.ExactSymbols });
         await ctx.SaveChangesAsync();
 
         var svc = CreateService(ctx);
@@ -404,8 +405,8 @@ public class OrderValidationServiceTests
 
         // Add stop words that should match
         ctx.StopWords.AddRange(
-            new StopWord { Id = 200, Word = "restricted", ExactMatch = true },
-            new StopWord { Id = 201, Word = "banned", ExactMatch = true }
+            new StopWord { Id = 200, Word = "restricted", MatchTypeId = (int)StopWordMatchTypeCode.ExactSymbols },
+            new StopWord { Id = 201, Word = "banned", MatchTypeId = (int)StopWordMatchTypeCode.ExactSymbols }
         );
 
         // Create order with TnVed that matches the FEACN prefix and product name with stop words
@@ -467,7 +468,7 @@ public class OrderValidationServiceTests
         ctx.FeacnPrefixes.Add(feacnPrefix);
 
         // Add stop words that won't match
-        ctx.StopWords.Add(new StopWord { Id = 200, Word = "nonexistent", ExactMatch = true });
+        ctx.StopWords.Add(new StopWord { Id = 200, Word = "nonexistent", MatchTypeId = (int)StopWordMatchTypeCode.ExactSymbols });
 
         var order = new WbrOrder
         {
@@ -522,7 +523,7 @@ public class OrderValidationServiceTests
         ctx.FeacnPrefixes.Add(feacnPrefix);
 
         // Add stop word that will match
-        ctx.StopWords.Add(new StopWord { Id = 200, Word = "test", ExactMatch = true });
+        ctx.StopWords.Add(new StopWord { Id = 200, Word = "test", MatchTypeId = (int)StopWordMatchTypeCode.ExactSymbols });
 
         var order = new WbrOrder
         {
@@ -570,7 +571,7 @@ public class OrderValidationServiceTests
         ctx.FeacnPrefixes.Add(feacnPrefix);
 
         // Add stop word that will also match
-        ctx.StopWords.Add(new StopWord { Id = 200, Word = "product", ExactMatch = true });
+        ctx.StopWords.Add(new StopWord { Id = 200, Word = "product", MatchTypeId = (int)StopWordMatchTypeCode.ExactSymbols });
 
         // Create order with TnVed that falls within the interval range
         var order = new WbrOrder

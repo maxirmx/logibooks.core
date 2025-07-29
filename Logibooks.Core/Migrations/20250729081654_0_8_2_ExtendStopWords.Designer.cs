@@ -3,6 +3,7 @@ using System;
 using Logibooks.Core.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Logibooks.Core.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250729081654_0_8_2_ExtendStopWords")]
+    partial class _0_8_2_ExtendStopWords
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -86,7 +89,7 @@ namespace Logibooks.Core.Migrations
 
                     b.HasIndex("FeacnPrefixId");
 
-                    b.ToTable("base_order_feacn_prefixes", (string)null);
+                    b.ToTable("base_order_feacn_prefixes");
                 });
 
             modelBuilder.Entity("Logibooks.Core.Models.BaseOrderStopWord", b =>
@@ -103,7 +106,7 @@ namespace Logibooks.Core.Migrations
 
                     b.HasIndex("StopWordId");
 
-                    b.ToTable("base_order_stop_words", (string)null);
+                    b.ToTable("base_order_stop_words");
                 });
 
             modelBuilder.Entity("Logibooks.Core.Models.Company", b =>
@@ -161,7 +164,7 @@ namespace Logibooks.Core.Migrations
                     b.HasIndex("Inn")
                         .IsUnique();
 
-                    b.ToTable("companies", (string)null);
+                    b.ToTable("companies");
 
                     b.HasData(
                         new
@@ -245,7 +248,7 @@ namespace Logibooks.Core.Migrations
 
                     b.HasKey("IsoNumeric");
 
-                    b.ToTable("countries", (string)null);
+                    b.ToTable("countries");
 
                     b.HasData(
                         new
@@ -283,7 +286,7 @@ namespace Logibooks.Core.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("customs_procedures", (string)null);
+                    b.ToTable("customs_procedures");
 
                     b.HasData(
                         new
@@ -327,7 +330,7 @@ namespace Logibooks.Core.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("feacn_orders", (string)null);
+                    b.ToTable("feacn_orders");
 
                     b.HasData(
                         new
@@ -406,7 +409,7 @@ namespace Logibooks.Core.Migrations
 
                     b.HasIndex("FeacnOrderId");
 
-                    b.ToTable("feacn_prefixes", (string)null);
+                    b.ToTable("feacn_prefixes");
                 });
 
             modelBuilder.Entity("Logibooks.Core.Models.FeacnPrefixException", b =>
@@ -431,7 +434,7 @@ namespace Logibooks.Core.Migrations
 
                     b.HasIndex("FeacnPrefixId");
 
-                    b.ToTable("feacn_prefix_exceptions", (string)null);
+                    b.ToTable("feacn_prefix_exceptions");
                 });
 
             modelBuilder.Entity("Logibooks.Core.Models.OrderCheckStatus", b =>
@@ -450,7 +453,7 @@ namespace Logibooks.Core.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("check_statuses", (string)null);
+                    b.ToTable("check_statuses");
 
                     b.HasData(
                         new
@@ -501,7 +504,7 @@ namespace Logibooks.Core.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("statuses", (string)null);
+                    b.ToTable("statuses");
 
                     b.HasData(
                         new
@@ -563,7 +566,7 @@ namespace Logibooks.Core.Migrations
 
                     b.HasIndex("TransportationTypeId");
 
-                    b.ToTable("registers", (string)null);
+                    b.ToTable("registers");
                 });
 
             modelBuilder.Entity("Logibooks.Core.Models.Role", b =>
@@ -587,7 +590,7 @@ namespace Logibooks.Core.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("roles", (string)null);
+                    b.ToTable("roles");
 
                     b.HasData(
                         new
@@ -629,7 +632,7 @@ namespace Logibooks.Core.Migrations
                     b.HasIndex(new[] { "Word" }, "IX_stop_words_word")
                         .IsUnique();
 
-                    b.ToTable("stop_words", (string)null);
+                    b.ToTable("stop_words");
                 });
 
             modelBuilder.Entity("Logibooks.Core.Models.StopWordMatchType", b =>
@@ -648,7 +651,7 @@ namespace Logibooks.Core.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("stop_word_match_type", (string)null);
+                    b.ToTable("stop_word_match_type");
 
                     b.HasData(
                         new
@@ -703,7 +706,7 @@ namespace Logibooks.Core.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("transportation_types", (string)null);
+                    b.ToTable("transportation_types");
 
                     b.HasData(
                         new
@@ -759,7 +762,7 @@ namespace Logibooks.Core.Migrations
                     b.HasIndex("Email")
                         .IsUnique();
 
-                    b.ToTable("users", (string)null);
+                    b.ToTable("users");
 
                     b.HasData(
                         new
@@ -805,7 +808,7 @@ namespace Logibooks.Core.Migrations
 
                     b.HasIndex("RoleId");
 
-                    b.ToTable("user_roles", (string)null);
+                    b.ToTable("user_roles");
 
                     b.HasData(
                         new
