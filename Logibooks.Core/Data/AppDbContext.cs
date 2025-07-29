@@ -348,8 +348,7 @@ namespace Logibooks.Core.Data
             modelBuilder.Entity<StopWordMatchType>().HasData(
                 new StopWordMatchType { Id = (int)StopWordMatchTypeCode.ExactSymbols, Name = "Точная последовательность букв, цифр и проблелов" },
                 new StopWordMatchType { Id = (int)StopWordMatchTypeCode.ExactWord, Name = "Точное слово" },
-                new StopWordMatchType { Id = (int)StopWordMatchTypeCode.AllWords, Name = "Все слова" },
-                new StopWordMatchType { Id = (int)StopWordMatchTypeCode.Phrase, Name = "Фраза с учётом пробелов" },
+                new StopWordMatchType { Id = (int)StopWordMatchTypeCode.Phrase, Name = "Фраза (последовательность слов)" },
                 new StopWordMatchType { Id = (int)StopWordMatchTypeCode.WeakMorphology, Name = "Слово и его формы (Золото -> c золотом, о золоте, ..." },
                 new StopWordMatchType { Id = (int)StopWordMatchTypeCode.StrongMorphology, Name = "Слово и однокоренные (Золото -> золотой, золотистый, ..." }
             );

@@ -205,7 +205,7 @@ public class OrderIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServic
                 .Include(o => o.Register).ThenInclude(r => r.TransportationType)
                 .Include(o => o.Register).ThenInclude(r => r.CustomsProcedure)
                 .Include(o => o.Register).ThenInclude(r => r.Company)
-                    .ThenInclude(c => c.Country)
+                    .ThenInclude(c => c!.Country)
                 .Where(o => o.RegisterId == registerId)
                 .GroupBy(o => o.Shk)
                 .Select(g => g.First())
@@ -220,7 +220,7 @@ public class OrderIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServic
                 .Include(o => o.Register).ThenInclude(r => r.TransportationType)
                 .Include(o => o.Register).ThenInclude(r => r.CustomsProcedure)
                 .Include(o => o.Register).ThenInclude(r => r.Company)
-                    .ThenInclude(c => c.Country)
+                    .ThenInclude(c => c!.Country)
                 .Where(o => o.RegisterId == registerId)
                 .GroupBy(o => o.PostingNumber)
                 .Select(g => g.First())
@@ -235,7 +235,7 @@ public class OrderIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServic
                 .Include(o => o.Register).ThenInclude(r => r.TransportationType)
                 .Include(o => o.Register).ThenInclude(r => r.CustomsProcedure)
                 .Include(o => o.Register).ThenInclude(r => r.Company)
-                    .ThenInclude(c => c.Country)
+                    .ThenInclude(c => c!.Country)
                 .Where(o => o.RegisterId == registerId)
                 .ToListAsync();
         }

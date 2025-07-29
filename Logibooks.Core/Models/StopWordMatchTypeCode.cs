@@ -30,7 +30,9 @@ public enum StopWordMatchTypeCode
     ExactSymbols = 1,
     ExactWord = 11,
     Phrase = 21,
-    AllWords = 31,
+    MorphologyMatchTypes = 41,
+#pragma warning disable CA1069 // Enums values should not be duplicated
     WeakMorphology = 41,
+#pragma warning restore CA1069 // Enums values should not be duplicated
     StrongMorphology = 51
 }

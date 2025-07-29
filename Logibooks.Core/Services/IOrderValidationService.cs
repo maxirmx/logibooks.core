@@ -25,6 +25,7 @@
 
 using Logibooks.Core.Models;
 using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
 [assembly: InternalsVisibleTo("Logibooks.Core.Tests")]
 
 namespace Logibooks.Core.Services;
@@ -42,5 +43,7 @@ public interface IOrderValidationService
 
 public class StopWordsContext
 {
-    internal List<StopWord> ExactMatchStopWords { get; } = new();
+    internal List<StopWord> ExactSymbolsMatchItems { get; } = [];
+    internal List<(StopWord sw, Regex regex)> ExactWordRegexes { get; } = [];
+    internal List<(StopWord sw, Regex regex)> PhraseRegexes { get; } = [];
 }
