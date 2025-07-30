@@ -34,7 +34,7 @@ using Logibooks.Core.Models;
 
 public class MorphologySearchService : IMorphologySearchService
 {
-    private static readonly Regex WordRegex = new Regex(@"\p{L}+", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+    private static readonly Regex WordRegex = new(@"\p{L}+", RegexOptions.Compiled | RegexOptions.CultureInvariant);
     
     static MorphologySearchService()
     {
@@ -47,18 +47,30 @@ public class MorphologySearchService : IMorphologySearchService
         if (string.IsNullOrWhiteSpace(word))
             return word;
             
-        var morphs = MorphologyService.GetAllWordforms(word.ToUpperInvariant(), Pullenti.Morph.MorphLang.RU);
+        var morphs = MorphologyService.GetAllWordforms(word.ToUpperInvariant(), MorphLang.RU);
         return morphs.Count > 0 ? morphs.First().NormalCase.ToUpperInvariant() : word.ToUpperInvariant();
     }
 
-    public bool CheckWord(string word)
+    public MorphologySupportLevel CheckWord(string word)
     {
         if (string.IsNullOrWhiteSpace(word))
-            return false;
-            
+            return MorphologySupportLevel.NoSupport;
+        
         var normalForm = GetNormalForm(word);
-        var morphs = MorphologyService.GetAllWordforms(normalForm, Pullenti.Morph.MorphLang.RU);
-        return morphs.Count > 0 && morphs.Any(m => m.NormalCase == normalForm);
+        var morphs = MorphologyService.GetAllWordforms(normalForm, MorphLang.RU);
+        var groups = DerivateService.FindDerivates(normalForm, true, MorphLang.RU);
+
+        bool hasMorphs = morphs != null && morphs.Count > 0;
+        bool hasGroups = groups != null && groups.Any();
+
+        if (!hasMorphs && !hasGroups)
+            return MorphologySupportLevel.NoSupport;
+        if (hasMorphs && !hasGroups)
+            return MorphologySupportLevel.FormsSupport;
+        if (hasMorphs && hasGroups)
+            return MorphologySupportLevel.FullSupport;
+        // If only groups, but not morphs (should not happen, but for completeness)
+        return MorphologySupportLevel.NoSupport;
     }
 
     public MorphologyContext InitializeContext(IEnumerable<StopWord> stopWords)
@@ -71,7 +83,7 @@ public class MorphologySearchService : IMorphologySearchService
                 
             // Get the normal form first, then find derivatives
             var normalForm = GetNormalForm(sw.Word);
-            var groups = DerivateService.FindDerivates(normalForm, true, Pullenti.Morph.MorphLang.RU);
+            var groups = DerivateService.FindDerivates(normalForm, true, MorphLang.RU);
             if (groups == null || !groups.Any())
                 continue;
                 

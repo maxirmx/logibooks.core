@@ -154,17 +154,6 @@ public class LogibooksControllerPreBase(AppDbContext db, ILogger logger) : Contr
             StatusCode = StatusCodes.Status500InternalServerError
         };
     }
-    protected ObjectResult _501MorphologyValidation(string word)
-    {
-        return StatusCode(StatusCodes.Status501NotImplemented,
-                          new ErrMessage
-                          {
-                              Msg = $"Слово '{word}' отсутсвует в словаре системы " +
-                              "и не может быть использовано для поиска морфологического соотвествия. " +
-                              "Используйте точное соответствие"
-                          });
-    }
-
     protected ObjectResult _404Handle(Guid handleId)
     {
         return StatusCode(StatusCodes.Status404NotFound,

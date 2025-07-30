@@ -346,4 +346,22 @@ public class MorphologySearchServiceTests
         // doesn't handle very short words well
         Assert.That(result, Is.Not.Null);
     }
+
+    [Test]
+    public void CheckWord_ReturnsExpectedSupportLevel()
+    {
+        // Case: NoSupport (nonsense word)
+        var noSupport = _service.CheckWord("xyzxyzxyz");
+        Assert.That(noSupport, Is.EqualTo(MorphologySupportLevel.NoSupport));
+
+        // Case: FormsSupport (word with forms but no derivatives)
+        // This is hard to guarantee, but we can try a rare word or fallback to a known case
+        // If not possible, skip this assertion
+        // var formsSupport = _service.CheckWord("тестирование");
+        // Assert.That(formsSupport == MorphologySupportLevel.FormsSupport || formsSupport == MorphologySupportLevel.FullSupport);
+
+        // Case: FullSupport (common word)
+        var fullSupport = _service.CheckWord("дом");
+        Assert.That(fullSupport, Is.EqualTo(MorphologySupportLevel.FullSupport));
+    }
 }

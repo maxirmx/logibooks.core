@@ -40,7 +40,7 @@ using Logibooks.Core.Models;
 using Logibooks.Core.RestModels;
 using Logibooks.Core.Services;
 using System.Collections.Generic;
-
+using MorphologySupportLevel = Logibooks.Core.Services.MorphologySupportLevel;
 
 namespace Logibooks.Core.Tests.Controllers;
 
@@ -93,9 +93,9 @@ public class StopWordsControllerTests
         _mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
         _mockMorphologySearchService = new Mock<IMorphologySearchService>();
         
-        // Setup default behavior: return true for all words unless specifically overridden
+        // Setup default behavior: return FullSupport for all words unless specifically overridden
         _mockMorphologySearchService.Setup(x => x.CheckWord(It.IsAny<string>()))
-            .Returns(true);
+            .Returns(MorphologySupportLevel.FullSupport);
 
         _logger = new LoggerFactory().CreateLogger<StopWordsController>();
         _userService = new UserInformationService(_dbContext);
@@ -142,8 +142,8 @@ public class StopWordsControllerTests
         SetCurrentUserId(1);
         
         // Setup mock to allow this specific test word to pass morphology validation
-        _mockMorphologySearchService.Setup(x => x.CheckWord("проверка")).Returns(true);
-        _mockMorphologySearchService.Setup(x => x.CheckWord("обновление")).Returns(true);
+        _mockMorphologySearchService.Setup(x => x.CheckWord("проверка")).Returns(MorphologySupportLevel.FullSupport);
+        _mockMorphologySearchService.Setup(x => x.CheckWord("обновление")).Returns(MorphologySupportLevel.FullSupport);
         
         var dto = new StopWordDto { Word = "test", MatchTypeId = (int)StopWordMatchTypeCode.StrongMorphology };
         var created = await _controller.PostStopWord(dto);
@@ -337,24 +337,34 @@ public class StopWordsControllerTests
     }
 
     [Test]
-    public async Task PostStopWord_Returns501_WhenMorphologyValidationFails()
+    public async Task PostStopWord_Returns418_WhenMorphologySupportLevelIsNoSupportOrFormsSupport()
     {
         SetCurrentUserId(1); // Admin user
-        
-        // Setup mock to return false for morphology validation
-        _mockMorphologySearchService.Setup(x => x.CheckWord("hello"))
-            .Returns(false);
-        
-        var dto = new StopWordDto { Word = "hello", MatchTypeId = (int)StopWordMatchTypeCode.StrongMorphology };
-        var result = await _controller.PostStopWord(dto);
+        // MorphologyMatchTypes + NoSupport
+        _mockMorphologySearchService.Setup(x => x.CheckWord("noform")).Returns(MorphologySupportLevel.NoSupport);
+        var dto1 = new StopWordDto { Word = "noform", MatchTypeId = (int)StopWordMatchTypeCode.MorphologyMatchTypes };
+        var result1 = await _controller.PostStopWord(dto1);
+        Assert.That(result1.Result, Is.TypeOf<ObjectResult>());
+        var obj1 = result1.Result as ObjectResult;
+        Assert.That(obj1!.StatusCode, Is.EqualTo(418));
+        Assert.That(obj1.Value, Is.InstanceOf<MorphologySupportLevelDto>());
+        var mslDto1 = obj1.Value as MorphologySupportLevelDto;
+        Assert.That(mslDto1!.Word, Is.EqualTo("noform"));
+        Assert.That(mslDto1.Level, Is.EqualTo((int)MorphologySupportLevel.NoSupport));
+        Assert.That(mslDto1.Msg, Does.Contain("отсутствует в словаре"));
 
-        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
-        var obj = result.Result as ObjectResult;
-        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status501NotImplemented));
-        Assert.That(obj.Value, Is.InstanceOf<ErrMessage>());
-        var err = obj.Value as ErrMessage;
-        Assert.That(err!.Msg, Does.Contain("hello"));
-        Assert.That(err.Msg, Does.Contain("отсутсвует в словаре"));
+        // StrongMorphology + FormsSupport
+        _mockMorphologySearchService.Setup(x => x.CheckWord("onlyforms")).Returns(MorphologySupportLevel.FormsSupport);
+        var dto2 = new StopWordDto { Word = "onlyforms", MatchTypeId = (int)StopWordMatchTypeCode.StrongMorphology };
+        var result2 = await _controller.PostStopWord(dto2);
+        Assert.That(result2.Result, Is.TypeOf<ObjectResult>());
+        var obj2 = result2.Result as ObjectResult;
+        Assert.That(obj2!.StatusCode, Is.EqualTo(418));
+        Assert.That(obj2.Value, Is.InstanceOf<MorphologySupportLevelDto>());
+        var mslDto2 = obj2.Value as MorphologySupportLevelDto;
+        Assert.That(mslDto2!.Word, Is.EqualTo("onlyforms"));
+        Assert.That(mslDto2.Level, Is.EqualTo((int)MorphologySupportLevel.FormsSupport));
+        Assert.That(mslDto2.Msg, Does.Contain("не поддерживается словарём"));
     }
 
     [Test]
@@ -362,9 +372,9 @@ public class StopWordsControllerTests
     {
         SetCurrentUserId(1); // Admin user
         
-        // Setup mock to return true for morphology validation
+        // Setup mock to return FullSupport for morphology validation
         _mockMorphologySearchService.Setup(x => x.CheckWord("тест"))
-            .Returns(true);
+            .Returns(MorphologySupportLevel.FullSupport);
         
         var dto = new StopWordDto { Word = "тест", MatchTypeId = (int)StopWordMatchTypeCode.StrongMorphology };
         var result = await _controller.PostStopWord(dto);
@@ -398,29 +408,38 @@ public class StopWordsControllerTests
     }
 
     [Test]
-    public async Task PutStopWord_Returns501_WhenMorphologyValidationFails()
+    public async Task PutStopWord_Returns418_WhenMorphologySupportLevelIsNoSupportOrFormsSupport()
     {
         SetCurrentUserId(1); // Admin user
-        
-        // Create an existing stop word
-        var existingWord = new StopWord { Id = 200, Word = "существующий", MatchTypeId = (int)StopWordMatchTypeCode.StrongMorphology };
-        _dbContext.StopWords.Add(existingWord);
+        var sw = new StopWord { Id = 300, Word = "old", MatchTypeId = (int)StopWordMatchTypeCode.StrongMorphology };
+        _dbContext.StopWords.Add(sw);
         await _dbContext.SaveChangesAsync();
-        
-        // Setup mock to return false for morphology validation
-        _mockMorphologySearchService.Setup(x => x.CheckWord("invalid"))
-            .Returns(false);
-        
-        var dto = new StopWordDto { Id = 200, Word = "invalid", MatchTypeId = (int)StopWordMatchTypeCode.StrongMorphology };
-        var result = await _controller.PutStopWord(200, dto);
 
-        Assert.That(result, Is.TypeOf<ObjectResult>());
-        var obj = result as ObjectResult;
-        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status501NotImplemented));
-        Assert.That(obj.Value, Is.InstanceOf<ErrMessage>());
-        var err = obj.Value as ErrMessage;
-        Assert.That(err!.Msg, Does.Contain("invalid"));
-        Assert.That(err.Msg, Does.Contain("отсутсвует в словаре"));
+        // MorphologyMatchTypes + NoSupport
+        _mockMorphologySearchService.Setup(x => x.CheckWord("noform")).Returns(MorphologySupportLevel.NoSupport);
+        var dto1 = new StopWordDto { Id = 300, Word = "noform", MatchTypeId = (int)StopWordMatchTypeCode.MorphologyMatchTypes };
+        var result1 = await _controller.PutStopWord(300, dto1);
+        Assert.That(result1, Is.TypeOf<ObjectResult>());
+        var obj1 = result1 as ObjectResult;
+        Assert.That(obj1!.StatusCode, Is.EqualTo(418));
+        Assert.That(obj1.Value, Is.InstanceOf<MorphologySupportLevelDto>());
+        var mslDto1 = obj1.Value as MorphologySupportLevelDto;
+        Assert.That(mslDto1!.Word, Is.EqualTo("noform"));
+        Assert.That(mslDto1.Level, Is.EqualTo((int)MorphologySupportLevel.NoSupport));
+        Assert.That(mslDto1.Msg, Does.Contain("отсутствует в словаре"));
+
+        // StrongMorphology + FormsSupport
+        _mockMorphologySearchService.Setup(x => x.CheckWord("onlyforms")).Returns(MorphologySupportLevel.FormsSupport);
+        var dto2 = new StopWordDto { Id = 300, Word = "onlyforms", MatchTypeId = (int)StopWordMatchTypeCode.StrongMorphology };
+        var result2 = await _controller.PutStopWord(300, dto2);
+        Assert.That(result2, Is.TypeOf<ObjectResult>());
+        var obj2 = result2 as ObjectResult;
+        Assert.That(obj2!.StatusCode, Is.EqualTo(418));
+        Assert.That(obj2.Value, Is.InstanceOf<MorphologySupportLevelDto>());
+        var mslDto2 = obj2.Value as MorphologySupportLevelDto;
+        Assert.That(mslDto2!.Word, Is.EqualTo("onlyforms"));
+        Assert.That(mslDto2.Level, Is.EqualTo((int)MorphologySupportLevel.FormsSupport));
+        Assert.That(mslDto2.Msg, Does.Contain("не поддерживается словарём"));
     }
 
     [Test]
@@ -433,9 +452,8 @@ public class StopWordsControllerTests
         _dbContext.StopWords.Add(existingWord);
         await _dbContext.SaveChangesAsync();
         
-        // Setup mock to return true for morphology validation
-        _mockMorphologySearchService.Setup(x => x.CheckWord("новый"))
-            .Returns(true);
+        // Setup mock to return FullSupport for morphology validation
+        _mockMorphologySearchService.Setup(x => x.CheckWord("новый")).Returns(MorphologySupportLevel.FullSupport);
         
         var dto = new StopWordDto { Id = 201, Word = "новый", MatchTypeId = (int)StopWordMatchTypeCode.StrongMorphology };
         var result = await _controller.PutStopWord(201, dto);

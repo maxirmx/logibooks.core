@@ -71,20 +71,26 @@ public class StopWordsController(
     [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(StopWordDto))]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status409Conflict, Type = typeof(ErrMessage))]
-    [ProducesResponseType(StatusCodes.Status501NotImplemented, Type = typeof(ErrMessage))]
+    [ProducesResponseType(StatusCodes.Status418ImATeapot, Type = typeof(MorphologySupportLevelDto))]
     public async Task<ActionResult<StopWordDto>> PostStopWord(StopWordDto dto)
     {
         if (!await _userService.CheckAdmin(_curUserId)) return _403();
-        
-        if (dto.MatchTypeId == (int)StopWordMatchTypeCode.StrongMorphology)
+
+        if (dto.MatchTypeId >= (int)StopWordMatchTypeCode.MorphologyMatchTypes)
         {
-            if (!_morphologySearchService.CheckWord(dto.Word))
+            var checkResult = _morphologySearchService.CheckWord(dto.Word);
+            if (
+                checkResult == MorphologySupportLevel.NoSupport ||
+                (dto.MatchTypeId >= (int)StopWordMatchTypeCode.StrongMorphology && checkResult == MorphologySupportLevel.FormsSupport)
+            )
             {
-                _logger.LogDebug("PostStopWord returning '501 Not Implemented' - morphology validation failed for word: {word}", dto.Word);
-                return _501MorphologyValidation(dto.Word);
+                return StatusCode(StatusCodes.Status418ImATeapot, new MorphologySupportLevelDto {
+                    Word = dto.Word,
+                    Level = (int)checkResult
+                });
             }
         }
-        
+
         if (await _db.StopWords.AnyAsync(sw => sw.Word.ToLower() == dto.Word.ToLower()))
         {
             return _409StopWord(dto.Word);
@@ -110,7 +116,7 @@ public class StopWordsController(
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status409Conflict, Type = typeof(ErrMessage))]
-    [ProducesResponseType(StatusCodes.Status501NotImplemented, Type = typeof(ErrMessage))]
+    [ProducesResponseType(StatusCodes.Status418ImATeapot, Type = typeof(MorphologySupportLevelDto))]
     public async Task<IActionResult> PutStopWord(int id, StopWordDto dto)
     {
         if (!await _userService.CheckAdmin(_curUserId)) return _403();
@@ -118,15 +124,21 @@ public class StopWordsController(
         var sw = await _db.StopWords.FindAsync(id);
         if (sw == null) return _404Object(id);
 
-        if (dto.MatchTypeId == (int)StopWordMatchTypeCode.StrongMorphology)
+        if (dto.MatchTypeId >= (int)StopWordMatchTypeCode.MorphologyMatchTypes)
         {
-            if (!_morphologySearchService.CheckWord(dto.Word))
+            var checkResult = _morphologySearchService.CheckWord(dto.Word);
+            if (
+                checkResult == MorphologySupportLevel.NoSupport ||
+                (dto.MatchTypeId >= (int)StopWordMatchTypeCode.StrongMorphology && checkResult == MorphologySupportLevel.FormsSupport)
+            )
             {
-                _logger.LogDebug("PutStopWord returning '501 Not Implemented' - morphology validation failed for word: {word}", dto.Word);
-                return _501MorphologyValidation(dto.Word);
+                return StatusCode(StatusCodes.Status418ImATeapot, new MorphologySupportLevelDto {
+                    Word = dto.Word,
+                    Level = (int)checkResult
+                });
             }
         }
-        
+
         if (!sw.Word.Equals(dto.Word, StringComparison.OrdinalIgnoreCase) &&
             await _db.StopWords.AnyAsync(w => w.Word.ToLower() == dto.Word.ToLower()))
         {

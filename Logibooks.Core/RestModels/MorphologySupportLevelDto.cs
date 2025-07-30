@@ -1,4 +1,4 @@
-// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
+﻿// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
 // All rights reserved.
 // This file is a part of Logibooks Core application
 //
@@ -23,27 +23,24 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-using Logibooks.Core.Models;
+using Logibooks.Core.Services;
 
-namespace Logibooks.Core.Services;
-
-public enum MorphologySupportLevel
+namespace Logibooks.Core.RestModels;
+public class MorphologySupportLevelDto
 {
-    NoSupport,
-    FormsSupport,
-    FullSupport
+    public required int Level { get; set; }
+    public required string Word { get; set; }
+    public string Msg => ToString();
+    public override string ToString()
+    {
+        if (Level == (int)MorphologySupportLevel.NoSupport)
+            return $"Слово '{Word}' отсутствует в словаре системы " +
+            "и не может быть использовано для поиска морфологического соотвествия. " +
+            "Используйте точное соответствие";
+        if (Level == (int)MorphologySupportLevel.FormsSupport)
+            return $"Поиск однокоренных слов для '{Word}' не поддерживается словарём системы. " +
+            "Используйте поиск форм слова.";
+        return String.Empty;
+    }
 }
 
-
-
-public interface IMorphologySearchService
-{
-    MorphologyContext InitializeContext(IEnumerable<StopWord> stopWords);
-    IEnumerable<int> CheckText(MorphologyContext context, string text);
-    MorphologySupportLevel CheckWord(string word);
-}
-
-public class MorphologyContext
-{
-    internal Dictionary<Pullenti.Semantic.Utils.DerivateGroup, HashSet<int>> Groups { get; } = new();
-}
