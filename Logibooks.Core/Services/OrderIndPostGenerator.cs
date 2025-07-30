@@ -98,31 +98,31 @@ public class OrderIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServic
             fields["PERSONSURNAME"] = order.GetSurName();
             fields["PERSONNAME"] = order.GetName();
             fields["PERSONMIDDLENAME"] = order.GetMiddleName();
-            fields["CONSIGNEE_ADDRESS_COUNTRYCODE"] = register?.DestinationCountry?.IsoAlpha2 ?? Placeholders.NotSet;
-            fields["CONSIGNEE_ADDRESS_COUNRYNAME"] = register?.DestinationCountry?.NameRuShort ?? Placeholders.NotSet;
+            fields["CONSIGNEE_ADDRESS_COUNTRYCODE"] = SetOrDefault(register?.DestinationCountry?.IsoAlpha2); 
+            fields["CONSIGNEE_ADDRESS_COUNRYNAME"] = SetOrDefault(register?.DestinationCountry?.NameRuShort);
             fields["CITY"] = order.GetCity();
             fields["STREETHOUSE"] = order.GetStreet();
 
             fields["CONSIGNOR_CHOICE"] = "2";
-            fields["SENDER"] = register?.Company?.ShortName ?? Placeholders.NotSet;
-            fields["CONSIGNOR_RFORGANIZATIONFEATURES_KPP"] = register?.Company?.Kpp ?? Placeholders.NotSet;
-            fields["CONSIGNOR_RFORGANIZATIONFEATURES_INN"] = register?.Company?.Inn ?? Placeholders.NotSet; 
-            fields["CONSIGNOR_ADDRESS_POSTALCODE"] = register?.Company?.PostalCode ?? Placeholders.NotSet;
-            fields["CONSIGNOR_ADDRESS_CITY"] = register?.Company?.City ?? Placeholders.NotSet;
-            fields["CONSIGNOR_ADDRESS_STREETHOUSE"] = register?.Company?.Street ?? Placeholders.NotSet;
-            fields["COUNTRYCODE"] = register?.Company?.Country.IsoAlpha2 ?? Placeholders.NotSet;
-            fields["COUNTRYNAME"] = register?.Company?.Country.NameRuShort ?? Placeholders.NotSet;
+            fields["SENDER"] = SetOrDefault(register?.Company?.ShortName);
+            fields["CONSIGNOR_RFORGANIZATIONFEATURES_KPP"] = SetOrDefault(register?.Company?.Kpp);
+            fields["CONSIGNOR_RFORGANIZATIONFEATURES_INN"] = SetOrDefault(register?.Company?.Inn);
+            fields["CONSIGNOR_ADDRESS_POSTALCODE"] = SetOrDefault(register?.Company?.PostalCode);
+            fields["CONSIGNOR_ADDRESS_CITY"] = SetOrDefault(register?.Company?.City);
+            fields["CONSIGNOR_ADDRESS_STREETHOUSE"] = SetOrDefault(register?.Company?.Street);
+            fields["COUNTRYCODE"] = SetOrDefault(register?.Company?.Country.IsoAlpha2);
+            fields["COUNTRYNAME"] = SetOrDefault(register?.Company?.Country.NameRuShort);
         }
         else if (register?.CustomsProcedure?.Code == 60)
         {
             fields["CONSIGNEE_CHOICE"] = "2";
-            fields["CONSIGNEE_SHORTNAME"] = register?.Company?.ShortName ?? Placeholders.NotSet;
-            fields["CONSIGNEE_RFORGANIZATIONFEATURES_KPP"] = register?.Company?.Kpp ?? Placeholders.NotSet;
-            fields["CONSIGNEE_ADDRESS_COUNTRYCODE"] = register?.Company?.Country.IsoAlpha2 ?? Placeholders.NotSet;
-            fields["CONSIGNEE_ADDRESS_COUNRYNAME"] = register?.Company?.Country.NameRuShort ?? Placeholders.NotSet;
-            fields["RFORGANIZATIONFEATURES_INN"] = register?.Company?.Inn ?? Placeholders.NotSet;
-            fields["CITY"] = register?.Company?.City ?? Placeholders.NotSet;
-            fields["STREETHOUSE"] = register?.Company?.Street ?? Placeholders.NotSet;
+            fields["CONSIGNEE_SHORTNAME"] = SetOrDefault(register?.Company?.ShortName);
+            fields["CONSIGNEE_RFORGANIZATIONFEATURES_KPP"] = SetOrDefault(register?.Company?.Kpp);
+            fields["CONSIGNEE_ADDRESS_COUNTRYCODE"] = SetOrDefault(register?.Company?.Country.IsoAlpha2);
+            fields["CONSIGNEE_ADDRESS_COUNRYNAME"] = SetOrDefault(register?.Company?.Country.NameRuShort);
+            fields["RFORGANIZATIONFEATURES_INN"] = SetOrDefault(register?.Company?.Inn);
+            fields["CITY"] = SetOrDefault(register?.Company?.City);
+            fields["STREETHOUSE"] = SetOrDefault(register?.Company?.Street);
 
             fields["CONSIGNOR_CHOICE"] = "1";
             fields["SENDER"] = order.GetFullName();
@@ -131,8 +131,8 @@ public class OrderIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServic
             fields["CONSIGNOR_IDENTITYCARD_IDENTITYCARDNUMBER"] = order.GetNumber();
             fields["CONSIGNOR_ADDRESS_CITY"] = order.GetCity();
             fields["CONSIGNOR_ADDRESS_STREETHOUSE"] = order.GetStreet();
-            fields["COUNTRYCODE"] = register?.DestinationCountry?.IsoAlpha2 ?? Placeholders.NotSet;
-            fields["COUNTRYNAME"] = register?.DestinationCountry?.NameRuShort ?? Placeholders.NotSet;
+            fields["COUNTRYCODE"] = SetOrDefault(register?.DestinationCountry?.IsoAlpha2);
+            fields["COUNTRYNAME"] = SetOrDefault(register?.DestinationCountry?.NameRuShort);
 
         }
 
@@ -254,4 +254,6 @@ public class OrderIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServic
 
         return ($"IndPost_{fileBase}.zip", ms.ToArray());
     }
+
+    private static string SetOrDefault(string? s) => s ?? Placeholders.NotSet;
 }
