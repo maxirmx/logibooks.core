@@ -46,7 +46,8 @@ public class RegistersController(
     IUserInformationService userService,
     ILogger<RegistersController> logger,
     IRegisterValidationService validationService,
-    IRegisterProcessingService processingService) : LogibooksControllerBase(httpContextAccessor, db, logger)
+    IRegisterProcessingService processingService,
+    IOrderIndPostGenerator indPostGenerator) : LogibooksControllerBase(httpContextAccessor, db, logger)
 {
     private readonly IUserInformationService _userService = userService;
 
@@ -70,6 +71,7 @@ public class RegistersController(
     private readonly int maxPageSize = 100;
     private readonly IRegisterValidationService _validationService = validationService;
     private readonly IRegisterProcessingService _processingService = processingService;
+    private readonly IOrderIndPostGenerator _indPostGenerator = indPostGenerator;
 
     [HttpGet("{id}")]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(RegisterViewItem))]
@@ -545,6 +547,31 @@ public class RegistersController(
         var fileName = register.FileName;
 
         return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
+    }
+
+    [HttpGet("{id}/generate")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(FileContentResult))]
+    [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
+    [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
+    public async Task<IActionResult> Generate(int id)
+    {
+        _logger.LogDebug("Generate for id={id}", id);
+
+        if (!await _userService.CheckLogist(_curUserId))
+        {
+            _logger.LogDebug("Generate returning '403 Forbidden'");
+            return _403();
+        }
+
+        var register = await _db.Registers.AsNoTracking().FirstOrDefaultAsync(r => r.Id == id);
+        if (register == null)
+        {
+            _logger.LogDebug("Generate returning '404 Not Found'");
+            return _404Register(id);
+        }
+
+        var (fileName, archive) = await _indPostGenerator.GenerateXML4R(id);
+        return File(archive, "application/zip", fileName);
     }
 
     [HttpGet("nextorder/{orderId}")]

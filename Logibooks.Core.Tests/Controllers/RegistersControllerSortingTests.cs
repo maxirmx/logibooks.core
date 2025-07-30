@@ -58,6 +58,7 @@ public class RegistersControllerSortingTests
     private User _adminUser;
     private RegistersController _controller;
     private Mock<IRegisterProcessingService> _mockProcessingService;
+    private Mock<IOrderIndPostGenerator> _mockIndPostGenerator;
 #pragma warning restore CS8618
     private readonly string testDataDir = Path.Combine(AppContext.BaseDirectory, "test.data");
 
@@ -132,9 +133,10 @@ public class RegistersControllerSortingTests
         _mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
         _mockRegValidationService = new Mock<IRegisterValidationService>();
         _mockProcessingService = new Mock<IRegisterProcessingService>();
+        _mockIndPostGenerator = new Mock<IOrderIndPostGenerator>();
         _logger = new LoggerFactory().CreateLogger<RegistersController>();
         _userService = new UserInformationService(_dbContext);
-        _controller = new RegistersController(_mockHttpContextAccessor.Object, _dbContext, _userService, _logger, _mockRegValidationService.Object, _mockProcessingService.Object);
+        _controller = new RegistersController(_mockHttpContextAccessor.Object, _dbContext, _userService, _logger, _mockRegValidationService.Object, _mockProcessingService.Object, _mockIndPostGenerator.Object);
     }
 
     private void SetCurrentUserId(int id)
@@ -142,7 +144,7 @@ public class RegistersControllerSortingTests
         var ctx = new DefaultHttpContext();
         ctx.Items["UserId"] = id;
         _mockHttpContextAccessor.Setup(x => x.HttpContext).Returns(ctx);
-        _controller = new RegistersController(_mockHttpContextAccessor.Object, _dbContext, _userService, _logger, _mockRegValidationService.Object, _mockProcessingService.Object);
+        _controller = new RegistersController(_mockHttpContextAccessor.Object, _dbContext, _userService, _logger, _mockRegValidationService.Object, _mockProcessingService.Object, _mockIndPostGenerator.Object);
     }
 
     // Move all sorting-related tests here and add new ones for extended sorting
