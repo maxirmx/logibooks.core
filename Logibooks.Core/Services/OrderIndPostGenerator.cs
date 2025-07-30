@@ -147,9 +147,7 @@ public class OrderIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServic
         }
         else if (order is WbrOrder wbrOrder)
         {
-            ordersForGoods = _db.WbrOrders.AsNoTracking()
-                .Where(o => o.Shk == wbrOrder.Shk && o.RegisterId == wbrOrder.RegisterId)
-                .ToList<BaseOrder>();
+            ordersForGoods = [.. _db.WbrOrders.AsNoTracking().Where(o => o.Shk == wbrOrder.Shk && o.RegisterId == wbrOrder.RegisterId)];
         }
         else
         {

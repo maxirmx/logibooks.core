@@ -27,26 +27,8 @@ namespace Logibooks.Core.RestModels;
 
 using Logibooks.Core.Models;
 
-public class StopWordMatchTypeDto
+public class StopWordMatchTypeDto(StopWordMatchType matchType)
 {
-    public int Id { get; set; }
-    public string Name { get; set; } = string.Empty;
-
-    public StopWordMatchTypeDto()
-    {
-    }
-    public StopWordMatchTypeDto(StopWordMatchType matchType)
-    {
-        Id = matchType.Id;
-        Name = matchType.Name;
-    }
-
-    public StopWordMatchType ToModel()
-    {
-        return new StopWordMatchType
-        {
-            Id = Id,
-            Name = Name
-        };
-    }
+    public int Id { get; set; } = matchType.Id;
+    public string Name { get; set; } = matchType.Name;
 }

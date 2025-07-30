@@ -212,4 +212,23 @@ public class OrderValidationServiceTests
         Assert.That(links.Single().StopWordId, Is.EqualTo(800), "Should have new link only");
         Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)OrderCheckStatusCode.HasIssues));
     }
+
+    [Test]
+    public void GetMatchingStopWordsFromContext_IgnoresEmptyStopWord()
+    {
+        // Arrange
+        var context = new StopWordsContext();
+        var emptyStopWord = new StopWord { Id = 1, Word = string.Empty, MatchTypeId = (int)StopWordMatchTypeCode.ExactSymbols };
+        context.ExactSymbolsMatchItems.Add(emptyStopWord);
+        var productName = "Some product name";
+
+        // Act
+        var result = typeof(OrderValidationService)
+            .GetMethod("GetMatchingStopWordsFromContext", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
+            !.Invoke(null, new object[] { productName, context }) as List<StopWord>;
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result!.Count, Is.EqualTo(0), "Should not match empty stopword");
+    }
 }

@@ -242,4 +242,133 @@ public class OrderIndPostGeneratorTests
             Assert.That(doc.Root?.Name.LocalName, Is.EqualTo("AltaIndPost"));
         }
     }
+
+    [Test]
+    public async Task GenerateXML4R_OzonOrder_IndPostApi_CreatesZipWithUniqueOrders()
+    {
+        // Fetch required related entities from the context
+        var countryRu = await _dbContext.Countries.FirstAsync(c => c.IsoNumeric == 643);
+        var countryUz = await _dbContext.Countries.FirstAsync(c => c.IsoNumeric == 860);
+        var company = await _dbContext.Companies.FirstAsync(c => c.Id == 1);
+        var transportationType = await _dbContext.TransportationTypes.FirstAsync(t => t.Id == 1);
+        var customsProcedure = await _dbContext.CustomsProcedures.FirstAsync(c => c.Id == 1);
+
+        // Ensure company navigation property is set
+        company.Country = countryRu;
+        _dbContext.Companies.Update(company);
+        await _dbContext.SaveChangesAsync();
+
+        var register = new Register {
+            Id = 400,
+            CompanyId = company.Id,
+            Company = company,
+            TransportationTypeId = transportationType.Id,
+            TransportationType = transportationType,
+            CustomsProcedureId = customsProcedure.Id,
+            CustomsProcedure = customsProcedure,
+            FileName = "ozon_zip.xlsx",
+            DTime = DateTime.Now,
+            DestCountryCode = countryUz.IsoNumeric,
+            DestinationCountry = countryUz
+        };
+        _dbContext.Registers.Add(register);
+        await _dbContext.SaveChangesAsync();
+
+        var loadedRegister = await _dbContext.Registers
+            .Include(r => r.Company)
+            .Include(r => r.TransportationType)
+            .Include(r => r.CustomsProcedure)
+            .Include(r => r.DestinationCountry)
+            .FirstAsync(r => r.Id == 400);
+
+        _dbContext.OzonOrders.AddRange(
+            new OzonOrder { Id = 401, RegisterId = 400, Register = loadedRegister, StatusId = 1, CountryCode = countryRu.IsoNumeric, PostingNumber = "X" },
+            new OzonOrder { Id = 402, RegisterId = 400, Register = loadedRegister, StatusId = 1, CountryCode = countryRu.IsoNumeric, PostingNumber = "X" },
+            new OzonOrder { Id = 403, RegisterId = 400, Register = loadedRegister, StatusId = 1, CountryCode = countryRu.IsoNumeric, PostingNumber = "Y" }
+        );
+        await _dbContext.SaveChangesAsync();
+
+        var svc = new OrderIndPostGenerator(_dbContext, new IndPostXmlService());
+        var (fileName, zipData) = await svc.GenerateXML4R(400);
+        using var ms = new MemoryStream(zipData);
+        using var archive = new ZipArchive(ms, ZipArchiveMode.Read);
+        Assert.That(archive.Entries.Count, Is.EqualTo(2));
+        foreach (var entry in archive.Entries)
+        {
+            using var reader = new StreamReader(entry.Open());
+            var xmlContent = reader.ReadToEnd();
+            var doc = XDocument.Parse(xmlContent);
+            Assert.That(doc.Root?.Name.LocalName, Is.EqualTo("AltaIndPost"));
+        }
+    }
+
+    [Test]
+    public void GenerateXML_ThrowsException_WhenOrderNotFound()
+    {
+        var svc = new OrderIndPostGenerator(_dbContext, new IndPostXmlService());
+        var ex = Assert.ThrowsAsync<InvalidOperationException>(async () => await svc.GenerateXML(-999));
+        Assert.That(ex!.Message, Does.Contain("Order not found"));
+    }
+
+    [Test]
+    public async Task GenerateXML4R_ReturnsEmptyZip_WhenNoOrders()
+    {
+        var register = new Register {
+            Id = 500,
+            CompanyId = 1,
+            FileName = "empty.xlsx",
+            DTime = DateTime.Now
+        };
+        _dbContext.Registers.Add(register);
+        await _dbContext.SaveChangesAsync();
+        var svc = new OrderIndPostGenerator(_dbContext, new IndPostXmlService());
+        var (fileName, zipData) = await svc.GenerateXML4R(500);
+        using var ms = new MemoryStream(zipData);
+        using var archive = new ZipArchive(ms, ZipArchiveMode.Read);
+        Assert.That(archive.Entries.Count, Is.EqualTo(0));
+    }
+
+    [Test]
+    public async Task GenerateXML4R_OnlyUniqueOrdersIncluded()
+    {
+        var register = new Register {
+            Id = 600,
+            CompanyId = 1,
+            FileName = "dupes.xlsx",
+            DTime = DateTime.Now
+        };
+        _dbContext.Registers.Add(register);
+        await _dbContext.SaveChangesAsync();
+        var loadedRegister = await _dbContext.Registers.FirstAsync(r => r.Id == 600);
+        _dbContext.OzonOrders.AddRange(
+            new OzonOrder { Id = 601, RegisterId = 600, Register = loadedRegister, StatusId = 1, PostingNumber = "Z" },
+            new OzonOrder { Id = 602, RegisterId = 600, Register = loadedRegister, StatusId = 1, PostingNumber = "Z" },
+            new OzonOrder { Id = 603, RegisterId = 600, Register = loadedRegister, StatusId = 1, PostingNumber = "W" }
+        );
+        await _dbContext.SaveChangesAsync();
+        var svc = new OrderIndPostGenerator(_dbContext, new IndPostXmlService());
+        var (fileName, zipData) = await svc.GenerateXML4R(600);
+        using var ms = new MemoryStream(zipData);
+        using var archive = new ZipArchive(ms, ZipArchiveMode.Read);
+        Assert.That(archive.Entries.Count, Is.EqualTo(2));
+    }
+
+    public class DummyOrder : BaseOrder {
+        public override string GetParcelNumber() => "DUMMY";
+        public override string GetCurrency() => "DUMMY";
+        public override string GetDescription() => "DUMMY";
+        public override string GetQuantity() => "1";
+        public override string GetCost() => "0";
+        public override string GetWeight() => "0";
+        public override string GetUrl() => "";
+        public override string GetCity() => "";
+        public override string GetStreet() => "";
+        public override string GetSurName() => "";
+        public override string GetName() => "";
+        public override string GetMiddleName() => "";
+        public override string GetFullName() => "";
+        public override string GetSeries() => "";
+        public override string GetNumber() => "";
+    }
+
 }

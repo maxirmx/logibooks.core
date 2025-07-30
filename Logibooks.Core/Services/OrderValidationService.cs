@@ -156,7 +156,7 @@ public class OrderValidationService(
         List<StopWord> phraseMatchItems = [];
 
         var filtered = exactMatchStopWords
-            .Where(sw => sw != null && sw.MatchTypeId < (int)StopWordMatchTypeCode.MorphologyMatchTypes);
+            .Where(sw => sw.MatchTypeId < (int)StopWordMatchTypeCode.MorphologyMatchTypes);
 
         var grouped = filtered
             .GroupBy(sw => (StopWordMatchTypeCode)sw.MatchTypeId)

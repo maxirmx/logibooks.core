@@ -487,10 +487,19 @@ public class StopWordsControllerTests
         // Assert
         Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
         var okResult = result.Result as OkObjectResult;
+        Assert.That(okResult, Is.Not.Null);
         Assert.That(okResult!.Value, Is.InstanceOf<IEnumerable<StopWordMatchType>>());
         var matchTypes = okResult.Value as IEnumerable<StopWordMatchType>;
-        Assert.That(matchTypes!.Count(), Is.EqualTo(2));
-        Assert.That(matchTypes!.Any(mt => mt.Id == 1 && mt.Name == "Type1"));
-        Assert.That(matchTypes!.Any(mt => mt.Id == 2 && mt.Name == "Type2"));
+        Assert.That(matchTypes, Is.Not.Null);
+        if (matchTypes is not null)
+        {
+            Assert.That(matchTypes.Count(), Is.EqualTo(2));
+
+            // Check DTO creation
+            var dtos = matchTypes.Select(mt => new StopWordMatchTypeDto(mt)).ToList();
+            Assert.That(dtos.Count, Is.EqualTo(2));
+            Assert.That(dtos.Any(dto => dto.Id == 1 && dto.Name == "Type1"));
+            Assert.That(dtos.Any(dto => dto.Id == 2 && dto.Name == "Type2"));
+        }
     }
 }
