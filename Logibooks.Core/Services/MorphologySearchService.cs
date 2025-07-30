@@ -68,24 +68,36 @@ public class MorphologySearchService : IMorphologySearchService
         {
             if (string.IsNullOrWhiteSpace(sw.Word))
                 continue;
-                
-            // Get the normal form first, then find derivatives
+
             var normalForm = GetNormalForm(sw.Word);
-            var groups = DerivateService.FindDerivates(normalForm, true, Pullenti.Morph.MorphLang.RU);
-            if (groups == null || !groups.Any())
-                continue;
-                
-            foreach (var g in groups)
+
+            if (sw.MatchTypeId == (int)StopWordMatchTypeCode.WeakMorphology)
             {
-                if (g == null)
-                    continue;
-                    
-                if (!context.Groups.TryGetValue(g, out var ids))
+                if (!context.NormalForms.TryGetValue(normalForm, out var ids))
                 {
                     ids = new HashSet<int>();
-                    context.Groups[g] = ids;
+                    context.NormalForms[normalForm] = ids;
                 }
                 ids.Add(sw.Id);
+            }
+            else if (sw.MatchTypeId == (int)StopWordMatchTypeCode.StrongMorphology)
+            {
+                var groups = DerivateService.FindDerivates(normalForm, true, Pullenti.Morph.MorphLang.RU);
+                if (groups == null || !groups.Any())
+                    continue;
+
+                foreach (var g in groups)
+                {
+                    if (g == null)
+                        continue;
+
+                    if (!context.Groups.TryGetValue(g, out var ids))
+                    {
+                        ids = new HashSet<int>();
+                        context.Groups[g] = ids;
+                    }
+                    ids.Add(sw.Id);
+                }
             }
         }
         return context;
@@ -93,31 +105,48 @@ public class MorphologySearchService : IMorphologySearchService
 
     public IEnumerable<int> CheckText(MorphologyContext context, string text)
     {
-        if (context?.Groups == null || !context.Groups.Any())
+        if ((context?.Groups == null || !context.Groups.Any()) &&
+            (context?.NormalForms == null || !context.NormalForms.Any()))
             return Enumerable.Empty<int>();
-            
+
         var result = new HashSet<int>();
         var matches = WordRegex.Matches(text ?? string.Empty);
-        
+
         foreach (Match m in matches)
         {
             if (string.IsNullOrWhiteSpace(m.Value))
                 continue;
-                
+
             // Get the normal form first, then find derivatives
-            var normalForm = GetNormalForm(m.Value);
-            var tokenGroups = DerivateService.FindDerivates(normalForm, true, Pullenti.Morph.MorphLang.RU);
-            if (tokenGroups == null || !tokenGroups.Any())
-                continue;
-                
-            foreach (var g in tokenGroups)
+            var morphs = MorphologyService.GetAllWordforms(m.Value.ToUpperInvariant(), Pullenti.Morph.MorphLang.RU);
+            var normalForm = morphs.Count > 0 ? morphs.First().NormalCase.ToUpperInvariant() : m.Value.ToUpperInvariant();
+
+            var distinctNormalForms = morphs.Select(f => f.NormalCase.ToUpperInvariant()).Distinct().ToList();
+            if (!distinctNormalForms.Contains(normalForm))
             {
-                if (g == null)
-                    continue;
-                    
-                if (context.Groups.TryGetValue(g, out var ids))
+                distinctNormalForms.Add(normalForm);
+            }
+
+            foreach (var nf in distinctNormalForms)
+            {
+                if (context.NormalForms.TryGetValue(nf, out var ids))
                 {
                     result.UnionWith(ids);
+                }
+            }
+
+            var tokenGroups = DerivateService.FindDerivates(normalForm, true, Pullenti.Morph.MorphLang.RU);
+            if (tokenGroups != null)
+            {
+                foreach (var g in tokenGroups)
+                {
+                    if (g == null)
+                        continue;
+
+                    if (context.Groups.TryGetValue(g, out var ids))
+                    {
+                        result.UnionWith(ids);
+                    }
                 }
             }
         }
