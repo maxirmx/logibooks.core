@@ -121,7 +121,13 @@ public class MorphologySearchService : IMorphologySearchService
             var morphs = MorphologyService.GetAllWordforms(m.Value.ToUpperInvariant(), Pullenti.Morph.MorphLang.RU);
             var normalForm = morphs.Count > 0 ? morphs.First().NormalCase.ToUpperInvariant() : m.Value.ToUpperInvariant();
 
-            foreach (var nf in morphs.Select(f => f.NormalCase.ToUpperInvariant()).Append(normalForm).Distinct())
+            var distinctNormalForms = morphs.Select(f => f.NormalCase.ToUpperInvariant()).Distinct().ToList();
+            if (!distinctNormalForms.Contains(normalForm))
+            {
+                distinctNormalForms.Add(normalForm);
+            }
+
+            foreach (var nf in distinctNormalForms)
             {
                 if (context.NormalForms.TryGetValue(nf, out var ids))
                 {
