@@ -40,7 +40,7 @@ public class MorphologySupportLevelDto
         if (Level == (int)MorphologySupportLevel.FormsSupport)
             return $"Поиск однокоренных слов для '{Word}' не поддерживается словарём системы. " +
             "Используйте поиск форм слова.";
-        return String.Empty;
+        return string.Empty;
     }
 }
 
