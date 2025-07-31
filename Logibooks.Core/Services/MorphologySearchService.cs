@@ -119,7 +119,7 @@ public class MorphologySearchService : IMorphologySearchService
     {
         if ((context?.Groups == null || !context.Groups.Any()) &&
             (context?.NormalForms == null || !context.NormalForms.Any()))
-            return Enumerable.Empty<int>();
+            return [];
 
         var result = new HashSet<int>();
         var matches = WordRegex.Matches(text ?? string.Empty);
@@ -129,9 +129,10 @@ public class MorphologySearchService : IMorphologySearchService
             if (string.IsNullOrWhiteSpace(m.Value))
                 continue;
 
+            var upperValue = m.Value.ToUpperInvariant();
             // Get the normal form first, then find derivatives
-            var morphs = MorphologyService.GetAllWordforms(m.Value.ToUpperInvariant(), Pullenti.Morph.MorphLang.RU);
-            var normalForm = morphs.Count > 0 ? morphs.First().NormalCase.ToUpperInvariant() : m.Value.ToUpperInvariant();
+            var morphs = MorphologyService.GetAllWordforms(upperValue, Pullenti.Morph.MorphLang.RU);
+            var normalForm = morphs.Count > 0 ? morphs.First().NormalCase.ToUpperInvariant() : upperValue;
 
             var distinctNormalForms = morphs.Select(f => f.NormalCase.ToUpperInvariant()).Distinct().ToList();
             if (!distinctNormalForms.Contains(normalForm))
