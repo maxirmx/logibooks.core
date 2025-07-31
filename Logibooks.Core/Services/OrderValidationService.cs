@@ -192,7 +192,7 @@ public class OrderValidationService(
                     // Build regex for exact sequence of words, separated by non-word chars
                     var pattern = string.Join("[^\\w-]+", phraseWords.Select(w => $"{Regex.Escape(w)}"));
                     // Match phrase at word boundaries (start/end or non-word char)
-                    var phraseRegex = new Regex($"(?<=^|[^\\w-]){pattern}(?=[^\\w-]|$)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+                    var phraseRegex = new Regex(@$"(?<=^|[^\w-]){pattern}(?=[^\w-]|$)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
                     context.PhraseRegexes.Add((sw, phraseRegex));
                 }
             }
