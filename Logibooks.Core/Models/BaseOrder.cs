@@ -1,4 +1,4 @@
-// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
+﻿// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
 // All rights reserved.
 // This file is a part of Logibooks Core application
 //
@@ -24,13 +24,18 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 using Microsoft.EntityFrameworkCore;
+
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Globalization;
 using System.Text.Json.Serialization;
+
+using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace Logibooks.Core.Models;
 
 [Table("base_orders")]
 [Index(nameof(TnVed), Name = "IX_base_orders_tn_ved")]
+[Index(nameof(RegisterId), nameof(CheckStatusId), nameof(Id), Name = "IX_base_orders_registerid_checkstatusid_id")]
 public abstract class BaseOrder
 {
     [Column("id")]
@@ -57,13 +62,13 @@ public abstract class BaseOrder
     public string? TnVed { get; set; }
 
     [Column("country_code")]
-    public short CountryCode { get; set; } = 643; // Default to Russia
+    public short CountryCode { get; set; } = 643; 
 
     [JsonIgnore]
     public Country? Country { get; set; }
 
-    public ICollection<BaseOrderStopWord> BaseOrderStopWords { get; set; } = new List<BaseOrderStopWord>();
-    public ICollection<BaseOrderFeacnPrefix> BaseOrderFeacnPrefixes { get; set; } = new List<BaseOrderFeacnPrefix>();
+    public ICollection<BaseOrderStopWord> BaseOrderStopWords { get; set; } = [];
+    public ICollection<BaseOrderFeacnPrefix> BaseOrderFeacnPrefixes { get; set; } = [];
 
     // IndPost generation API
     public abstract string GetParcelNumber();
@@ -83,4 +88,6 @@ public abstract class BaseOrder
     public abstract string GetNumber();
 
     public string GetTnVed() => TnVed ?? string.Empty;
+    public static string FormatCost(decimal? cost) => cost?.ToString("F2", new CultureInfo("en-US")) ?? "0.00";
+    public static string FormatWeight(decimal? cost) => cost?.ToString("F3", new CultureInfo("en-US")) ?? "0.000";
 }

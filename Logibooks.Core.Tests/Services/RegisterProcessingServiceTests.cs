@@ -351,6 +351,6 @@ public class DownloadRegisterTests
         var entry = archive.GetEntry("xl/styles.xml");
         using var sr = new StreamReader(entry!.Open());
         var styles = sr.ReadToEnd();
-        Assert.That(styles.Contains("FFB6C1"), Is.True);
+        Assert.That(styles.Contains("FFFF0000"), Is.True);
     }
 }

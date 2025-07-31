@@ -23,9 +23,16 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-namespace Logibooks.Core;
+namespace Logibooks.Core.Models;
 
-public static class VersionInfo
+public enum StopWordMatchTypeCode
 {
-    public const string AppVersion = "0.8.2";
+    ExactSymbols = 1,
+    ExactWord = 11,
+    Phrase = 21,
+    MorphologyMatchTypes = 41,
+#pragma warning disable CA1069 // Enums values should not be duplicated
+    WeakMorphology = 41,
+#pragma warning restore CA1069 // Enums values should not be duplicated
+    StrongMorphology = 51
 }

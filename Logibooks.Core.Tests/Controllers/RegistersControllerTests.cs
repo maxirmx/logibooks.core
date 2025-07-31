@@ -61,6 +61,7 @@ public class RegistersControllerTests
     private User _adminUser;
     private RegistersController _controller;
     private Mock<IRegisterProcessingService> _mockProcessingService;
+    private Mock<IOrderIndPostGenerator> _mockIndPostGenerator;
 #pragma warning restore CS8618
 
     private readonly string testDataDir = Path.Combine(AppContext.BaseDirectory, "test.data");
@@ -144,9 +145,10 @@ public class RegistersControllerTests
         _mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
         _mockRegValidationService = new Mock<IRegisterValidationService>();
         _mockProcessingService = new Mock<IRegisterProcessingService>();
+        _mockIndPostGenerator = new Mock<IOrderIndPostGenerator>();
         _logger = new LoggerFactory().CreateLogger<RegistersController>();
         _userService = new UserInformationService(_dbContext);
-        _controller = new RegistersController(_mockHttpContextAccessor.Object, _dbContext, _userService, _logger, _mockRegValidationService.Object, _mockProcessingService.Object);
+        _controller = new RegistersController(_mockHttpContextAccessor.Object, _dbContext, _userService, _logger, _mockRegValidationService.Object, _mockProcessingService.Object, _mockIndPostGenerator.Object);
     }
 
     [TearDown]
@@ -161,7 +163,7 @@ public class RegistersControllerTests
         var ctx = new DefaultHttpContext();
         ctx.Items["UserId"] = id;
         _mockHttpContextAccessor.Setup(x => x.HttpContext).Returns(ctx);
-        _controller = new RegistersController(_mockHttpContextAccessor.Object, _dbContext, _userService, _logger, _mockRegValidationService.Object, _mockProcessingService.Object);
+        _controller = new RegistersController(_mockHttpContextAccessor.Object, _dbContext, _userService, _logger, _mockRegValidationService.Object, _mockProcessingService.Object, _mockIndPostGenerator.Object);
     }
 
     [Test]
@@ -1482,7 +1484,7 @@ public class RegistersControllerTests
 
         // Update the logger type to match the expected type for RegisterValidationService
         var realRegSvc = new RegisterValidationService(_dbContext, scopeFactoryMock.Object, new LoggerFactory().CreateLogger<RegisterValidationService>(), new MorphologySearchService(), new FeacnPrefixCheckService(_dbContext));
-        _controller = new RegistersController(_mockHttpContextAccessor.Object, _dbContext, _userService, _logger, realRegSvc, _mockProcessingService.Object);
+        _controller = new RegistersController(_mockHttpContextAccessor.Object, _dbContext, _userService, _logger, realRegSvc, _mockProcessingService.Object, _mockIndPostGenerator.Object);
 
         var result = await _controller.ValidateRegister(200);
         var handle = ((GuidReference)((OkObjectResult)result.Result!).Value!).Id;
@@ -1582,6 +1584,85 @@ public class RegistersControllerTests
     }
 
     [Test]
+    public async Task PrevOrder_ReturnsPrevOrder_BeforeGiven()
+    {
+        SetCurrentUserId(1);
+        _dbContext.CheckStatuses.AddRange(
+            new OrderCheckStatus { Id = 101, Title = "Has" },
+            new OrderCheckStatus { Id = 201, Title = "Ok" });
+        var reg = new Register { Id = 1, FileName = "r.xlsx", CompanyId = 2 };
+        _dbContext.Registers.Add(reg);
+        _dbContext.Orders.AddRange(
+            new WbrOrder { Id = 10, RegisterId = 1, StatusId = 1, CheckStatusId = 101 },
+            new WbrOrder { Id = 20, RegisterId = 1, StatusId = 1, CheckStatusId = 101 },
+            new WbrOrder { Id = 30, RegisterId = 1, StatusId = 1, CheckStatusId = 201 }
+        );
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.PrevOrder(20);
+
+        Assert.That(result.Value, Is.Not.Null);
+        Assert.That(result.Value!.Id, Is.EqualTo(10));
+    }
+
+    [Test]
+    public async Task PrevOrder_PerformsCircularSearch()
+    {
+        SetCurrentUserId(1);
+        _dbContext.CheckStatuses.Add(new OrderCheckStatus { Id = 101, Title = "Has" });
+        var reg = new Register { Id = 1, FileName = "r.xlsx", CompanyId = 1 }; // Ozon company
+        _dbContext.Registers.Add(reg);
+        var ozonOrder1 = new OzonOrder { Id = 1, RegisterId = 1, StatusId = 1, CheckStatusId = 101 };
+        var ozonOrder2 = new OzonOrder { Id = 2, RegisterId = 1, StatusId = 1, CheckStatusId = 201 };
+        var ozonOrder3 = new OzonOrder { Id = 3, RegisterId = 1, StatusId = 1, CheckStatusId = 101 };
+        _dbContext.Orders.AddRange(ozonOrder1, ozonOrder2, ozonOrder3);
+        _dbContext.OzonOrders.AddRange(ozonOrder1, ozonOrder2, ozonOrder3);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.PrevOrder(1);
+
+        Assert.That(result.Value, Is.Not.Null);
+        Assert.That(result.Value!.Id, Is.EqualTo(3));
+    }
+
+    [Test]
+    public async Task PrevOrder_ReturnsNoContent_WhenNoMatches()
+    {
+        SetCurrentUserId(1);
+        _dbContext.CheckStatuses.Add(new OrderCheckStatus { Id = 201, Title = "Ok" });
+        var reg = new Register { Id = 1, FileName = "r.xlsx", CompanyId = 2 };
+        _dbContext.Registers.Add(reg);
+        _dbContext.Orders.Add(new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1, CheckStatusId = 201 });
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.PrevOrder(1);
+
+        Assert.That(result.Result, Is.TypeOf<NoContentResult>());
+    }
+
+    [Test]
+    public async Task PrevOrder_ReturnsNotFound_WhenOrderMissing()
+    {
+        SetCurrentUserId(1);
+        var result = await _controller.PrevOrder(99);
+
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+    }
+
+    [Test]
+    public async Task PrevOrder_ReturnsForbidden_ForNonLogist()
+    {
+        SetCurrentUserId(2);
+        var result = await _controller.PrevOrder(1);
+
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
+    }
+
+    [Test]
     public async Task DownloadRegister_ReturnsFile_ForLogist()
     {
         SetCurrentUserId(1);
@@ -1628,6 +1709,55 @@ public class RegistersControllerTests
         var obj = result as ObjectResult;
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
         _mockProcessingService.Verify(s => s.DownloadRegisterToExcelAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Test]
+    public async Task Generate_ReturnsFile_ForLogist()
+    {
+        SetCurrentUserId(1);
+        var register = new Register { Id = 20, FileName = "r.xlsx", CompanyId = 2 };
+        _dbContext.Registers.Add(register);
+        await _dbContext.SaveChangesAsync();
+
+        byte[] zip = [1, 2, 3, 4];
+        _mockIndPostGenerator.Setup(g => g.GenerateXML4R(20)).ReturnsAsync(("IndPost_r.zip", zip));
+
+        var result = await _controller.Generate(20);
+
+        Assert.That(result, Is.TypeOf<FileContentResult>());
+        var file = result as FileContentResult;
+        Assert.That(file!.FileDownloadName, Is.EqualTo("IndPost_r.zip"));
+        Assert.That(file.ContentType, Is.EqualTo("application/zip"));
+        Assert.That(file.FileContents, Is.EqualTo(zip));
+    }
+
+    [Test]
+    public async Task Generate_ReturnsNotFound_WhenMissing()
+    {
+        SetCurrentUserId(1);
+
+        var result = await _controller.Generate(999);
+
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+        _mockIndPostGenerator.Verify(g => g.GenerateXML4R(It.IsAny<int>()), Times.Never);
+    }
+
+    [Test]
+    public async Task Generate_ReturnsForbidden_ForNonLogist()
+    {
+        SetCurrentUserId(2);
+        var register = new Register { Id = 21, FileName = "r.xlsx", CompanyId = 2 };
+        _dbContext.Registers.Add(register);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.Generate(21);
+
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
+        _mockIndPostGenerator.Verify(g => g.GenerateXML4R(It.IsAny<int>()), Times.Never);
     }
 
 }

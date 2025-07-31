@@ -27,14 +27,24 @@ using Logibooks.Core.Models;
 
 namespace Logibooks.Core.Services;
 
+public enum MorphologySupportLevel
+{
+    NoSupport,
+    FormsSupport,
+    FullSupport
+}
+
+
+
 public interface IMorphologySearchService
 {
     MorphologyContext InitializeContext(IEnumerable<StopWord> stopWords);
     IEnumerable<int> CheckText(MorphologyContext context, string text);
-    bool CheckWord(string word);
+    MorphologySupportLevel CheckWord(string word);
 }
 
 public class MorphologyContext
 {
+    internal Dictionary<string, HashSet<int>> NormalForms { get; } = new();
     internal Dictionary<Pullenti.Semantic.Utils.DerivateGroup, HashSet<int>> Groups { get; } = new();
 }

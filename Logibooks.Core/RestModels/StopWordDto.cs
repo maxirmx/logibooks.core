@@ -31,14 +31,14 @@ public class StopWordDto
 {
     public int Id { get; set; }
     public string Word { get; set; } = string.Empty;
-    public bool ExactMatch { get; set; }
+    public int MatchTypeId { get; set; }
 
     public StopWordDto() {}
     public StopWordDto(StopWord sw)
     {
         Id = sw.Id;
         Word = sw.Word;
-        ExactMatch = sw.ExactMatch;
+        MatchTypeId = (int)sw.MatchTypeId;
     }
 
     public StopWord ToModel()
@@ -47,7 +47,7 @@ public class StopWordDto
         {
             Id = Id,
             Word = Word,
-            ExactMatch = ExactMatch
+            MatchTypeId = MatchTypeId
         };
     }
 }

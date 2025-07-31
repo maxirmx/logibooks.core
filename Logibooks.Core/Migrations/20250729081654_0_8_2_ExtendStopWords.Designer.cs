@@ -3,6 +3,7 @@ using System;
 using Logibooks.Core.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Logibooks.Core.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250729081654_0_8_2_ExtendStopWords")]
+    partial class _0_8_2_ExtendStopWords
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -461,7 +464,7 @@ namespace Logibooks.Core.Migrations
                         new
                         {
                             Id = 101,
-                            Title = "Запрет"
+                            Title = "Выявлены проблемы"
                         },
                         new
                         {
@@ -476,12 +479,12 @@ namespace Logibooks.Core.Migrations
                         new
                         {
                             Id = 201,
-                            Title = "Ок"
+                            Title = "Не выявлено проблем"
                         },
                         new
                         {
                             Id = 301,
-                            Title = "Согласовано"
+                            Title = "Согласовано логистом"
                         });
                 });
 
@@ -669,12 +672,12 @@ namespace Logibooks.Core.Migrations
                         new
                         {
                             Id = 41,
-                            Name = "Слово и его формы (Золото -> c золотом, о золоте, ...)"
+                            Name = "Слово и его формы (Золото -> c золотом, о золоте, ..."
                         },
                         new
                         {
                             Id = 51,
-                            Name = "Слово и однокоренные (Золото -> золотой, золотистый, ...)"
+                            Name = "Слово и однокоренные (Золото -> золотой, золотистый, ..."
                         });
                 });
 

@@ -126,7 +126,7 @@ public class OrdersController(
             return _404Order(id);
         }
 
-        _logger.LogDebug("GetOrder returning {orderType} order for companyId={cid}", 
+        _logger.LogDebug("GetOrder returning {orderType} order for companyId={cid}",
             order.GetType().Name, companyId);
         return new OrderViewItem(order);
     }
@@ -375,8 +375,10 @@ public class OrdersController(
         }
 
         var stopWords = await _db.StopWords.AsNoTracking().ToListAsync();
-        var morphologyContext = _morphologyService.InitializeContext(stopWords.Where(sw => !sw.ExactMatch));
-        var stopWordsContext = _validationService.InitializeStopWordsContext(stopWords.Where(sw => sw.ExactMatch));
+        var morphologyContext = _morphologyService.InitializeContext(
+            stopWords.Where(sw => sw.MatchTypeId >= (int)StopWordMatchTypeCode.MorphologyMatchTypes));
+        var stopWordsContext = _validationService.InitializeStopWordsContext(
+            stopWords.Where(sw => sw.MatchTypeId == (int)StopWordMatchTypeCode.ExactSymbols));
 
         await _validationService.ValidateAsync(order, morphologyContext, stopWordsContext, null);
 
@@ -408,7 +410,7 @@ public class OrdersController(
         var bytes = Encoding.UTF8.GetBytes(xml);
         return File(bytes, "application/xml", fileName);
     }
-  
+
     [HttpPost("{id}/approve")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
@@ -439,15 +441,6 @@ public class OrdersController(
         return NoContent();
     }
 
-    [HttpGet("checkstatuses")]
-    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<OrderCheckStatus>))]
-    public async Task<ActionResult<IEnumerable<OrderCheckStatus>>> GetCheckStatuses()
-    {
-        var statuses = await _db.CheckStatuses.AsNoTracking().OrderBy(s => s.Id).ToListAsync();
-        _logger.LogDebug("GetCheckStatuses returning {count} items", statuses.Count);
-        return Ok(statuses);
-    }
-
     [HttpGet("orderstatus")]
     [AllowAnonymous]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(string))]
@@ -469,4 +462,17 @@ public class OrdersController(
 
         return Ok(statusTitle);
     }
+
+    [HttpGet("checkstatuses")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<OrderCheckStatus>))]
+    public async Task<ActionResult<IEnumerable<OrderCheckStatus>>> GetCheckStatuses()
+    {
+        var statuses = await _db.CheckStatuses.AsNoTracking().OrderBy(s => s.Id).ToListAsync();
+        _logger.LogDebug("GetCheckStatuses returning {count} items", statuses.Count);
+        return Ok(statuses);
+    }
+
 }
+
+
+

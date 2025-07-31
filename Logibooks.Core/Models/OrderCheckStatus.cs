@@ -38,5 +38,5 @@ public class OrderCheckStatus
     public required string Title { get; set; }
 
     [JsonIgnore]
-    public ICollection<BaseOrder> Orders { get; set; } = new List<BaseOrder>();
+    public ICollection<BaseOrder> Orders { get; set; } = [];
 }

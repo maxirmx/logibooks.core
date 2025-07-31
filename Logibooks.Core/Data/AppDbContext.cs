@@ -23,6 +23,7 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+using DocumentFormat.OpenXml.Office2010.Excel;
 using Logibooks.Core.Models;
 using Microsoft.EntityFrameworkCore;
 namespace Logibooks.Core.Data
@@ -42,6 +43,7 @@ namespace Logibooks.Core.Data
         public DbSet<OzonOrder> OzonOrders => Set<OzonOrder>();
         public DbSet<Country> Countries => Set<Country>();
         public DbSet<Company> Companies => Set<Company>();
+        public DbSet<StopWordMatchType> StopWordMatchTypes => Set<StopWordMatchType>();
         public DbSet<StopWord> StopWords => Set<StopWord>();
         public DbSet<FeacnOrder> FeacnOrders => Set<FeacnOrder>();
         public DbSet<FeacnPrefix> FeacnPrefixes => Set<FeacnPrefix>();
@@ -182,10 +184,6 @@ namespace Logibooks.Core.Data
                 .WithMany(p => p.FeacnPrefixExceptions)
                 .HasForeignKey(e => e.FeacnPrefixId);
 
-            modelBuilder.Entity<StopWord>()
-                .HasIndex(sw => sw.Word)
-                .IsUnique();
-
             modelBuilder.Entity<Role>().HasData(
                 new Role { Id = 1, Name = "logist", Title = "Логист" },
                 new Role { Id = 2, Name = "administrator", Title = "Администратор" }
@@ -197,11 +195,11 @@ namespace Logibooks.Core.Data
 
             modelBuilder.Entity<OrderCheckStatus>().HasData(
                 new OrderCheckStatus { Id = 1, Title = "Не проверен" },
-                new OrderCheckStatus { Id = 101, Title = "Выявлены проблемы" },
+                new OrderCheckStatus { Id = 101, Title = "Запрет" },
                 new OrderCheckStatus { Id = 102, Title = "Неправильный формат ТН ВЭД" },
                 new OrderCheckStatus { Id = 103, Title = "Несуществующий ТН ВЭД" },
-                new OrderCheckStatus { Id = 201, Title = "Не выявлено проблем" },
-                new OrderCheckStatus { Id = 301, Title = "Согласовано логистом" }
+                new OrderCheckStatus { Id = 201, Title = "Ок" },
+                new OrderCheckStatus { Id = 301, Title = "Согласовано" }
             );
 
             modelBuilder.Entity<User>().HasData(
@@ -305,31 +303,36 @@ namespace Logibooks.Core.Data
             );
 
             modelBuilder.Entity<FeacnOrder>().HasData(
-                new FeacnOrder {
+                new FeacnOrder
+                {
                     Id = 1,
-                    Title  = "Решение Комиссии Таможенного союза от 18 июня 2010 г. N 317 \"О применении ветеринарно-санитарных мер в Евразийском экономическом союзе\"", 
-                    Url = "10sr0317", 
-                    Comment = "Подлежит ветеринарному контролю" 
+                    Title = "Решение Комиссии Таможенного союза от 18 июня 2010 г. N 317 \"О применении ветеринарно-санитарных мер в Евразийском экономическом союзе\"",
+                    Url = "10sr0317",
+                    Comment = "Подлежит ветеринарному контролю"
                 },
-                new FeacnOrder { 
-                    Id = 2, 
-                    Title = "Решение Комиссии Таможенного союза от 18 июня 2010 г. N 318 \"Об обеспечении карантина растений в Евразийском экономическом союзе\"", 
-                    Url = "10sr0318", 
-                    Comment = "Подлежит карантинному фитосанитарному контролю" 
+                new FeacnOrder
+                {
+                    Id = 2,
+                    Title = "Решение Комиссии Таможенного союза от 18 июня 2010 г. N 318 \"Об обеспечении карантина растений в Евразийском экономическом союзе\"",
+                    Url = "10sr0318",
+                    Comment = "Подлежит карантинному фитосанитарному контролю"
                 },
-                new FeacnOrder { 
-                    Id = 3, 
-                    Title = "Приказ ФТС России от 12 мая 2011 г. N 971 \"О компетенции таможенных органов по совершению таможенных операций в отношении драгоценных металлов и драгоценных камней\"", 
-                    Url = "11pr0971", 
-                    Comment = "Операции в отношении драгоценных металлов и драгоценных камней" 
+                new FeacnOrder
+                {
+                    Id = 3,
+                    Title = "Приказ ФТС России от 12 мая 2011 г. N 971 \"О компетенции таможенных органов по совершению таможенных операций в отношении драгоценных металлов и драгоценных камней\"",
+                    Url = "11pr0971",
+                    Comment = "Операции в отношении драгоценных металлов и драгоценных камней"
                 },
-                new FeacnOrder { 
-                    Id = 4, 
-                    Title = "Постановление Правительства РФ от 09.03.2022 № 311 \"О мерах по реализации Указа Президента Российской Федерации от 8 марта 2022 г. N 100\"", 
-                    Url = "22ps0311", 
-                    Comment = "Временный запрет на вывоз" 
+                new FeacnOrder
+                {
+                    Id = 4,
+                    Title = "Постановление Правительства РФ от 09.03.2022 № 311 \"О мерах по реализации Указа Президента Российской Федерации от 8 марта 2022 г. N 100\"",
+                    Url = "22ps0311",
+                    Comment = "Временный запрет на вывоз"
                 },
-                new FeacnOrder {
+                new FeacnOrder
+                {
                     Id = 5,
                     Title = "Постановление Правительства Российской Федерации от 9 марта 2022 г. N 312 \"О введении на временной основе разрешительного порядка вывоза отдельных видов товаров за пределы территории Российской Федерации\"",
                     Url = "22ps0312",
@@ -340,6 +343,14 @@ namespace Logibooks.Core.Data
             modelBuilder.Entity<CustomsProcedure>().HasData(
                 new CustomsProcedure { Id = 1, Code = 10, Name = "Экспорт" },
                 new CustomsProcedure { Id = 2, Code = 60, Name = "Реимпорт" }
+            );
+
+            modelBuilder.Entity<StopWordMatchType>().HasData(
+                new StopWordMatchType { Id = (int)StopWordMatchTypeCode.ExactSymbols, Name = "Точная последовательность букв, цифр и проблелов" },
+                new StopWordMatchType { Id = (int)StopWordMatchTypeCode.ExactWord, Name = "Точное слово" },
+                new StopWordMatchType { Id = (int)StopWordMatchTypeCode.Phrase, Name = "Фраза (последовательность слов)" },
+                new StopWordMatchType { Id = (int)StopWordMatchTypeCode.WeakMorphology, Name = "Слово и его формы (Золото -> c золотом, о золоте, ...)" },
+                new StopWordMatchType { Id = (int)StopWordMatchTypeCode.StrongMorphology, Name = "Слово и однокоренные (Золото -> золотой, золотистый, ...)" }
             );
         }
     }

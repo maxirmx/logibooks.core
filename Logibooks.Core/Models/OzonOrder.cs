@@ -1,4 +1,4 @@
-// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
+п»ї// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
 // All rights reserved.
 // This file is a part of Logibooks Core application
 //
@@ -23,7 +23,9 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+using Logibooks.Core.Constants;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Globalization;
 
 namespace Logibooks.Core.Models;
 
@@ -130,20 +132,20 @@ public class OzonOrder : BaseOrder
     public string? Comment { get; set; }
 
     // IndPost generation API
-    public override string GetParcelNumber() => PostingNumber ?? $"заказ_без_номера_{Id}";
+    public override string GetParcelNumber() => PostingNumber ?? $"{Placeholders.ParcelWoNumber}{Id}";
     public override string GetCurrency() => Currency ?? "RUB";
-    public override string GetDescription() => ProductName ?? "Не указано";
+    public override string GetDescription() => $"РЈРРќ:{(Article ?? "").PadLeft(20, '0')}; {ProductName ?? Placeholders.NotSet}";
     public override string GetQuantity() => Quantity?.ToString() ?? "1";
-    public override string GetCost() => (UnitPrice * Quantity)?.ToString("F2") ?? "0.00";
-    public override string GetWeight() => WeightKg?.ToString("F3") ?? "0.000";
+    public override string GetCost() => FormatCost(UnitPrice * Quantity);
+    public override string GetWeight() => FormatWeight(WeightKg);
     public override string GetUrl() => ProductLink ?? "https://www.ozon.ru/product/unknown-product";
-    public override string GetCity() => City ?? "Не указано";
-    public override string GetStreet() => Address ?? "Не указано";
-    public override string GetSurName() => LastName ?? "Не указано";
-    public override string GetName() => FirstName ?? "Не указано";
-    public override string GetMiddleName() => Patronymic ?? "Не указано";
-    public override string GetSeries() => PassportSeries ?? "Не указано";
-    public override string GetNumber() => PassportNumber ?? "Не указано";
+    public override string GetCity() => City ?? Placeholders.NotSet;
+    public override string GetStreet() => Address ?? Placeholders.NotSet;
+    public override string GetSurName() => LastName ?? Placeholders.NotSet;
+    public override string GetName() => FirstName ?? Placeholders.NotSet;
+    public override string GetMiddleName() => Patronymic ?? Placeholders.NotSet;
+    public override string GetSeries() => PassportSeries ?? Placeholders.NotSet;
+    public override string GetNumber() => PassportNumber ?? Placeholders.NotSet;
 
     public override string GetFullName() => $"{LastName} {FirstName} {Patronymic}".Trim();
 }

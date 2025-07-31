@@ -1,4 +1,4 @@
-// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
+п»ї// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
 // All rights reserved.
 // This file is a part of Logibooks Core application
 //
@@ -23,11 +23,11 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-using DocumentFormat.OpenXml.Bibliography;
 using DocumentFormat.OpenXml.Wordprocessing;
+using Logibooks.Core.Constants;
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Net;
+using System.Globalization;
 
 namespace Logibooks.Core.Models;
 
@@ -163,57 +163,57 @@ public class WbrOrder : BaseOrder
 
     // IndPost generation API
     public override string GetParcelNumber() => 
-        string.IsNullOrEmpty(Shk) ? $"заказ_без_номера_{Id}" : Shk.PadLeft(20, '0');
+        string.IsNullOrEmpty(Shk) ? $"{Placeholders.ParcelWoNumber}{Id}" : Shk.PadLeft(20, '0');
     public override string GetCurrency() => Currency ?? "RUB";
-    public override string GetDescription() => $"УИН:{GetParcelNumber()}; {ProductName ?? "Не указано"}";
+    public override string GetDescription() => $"РЈРРќ:{GetParcelNumber()}; {ProductName ?? Placeholders.NotSet}";
     public override string GetQuantity() => Quantity?.ToString() ?? "1";
-    public override string GetCost() => (UnitPrice * Quantity)?.ToString("F2") ?? "0.00";
-    public override string GetWeight() => WeightKg?.ToString("F3") ?? "0.000";
+    public override string GetCost() => FormatCost(UnitPrice * Quantity);
+    public override string GetWeight() => FormatWeight(WeightKg);
     public override string GetUrl() => ProductLink ?? "https://www.ozon.ru/product/unknown-product";
     public override string GetCity()
     {
-        if (string.IsNullOrWhiteSpace(RecipientAddress)) return "Не указано";
+        if (string.IsNullOrWhiteSpace(RecipientAddress)) return Placeholders.NotSet;
         var parts = RecipientAddress.Split(',');
         return parts.Length > 1 ? parts[1].Trim() : RecipientAddress;
     }
     public override string GetStreet()
     {
-        if (string.IsNullOrWhiteSpace(RecipientAddress)) return "Не указано";
+        if (string.IsNullOrWhiteSpace(RecipientAddress)) return Placeholders.NotSet;
         var parts = RecipientAddress.Split(',');
         return parts.Length > 2 ? string.Join(",", parts.Skip(2).Select(p => p.Trim())) : RecipientAddress;
     }
 
     public override string GetSurName()
     {
-        if (string.IsNullOrWhiteSpace(RecipientName)) return "Не указано";
+        if (string.IsNullOrWhiteSpace(RecipientName)) return Placeholders.NotSet;
         var parts = RecipientName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        return parts.Length > 0 ? parts[0].Trim() : "Не указано";
+        return parts.Length > 0 ? parts[0].Trim() : Placeholders.NotSet;
     }
     public override string GetName()
     {
-        if (string.IsNullOrWhiteSpace(RecipientName)) return "Не указано";
+        if (string.IsNullOrWhiteSpace(RecipientName)) return Placeholders.NotSet;
         var parts = RecipientName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        return parts.Length > 1 ? parts[1].Trim() : "Не указано";
+        return parts.Length > 1 ? parts[1].Trim() : Placeholders.NotSet;
     }
     public override string GetMiddleName()
     {
-        if (string.IsNullOrWhiteSpace(RecipientName)) return "Не указано";
+        if (string.IsNullOrWhiteSpace(RecipientName)) return Placeholders.NotSet;
         var parts = RecipientName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        return parts.Length > 2 ? string.Join(" ", parts.Skip(2).Select(p => p.Trim())) : "Не указано";
+        return parts.Length > 2 ? string.Join(" ", parts.Skip(2).Select(p => p.Trim())) : Placeholders.NotSet;
     }
 
     public override string GetSeries()
     {
         if (string.IsNullOrWhiteSpace(PassportNumber) || PassportNumber.Length < 5)
-            return "Не указано";
+            return Placeholders.NotSet;
         return PassportNumber.Substring(0, 5);
     }
     public override string GetNumber()
     {
         if (string.IsNullOrWhiteSpace(PassportNumber) || PassportNumber.Length <= 5)
-            return "Не указано";
+            return Placeholders.NotSet;
         return PassportNumber.Substring(5);
     }
 
-    public override string GetFullName() => RecipientName ?? "Не указано";
+    public override string GetFullName() => RecipientName ?? Placeholders.NotSet;
 }
