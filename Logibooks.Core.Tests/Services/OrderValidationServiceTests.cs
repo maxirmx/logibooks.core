@@ -168,7 +168,7 @@ public class OrderValidationServiceTests
         await ctx.SaveChangesAsync();
 
         var morph = new MorphologySearchService();
-        var morphologyContext = morph.InitializeContext(stopWords.Where(sw => sw.MatchTypeId == (int)StopWordMatchTypeCode.StrongMorphology));
+        var morphologyContext = morph.InitializeContext(stopWords.Where(sw => sw.MatchTypeId >= (int)StopWordMatchTypeCode.MorphologyMatchTypes));
         var svc = CreateServiceWithMorphology(ctx, morph);
         var stopWordsContext = svc.InitializeStopWordsContext(stopWords.Where(sw => sw.MatchTypeId == (int)StopWordMatchTypeCode.ExactSymbols));
         await svc.ValidateAsync(order, morphologyContext, stopWordsContext);

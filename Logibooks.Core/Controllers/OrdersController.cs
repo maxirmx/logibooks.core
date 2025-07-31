@@ -375,9 +375,10 @@ public class OrdersController(
         }
 
         var stopWords = await _db.StopWords.AsNoTracking().ToListAsync();
-        var mSw = stopWords.Where(sw => sw.MatchTypeId >= (int)StopWordMatchTypeCode.MorphologyMatchTypes).ToList();
-        var morphologyContext = _morphologyService.InitializeContext(mSw);
-        var stopWordsContext = _validationService.InitializeStopWordsContext(stopWords.Where(sw => sw.MatchTypeId < (int)StopWordMatchTypeCode.MorphologyMatchTypes));
+        var morphologyContext = _morphologyService.InitializeContext(
+            stopWords.Where(sw => sw.MatchTypeId >= (int)StopWordMatchTypeCode.MorphologyMatchTypes));
+        var stopWordsContext = _validationService.InitializeStopWordsContext(
+            stopWords.Where(sw => sw.MatchTypeId == (int)StopWordMatchTypeCode.ExactSymbols));
 
         await _validationService.ValidateAsync(order, morphologyContext, stopWordsContext, null);
 

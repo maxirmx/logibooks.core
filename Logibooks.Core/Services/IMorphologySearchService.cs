@@ -45,5 +45,6 @@ public interface IMorphologySearchService
 
 public class MorphologyContext
 {
+    internal Dictionary<string, HashSet<int>> NormalForms { get; } = new();
     internal Dictionary<Pullenti.Semantic.Utils.DerivateGroup, HashSet<int>> Groups { get; } = new();
 }

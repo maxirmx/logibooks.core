@@ -47,16 +47,25 @@ public class MorphologySearchServiceTests
     [Test]
     public void CheckText_FindsDerivativeMatch()
     {
-        var sw = new StopWord { Id = 1, Word = "золото" };
+        var sw = new StopWord { Id = 1, Word = "золото", MatchTypeId = (int)StopWordMatchTypeCode.StrongMorphology };
         var ctx = _service.InitializeContext([sw]);
         var res = _service.CheckText(ctx, "золотой браслет и алюминиевый слиток");
         Assert.That(res.Contains(1));
     }
 
     [Test]
+    public void CheckText_FindsWeakFormMatch()
+    {
+        var sw = new StopWord { Id = 2, Word = "золото", MatchTypeId = (int)StopWordMatchTypeCode.WeakMorphology };
+        var ctx = _service.InitializeContext([sw]);
+        var res = _service.CheckText(ctx, "работаем с золотом");
+        Assert.That(res.Contains(2));
+    }
+
+    [Test]
     public void InitializeContext_HandlesSingleStopWord()
     {
-        var sw = new StopWord { Id = 1, Word = "дом" };
+        var sw = new StopWord { Id = 1, Word = "дом", MatchTypeId = (int)StopWordMatchTypeCode.StrongMorphology };
         var ctx = _service.InitializeContext([sw]);
         
         Assert.That(ctx, Is.Not.Null);
@@ -70,9 +79,9 @@ public class MorphologySearchServiceTests
     {
         var stopWords = new[]
         {
-            new StopWord { Id = 1, Word = "золото" },
-            new StopWord { Id = 2, Word = "серебро" },
-            new StopWord { Id = 3, Word = "дом" }
+            new StopWord { Id = 1, Word = "золото", MatchTypeId = (int)StopWordMatchTypeCode.StrongMorphology },
+            new StopWord { Id = 2, Word = "серебро", MatchTypeId = (int)StopWordMatchTypeCode.StrongMorphology },
+            new StopWord { Id = 3, Word = "дом", MatchTypeId = (int)StopWordMatchTypeCode.StrongMorphology }
         };
         
         var ctx = _service.InitializeContext(stopWords);
@@ -101,10 +110,10 @@ public class MorphologySearchServiceTests
     {
         var stopWords = new[]
         {
-            new StopWord { Id = 1, Word = "" },
-            new StopWord { Id = 2, Word = "   " },
-            new StopWord { Id = 3, Word = "золото" },
-            new StopWord { Id = 4, Word = null! }
+            new StopWord { Id = 1, Word = "", MatchTypeId = (int)StopWordMatchTypeCode.StrongMorphology },
+            new StopWord { Id = 2, Word = "   ", MatchTypeId = (int)StopWordMatchTypeCode.StrongMorphology },
+            new StopWord { Id = 3, Word = "золото", MatchTypeId = (int)StopWordMatchTypeCode.StrongMorphology },
+            new StopWord { Id = 4, Word = null!, MatchTypeId = (int)StopWordMatchTypeCode.StrongMorphology }
         };
         
         var ctx = _service.InitializeContext(stopWords);
@@ -119,7 +128,7 @@ public class MorphologySearchServiceTests
     [Test]
     public void CheckText_HandlesNullText()
     {
-        var sw = new StopWord { Id = 1, Word = "золото" };
+        var sw = new StopWord { Id = 1, Word = "золото", MatchTypeId = (int)StopWordMatchTypeCode.StrongMorphology };
         var ctx = _service.InitializeContext([sw]);
         
         var result = _service.CheckText(ctx, null!);
@@ -131,7 +140,7 @@ public class MorphologySearchServiceTests
     [Test]
     public void CheckText_HandlesEmptyText()
     {
-        var sw = new StopWord { Id = 1, Word = "золото" };
+        var sw = new StopWord { Id = 1, Word = "золото", MatchTypeId = (int)StopWordMatchTypeCode.StrongMorphology };
         var ctx = _service.InitializeContext([sw]);
         
         var result = _service.CheckText(ctx, "");
@@ -143,7 +152,7 @@ public class MorphologySearchServiceTests
     [Test]
     public void CheckText_HandlesWhitespaceOnlyText()
     {
-        var sw = new StopWord { Id = 1, Word = "золото" };
+        var sw = new StopWord { Id = 1, Word = "золото", MatchTypeId = (int)StopWordMatchTypeCode.StrongMorphology };
         var ctx = _service.InitializeContext([sw]);
         
         var result = _service.CheckText(ctx, "   \t\n  ");
@@ -157,8 +166,8 @@ public class MorphologySearchServiceTests
     {
         var stopWords = new[]
         {
-            new StopWord { Id = 1, Word = "золото" },
-            new StopWord { Id = 2, Word = "дом" }
+            new StopWord { Id = 1, Word = "золото", MatchTypeId = (int)StopWordMatchTypeCode.StrongMorphology },
+            new StopWord { Id = 2, Word = "дом", MatchTypeId = (int)StopWordMatchTypeCode.StrongMorphology }
         };
         var ctx = _service.InitializeContext(stopWords);
         
@@ -171,7 +180,7 @@ public class MorphologySearchServiceTests
     [Test]
     public void CheckText_CaseInsensitive()
     {
-        var sw = new StopWord { Id = 1, Word = "дом" };
+        var sw = new StopWord { Id = 1, Word = "дом", MatchTypeId = (int)StopWordMatchTypeCode.StrongMorphology };
         var ctx = _service.InitializeContext([sw]);
         
         var result1 = _service.CheckText(ctx, "большой ДОМ");
@@ -186,7 +195,7 @@ public class MorphologySearchServiceTests
     [Test]
     public void CheckText_NoMatchesForUnrelatedText()
     {
-        var sw = new StopWord { Id = 1, Word = "золото" };
+        var sw = new StopWord { Id = 1, Word = "золото", MatchTypeId = (int)StopWordMatchTypeCode.StrongMorphology };
         var ctx = _service.InitializeContext([sw]);
         
         var result = _service.CheckText(ctx, "красивый автомобиль и зелёная трава");
@@ -197,7 +206,7 @@ public class MorphologySearchServiceTests
     [Test]
     public void CheckText_HandlesTextWithPunctuation()
     {
-        var sw = new StopWord { Id = 1, Word = "дом" };
+        var sw = new StopWord { Id = 1, Word = "дом", MatchTypeId = (int)StopWordMatchTypeCode.StrongMorphology };
         var ctx = _service.InitializeContext([sw]);
         
         var result = _service.CheckText(ctx, "Это домашний, уютный и тёплый дом!");
@@ -208,7 +217,7 @@ public class MorphologySearchServiceTests
     [Test]
     public void CheckText_HandlesMixedLanguages()
     {
-        var sw = new StopWord { Id = 1, Word = "дом" };
+        var sw = new StopWord { Id = 1, Word = "дом", MatchTypeId = (int)StopWordMatchTypeCode.StrongMorphology };
         var ctx = _service.InitializeContext([sw]);
         
         var result = _service.CheckText(ctx, "My beautiful домик is very nice house");
@@ -225,7 +234,7 @@ public class MorphologySearchServiceTests
     [TestCase("собака", "собачий корм", true)]
     public void CheckText_MorphologicalDerivatives(string stopWord, string testText, bool shouldMatch)
     {
-        var sw = new StopWord { Id = 1, Word = stopWord };
+        var sw = new StopWord { Id = 1, Word = stopWord, MatchTypeId = (int)StopWordMatchTypeCode.StrongMorphology };
         var ctx = _service.InitializeContext([sw]);
         
         var result = _service.CheckText(ctx, testText);
@@ -243,7 +252,7 @@ public class MorphologySearchServiceTests
     [Test]
     public void CheckText_ReturnsUniqueIds()
     {
-        var sw = new StopWord { Id = 1, Word = "дом" };
+        var sw = new StopWord { Id = 1, Word = "дом", MatchTypeId = (int)StopWordMatchTypeCode.StrongMorphology };
         var ctx = _service.InitializeContext([sw]);
         
         var result = _service.CheckText(ctx, "домашний дом и домик").ToList();
@@ -255,7 +264,7 @@ public class MorphologySearchServiceTests
     [Test]
     public void CheckText_HandlesLongText()
     {
-        var sw = new StopWord { Id = 1, Word = "дом" };
+        var sw = new StopWord { Id = 1, Word = "дом", MatchTypeId = (int)StopWordMatchTypeCode.StrongMorphology };
         var ctx = _service.InitializeContext([sw]);
         
         var longText = string.Join(" ", Enumerable.Repeat("Это очень длинный текст с множеством слов", 100)) 
@@ -282,9 +291,9 @@ public class MorphologySearchServiceTests
         var stopWords = new List<StopWord>();
         for (int i = 1; i <= 100; i++)
         {
-            stopWords.Add(new StopWord { Id = i, Word = $"слово{i}" });
+            stopWords.Add(new StopWord { Id = i, Word = $"слово{i}", MatchTypeId = (int)StopWordMatchTypeCode.StrongMorphology });
         }
-        stopWords.Add(new StopWord { Id = 101, Word = "дом" });
+        stopWords.Add(new StopWord { Id = 101, Word = "дом", MatchTypeId = (int)StopWordMatchTypeCode.StrongMorphology });
         
         var ctx = _service.InitializeContext(stopWords);
         
@@ -296,7 +305,7 @@ public class MorphologySearchServiceTests
     [Test]
     public void CheckText_HandlesSpecialCharacters()
     {
-        var sw = new StopWord { Id = 1, Word = "дом" };
+        var sw = new StopWord { Id = 1, Word = "дом", MatchTypeId = (int)StopWordMatchTypeCode.StrongMorphology };
         var ctx = _service.InitializeContext([sw]);
         
         var result = _service.CheckText(ctx, "дом@example.com и домик#123 плюс дом$");
@@ -309,9 +318,9 @@ public class MorphologySearchServiceTests
     {
         var stopWords = new[]
         {
-            new StopWord { Id = 1, Word = "ЗОЛОТО" },
-            new StopWord { Id = 2, Word = "дом" },
-            new StopWord { Id = 3, Word = "УЧИТЬ" }
+            new StopWord { Id = 1, Word = "ЗОЛОТО", MatchTypeId = (int)StopWordMatchTypeCode.StrongMorphology },
+            new StopWord { Id = 2, Word = "дом", MatchTypeId = (int)StopWordMatchTypeCode.StrongMorphology },
+            new StopWord { Id = 3, Word = "УЧИТЬ", MatchTypeId = (int)StopWordMatchTypeCode.StrongMorphology }
         };
         
         var ctx = _service.InitializeContext(stopWords);
@@ -326,7 +335,7 @@ public class MorphologySearchServiceTests
     [Test]
     public void CheckText_FindsExactMatch()
     {
-        var sw = new StopWord { Id = 1, Word = "золото" };
+        var sw = new StopWord { Id = 1, Word = "золото", MatchTypeId = (int)StopWordMatchTypeCode.StrongMorphology };
         var ctx = _service.InitializeContext([sw]);
         
         var result = _service.CheckText(ctx, "чистое золото");
@@ -337,7 +346,7 @@ public class MorphologySearchServiceTests
     [Test]
     public void CheckText_HandlesVeryShortWords()
     {
-        var sw = new StopWord { Id = 1, Word = "я" };
+        var sw = new StopWord { Id = 1, Word = "я", MatchTypeId = (int)StopWordMatchTypeCode.StrongMorphology };
         var ctx = _service.InitializeContext([sw]);
         
         var result = _service.CheckText(ctx, "я иду домой");
