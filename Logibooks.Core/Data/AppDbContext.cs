@@ -195,11 +195,11 @@ namespace Logibooks.Core.Data
 
             modelBuilder.Entity<OrderCheckStatus>().HasData(
                 new OrderCheckStatus { Id = 1, Title = "Не проверен" },
-                new OrderCheckStatus { Id = 101, Title = "Выявлены проблемы" },
+                new OrderCheckStatus { Id = 101, Title = "Запрет" },
                 new OrderCheckStatus { Id = 102, Title = "Неправильный формат ТН ВЭД" },
                 new OrderCheckStatus { Id = 103, Title = "Несуществующий ТН ВЭД" },
-                new OrderCheckStatus { Id = 201, Title = "Не выявлено проблем" },
-                new OrderCheckStatus { Id = 301, Title = "Согласовано логистом" }
+                new OrderCheckStatus { Id = 201, Title = "Ок" },
+                new OrderCheckStatus { Id = 301, Title = "Согласовано" }
             );
 
             modelBuilder.Entity<User>().HasData(
@@ -349,8 +349,8 @@ namespace Logibooks.Core.Data
                 new StopWordMatchType { Id = (int)StopWordMatchTypeCode.ExactSymbols, Name = "Точная последовательность букв, цифр и проблелов" },
                 new StopWordMatchType { Id = (int)StopWordMatchTypeCode.ExactWord, Name = "Точное слово" },
                 new StopWordMatchType { Id = (int)StopWordMatchTypeCode.Phrase, Name = "Фраза (последовательность слов)" },
-                new StopWordMatchType { Id = (int)StopWordMatchTypeCode.WeakMorphology, Name = "Слово и его формы (Золото -> c золотом, о золоте, ..." },
-                new StopWordMatchType { Id = (int)StopWordMatchTypeCode.StrongMorphology, Name = "Слово и однокоренные (Золото -> золотой, золотистый, ..." }
+                new StopWordMatchType { Id = (int)StopWordMatchTypeCode.WeakMorphology, Name = "Слово и его формы (Золото -> c золотом, о золоте, ...)" },
+                new StopWordMatchType { Id = (int)StopWordMatchTypeCode.StrongMorphology, Name = "Слово и однокоренные (Золото -> золотой, золотистый, ...)" }
             );
         }
     }
