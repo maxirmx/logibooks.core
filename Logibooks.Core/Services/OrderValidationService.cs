@@ -174,7 +174,7 @@ public class OrderValidationService(
         {
             if (!string.IsNullOrEmpty(sw.Word))
             {
-                var regex = new Regex($"(?<=^|[^\\w-]){Regex.Escape(sw.Word.Trim())}(?=[^\\w-]|$)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+                var regex = new Regex($@"(?<=^|[^\w-]){Regex.Escape(sw.Word.Trim())}(?=[^\w-]|$)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
                 context.ExactWordRegexes.Add((sw, regex));
             }
         }
