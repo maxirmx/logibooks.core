@@ -252,11 +252,11 @@ public class RegistersControllerSearchTests
             new Register { Id = 2, FileName = "r2.xlsx", CompanyId = 2, TheOtherCompanyId = 3, TheOtherCountryCode = 860 }
         );
         await _dbContext.SaveChangesAsync();
-        var result = await _controller.GetRegisters(search: "Российская");
+        var result = await _controller.GetRegisters(search: "Узбекистан");
         var ok = result.Result as OkObjectResult;
         var pr = ok!.Value as PagedResult<RegisterViewItem>;
         Assert.That(pr!.Pagination.TotalCount, Is.EqualTo(1));
-        Assert.That(pr.Items.First().TheOtherCountryCode, Is.EqualTo(643));
+        Assert.That(pr.Items.First().TheOtherCountryCode, Is.EqualTo(860));
     }
 
     [Test]

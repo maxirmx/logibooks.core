@@ -160,16 +160,21 @@ public class RegistersController(
 
         if (!string.IsNullOrWhiteSpace(search))
         {
-            baseQuery = baseQuery.Where(r => 
-                   EF.Functions.Like(r.FileName, $"%{search}%")
-                || (r.InvoiceNumber != null && EF.Functions.Like(r.InvoiceNumber, $"%{search}%"))
-                || (r.DealNumber != null && EF.Functions.Like(r.DealNumber, $"%{search}%"))
-                || (r.Company != null && EF.Functions.Like(r.Company.ShortName, $"%{search}%"))
-                || (r.TheOtherCompany != null && EF.Functions.Like(r.TheOtherCompany.ShortName, $"%{search}%"))
-                || (r.TheOtherCountry != null && EF.Functions.Like(r.TheOtherCountry.NameRuOfficial, $"%{search}%"))
-                || (r.TransportationType != null && EF.Functions.Like(r.TransportationType.Name, $"%{search}%"))
-                || (r.CustomsProcedure != null && EF.Functions.Like(r.CustomsProcedure.Name, $"%{search}%"))
-            );
+            bool containsRussia = "россия".Contains(search, StringComparison.OrdinalIgnoreCase);
+            
+            if (!containsRussia)
+            {
+                baseQuery = baseQuery.Where(r => 
+                       EF.Functions.Like(r.FileName, $"%{search}%")
+                    || (r.InvoiceNumber != null && EF.Functions.Like(r.InvoiceNumber, $"%{search}%"))
+                    || (r.DealNumber != null && EF.Functions.Like(r.DealNumber, $"%{search}%"))
+                    || (r.Company != null && EF.Functions.Like(r.Company.ShortName, $"%{search}%"))
+                    || (r.TheOtherCompany != null && EF.Functions.Like(r.TheOtherCompany.ShortName, $"%{search}%"))
+                    || (r.TheOtherCountry != null && EF.Functions.Like(r.TheOtherCountry.NameRuShort, $"%{search}%"))
+                    || (r.TransportationType != null && EF.Functions.Like(r.TransportationType.Name, $"%{search}%"))
+                    || (r.CustomsProcedure != null && EF.Functions.Like(r.CustomsProcedure.Name, $"%{search}%"))
+                );
+            }
         }
 
         IQueryable<Register> query = baseQuery;
@@ -188,8 +193,8 @@ public class RegistersController(
             ("companyid", "desc") => query.OrderByDescending(r => r.Company != null ? r.Company.ShortName : string.Empty),
             ("theothercompanyid", "asc") => query.OrderBy(r => r.TheOtherCompany != null ? r.TheOtherCompany.ShortName : string.Empty),
             ("theothercompanyid", "desc") => query.OrderByDescending(r => r.TheOtherCompany != null ? r.TheOtherCompany.ShortName : string.Empty),
-            ("theothercountrycode", "asc") => query.OrderBy(r => r.TheOtherCountry != null ? r.TheOtherCountry.NameRuOfficial : string.Empty),
-            ("theothercountrycode", "desc") => query.OrderByDescending(r => r.TheOtherCountry != null ? r.TheOtherCountry.NameRuOfficial : string.Empty),
+            ("theothercountrycode", "asc") => query.OrderBy(r => r.TheOtherCountry != null ? r.TheOtherCountry.NameRuShort : string.Empty),
+            ("theothercountrycode", "desc") => query.OrderByDescending(r => r.TheOtherCountry != null ? r.TheOtherCountry.NameRuShort : string.Empty),
             ("transportationtypeid", "asc") => query.OrderBy(r => r.TransportationType != null ? r.TransportationType.Name : string.Empty),
             ("transportationtypeid", "desc") => query.OrderByDescending(r => r.TransportationType != null ? r.TransportationType.Name : string.Empty),
             ("customsprocedureid", "asc") => query.OrderBy(r => r.CustomsProcedure != null ? r.CustomsProcedure.Name : string.Empty),
