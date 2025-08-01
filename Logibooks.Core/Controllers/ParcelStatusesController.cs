@@ -15,11 +15,11 @@ namespace Logibooks.Core.Controllers;
 [ProducesResponseType(StatusCodes.Status401Unauthorized, Type = typeof(ErrMessage))]
 [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(ErrMessage))]
 
-public class OrderStatusesController(
+public class ParcelStatusesController(
     IHttpContextAccessor httpContextAccessor,
     AppDbContext db,
     IUserInformationService userService,
-    ILogger<OrderStatusesController> logger) : LogibooksControllerBase(httpContextAccessor, db, logger)
+    ILogger<ParcelStatusesController> logger) : LogibooksControllerBase(httpContextAccessor, db, logger)
 {
     private readonly IUserInformationService _userService = userService;
     [HttpGet]

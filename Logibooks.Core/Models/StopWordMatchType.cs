@@ -28,7 +28,7 @@ using System.Text.Json.Serialization;
 
 namespace Logibooks.Core.Models;
 
-[Table("stop_word_match_type")]
+[Table("stop_word_match_types")]
 public class StopWordMatchType
 {
     [Column("id")]

@@ -96,7 +96,7 @@ public class OrderIndPostGeneratorTests
             DTime = DateTime.Now,
             InvoiceNumber = "INV-2024-001",
             InvoiceDate = new DateOnly(2024, 6, 1),
-            DestCountryCode = 860 // Uzbekistan
+            TheOtherCountryCode = 860 // Uzbekistan
         };
 
         _dbContext.Registers.Add(register);
@@ -125,7 +125,7 @@ public class OrderIndPostGeneratorTests
             DTime = DateTime.Now,
             InvoiceNumber = "WBR-INV-001",
             InvoiceDate = new DateOnly(2024, 6, 1),
-            DestCountryCode = 860
+            TheOtherCountryCode = 860
         };
         _dbContext.Registers.Add(register);
         var order = new WbrOrder
@@ -161,7 +161,7 @@ public class OrderIndPostGeneratorTests
             DTime = DateTime.Now,
             InvoiceNumber = "OZON-INV-001",
             InvoiceDate = new DateOnly(2024, 6, 1),
-            DestCountryCode = 643
+            TheOtherCountryCode = 643
         };
         _dbContext.Registers.Add(register);
         var order = new OzonOrder
@@ -209,8 +209,8 @@ public class OrderIndPostGeneratorTests
             CustomsProcedure = customsProcedure,
             FileName = "wbr_zip.xlsx",
             DTime = DateTime.Now,
-            DestCountryCode = countryUz.IsoNumeric,
-            DestinationCountry = countryUz
+            TheOtherCountryCode = countryUz.IsoNumeric,
+            TheOtherCountry = countryUz
         };
         _dbContext.Registers.Add(register);
         await _dbContext.SaveChangesAsync();
@@ -219,7 +219,7 @@ public class OrderIndPostGeneratorTests
             .Include(r => r.Company)
             .Include(r => r.TransportationType)
             .Include(r => r.CustomsProcedure)
-            .Include(r => r.DestinationCountry)
+            .Include(r => r.TheOtherCountry)
             .FirstAsync(r => r.Id == 300);
 
         _dbContext.WbrOrders.AddRange(
@@ -268,8 +268,8 @@ public class OrderIndPostGeneratorTests
             CustomsProcedure = customsProcedure,
             FileName = "ozon_zip.xlsx",
             DTime = DateTime.Now,
-            DestCountryCode = countryUz.IsoNumeric,
-            DestinationCountry = countryUz
+            TheOtherCountryCode = countryUz.IsoNumeric,
+            TheOtherCountry = countryUz
         };
         _dbContext.Registers.Add(register);
         await _dbContext.SaveChangesAsync();
@@ -278,7 +278,7 @@ public class OrderIndPostGeneratorTests
             .Include(r => r.Company)
             .Include(r => r.TransportationType)
             .Include(r => r.CustomsProcedure)
-            .Include(r => r.DestinationCountry)
+            .Include(r => r.TheOtherCountry)
             .FirstAsync(r => r.Id == 400);
 
         _dbContext.OzonOrders.AddRange(

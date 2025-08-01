@@ -47,7 +47,7 @@ using Logibooks.Core.Services;
 namespace Logibooks.Core.Tests.Controllers;
 
 [TestFixture]
-public class OrdersControllerTests
+public class ParcelsControllerTests
 {
 #pragma warning disable CS8618
     private AppDbContext _dbContext;
@@ -56,9 +56,9 @@ public class OrdersControllerTests
     private IMorphologySearchService _morphologyService;
     private Mock<IRegisterProcessingService> _mockProcessingService;
     private Mock<IOrderIndPostGenerator> _mockIndPostGenerator;
-    private ILogger<OrdersController> _logger;
+    private ILogger<ParcelsController> _logger;
     private IUserInformationService _userService;
-    private OrdersController _controller;
+    private ParcelsController _controller;
     private Role _logistRole;
     private User _logistUser;
 #pragma warning restore CS8618
@@ -67,7 +67,7 @@ public class OrdersControllerTests
     public void Setup()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseInMemoryDatabase($"orders_controller_db_{System.Guid.NewGuid()}")
+            .UseInMemoryDatabase($"parcels_controller_db_{System.Guid.NewGuid()}")
             .Options;
         _dbContext = new AppDbContext(options);
 
@@ -92,7 +92,7 @@ public class OrdersControllerTests
         _dbContext.SaveChanges();
 
         _mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
-        _logger = new LoggerFactory().CreateLogger<OrdersController>();
+        _logger = new LoggerFactory().CreateLogger<ParcelsController>();
         _mockValidationService = new Mock<IOrderValidationService>();
         _mockProcessingService = new Mock<IRegisterProcessingService>();
         _mockIndPostGenerator = new Mock<IOrderIndPostGenerator>();
@@ -109,10 +109,10 @@ public class OrdersControllerTests
         _dbContext.Dispose();
     }
 
-    private OrdersController CreateController()
+    private ParcelsController CreateController()
     {
         var mockMapper = new Mock<IMapper>();
-        return new OrdersController(
+        return new ParcelsController(
             _mockHttpContextAccessor.Object,
             _dbContext,
             _userService,
@@ -178,7 +178,7 @@ public class OrdersControllerTests
                 // Add other properties as needed for testing
             });
 
-        _controller = new OrdersController(
+        _controller = new ParcelsController(
             _mockHttpContextAccessor.Object,
             _dbContext,
             _userService,
@@ -288,7 +288,7 @@ public class OrdersControllerTests
                 if (src.OrderNumber != null) dest.OrderNumber = src.OrderNumber;
             });
 
-        _controller = new OrdersController(
+        _controller = new ParcelsController(
             _mockHttpContextAccessor.Object,
             _dbContext,
             _userService,
@@ -327,7 +327,7 @@ public class OrdersControllerTests
                 if (src.PostingNumber != null) dest.PostingNumber = src.PostingNumber;
             });
 
-        _controller = new OrdersController(
+        _controller = new ParcelsController(
             _mockHttpContextAccessor.Object,
             _dbContext,
             _userService,
@@ -795,7 +795,7 @@ public class OrdersControllerTests
         ctx.Items["UserId"] = 1;
         _mockHttpContextAccessor.Setup(x => x.HttpContext).Returns(ctx);
 
-        var ctrl = new OrdersController(
+        var ctrl = new ParcelsController(
             _mockHttpContextAccessor.Object,
             _dbContext,
             _userService,

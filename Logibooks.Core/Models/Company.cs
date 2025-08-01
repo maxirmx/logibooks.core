@@ -64,4 +64,6 @@ public class Company
     [JsonIgnore]
     public ICollection<Register> Registers { get; set; } = [];
 
+    [JsonIgnore]
+    public ICollection<Register> TheOtherRegisters { get; set; } = [];
 }

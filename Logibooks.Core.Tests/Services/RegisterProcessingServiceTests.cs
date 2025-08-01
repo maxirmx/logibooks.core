@@ -171,7 +171,7 @@ public class UploadOzonRegisterTests
         Assert.That(ctx.OzonOrders.Count(), Is.EqualTo(3));
         Assert.That(ctx.OzonOrders.OrderBy(o => o.Id).First().PostingNumber, Is.EqualTo("0180993146-0049-7"));
         Assert.That(register, Is.Not.Null);
-        Assert.That(register!.DestCountryCode, Is.EqualTo(860));
+        Assert.That(register!.TheOtherCountryCode, Is.EqualTo(860));
     }
 }
 
@@ -220,7 +220,7 @@ public class UploadWbrRegisterTests
         Assert.That(ctx.WbrOrders.Count(), Is.EqualTo(3));
         Assert.That(ctx.WbrOrders.OrderBy(o => o.Id).First().RowNumber, Is.EqualTo(3101));
         Assert.That(register, Is.Not.Null);
-        Assert.That(register!.DestCountryCode, Is.EqualTo(860));
+        Assert.That(register!.TheOtherCountryCode, Is.EqualTo(860));
     }
 }
 

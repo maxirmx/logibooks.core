@@ -77,10 +77,7 @@ services:
       API_URL: https://logibooks.sw.consulting:8085/api
 
   backup:
-    image: backup
-    build:
-      context: ./Logibooks.Backup
-      dockerfile: Dockerfile
+    image: ghcr.io/sw-consulting/db-backup:latest
     environment:
       DB_HOST: db
       DB_PORT: 5432
