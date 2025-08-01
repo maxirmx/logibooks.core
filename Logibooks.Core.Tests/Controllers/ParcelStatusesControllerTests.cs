@@ -17,14 +17,14 @@ using System.Threading.Tasks;
 namespace Logibooks.Core.Tests.Controllers;
 
 [TestFixture]
-public class OrderStatusesControllerTests
+public class ParcelStatusesControllerTests
 {
 #pragma warning disable CS8618
     private AppDbContext _dbContext;
     private Mock<IHttpContextAccessor> _mockHttpContextAccessor;
-    private ILogger<OrderStatusesController> _logger;
+    private ILogger<ParcelStatusesController> _logger;
     private IUserInformationService _userService;
-    private OrderStatusesController _controller;
+    private ParcelStatusesController _controller;
     private Role _adminRole;
     private Role _logistRole;
     private User _adminUser;
@@ -62,9 +62,9 @@ public class OrderStatusesControllerTests
         _dbContext.SaveChanges();
 
         _mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
-        _logger = new LoggerFactory().CreateLogger<OrderStatusesController>();
+        _logger = new LoggerFactory().CreateLogger<ParcelStatusesController>();
         _userService = new UserInformationService(_dbContext);
-        _controller = new OrderStatusesController(_mockHttpContextAccessor.Object, _dbContext, _userService, _logger);
+        _controller = new ParcelStatusesController(_mockHttpContextAccessor.Object, _dbContext, _userService, _logger);
     }
 
     [TearDown]
@@ -79,7 +79,7 @@ public class OrderStatusesControllerTests
         var ctx = new DefaultHttpContext();
         ctx.Items["UserId"] = id;
         _mockHttpContextAccessor.Setup(x => x.HttpContext).Returns(ctx);
-        _controller = new OrderStatusesController(_mockHttpContextAccessor.Object, _dbContext, _userService, _logger);
+        _controller = new ParcelStatusesController(_mockHttpContextAccessor.Object, _dbContext, _userService, _logger);
     }
 
     [Test]
