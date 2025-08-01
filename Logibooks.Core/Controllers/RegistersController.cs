@@ -1,4 +1,4 @@
-// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
+ï»¿// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
 // All rights reserved.
 // This file is a part of Logibooks Core application
 //
@@ -160,7 +160,7 @@ public class RegistersController(
 
         if (!string.IsNullOrWhiteSpace(search))
         {
-            bool containsRussia = "ðîññèÿ".Contains(search, StringComparison.OrdinalIgnoreCase);
+            bool containsRussia = "Ñ€Ð¾ÑÑÐ¸Ñ".Contains(search, StringComparison.OrdinalIgnoreCase);
             
             if (!containsRussia)
             {
@@ -380,35 +380,32 @@ public class RegistersController(
             return _404Register(id);
         }
 
-        if (update.TheOtherCountryCode != null &&
+        if (update.TheOtherCountryCode != null && update.TheOtherCountryCode != 0 &&
             !await _db.Countries.AsNoTracking().AnyAsync(c => c.IsoNumeric == update.TheOtherCountryCode))
         {
             _logger.LogDebug("PutRegister returning '404 Not Found' - country");
             return _404Object(update.TheOtherCountryCode.Value);
         }
 
-        if (update.TransportationTypeId != null &&
+        if (update.TransportationTypeId != null && update.TransportationTypeId !=0 &&
             !await _db.TransportationTypes.AsNoTracking().AnyAsync(t => t.Id == update.TransportationTypeId))
         {
             _logger.LogDebug("PutRegister returning '404 Not Found' - transportation type");
             return _404Object(update.TransportationTypeId.Value);
         }
 
-        if (update.CustomsProcedureId != null &&
+        if (update.CustomsProcedureId != null && update.CustomsProcedureId != 0 && 
             !await _db.CustomsProcedures.AsNoTracking().AnyAsync(c => c.Id == update.CustomsProcedureId))
         {
             _logger.LogDebug("PutRegister returning '404 Not Found' - customs procedure");
             return _404Object(update.CustomsProcedureId.Value);
         }
 
-        if (update.TheOtherCompanyId != null)
+        if (update.TheOtherCompanyId != null && update.TheOtherCompanyId != 0 &&
+            !await _db.Companies.AsNoTracking().AnyAsync(c => c.Id == update.TheOtherCompanyId))
         {
-            var company = await _db.Companies.FindAsync(update.TheOtherCompanyId);
-            if (company == null)
-            {
                 _logger.LogDebug("PutRegister returning '404 Not Found' - company");
                 return _404Object(update.TheOtherCompanyId.Value);
-            }
         }
 
         register.ApplyUpdateFrom(update);
