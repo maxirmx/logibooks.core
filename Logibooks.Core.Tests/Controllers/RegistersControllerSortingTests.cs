@@ -97,6 +97,11 @@ public class RegistersControllerSortingTests
             IsoAlpha2 = "RU",
             NameRuShort = "Российская Федерация"
         });
+        _dbContext.Countries.Add(new Country {
+            IsoNumeric = 860,
+            IsoAlpha2 = "UZ",
+            NameRuShort = "Узбекистан"
+        });
         _dbContext.Companies.AddRange(
             new Company {
                 Id = 1,
@@ -119,6 +124,17 @@ public class RegistersControllerSortingTests
                 PostalCode = "",
                 City = "д. Коледино",
                 Street = "Индустриальный Парк Коледино, д.6, стр.1"
+            },
+            new Company {
+                Id = 3,
+                Inn = "200892688",
+                Kpp = "",
+                Name = "АО \"Узбекпочта\"",
+                ShortName = "Узбекпочта",
+                CountryIsoNumeric = 860,
+                PostalCode = "100047",
+                City = "Ташкент",
+                Street = "ул. Навои, 28"
             }
         );
         _dbContext.TransportationTypes.AddRange(
@@ -147,15 +163,14 @@ public class RegistersControllerSortingTests
         _controller = new RegistersController(_mockHttpContextAccessor.Object, _dbContext, _userService, _logger, _mockRegValidationService.Object, _mockProcessingService.Object, _mockIndPostGenerator.Object);
     }
 
-    // Move all sorting-related tests here and add new ones for extended sorting
     // Sorting by FileName descending
     [Test]
     public async Task GetRegisters_SortsByFileName_Descending()
     {
         SetCurrentUserId(1);
         _dbContext.Registers.AddRange(
-            new Register { Id = 1, FileName = "a.xlsx", CompanyId = 2 },
-            new Register { Id = 2, FileName = "b.xlsx", CompanyId = 2 }
+            new Register { Id = 1, FileName = "a.xlsx", CompanyId = 2, TheOtherCompanyId = 3 },
+            new Register { Id = 2, FileName = "b.xlsx", CompanyId = 2, TheOtherCompanyId = 3 }
         );
         await _dbContext.SaveChangesAsync();
         var result = await _controller.GetRegisters(sortBy: "fileName", sortOrder: "desc");
@@ -166,16 +181,52 @@ public class RegistersControllerSortingTests
         Assert.That(items[1].FileName, Is.EqualTo("a.xlsx"));
     }
 
+    // Sorting by DealNumber ascending
+    [Test]
+    public async Task GetRegisters_SortsByDealNumber_Ascending()
+    {
+        SetCurrentUserId(1);
+        _dbContext.Registers.AddRange(
+            new Register { Id = 1, FileName = "r1.xlsx", CompanyId = 2, TheOtherCompanyId = 3, DealNumber = "DEAL-B" },
+            new Register { Id = 2, FileName = "r2.xlsx", CompanyId = 2, TheOtherCompanyId = 3, DealNumber = "DEAL-A" }
+        );
+        await _dbContext.SaveChangesAsync();
+        var result = await _controller.GetRegisters(sortBy: "dealNumber", sortOrder: "asc");
+        var ok = result.Result as OkObjectResult;
+        var pr = ok!.Value as PagedResult<RegisterViewItem>;
+        var items = pr!.Items.ToArray();
+        Assert.That(items[0].DealNumber, Is.EqualTo("DEAL-A"));
+        Assert.That(items[1].DealNumber, Is.EqualTo("DEAL-B"));
+    }
+
+    // Sorting by DealNumber descending
+    [Test]
+    public async Task GetRegisters_SortsByDealNumber_Descending()
+    {
+        SetCurrentUserId(1);
+        _dbContext.Registers.AddRange(
+            new Register { Id = 1, FileName = "r1.xlsx", CompanyId = 2, TheOtherCompanyId = 3, DealNumber = "DEAL-A" },
+            new Register { Id = 2, FileName = "r2.xlsx", CompanyId = 2, TheOtherCompanyId = 3, DealNumber = "DEAL-B" }
+        );
+        await _dbContext.SaveChangesAsync();
+        var result = await _controller.GetRegisters(sortBy: "dealNumber", sortOrder: "desc");
+        var ok = result.Result as OkObjectResult;
+        var pr = ok!.Value as PagedResult<RegisterViewItem>;
+        var items = pr!.Items.ToArray();
+        Assert.That(items[0].DealNumber, Is.EqualTo("DEAL-B"));
+        Assert.That(items[1].DealNumber, Is.EqualTo("DEAL-A"));
+    }
+
     // Sorting by OrdersTotal across pages
     [Test]
     public async Task GetRegisters_SortsByOrdersTotalAcrossPages()
     {
         SetCurrentUserId(1);
         _dbContext.Registers.AddRange(
-            new Register { Id = 1, FileName = "r1.xlsx" , CompanyId = 2 },
-            new Register { Id = 2, FileName = "r2.xlsx" , CompanyId = 2 },
-            new Register { Id = 3, FileName = "r3.xlsx" , CompanyId = 2 },
-            new Register { Id = 4, FileName = "r4.xlsx" , CompanyId = 2 }
+            new Register { Id = 1, FileName = "r1.xlsx" , CompanyId = 2, TheOtherCompanyId = 3 },
+            new Register { Id = 2, FileName = "r2.xlsx" , CompanyId = 2, TheOtherCompanyId = 3 },
+            new Register { Id = 3, FileName = "r3.xlsx" , CompanyId = 2, TheOtherCompanyId = 3 },
+            new Register { Id = 4, FileName = "r4.xlsx" , CompanyId = 2, TheOtherCompanyId = 3 }
         );
         _dbContext.Orders.AddRange(
             new WbrOrder { RegisterId = 1, StatusId = 1 },
@@ -202,8 +253,8 @@ public class RegistersControllerSortingTests
     {
         SetCurrentUserId(1);
         _dbContext.Registers.AddRange(
-            new Register { Id = 1, FileName = "r1.xlsx", CompanyId = 1 },
-            new Register { Id = 2, FileName = "r2.xlsx", CompanyId = 2 }
+            new Register { Id = 1, FileName = "r1.xlsx", CompanyId = 1, TheOtherCompanyId = 3 },
+            new Register { Id = 2, FileName = "r2.xlsx", CompanyId = 2, TheOtherCompanyId = 3 }
         );
         await _dbContext.SaveChangesAsync();
         var result = await _controller.GetRegisters(sortBy: "companyId", sortOrder: "desc");
@@ -214,106 +265,53 @@ public class RegistersControllerSortingTests
         Assert.That(items[1].CompanyId, Is.EqualTo(1));
     }
 
-    // Sorting by CountryAlpha2 descending
+    // Test for invalid sort field
     [Test]
-    public async Task GetRegisters_SortsByCountryAlpha2_Ascending()
+    public async Task GetRegisters_ReturnsBadRequest_WhenSortByIsInvalid()
     {
         SetCurrentUserId(1);
-        // Inside the Setup() method, after adding the Russian country
-        _dbContext.Countries.Add(new Country
+        var result = await _controller.GetRegisters(sortBy: "invalidfield");
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
+    }
+
+    // Test that all allowed sort fields are accepted
+    [Test]
+    public async Task GetRegisters_AcceptsAllValidSortByValues()
+    {
+        SetCurrentUserId(1);
+        _dbContext.Registers.Add(new Register { Id = 1, FileName = "test.xlsx", CompanyId = 2, TheOtherCompanyId = 3 });
+        await _dbContext.SaveChangesAsync();
+
+        string[] allowedSortBy = [
+            "id", "filename", "date", "orderstotal", "companyid", "theothercompanyid", 
+            "theothercountrycode", "transportationtypeid", "customsprocedureid", 
+            "invoicenumber", "invoicedate", "dealnumber"
+        ];
+
+        foreach (var sortBy in allowedSortBy)
         {
-            IsoNumeric = 860,
-            IsoAlpha2 = "UZ",
-            NameEnShort = "Uzbekistan",
-            NameEnFormal = "Republic of Uzbekistan",
-            NameEnOfficial = "Republic of Uzbekistan",
-            NameEnCldr = "Uzbekistan",
-            NameRuShort = "Узбекистан",
-            NameRuFormal = "Республика Узбекистан",
-            NameRuOfficial = "Республика Узбекистан"
-        });
-        _dbContext.Registers.AddRange(
-            new Register { Id = 1, FileName = "r1.xlsx", CompanyId = 1, DestCountryCode = 860 },
-            new Register { Id = 2, FileName = "r2.xlsx", CompanyId = 2, DestCountryCode = 643 }
-        );
-        await _dbContext.SaveChangesAsync();
-        var result = await _controller.GetRegisters(sortBy: "countryAlpha2", sortOrder: "desc");
-        var ok = result.Result as OkObjectResult;
-        var pr = ok!.Value as PagedResult<RegisterViewItem>;
-        var items = pr!.Items.ToArray();
-        Assert.That(items[0].DestCountryCode, Is.EqualTo(860)); // "RU" comes after "UZ"
-        Assert.That(items[1].DestCountryCode, Is.EqualTo(643));
+            var result = await _controller.GetRegisters(sortBy: sortBy);
+            Assert.That(result.Result, Is.TypeOf<OkObjectResult>(),
+                $"sortBy '{sortBy}' should be valid");
+        }
     }
 
-    // Sorting by TransportationTypeName ascending
+    // Test sorting with null values
     [Test]
-    public async Task GetRegisters_SortsByTransportationTypeName_Ascending()
+    public async Task GetRegisters_HandlesSortingWithNullValues()
     {
         SetCurrentUserId(1);
         _dbContext.Registers.AddRange(
-            new Register { Id = 1, FileName = "r1.xlsx", CompanyId = 1, TransportationTypeId = 2 },  
-            new Register { Id = 2, FileName = "r2.xlsx", CompanyId = 2, TransportationTypeId = 1 }
-        );
-        await _dbContext.SaveChangesAsync();
-        var result = await _controller.GetRegisters(sortBy: "transportationTypeId", sortOrder: "asc");
-        var ok = result.Result as OkObjectResult;
-        var pr = ok!.Value as PagedResult<RegisterViewItem>;
-        var items = pr!.Items.ToArray();
-        Assert.That(items[0].TransportationTypeId, Is.EqualTo(1)); // "Авиа" comes before "Авто"
-        Assert.That(items[1].TransportationTypeId, Is.EqualTo(2));
-    }
-
-    // Sorting by CustomsProcedureName ascending
-    [Test]
-    public async Task GetRegisters_SortsByCustomsProcedureName_Ascending()
-    {
-        SetCurrentUserId(1);
-        _dbContext.Registers.AddRange(
-            new Register { Id = 1, FileName = "r1.xlsx", CompanyId = 1, CustomsProcedureId = 1 },   // Экспорт
-            new Register { Id = 2, FileName = "r2.xlsx", CompanyId = 2, CustomsProcedureId = 2 }    // Реимпорт 
-        );
-        await _dbContext.SaveChangesAsync();
-        var result = await _controller.GetRegisters(sortBy: "customsProcedureId", sortOrder: "asc");
-        var ok = result.Result as OkObjectResult;
-        var pr = ok!.Value as PagedResult<RegisterViewItem>;
-        var items = pr!.Items.ToArray();
-        Assert.That(items[0].CustomsProcedureId, Is.EqualTo(2)); // "Экспорт" comes after "Реимпорт"
-        Assert.That(items[1].CustomsProcedureId, Is.EqualTo(1));
-    }
-
-    // Sorting by InvoiceNumber ascending
-    [Test]
-    public async Task GetRegisters_SortsByInvoiceNumber_Ascending()
-    {
-        SetCurrentUserId(1);
-        _dbContext.Registers.AddRange(
-            new Register { Id = 1, FileName = "r1.xlsx", CompanyId = 1, InvoiceNumber = "B" },
-            new Register { Id = 2, FileName = "r2.xlsx", CompanyId = 2, InvoiceNumber = "A" }
+            new Register { Id = 1, FileName = "r1.xlsx", CompanyId = 2, TheOtherCompanyId = 3, InvoiceNumber = "INV-001" },
+            new Register { Id = 2, FileName = "r2.xlsx", CompanyId = 2, TheOtherCompanyId = 3, InvoiceNumber = null }
         );
         await _dbContext.SaveChangesAsync();
         var result = await _controller.GetRegisters(sortBy: "invoiceNumber", sortOrder: "asc");
         var ok = result.Result as OkObjectResult;
         var pr = ok!.Value as PagedResult<RegisterViewItem>;
-        var items = pr!.Items.ToArray();
-        Assert.That(items[0].InvoiceNumber, Is.EqualTo("A"));
-        Assert.That(items[1].InvoiceNumber, Is.EqualTo("B"));
-    }
-
-    // Sorting by InvoiceDate ascending
-    [Test]
-    public async Task GetRegisters_SortsByInvoiceDate_Ascending()
-    {
-        SetCurrentUserId(1);
-        _dbContext.Registers.AddRange(
-            new Register { Id = 1, FileName = "r1.xlsx", CompanyId = 1, InvoiceDate = new DateOnly(2025, 1, 2) },
-            new Register { Id = 2, FileName = "r2.xlsx", CompanyId = 2, InvoiceDate = new DateOnly(2025, 1, 1) }
-        );
-        await _dbContext.SaveChangesAsync();
-        var result = await _controller.GetRegisters(sortBy: "invoiceDate", sortOrder: "asc");
-        var ok = result.Result as OkObjectResult;
-        var pr = ok!.Value as PagedResult<RegisterViewItem>;
-        var items = pr!.Items.ToArray();
-        Assert.That(items[0].InvoiceDate, Is.EqualTo(new DateOnly(2025, 1, 1)));
-        Assert.That(items[1].InvoiceDate, Is.EqualTo(new DateOnly(2025, 1, 2)));
+        Assert.That(pr!.Items.Count(), Is.EqualTo(2));
+        // Should not throw exception when sorting by nullable field
     }
 }

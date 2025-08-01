@@ -107,6 +107,11 @@ public class RegistersControllerTests
             IsoAlpha2 = "RU",
             NameRuShort = "Российская Федерация"
         });
+        _dbContext.Countries.Add(new Country {
+            IsoNumeric = 860,
+            IsoAlpha2 = "UZ",
+            NameRuShort = "Узбекистан"
+        });
         _dbContext.Companies.AddRange(
             new Company {
                 Id = 1,
@@ -129,6 +134,17 @@ public class RegistersControllerTests
                 PostalCode = "",
                 City = "д. Коледино",
                 Street = "Индустриальный Парк Коледино, д.6, стр.1"
+            },
+            new Company {
+                Id = 3,
+                Inn = "200892688",
+                Kpp = "",
+                Name = "АО \"Узбекпочта\"",
+                ShortName = "Узбекпочта",
+                CountryIsoNumeric = 860,
+                PostalCode = "100047",
+                City = "Ташкент",
+                Street = "ул. Навои, 28"
             }
         );
         _dbContext.TransportationTypes.AddRange(
@@ -184,8 +200,8 @@ public class RegistersControllerTests
             new OrderCheckStatus { Id = 1,  Title = "Loaded" },
             new OrderCheckStatus { Id = 2,  Title = "Processed" }
         );
-        var r1 = new Register { Id = 1, FileName = "r1.xlsx", CompanyId = 2 };
-        var r2 = new Register { Id = 2, FileName = "r2.xlsx", CompanyId = 2 };
+        var r1 = new Register { Id = 1, FileName = "r1.xlsx", CompanyId = 2, TheOtherCompanyId = 3 };
+        var r2 = new Register { Id = 2, FileName = "r2.xlsx", CompanyId = 2, TheOtherCompanyId = 3 };
         _dbContext.Registers.AddRange(r1, r2);
         _dbContext.Orders.AddRange(
             new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1 },
@@ -212,8 +228,8 @@ public class RegistersControllerTests
     {
         SetCurrentUserId(1);
         _dbContext.Registers.AddRange(
-            new Register { Id = 1, FileName = "r1.xlsx", CompanyId = 2 },
-            new Register { Id = 2, FileName = "r2.xlsx", CompanyId = 2 }
+            new Register { Id = 1, FileName = "r1.xlsx", CompanyId = 2, TheOtherCompanyId = 3 },
+            new Register { Id = 2, FileName = "r2.xlsx", CompanyId = 2, TheOtherCompanyId = 3 }
         );
         await _dbContext.SaveChangesAsync();
 
@@ -243,7 +259,7 @@ public class RegistersControllerTests
     public async Task GetRegister_ReturnsRegister_ForLogist()
     {
         SetCurrentUserId(1);
-        var register = new Register { Id = 1, FileName = "reg.xlsx", CompanyId = 2 };
+        var register = new Register { Id = 1, FileName = "reg.xlsx", CompanyId = 2, TheOtherCompanyId = 3 };
         _dbContext.Registers.Add(register);
         await _dbContext.SaveChangesAsync();
 
@@ -264,7 +280,7 @@ public class RegistersControllerTests
             new OrderCheckStatus { Id = 1,  Title = "Loaded" },
             new OrderCheckStatus { Id = 2,  Title = "Processed" }
         );
-        var register = new Register { Id = 1, FileName = "reg.xlsx", CompanyId = 2 };
+        var register = new Register { Id = 1, FileName = "reg.xlsx", CompanyId = 2, TheOtherCompanyId = 3 };
         _dbContext.Registers.Add(register);
         _dbContext.Orders.AddRange(
             new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1 },
@@ -290,13 +306,13 @@ public class RegistersControllerTests
             new OrderCheckStatus { Id = 2,  Title = "Processed" },
             new OrderCheckStatus { Id = 3,  Title = "Delivered" }
         );
-        var register = new Register { Id = 1, FileName = "reg.xlsx", CompanyId = 2 };
+        var register = new Register { Id = 1, FileName = "reg.xlsx", CompanyId = 2, TheOtherCompanyId = 3 };
         _dbContext.Registers.Add(register);
         _dbContext.Orders.AddRange(
-            new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1 },
-            new WbrOrder { Id = 2, RegisterId = 1, StatusId = 2 },
-            new WbrOrder { Id = 3, RegisterId = 1, StatusId = 3 },
-            new WbrOrder { Id = 4, RegisterId = 1, StatusId = 3 }
+            new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1, CheckStatusId = 1 },
+            new WbrOrder { Id = 2, RegisterId = 1, StatusId = 2, CheckStatusId = 2 },
+            new WbrOrder { Id = 3, RegisterId = 1, StatusId = 3, CheckStatusId = 3 },
+            new WbrOrder { Id = 4, RegisterId = 1, StatusId = 3, CheckStatusId = 3 }
         );
         await _dbContext.SaveChangesAsync();
 
@@ -313,7 +329,7 @@ public class RegistersControllerTests
     public async Task GetRegister_ReturnsForbidden_ForNonLogist()
     {
         SetCurrentUserId(2);
-        _dbContext.Registers.Add(new Register { Id = 1, FileName = "reg.xlsx", CompanyId = 2 });
+        _dbContext.Registers.Add(new Register { Id = 1, FileName = "reg.xlsx", CompanyId = 2, TheOtherCompanyId = 3 });
         await _dbContext.SaveChangesAsync();
 
         var result = await _controller.GetRegister(1);
@@ -409,7 +425,7 @@ public class RegistersControllerTests
     public async Task GetRegisters_AcceptsValidSortByValues()
     {
         SetCurrentUserId(1);
-        string[] validSortBy = ["id", "filename", "date", "orderstotal"];
+        string[] validSortBy = ["id", "filename", "date", "orderstotal", "companyid", "theothercompanyid", "theothercountrycode", "transportationtypeid", "customsprocedureid", "invoicenumber", "invoicedate", "dealnumber"];
 
         foreach (var sortBy in validSortBy)
         {
@@ -446,9 +462,9 @@ public class RegistersControllerTests
     {
         SetCurrentUserId(1);
         _dbContext.Registers.AddRange(
-            new Register { Id = 1, FileName = "r1.xlsx", CompanyId = 2 },
-            new Register { Id = 2, FileName = "r2.xlsx", CompanyId = 1 },
-            new Register { Id = 3, FileName = "r3.xlsx", CompanyId = 2 }
+            new Register { Id = 1, FileName = "r1.xlsx", CompanyId = 2, TheOtherCompanyId = 3 },
+            new Register { Id = 2, FileName = "r2.xlsx", CompanyId = 1, TheOtherCompanyId = 3 },
+            new Register { Id = 3, FileName = "r3.xlsx", CompanyId = 2, TheOtherCompanyId = 3 }
         );
         await _dbContext.SaveChangesAsync();
 
@@ -467,7 +483,7 @@ public class RegistersControllerTests
         SetCurrentUserId(1);
         for (int i = 1; i <= 6; i++)
         {
-            _dbContext.Registers.Add(new Register { Id = i, FileName = $"r{i}.xlsx", CompanyId = 2 });
+            _dbContext.Registers.Add(new Register { Id = i, FileName = $"r{i}.xlsx", CompanyId = 2, TheOtherCompanyId = 3 });
         }
         await _dbContext.SaveChangesAsync();
 
@@ -1168,7 +1184,7 @@ public class RegistersControllerTests
     {
         SetCurrentUserId(1); // Logist user
 
-        var register = new Register { Id = 1, FileName = "reg.xlsx" };
+        var register = new Register { Id = 1, FileName = "reg.xlsx", TheOtherCompanyId = 3 };
 
         _dbContext.Registers.Add(register);
         await _dbContext.SaveChangesAsync();
@@ -1185,7 +1201,7 @@ public class RegistersControllerTests
     {
         SetCurrentUserId(1); // Logist user
 
-        var register = new Register { Id = 1, FileName = "reg.xlsx" };
+        var register = new Register { Id = 1, FileName = "reg.xlsx", TheOtherCompanyId = 3 };
         var order1 = new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1 };
         var order2 = new WbrOrder { Id = 2, RegisterId = 1, StatusId = 1 };
         _dbContext.Registers.Add(register);
@@ -1208,7 +1224,7 @@ public class RegistersControllerTests
     {
         SetCurrentUserId(2); // Non-logist user
 
-        var register = new Register { Id = 1, FileName = "reg.xlsx" };
+        var register = new Register { Id = 1, FileName = "reg.xlsx", TheOtherCompanyId = 3 };
         _dbContext.Registers.Add(register);
         await _dbContext.SaveChangesAsync();
 
@@ -1236,7 +1252,7 @@ public class RegistersControllerTests
     {
         SetCurrentUserId(1);
         _dbContext.Countries.Add(new Country { IsoNumeric = 100, IsoAlpha2 = "XX", NameRuShort = "XX" });
-        var register = new Register { Id = 1, FileName = "r.xlsx" };
+        var register = new Register { Id = 1, FileName = "r.xlsx", TheOtherCompanyId = 3 };
         _dbContext.Registers.Add(register);
         await _dbContext.SaveChangesAsync();
 
@@ -1244,7 +1260,7 @@ public class RegistersControllerTests
         {
             InvoiceNumber = "INV",
             InvoiceDate = new DateOnly(2025, 1, 2),
-            DestCountryCode = 100,
+            TheOtherCountryCode = 100,
             TransportationTypeId = 1,
             CustomsProcedureId = 1
         };
@@ -1255,7 +1271,7 @@ public class RegistersControllerTests
         var saved = await _dbContext.Registers.FindAsync(1);
         Assert.That(saved!.InvoiceNumber, Is.EqualTo("INV"));
         Assert.That(saved.InvoiceDate, Is.EqualTo(new DateOnly(2025, 1, 2)));
-        Assert.That(saved.DestCountryCode, Is.EqualTo((short)100));
+        Assert.That(saved.TheOtherCountryCode, Is.EqualTo((short)100));
         Assert.That(saved.TransportationTypeId, Is.EqualTo(1));
         Assert.That(saved.CustomsProcedureId, Is.EqualTo(1));
     }
@@ -1264,7 +1280,7 @@ public class RegistersControllerTests
     public async Task PutRegister_ReturnsForbidden_ForNonLogist()
     {
         SetCurrentUserId(2);
-        var register = new Register { Id = 1, FileName = "r.xlsx" };
+        var register = new Register { Id = 1, FileName = "r.xlsx", TheOtherCompanyId = 3 };
         _dbContext.Registers.Add(register);
         await _dbContext.SaveChangesAsync();
 
@@ -1294,6 +1310,10 @@ public class RegistersControllerTests
         _dbContext.Statuses.Add(new OrderStatus { Id = 1, Title = "S" });
         await _dbContext.SaveChangesAsync();
 
+        var reg = new Register { Id = 1, FileName = "r.xlsx", TheOtherCompanyId = 3 };
+        _dbContext.Registers.Add(reg);
+        await _dbContext.SaveChangesAsync();
+
         var result = await _controller.SetOrderStatuses(99, 1);
 
         Assert.That(result, Is.TypeOf<ObjectResult>());
@@ -1305,7 +1325,7 @@ public class RegistersControllerTests
     public async Task SetOrderStatuses_ReturnsNotFound_WhenStatusMissing()
     {
         SetCurrentUserId(1);
-        var reg = new Register { Id = 1, FileName = "r.xlsx" };
+        var reg = new Register { Id = 1, FileName = "r.xlsx", TheOtherCompanyId = 3 };
         _dbContext.Registers.Add(reg);
         await _dbContext.SaveChangesAsync();
 
@@ -1347,7 +1367,7 @@ public class RegistersControllerTests
     public async Task ValidateRegister_RunsService_ForLogist()
     {
         SetCurrentUserId(1);
-        _dbContext.Registers.Add(new Register { Id = 5, FileName = "r.xlsx" });
+        _dbContext.Registers.Add(new Register { Id = 5, FileName = "r.xlsx", TheOtherCompanyId = 3 });
         await _dbContext.SaveChangesAsync();
 
         var handle = Guid.NewGuid();
@@ -1462,7 +1482,7 @@ public class RegistersControllerTests
     public async Task ValidateRegister_WithRealService_CreatesFeacnLinks()
     {
         SetCurrentUserId(1);
-        var register = new Register { Id = 200, FileName = "r.xlsx" };
+        var register = new Register { Id = 200, FileName = "r.xlsx", TheOtherCompanyId = 3 };
         var feacnOrder = new FeacnOrder { Id = 300, Title = "t" };
         var prefix = new FeacnPrefix { Id = 400, Code = "12", FeacnOrderId = 300, FeacnOrder = feacnOrder };
         var order = new WbrOrder { Id = 201, RegisterId = 200, StatusId = 1, TnVed = "1234567890" };
@@ -1511,7 +1531,7 @@ public class RegistersControllerTests
         _dbContext.CheckStatuses.AddRange(
             new OrderCheckStatus { Id = 101, Title = "Has" },
             new OrderCheckStatus { Id = 201, Title = "Ok" });
-        var reg = new Register { Id = 1, FileName = "r.xlsx", CompanyId = 2 };
+        var reg = new Register { Id = 1, FileName = "r.xlsx", CompanyId = 2, TheOtherCompanyId = 3 };
         _dbContext.Registers.Add(reg);
         _dbContext.Orders.AddRange(
             new WbrOrder { Id = 10, RegisterId = 1, StatusId = 1, CheckStatusId = 101 },
@@ -1531,7 +1551,7 @@ public class RegistersControllerTests
     {
         SetCurrentUserId(1);
         _dbContext.CheckStatuses.Add(new OrderCheckStatus { Id = 101, Title = "Has" });
-        var reg = new Register { Id = 1, FileName = "r.xlsx", CompanyId = 1 }; // Ozon company
+        var reg = new Register { Id = 1, FileName = "r.xlsx", CompanyId = 1, TheOtherCompanyId = 3 }; // Ozon company
         _dbContext.Registers.Add(reg);
         var ozonOrder1 = new OzonOrder { Id = 1, RegisterId = 1, StatusId = 1, CheckStatusId = 101 };
         var ozonOrder2 = new OzonOrder { Id = 2, RegisterId = 1, StatusId = 1, CheckStatusId = 201 };
@@ -1610,7 +1630,7 @@ public class RegistersControllerTests
     {
         SetCurrentUserId(1);
         _dbContext.CheckStatuses.Add(new OrderCheckStatus { Id = 101, Title = "Has" });
-        var reg = new Register { Id = 1, FileName = "r.xlsx", CompanyId = 1 }; // Ozon company
+        var reg = new Register { Id = 1, FileName = "r.xlsx", CompanyId = 1, TheOtherCompanyId = 3 }; // Ozon company
         _dbContext.Registers.Add(reg);
         var ozonOrder1 = new OzonOrder { Id = 1, RegisterId = 1, StatusId = 1, CheckStatusId = 101 };
         var ozonOrder2 = new OzonOrder { Id = 2, RegisterId = 1, StatusId = 1, CheckStatusId = 201 };

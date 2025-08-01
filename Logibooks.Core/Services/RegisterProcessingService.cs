@@ -90,7 +90,7 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
             }
         }
 
-        // Use lookup tables to set DestCountryCode to Uzbekistan if present
+        // Use lookup tables to set TheOtherCountryCode to Uzbekistan if present
         short uzbekistanCode = 0;
         if (isWbr && _wbrCountryLookup != null && _wbrCountryLookup.TryGetValue("UZ", out var wbrCode) && wbrCode != 0)
         {
@@ -104,7 +104,7 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
         var register = new Register { FileName = fileName, CompanyId = companyId };
         if (uzbekistanCode != 0)
         {
-            register.DestCountryCode = uzbekistanCode;
+            register.TheOtherCountryCode = uzbekistanCode;
         }
         _db.Registers.Add(register);
         await _db.SaveChangesAsync(cancellationToken);

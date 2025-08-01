@@ -31,6 +31,23 @@ namespace Logibooks.Core.Models;
 [Table("registers")]
 public class Register
 {
+    // ...................................................................................................
+    // В этом классе реализовна большая волосатая имиация универсальности, которую хочет заказчик.
+    // На самом деле оно умеет работать в двух режимах
+    // Экспорт 
+    //   Тогда "Страна отправления": RU
+    //         "Страна назначения": определяется по полю TheOtherCountryCode
+    //         "Отправитель": Company [определена в момент загрузки реестра и не может быть изменена]
+    //         "Получатель": TheOtherCompany
+    // Реимпорт
+    //   Тогда "Страна отправления": определяется по полю TheOtherCountryCode
+    //         "Страна назначения": RU
+    //         "Отправитель": TheOtherCompany
+    //         "Получатель": Company [определена в момент загрузки реестра и не может быть изменена]
+    //
+    // Системе TheOtherCompany и TheOtherCountryCode не нужны для того. Совсем не нужны. 
+    // ...................................................................................................
+
     [Column("id")]
     public int Id { get; set; }
 
@@ -40,11 +57,20 @@ public class Register
     [Column("dtime")]
     public DateTime DTime { get; set; } = DateTime.UtcNow;
 
+    [Column("deal_number")]
+    public string DealNumber { get; set; } = string.Empty;
+
     [Column("company_id")]
     public int CompanyId { get; set; }
 
     [JsonIgnore]
     public Company? Company { get; set; }
+
+    [Column("the_other_company_id")]
+    public int? TheOtherCompanyId { get; set; }
+
+    [JsonIgnore]
+    public Company? TheOtherCompany { get; set; }
 
     [Column("invoice_number")]
     public string? InvoiceNumber { get; set; }
@@ -52,11 +78,11 @@ public class Register
     [Column("invoice_date")]
     public DateOnly? InvoiceDate { get; set; }
 
-    [Column("dest_country_code")]
-    public short? DestCountryCode { get; set; } 
+    [Column("the_other_country_code")]
+    public short? TheOtherCountryCode { get; set; } 
 
     [JsonIgnore]
-    public Country? DestinationCountry { get; set; }
+    public Country? TheOtherCountry { get; set; }
 
     [Column("transportation_type_id")]
     public int TransportationTypeId { get; set; } = 1;

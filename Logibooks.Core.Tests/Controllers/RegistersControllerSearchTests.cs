@@ -98,7 +98,7 @@ public class RegistersControllerSearchTests
         });
         _dbContext.Countries.Add(new Country
         {
-            IsoNumeric = 960,
+            IsoNumeric = 860,
             IsoAlpha2 = "UZ",
             NameRuShort = "Узбекистан"
         });
@@ -124,6 +124,17 @@ public class RegistersControllerSearchTests
                 PostalCode = "",
                 City = "д. Коледино",
                 Street = "Индустриальный Парк Коледино, д.6, стр.1"
+            },
+            new Company {
+                Id = 3,
+                Inn = "200892688",
+                Kpp = "",
+                Name = "АО \"Узбекпочта\"",
+                ShortName = "Узбекпочта",
+                CountryIsoNumeric = 860,
+                PostalCode = "100047",
+                City = "Ташкент",
+                Street = "ул. Навои, 28"
             }
         );
         _dbContext.TransportationTypes.AddRange(
@@ -157,8 +168,8 @@ public class RegistersControllerSearchTests
     {
         SetCurrentUserId(1);
         _dbContext.Registers.AddRange(
-            new Register { Id = 1, FileName = "report1.xlsx", CompanyId = 2 },
-            new Register { Id = 2, FileName = "other.xlsx", CompanyId = 2 }
+            new Register { Id = 1, FileName = "report1.xlsx", CompanyId = 2, TheOtherCompanyId = 3 },
+            new Register { Id = 2, FileName = "other.xlsx", CompanyId = 2, TheOtherCompanyId = 3 }
         );
         await _dbContext.SaveChangesAsync();
         var result = await _controller.GetRegisters(search: "report");
@@ -173,8 +184,8 @@ public class RegistersControllerSearchTests
     {
         SetCurrentUserId(1);
         _dbContext.Registers.AddRange(
-            new Register { Id = 1, FileName = "r1.xlsx", CompanyId = 2, InvoiceNumber = "INV-123" },
-            new Register { Id = 2, FileName = "r2.xlsx", CompanyId = 2, InvoiceNumber = "INV-456" }
+            new Register { Id = 1, FileName = "r1.xlsx", CompanyId = 2, TheOtherCompanyId = 3, InvoiceNumber = "INV-123" },
+            new Register { Id = 2, FileName = "r2.xlsx", CompanyId = 2, TheOtherCompanyId = 3, InvoiceNumber = "INV-456" }
         );
         await _dbContext.SaveChangesAsync();
         var result = await _controller.GetRegisters(search: "123");
@@ -185,12 +196,28 @@ public class RegistersControllerSearchTests
     }
 
     [Test]
+    public async Task GetRegisters_SearchFiltersByDealNumber()
+    {
+        SetCurrentUserId(1);
+        _dbContext.Registers.AddRange(
+            new Register { Id = 1, FileName = "r1.xlsx", CompanyId = 2, TheOtherCompanyId = 3, DealNumber = "DEAL-2024-001" },
+            new Register { Id = 2, FileName = "r2.xlsx", CompanyId = 2, TheOtherCompanyId = 3, DealNumber = "DEAL-2024-002" }
+        );
+        await _dbContext.SaveChangesAsync();
+        var result = await _controller.GetRegisters(search: "001");
+        var ok = result.Result as OkObjectResult;
+        var pr = ok!.Value as PagedResult<RegisterViewItem>;
+        Assert.That(pr!.Pagination.TotalCount, Is.EqualTo(1));
+        Assert.That(pr.Items.First().DealNumber, Is.EqualTo("DEAL-2024-001"));
+    }
+
+    [Test]
     public async Task GetRegisters_SearchFiltersByCompanyShortName()
     {
         SetCurrentUserId(1);
         _dbContext.Registers.AddRange(
-            new Register { Id = 1, FileName = "r1.xlsx", CompanyId = 2 },
-            new Register { Id = 2, FileName = "r2.xlsx", CompanyId = 1 }
+            new Register { Id = 1, FileName = "r1.xlsx", CompanyId = 2, TheOtherCompanyId = 3 },
+            new Register { Id = 2, FileName = "r2.xlsx", CompanyId = 1, TheOtherCompanyId = 3 }
         );
         await _dbContext.SaveChangesAsync();
         var result = await _controller.GetRegisters(search: "РВБ");
@@ -200,29 +227,45 @@ public class RegistersControllerSearchTests
         Assert.That(pr.Items.First().CompanyId, Is.EqualTo(2));
     }
 
- /*   [Test]
-    public async Task GetRegisters_SearchFiltersByCountryAlpha2()
+    [Test]
+    public async Task GetRegisters_SearchFiltersByTheOtherCompanyShortName()
     {
         SetCurrentUserId(1);
         _dbContext.Registers.AddRange(
-            new Register { Id = 1, FileName = "r1.xlsx", CompanyId = 1, DestCountryCode = 643 },
-            new Register { Id = 2, FileName = "r2.xlsx", CompanyId = 2, DestCountryCode = 960 }
+            new Register { Id = 1, FileName = "r1.xlsx", CompanyId = 2, TheOtherCompanyId = 3 },
+            new Register { Id = 2, FileName = "r2.xlsx", CompanyId = 1, TheOtherCompanyId = 1 }
         );
         await _dbContext.SaveChangesAsync();
-        var result = await _controller.GetRegisters(search: "Россия");
+        var result = await _controller.GetRegisters(search: "Узбекпочта");
         var ok = result.Result as OkObjectResult;
         var pr = ok!.Value as PagedResult<RegisterViewItem>;
         Assert.That(pr!.Pagination.TotalCount, Is.EqualTo(1));
-        Assert.That(pr.Items.First().DestCountryCode, Is.EqualTo(643));
+        Assert.That(pr.Items.First().TheOtherCompanyId, Is.EqualTo(3));
     }
-    */
+
+    [Test]
+    public async Task GetRegisters_SearchFiltersByCountryName()
+    {
+        SetCurrentUserId(1);
+        _dbContext.Registers.AddRange(
+            new Register { Id = 1, FileName = "r1.xlsx", CompanyId = 2, TheOtherCompanyId = 3, TheOtherCountryCode = 643 },
+            new Register { Id = 2, FileName = "r2.xlsx", CompanyId = 2, TheOtherCompanyId = 3, TheOtherCountryCode = 860 }
+        );
+        await _dbContext.SaveChangesAsync();
+        var result = await _controller.GetRegisters(search: "Российская");
+        var ok = result.Result as OkObjectResult;
+        var pr = ok!.Value as PagedResult<RegisterViewItem>;
+        Assert.That(pr!.Pagination.TotalCount, Is.EqualTo(1));
+        Assert.That(pr.Items.First().TheOtherCountryCode, Is.EqualTo(643));
+    }
+
     [Test]
     public async Task GetRegisters_SearchFiltersByTransportationTypeName()
     {
         SetCurrentUserId(1);
         _dbContext.Registers.AddRange(
-            new Register { Id = 1, FileName = "r1.xlsx", CompanyId = 1, TransportationTypeId = 2 },
-            new Register { Id = 2, FileName = "r2.xlsx", CompanyId = 2, TransportationTypeId = 1 }
+            new Register { Id = 1, FileName = "r1.xlsx", CompanyId = 1, TheOtherCompanyId = 3, TransportationTypeId = 2 },
+            new Register { Id = 2, FileName = "r2.xlsx", CompanyId = 2, TheOtherCompanyId = 3, TransportationTypeId = 1 }
         );
         await _dbContext.SaveChangesAsync();
         var result = await _controller.GetRegisters(search: "Авиа");
@@ -237,8 +280,8 @@ public class RegistersControllerSearchTests
     {
         SetCurrentUserId(1);
         _dbContext.Registers.AddRange(
-            new Register { Id = 1, FileName = "r1.xlsx", CompanyId = 1, CustomsProcedureId = 2 },
-            new Register { Id = 2, FileName = "r2.xlsx", CompanyId = 2, CustomsProcedureId = 1 }
+            new Register { Id = 1, FileName = "r1.xlsx", CompanyId = 1, TheOtherCompanyId = 3, CustomsProcedureId = 2 },
+            new Register { Id = 2, FileName = "r2.xlsx", CompanyId = 2, TheOtherCompanyId = 3, CustomsProcedureId = 1 }
         );
         await _dbContext.SaveChangesAsync();
         var result = await _controller.GetRegisters(search: "Экспорт");
@@ -248,4 +291,35 @@ public class RegistersControllerSearchTests
         Assert.That(pr.Items.First().CustomsProcedureId, Is.EqualTo(1));
     }
 
+    [Test]
+    public async Task GetRegisters_SearchIsCaseInsensitive()
+    {
+        SetCurrentUserId(1);
+        _dbContext.Registers.AddRange(
+            new Register { Id = 1, FileName = "report.xlsx", CompanyId = 2, TheOtherCompanyId = 3 },
+            new Register { Id = 2, FileName = "other.xlsx", CompanyId = 2, TheOtherCompanyId = 3 }
+        );
+        await _dbContext.SaveChangesAsync();
+        var result = await _controller.GetRegisters(search: "REPORT");
+        var ok = result.Result as OkObjectResult;
+        var pr = ok!.Value as PagedResult<RegisterViewItem>;
+        Assert.That(pr!.Pagination.TotalCount, Is.EqualTo(1));
+        Assert.That(pr.Items.First().FileName, Is.EqualTo("report.xlsx"));
+    }
+
+    [Test]
+    public async Task GetRegisters_SearchWithPartialMatches()
+    {
+        SetCurrentUserId(1);
+        _dbContext.Registers.AddRange(
+            new Register { Id = 1, FileName = "quarterly_report.xlsx", CompanyId = 2, TheOtherCompanyId = 3 },
+            new Register { Id = 2, FileName = "monthly_data.xlsx", CompanyId = 2, TheOtherCompanyId = 3 }
+        );
+        await _dbContext.SaveChangesAsync();
+        var result = await _controller.GetRegisters(search: "quarter");
+        var ok = result.Result as OkObjectResult;
+        var pr = ok!.Value as PagedResult<RegisterViewItem>;
+        Assert.That(pr!.Pagination.TotalCount, Is.EqualTo(1));
+        Assert.That(pr.Items.First().FileName, Is.EqualTo("quarterly_report.xlsx"));
+    }
 }
