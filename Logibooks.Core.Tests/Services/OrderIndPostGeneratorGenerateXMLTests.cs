@@ -200,8 +200,8 @@ namespace Logibooks.Core.Tests.Services
                 Patronymic = "Иванович", 
                 City = "Москва", 
                 Address = "ул. Тест, д.1", 
-                PassportSeries = "AB", 
-                PassportNumber = "123456" 
+                PassportSeries = "AB123456", 
+                PassportNumber = "AB123456"
             };
 
             _dbContext.OzonOrders.Add(order);
@@ -220,8 +220,8 @@ namespace Logibooks.Core.Tests.Services
                 fields["CONSIGNOR_CHOICE"] == "1" &&
                 fields["SENDER"] == "Иванов Иван Иванович" &&
                 fields["CONSIGNOR_IDENTITYCARD_IDENTITYCARDCODE"] == "10" &&
-                fields["CONSIGNOR_IDENTITYCARD_IDENTITYCARDSERIES"] == "AB" &&
-                fields["CONSIGNOR_IDENTITYCARD_IDENTITYCARDNUMBER"] == "123456"
+                fields["CONSIGNOR_IDENTITYCARD_IDENTITYCARDSERIES"] == "AB123" &&
+                fields["CONSIGNOR_IDENTITYCARD_IDENTITYCARDNUMBER"] == "456"
             ), It.IsAny<IEnumerable<IDictionary<string, string?>>>()), Times.Once);
         }
 

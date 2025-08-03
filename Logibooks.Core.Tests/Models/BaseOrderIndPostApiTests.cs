@@ -47,7 +47,7 @@ public class BaseOrderIndPostApiTests
             ProductLink = "https://example.com/product",
             RecipientAddress = "Россия, Москва, ул. Тестовая, д.1",
             RecipientName = "Иванов Иван Иванович",
-            PassportNumber = "1234567890",
+            PassportNumber = "123467890",
             Category = "Категория",
             Subcategory = "Подкатегория"
         };
@@ -66,7 +66,7 @@ public class BaseOrderIndPostApiTests
         Assert.That(order.GetMiddleName(), Is.EqualTo("Иванович"));
         Assert.That(order.GetFullName(), Is.EqualTo("Иванов Иван Иванович"));
         // Series and Number are not set in WbrOrder, expect placeholders
-        Assert.That(order.GetSeries(), Is.EqualTo("12345"));
+        Assert.That(order.GetSeries(), Is.EqualTo("1234"));
         Assert.That(order.GetNumber(), Is.EqualTo("67890"));
     }
 
@@ -89,7 +89,7 @@ public class BaseOrderIndPostApiTests
             LastName = "Петров",
             FirstName = "Петр",
             Patronymic = "Петрович",
-            PassportSeries = "AB",
+            PassportSeries = "9876543210",
             PassportNumber = "9876543210"
         };
 
@@ -106,7 +106,7 @@ public class BaseOrderIndPostApiTests
         Assert.That(order.GetName(), Is.EqualTo("Петр"));
         Assert.That(order.GetMiddleName(), Is.EqualTo("Петрович"));
         Assert.That(order.GetFullName(), Is.EqualTo("Петров Петр Петрович"));
-        Assert.That(order.GetSeries(), Is.EqualTo("AB"));
-        Assert.That(order.GetNumber(), Is.EqualTo("9876543210"));
+        Assert.That(order.GetSeries(), Is.EqualTo("98765"));
+        Assert.That(order.GetNumber(), Is.EqualTo("43210"));
     }
 }

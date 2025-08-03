@@ -136,7 +136,7 @@ public class OrderIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServic
             fields["CONSIGNOR_IDENTITYCARD_IDENTITYCARDCODE"] = "10";
             fields["CONSIGNOR_IDENTITYCARD_IDENTITYCARDSERIES"] = order.GetSeries();
             fields["CONSIGNOR_IDENTITYCARD_IDENTITYCARDNUMBER"] = order.GetNumber();
-            fields["CONSIGNEE_IDENTITYCARD_COUNTRYCODE"] = SetOrDefault(register?.TheOtherCountry?.IsoAlpha2);
+            fields["CONSIGNOR_IDENTITYCARD_COUNTRYCODE"] = SetOrDefault(register?.TheOtherCountry?.IsoAlpha2);
             fields["CONSIGNOR_ADDRESS_CITY"] = order.GetCity();
             fields["CONSIGNOR_ADDRESS_STREETHOUSE"] = order.GetStreet();
             fields["COUNTRYCODE"] = SetOrDefault(register?.TheOtherCountry?.IsoAlpha2);

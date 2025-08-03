@@ -204,15 +204,18 @@ public class WbrOrder : BaseOrder
 
     public override string GetSeries()
     {
-        if (string.IsNullOrWhiteSpace(PassportNumber) || PassportNumber.Length < 5)
-            return Placeholders.NotSet;
-        return PassportNumber.Substring(0, 5);
+        string? p = PassportNumber?.Trim();
+
+        if (string.IsNullOrWhiteSpace(p) || p.Length < 4) return Placeholders.NotSet;
+        return p[..4];
     }
     public override string GetNumber()
     {
-        if (string.IsNullOrWhiteSpace(PassportNumber) || PassportNumber.Length <= 5)
-            return Placeholders.NotSet;
-        return PassportNumber.Substring(5);
+        string? p = PassportNumber?.Trim();
+
+        if (string.IsNullOrWhiteSpace(p)) return Placeholders.NotSet;
+        if (p.Length <= 4) return p;
+        return p[4..];
     }
 
     public override string GetFullName() => RecipientName ?? Placeholders.NotSet;
