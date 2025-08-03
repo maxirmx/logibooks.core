@@ -196,4 +196,34 @@ public class RegistersControllerSearchTests : RegistersControllerTestsBase
         Assert.That(pr!.Pagination.TotalCount, Is.EqualTo(1));
         Assert.That(pr.Items.First().FileName, Is.EqualTo("quarterly_report.xlsx"));
     }
+
+    [Test]
+    public async Task GetRegisters_SearchIgnoresRussiaKeyword()
+    {
+        SetCurrentUserId(1);
+        _dbContext.Registers.AddRange(
+            new Register { Id = 1, FileName = "r1.xlsx", CompanyId = 2, TheOtherCompanyId = 3 },
+            new Register { Id = 2, FileName = "r2.xlsx", CompanyId = 1, TheOtherCompanyId = 3 }
+        );
+        await _dbContext.SaveChangesAsync();
+        var result = await _controller.GetRegisters(search: "Россия");
+        var ok = result.Result as OkObjectResult;
+        var pr = ok!.Value as PagedResult<RegisterViewItem>;
+        Assert.That(pr!.Pagination.TotalCount, Is.EqualTo(2));
+    }
+
+    [Test]
+    public async Task GetRegisters_SearchReturnsZeroWhenNoMatch()
+    {
+        SetCurrentUserId(1);
+        _dbContext.Registers.AddRange(
+            new Register { Id = 1, FileName = "f1.xlsx", CompanyId = 2, TheOtherCompanyId = 3 },
+            new Register { Id = 2, FileName = "f2.xlsx", CompanyId = 2, TheOtherCompanyId = 3 }
+        );
+        await _dbContext.SaveChangesAsync();
+        var result = await _controller.GetRegisters(search: "nomatch");
+        var ok = result.Result as OkObjectResult;
+        var pr = ok!.Value as PagedResult<RegisterViewItem>;
+        Assert.That(pr!.Pagination.TotalCount, Is.EqualTo(0));
+    }
 }

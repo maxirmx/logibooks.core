@@ -219,6 +219,42 @@ public class RegistersControllerSortingTests : RegistersControllerTestsBase
         Assert.That(items[1].Id, Is.EqualTo(1)); // Earlier invoice date comes second
     }
 
+    // Sorting by RecepientId ascending
+    [Test]
+    public async Task GetRegisters_SortsByRecepientId_Ascending()
+    {
+        SetCurrentUserId(1);
+        _dbContext.Registers.AddRange(
+            new Register { Id = 1, FileName = "r1.xlsx", CompanyId = 2, TheOtherCompanyId = 3, CustomsProcedureId = 1 },
+            new Register { Id = 2, FileName = "r2.xlsx", CompanyId = 2, TheOtherCompanyId = 3, CustomsProcedureId = 2 }
+        );
+        await _dbContext.SaveChangesAsync();
+        var result = await _controller.GetRegisters(sortBy: "recepientid", sortOrder: "asc");
+        var ok = result.Result as OkObjectResult;
+        var pr = ok!.Value as PagedResult<RegisterViewItem>;
+        var items = pr!.Items.ToArray();
+        Assert.That(items[0].Id, Is.EqualTo(2));
+        Assert.That(items[1].Id, Is.EqualTo(1));
+    }
+
+    // Sorting by SenderId descending
+    [Test]
+    public async Task GetRegisters_SortsBySenderId_Descending()
+    {
+        SetCurrentUserId(1);
+        _dbContext.Registers.AddRange(
+            new Register { Id = 1, FileName = "r1.xlsx", CompanyId = 2, TheOtherCompanyId = 3, CustomsProcedureId = 1 },
+            new Register { Id = 2, FileName = "r2.xlsx", CompanyId = 2, TheOtherCompanyId = 3, CustomsProcedureId = 2 }
+        );
+        await _dbContext.SaveChangesAsync();
+        var result = await _controller.GetRegisters(sortBy: "senderid", sortOrder: "desc");
+        var ok = result.Result as OkObjectResult;
+        var pr = ok!.Value as PagedResult<RegisterViewItem>;
+        var items = pr!.Items.ToArray();
+        Assert.That(items[0].Id, Is.EqualTo(2));
+        Assert.That(items[1].Id, Is.EqualTo(1));
+    }
+
     // Test for invalid sort field
     [Test]
     public async Task GetRegisters_ReturnsBadRequest_WhenSortByIsInvalid()

@@ -26,6 +26,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SharpCompress.Archives;
+using System.Linq.Expressions;
 
 using Logibooks.Core.Authorization;
 using Logibooks.Core.Data;
@@ -72,6 +73,18 @@ public class RegistersController(
     private readonly IRegisterValidationService _validationService = validationService;
     private readonly IRegisterProcessingService _processingService = processingService;
     private readonly IOrderIndPostGenerator _indPostGenerator = indPostGenerator;
+
+    private static Expression<Func<Register, string>> PartySortSelector(bool byRecipient)
+    {
+        return r =>
+            r.CustomsProcedure != null && r.CustomsProcedure.Code == 10
+                ? (byRecipient
+                    ? (r.TheOtherCompany != null ? (r.TheOtherCompany.ShortName ?? string.Empty) : string.Empty)
+                    : (r.Company != null ? (r.Company.ShortName ?? string.Empty) : string.Empty))
+                : (byRecipient
+                    ? (r.Company != null ? (r.Company.ShortName ?? string.Empty) : string.Empty)
+                    : (r.TheOtherCompany != null ? (r.TheOtherCompany.ShortName ?? string.Empty) : string.Empty));
+    }
 
     [HttpGet("{id}")]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(RegisterViewItem))]
@@ -191,6 +204,10 @@ public class RegistersController(
             ("companyid", "desc") => query.OrderByDescending(r => r.Company != null ? r.Company.ShortName : string.Empty),
             ("theothercompanyid", "asc") => query.OrderBy(r => r.TheOtherCompany != null ? r.TheOtherCompany.ShortName : string.Empty),
             ("theothercompanyid", "desc") => query.OrderByDescending(r => r.TheOtherCompany != null ? r.TheOtherCompany.ShortName : string.Empty),
+            ("recepientid", "asc") => query.OrderBy(PartySortSelector(true)),
+            ("recepientid", "desc") => query.OrderByDescending(PartySortSelector(true)),
+            ("senderid", "asc") => query.OrderBy(PartySortSelector(false)),
+            ("senderid", "desc") => query.OrderByDescending(PartySortSelector(false)),
             ("theothercountrycode", "asc") => query.OrderBy(r => r.TheOtherCountry != null ? r.TheOtherCountry.NameRuShort : string.Empty),
             ("theothercountrycode", "desc") => query.OrderByDescending(r => r.TheOtherCountry != null ? r.TheOtherCountry.NameRuShort : string.Empty),
             ("transportationtypeid", "asc") => query.OrderBy(r => r.TransportationType != null ? r.TransportationType.Name : string.Empty),
