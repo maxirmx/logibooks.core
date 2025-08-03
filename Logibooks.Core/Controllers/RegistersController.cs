@@ -394,7 +394,7 @@ public class RegistersController(
             return _404Object(update.TransportationTypeId.Value);
         }
 
-        if (update.CustomsProcedureId != null && update.CustomsProcedureId != 0 && 
+        if (update.CustomsProcedureId != null && update.CustomsProcedureId != 0 &&
             !await _db.CustomsProcedures.AsNoTracking().AnyAsync(c => c.Id == update.CustomsProcedureId))
         {
             _logger.LogDebug("PutRegister returning '404 Not Found' - customs procedure");
