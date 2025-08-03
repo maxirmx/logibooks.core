@@ -1,4 +1,4 @@
-// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
+п»ї// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
 // All rights reserved.
 // This file is a part of Logibooks Core application
 //
@@ -38,12 +38,12 @@ public static class CountryConstants
     public const string RussiaIsoAlpha2 = "RU";
 
     /// <summary>
-    /// Short Russian name for Russia (Россия)
+    /// Short Russian name for Russia (Р РѕСЃСЃРёСЏ)
     /// </summary>
-    public const string RussiaNameRuShort = "Россия";
+    public const string RussiaNameRuShort = "Р РѕСЃСЃРёСЏ";
 
     /// <summary>
-    /// Official Russian name for Russia (Российская Федерация)
+    /// Official Russian name for Russia (Р РѕСЃСЃРёР№СЃРєР°СЏ Р¤РµРґРµСЂР°С†РёСЏ)
     /// </summary>
-    public const string RussiaNameRuOfficial = "Российская Федерация";
+    public const string RussiaNameRuOfficial = "Р РѕСЃСЃРёР№СЃРєР°СЏ Р¤РµРґРµСЂР°С†РёСЏ";
 }
