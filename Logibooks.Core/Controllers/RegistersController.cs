@@ -404,8 +404,8 @@ public class RegistersController(
         if (update.TheOtherCompanyId != null && update.TheOtherCompanyId != 0 &&
             !await _db.Companies.AsNoTracking().AnyAsync(c => c.Id == update.TheOtherCompanyId))
         {
-                _logger.LogDebug("PutRegister returning '404 Not Found' - company");
-                return _404Object(update.TheOtherCompanyId.Value);
+            _logger.LogDebug("PutRegister returning '404 Not Found' - company");
+            return _404Object(update.TheOtherCompanyId.Value);
         }
 
         register.ApplyUpdateFrom(update);
