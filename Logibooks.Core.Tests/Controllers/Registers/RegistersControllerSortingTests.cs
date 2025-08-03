@@ -142,60 +142,6 @@ public class RegistersControllerSortingTests : RegistersControllerTestsBase
         Assert.That(pr2!.Items.First().Id, Is.EqualTo(1));
     }
 
-    // Sorting by CompanyShortName descending
-    [Test]
-    public async Task GetRegisters_SortsByCompanyShortName_Ascending()
-    {
-        SetCurrentUserId(1);
-        _dbContext.Registers.AddRange(
-            new Register { Id = 1, FileName = "r1.xlsx", CompanyId = 1, TheOtherCompanyId = 3 },
-            new Register { Id = 2, FileName = "r2.xlsx", CompanyId = 2, TheOtherCompanyId = 3 }
-        );
-        await _dbContext.SaveChangesAsync();
-        var result = await _controller.GetRegisters(sortBy: "companyId", sortOrder: "desc");
-        var ok = result.Result as OkObjectResult;
-        var pr = ok!.Value as PagedResult<RegisterViewItem>;
-        var items = pr!.Items.ToArray();
-        Assert.That(items[0].CompanyId, Is.EqualTo(2));  // "ООО \"РВБ\"" comes before "ООО \"Интернет Решения\""
-        Assert.That(items[1].CompanyId, Is.EqualTo(1));
-    }
-
-    // Sorting by TheOtherCompanyId descending
-    [Test]
-    public async Task GetRegisters_SortsByTheOtherCompanyId_Descending()
-    {
-        SetCurrentUserId(1);
-        _dbContext.Registers.AddRange(
-            new Register { Id = 1, FileName = "r1.xlsx", CompanyId = 2, TheOtherCompanyId = 1 }, // Company 1: ""
-            new Register { Id = 2, FileName = "r2.xlsx", CompanyId = 2, TheOtherCompanyId = 3 }  // Company 3: "Узбекпочта"
-        );
-        await _dbContext.SaveChangesAsync();
-        var result = await _controller.GetRegisters(sortBy: "theothercompanyid", sortOrder: "desc");
-        var ok = result.Result as OkObjectResult;
-        var pr = ok!.Value as PagedResult<RegisterViewItem>;
-        var items = pr!.Items.ToArray();
-        Assert.That(items[0].TheOtherCompanyId, Is.EqualTo(3)); // "Узбекпочта" comes before ""
-        Assert.That(items[1].TheOtherCompanyId, Is.EqualTo(1)); // "" comes after
-    }
-
-    // Sorting by TheOtherCountryCode descending
-    [Test]
-    public async Task GetRegisters_SortsByTheOtherCountryCode_Descending()
-    {
-        SetCurrentUserId(1);
-        _dbContext.Registers.AddRange(
-            new Register { Id = 1, FileName = "r1.xlsx", CompanyId = 2, TheOtherCompanyId = 3, TheOtherCountryCode = 643 }, // Russia
-            new Register { Id = 2, FileName = "r2.xlsx", CompanyId = 2, TheOtherCompanyId = 3, TheOtherCountryCode = 860 }  // Uzbekistan
-        );
-        await _dbContext.SaveChangesAsync();
-        var result = await _controller.GetRegisters(sortBy: "theothercountrycode", sortOrder: "desc");
-        var ok = result.Result as OkObjectResult;
-        var pr = ok!.Value as PagedResult<RegisterViewItem>;
-        var items = pr!.Items.ToArray();
-        Assert.That(items[0].TheOtherCountryCode, Is.EqualTo(860)); // "Узбекистан" comes before "Российская Федерация" in desc order
-        Assert.That(items[1].TheOtherCountryCode, Is.EqualTo(643)); // "Российская Федерация" comes after
-    }
-
     // Sorting by TransportationType.Name descending
     [Test]
     public async Task GetRegisters_SortsByTransportationTypeId_Descending()
@@ -293,9 +239,19 @@ public class RegistersControllerSortingTests : RegistersControllerTestsBase
         await _dbContext.SaveChangesAsync();
 
         string[] allowedSortBy = [
-            "id", "filename", "date", "orderstotal", "companyid", "theothercompanyid", 
-            "countrycode", "theothercountrycode", "transportationtypeid", "customsprocedureid", 
-            "invoicenumber", "invoicedate", "dealnumber"
+            "id",
+            "filename",
+            "date",
+            "orderstotal",
+            "recepientid",
+            "senderid",
+            "destcountrycode",
+            "origcountrycode",
+            "transportationtypeid",
+            "customsprocedureid",
+            "invoicenumber",
+            "invoicedate",
+            "dealnumber"
         ];
 
         foreach (var sortBy in allowedSortBy)
