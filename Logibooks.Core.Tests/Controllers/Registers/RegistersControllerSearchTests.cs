@@ -213,6 +213,36 @@ public class RegistersControllerSearchTests : RegistersControllerTestsBase
     }
 
     [Test]
+    public async Task GetRegisters_SearchWithEmptyString_ReturnsAll()
+    {
+        SetCurrentUserId(1);
+        _dbContext.Registers.AddRange(
+            new Register { Id = 1, FileName = "r1.xlsx", CompanyId = 2, TheOtherCompanyId = 3 },
+            new Register { Id = 2, FileName = "r2.xlsx", CompanyId = 2, TheOtherCompanyId = 3 }
+        );
+        await _dbContext.SaveChangesAsync();
+        var result = await _controller.GetRegisters(search: string.Empty);
+        var ok = result.Result as OkObjectResult;
+        var pr = ok!.Value as PagedResult<RegisterViewItem>;
+        Assert.That(pr!.Pagination.TotalCount, Is.EqualTo(2));
+    }
+
+    [Test]
+    public async Task GetRegisters_SearchWithWhitespace_ReturnsAll()
+    {
+        SetCurrentUserId(1);
+        _dbContext.Registers.AddRange(
+            new Register { Id = 1, FileName = "r1.xlsx", CompanyId = 2, TheOtherCompanyId = 3 },
+            new Register { Id = 2, FileName = "r2.xlsx", CompanyId = 2, TheOtherCompanyId = 3 }
+        );
+        await _dbContext.SaveChangesAsync();
+        var result = await _controller.GetRegisters(search: "   ");
+        var ok = result.Result as OkObjectResult;
+        var pr = ok!.Value as PagedResult<RegisterViewItem>;
+        Assert.That(pr!.Pagination.TotalCount, Is.EqualTo(2));
+    }
+
+    [Test]
     public async Task GetRegisters_SearchReturnsZeroWhenNoMatch()
     {
         SetCurrentUserId(1);

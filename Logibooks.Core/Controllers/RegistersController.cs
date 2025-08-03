@@ -86,6 +86,26 @@ public class RegistersController(
                     : (r.TheOtherCompany != null ? (r.TheOtherCompany.ShortName ?? string.Empty) : string.Empty));
     }
 
+    private static Expression<Func<Register, string>> CountrySortSelector(bool byDestination)
+    {
+        return r =>
+            r.CustomsProcedure != null && r.CustomsProcedure.Code == 10
+                ? (byDestination
+                    ? (r.TheOtherCountryCode == null
+                        ? string.Empty
+                        : r.TheOtherCountryCode == 643
+                            ? "Россия"
+                            : (r.TheOtherCountry != null ? (r.TheOtherCountry.NameRuShort ?? string.Empty) : string.Empty))
+                    : "Россия")
+                : (byDestination
+                    ? "Россия"
+                    : (r.TheOtherCountryCode == null
+                        ? string.Empty
+                        : r.TheOtherCountryCode == 643
+                            ? "Россия"
+                            : (r.TheOtherCountry != null ? (r.TheOtherCountry.NameRuShort ?? string.Empty) : string.Empty)));
+    }
+
     [HttpGet("{id}")]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(RegisterViewItem))]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
@@ -208,6 +228,10 @@ public class RegistersController(
             ("recipientid", "desc") => query.OrderByDescending(PartySortSelector(true)),
             ("senderid", "asc") => query.OrderBy(PartySortSelector(false)),
             ("senderid", "desc") => query.OrderByDescending(PartySortSelector(false)),
+            ("destcountrycode", "asc") => query.OrderBy(CountrySortSelector(true)),
+            ("destcountrycode", "desc") => query.OrderByDescending(CountrySortSelector(true)),
+            ("origcountrycode", "asc") => query.OrderBy(CountrySortSelector(false)),
+            ("origcountrycode", "desc") => query.OrderByDescending(CountrySortSelector(false)),
             ("theothercountrycode", "asc") => query.OrderBy(r => r.TheOtherCountry != null ? r.TheOtherCountry.NameRuShort : string.Empty),
             ("theothercountrycode", "desc") => query.OrderByDescending(r => r.TheOtherCountry != null ? r.TheOtherCountry.NameRuShort : string.Empty),
             ("transportationtypeid", "asc") => query.OrderBy(r => r.TransportationType != null ? r.TransportationType.Name : string.Empty),

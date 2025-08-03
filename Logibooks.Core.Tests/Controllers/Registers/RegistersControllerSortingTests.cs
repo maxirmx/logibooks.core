@@ -255,6 +255,44 @@ public class RegistersControllerSortingTests : RegistersControllerTestsBase
         Assert.That(items[1].Id, Is.EqualTo(1));
     }
 
+    // Sorting by Destination Country ascending
+    [Test]
+    public async Task GetRegisters_SortsByDestCountryCode_Ascending()
+    {
+        SetCurrentUserId(1);
+        _dbContext.Registers.AddRange(
+            new Register { Id = 1, FileName = "r1.xlsx", CompanyId = 2, TheOtherCompanyId = 3, CustomsProcedureId = 1, TheOtherCountryCode = 860 },
+            new Register { Id = 2, FileName = "r2.xlsx", CompanyId = 2, TheOtherCompanyId = 3, CustomsProcedureId = 2, TheOtherCountryCode = 860 }
+        );
+        await _dbContext.SaveChangesAsync();
+        var result = await _controller.GetRegisters(sortBy: "destcountrycode", sortOrder: "asc");
+        var ok = result.Result as OkObjectResult;
+        var pr = ok!.Value as PagedResult<RegisterViewItem>;
+        var items = pr!.Items.ToArray();
+        // Register 2 should come first (destination is Россия)
+        Assert.That(items[0].Id, Is.EqualTo(2));
+        Assert.That(items[1].Id, Is.EqualTo(1));
+    }
+
+    // Sorting by Origin Country descending
+    [Test]
+    public async Task GetRegisters_SortsByOrigCountryCode_Descending()
+    {
+        SetCurrentUserId(1);
+        _dbContext.Registers.AddRange(
+            new Register { Id = 1, FileName = "r1.xlsx", CompanyId = 2, TheOtherCompanyId = 3, CustomsProcedureId = 1, TheOtherCountryCode = 860 },
+            new Register { Id = 2, FileName = "r2.xlsx", CompanyId = 2, TheOtherCompanyId = 3, CustomsProcedureId = 2, TheOtherCountryCode = 860 }
+        );
+        await _dbContext.SaveChangesAsync();
+        var result = await _controller.GetRegisters(sortBy: "origcountrycode", sortOrder: "desc");
+        var ok = result.Result as OkObjectResult;
+        var pr = ok!.Value as PagedResult<RegisterViewItem>;
+        var items = pr!.Items.ToArray();
+        // Register 2 has origin Узбекистан, should come first in descending order
+        Assert.That(items[0].Id, Is.EqualTo(2));
+        Assert.That(items[1].Id, Is.EqualTo(1));
+    }
+
     // Test for invalid sort field
     [Test]
     public async Task GetRegisters_ReturnsBadRequest_WhenSortByIsInvalid()
