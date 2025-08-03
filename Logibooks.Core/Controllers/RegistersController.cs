@@ -387,7 +387,7 @@ public class RegistersController(
             return _404Object(update.TheOtherCountryCode.Value);
         }
 
-        if (update.TransportationTypeId != null && update.TransportationTypeId !=0 &&
+        if (update.TransportationTypeId != null && update.TransportationTypeId != 0 &&
             !await _db.TransportationTypes.AsNoTracking().AnyAsync(t => t.Id == update.TransportationTypeId))
         {
             _logger.LogDebug("PutRegister returning '404 Not Found' - transportation type");
