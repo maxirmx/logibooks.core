@@ -23,14 +23,14 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-using System.Globalization;
+using ClosedXML.Excel;
 using ExcelDataReader;
 using Logibooks.Core.Data;
 using Logibooks.Core.Models;
 using Logibooks.Core.RestModels;
 using Logibooks.Core.Settings;
 using Microsoft.EntityFrameworkCore;
-using ClosedXML.Excel;
+using System.Globalization;
 using System.Reflection;
 
 namespace Logibooks.Core.Services;
@@ -90,7 +90,7 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
             }
         }
 
-        // Use lookup tables to set DestCountryCode to Uzbekistan if present
+        // Use lookup tables to set TheOtherCountryCode to Uzbekistan if present
         short uzbekistanCode = 0;
         if (isWbr && _wbrCountryLookup != null && _wbrCountryLookup.TryGetValue("UZ", out var wbrCode) && wbrCode != 0)
         {
@@ -104,7 +104,7 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
         var register = new Register { FileName = fileName, CompanyId = companyId };
         if (uzbekistanCode != 0)
         {
-            register.DestCountryCode = uzbekistanCode;
+            register.TheOtherCountryCode = uzbekistanCode;
         }
         _db.Registers.Add(register);
         await _db.SaveChangesAsync(cancellationToken);
@@ -278,6 +278,25 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
         for (int r = 1; r < table.Rows.Count; r++)
         {
             var row = table.Rows[r];
+            
+            // Check if all cells in this row are empty
+            bool isRowEmpty = true;
+            for (int c = 0; c < table.Columns.Count; c++)
+            {
+                if (!string.IsNullOrWhiteSpace(row[c]?.ToString()))
+                {
+                    isRowEmpty = false;
+                    break;
+                }
+            }
+            
+            // Skip this row if all cells are empty
+            if (isRowEmpty)
+            {
+                _logger.LogInformation("Skipping empty row [{r}]", r);
+                continue;
+            }
+
             var order = new WbrOrder { RegisterId = registerId, StatusId = 1, CheckStatusId = 1 };
 
             foreach (var kv in columnMap)
@@ -291,6 +310,10 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
                         if (propInfo.Name == nameof(BaseOrder.CountryCode))
                         {
                             order.CountryCode = LookupWbrCountryCode(val);
+                            if (order.CountryCode == 0)
+                            { 
+                                _logger.LogInformation("Skipping row [{r}] because country code {'code'} was not recognized", r, val);
+                            }
                         }
                         else
                         {
@@ -304,7 +327,7 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
                     }
                 }
             }
-            orders.Add(order);
+            if (order.CountryCode != 0) orders.Add(order);
         }
 
         return orders;
@@ -318,6 +341,25 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
         for (int r = 1; r < table.Rows.Count; r++)
         {
             var row = table.Rows[r];
+            
+            // Check if all cells in this row are empty
+            bool isRowEmpty = true;
+            for (int c = 0; c < table.Columns.Count; c++)
+            {
+                if (!string.IsNullOrWhiteSpace(row[c]?.ToString()))
+                {
+                    isRowEmpty = false;
+                    break;
+                }
+            }
+            
+            // Skip this row if all cells are empty
+            if (isRowEmpty)
+            {
+                _logger.LogInformation("Skipping empty row [{r}]", r);
+                continue;
+            }
+
             var order = new OzonOrder { RegisterId = registerId, StatusId = 1, CheckStatusId = 1 };
 
             foreach (var kv in columnMap)
@@ -331,6 +373,10 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
                         if (propInfo.Name == nameof(BaseOrder.CountryCode))
                         {
                             order.CountryCode = LookupOzonCountryCode(val);
+                            if (order.CountryCode == 0)
+                            {
+                                _logger.LogInformation("Skipping row [{r}] because country code {'code'} was not recognized", r, val);
+                            }
                         }
                         else
                         {
@@ -344,7 +390,7 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
                     }
                 }
             }
-            orders.Add(order);
+            if (order.CountryCode != 0) orders.Add(order);
         }
 
         return orders;

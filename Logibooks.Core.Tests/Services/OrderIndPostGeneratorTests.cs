@@ -63,6 +63,18 @@ public class OrderIndPostGeneratorTests
                 PostalCode = "",
                 City = "д. Коледино",
                 Street = "Индустриальный Парк Коледино, д.6, стр.1"
+            },
+            new Company
+            {
+                Id = 3,
+                Inn = "9999999999",
+                Kpp = "999999999",
+                Name = "Other Company",
+                ShortName = "OtherCo",
+                CountryIsoNumeric = 643,
+                PostalCode = "000000",
+                City = "TestCity",
+                Street = "Test Street"
             }
         );
         _dbContext.TransportationTypes.AddRange(
@@ -96,7 +108,7 @@ public class OrderIndPostGeneratorTests
             DTime = DateTime.Now,
             InvoiceNumber = "INV-2024-001",
             InvoiceDate = new DateOnly(2024, 6, 1),
-            DestCountryCode = 860 // Uzbekistan
+            TheOtherCountryCode = 860 // Uzbekistan
         };
 
         _dbContext.Registers.Add(register);
@@ -125,7 +137,7 @@ public class OrderIndPostGeneratorTests
             DTime = DateTime.Now,
             InvoiceNumber = "WBR-INV-001",
             InvoiceDate = new DateOnly(2024, 6, 1),
-            DestCountryCode = 860
+            TheOtherCountryCode = 860
         };
         _dbContext.Registers.Add(register);
         var order = new WbrOrder
@@ -161,7 +173,7 @@ public class OrderIndPostGeneratorTests
             DTime = DateTime.Now,
             InvoiceNumber = "OZON-INV-001",
             InvoiceDate = new DateOnly(2024, 6, 1),
-            DestCountryCode = 643
+            TheOtherCountryCode = 643
         };
         _dbContext.Registers.Add(register);
         var order = new OzonOrder
@@ -209,8 +221,8 @@ public class OrderIndPostGeneratorTests
             CustomsProcedure = customsProcedure,
             FileName = "wbr_zip.xlsx",
             DTime = DateTime.Now,
-            DestCountryCode = countryUz.IsoNumeric,
-            DestinationCountry = countryUz
+            TheOtherCountryCode = countryUz.IsoNumeric,
+            TheOtherCountry = countryUz
         };
         _dbContext.Registers.Add(register);
         await _dbContext.SaveChangesAsync();
@@ -219,7 +231,7 @@ public class OrderIndPostGeneratorTests
             .Include(r => r.Company)
             .Include(r => r.TransportationType)
             .Include(r => r.CustomsProcedure)
-            .Include(r => r.DestinationCountry)
+            .Include(r => r.TheOtherCountry)
             .FirstAsync(r => r.Id == 300);
 
         _dbContext.WbrOrders.AddRange(
@@ -268,8 +280,8 @@ public class OrderIndPostGeneratorTests
             CustomsProcedure = customsProcedure,
             FileName = "ozon_zip.xlsx",
             DTime = DateTime.Now,
-            DestCountryCode = countryUz.IsoNumeric,
-            DestinationCountry = countryUz
+            TheOtherCountryCode = countryUz.IsoNumeric,
+            TheOtherCountry = countryUz
         };
         _dbContext.Registers.Add(register);
         await _dbContext.SaveChangesAsync();
@@ -278,7 +290,7 @@ public class OrderIndPostGeneratorTests
             .Include(r => r.Company)
             .Include(r => r.TransportationType)
             .Include(r => r.CustomsProcedure)
-            .Include(r => r.DestinationCountry)
+            .Include(r => r.TheOtherCountry)
             .FirstAsync(r => r.Id == 400);
 
         _dbContext.OzonOrders.AddRange(
@@ -300,6 +312,44 @@ public class OrderIndPostGeneratorTests
             var doc = XDocument.Parse(xmlContent);
             Assert.That(doc.Root?.Name.LocalName, Is.EqualTo("AltaIndPost"));
         }
+    }
+
+    [Test]
+    public async Task GenerateXML4R_OtherCompany_ReturnsEmptyZip()
+    {
+        // Create a register with CompanyId = 3 (neither Ozon nor WBR)
+        var otherCompany = await _dbContext.Companies.FirstAsync(c => c.Id == 3);
+        var register = new Register {
+            Id = 700,
+            CompanyId = otherCompany.Id,
+            Company = otherCompany,
+            FileName = "other_company.xlsx",
+            DTime = DateTime.Now,
+            InvoiceNumber = "OTHER-001"
+        };
+        _dbContext.Registers.Add(register);
+        await _dbContext.SaveChangesAsync();
+
+        // Create some generic orders for this register (they won't be included in the ZIP)
+        var dummyOrder = new DummyOrder { 
+            Id = 701, 
+            RegisterId = 700, 
+            Register = register,
+            StatusId = 1
+        };
+        _dbContext.Orders.Add(dummyOrder);
+        await _dbContext.SaveChangesAsync();
+
+        var svc = new OrderIndPostGenerator(_dbContext, new IndPostXmlService());
+        var (fileName, zipData) = await svc.GenerateXML4R(700);
+
+        // Verify the file is named correctly based on the register's invoice number
+        Assert.That(fileName, Is.EqualTo($"IndPost_{register.InvoiceNumber}.zip"));
+
+        // Verify the ZIP file exists but is empty (no entries)
+        using var ms = new MemoryStream(zipData);
+        using var archive = new ZipArchive(ms, ZipArchiveMode.Read);
+        Assert.That(archive.Entries.Count, Is.EqualTo(0));
     }
 
     [Test]

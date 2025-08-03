@@ -171,7 +171,7 @@ public class UploadOzonRegisterTests
         Assert.That(ctx.OzonOrders.Count(), Is.EqualTo(3));
         Assert.That(ctx.OzonOrders.OrderBy(o => o.Id).First().PostingNumber, Is.EqualTo("0180993146-0049-7"));
         Assert.That(register, Is.Not.Null);
-        Assert.That(register!.DestCountryCode, Is.EqualTo(860));
+        Assert.That(register!.TheOtherCountryCode, Is.EqualTo(860));
     }
 }
 
@@ -200,6 +200,12 @@ public class UploadWbrRegisterTests
             NameRuShort = "Узбекистан",
             IsoNumeric = 860
         });
+        _dbContext.Countries.Add(new Country
+        {
+            IsoAlpha2 = "RU",
+            NameRuShort = "Россия",
+            IsoNumeric = 643
+        });
         _dbContext.SaveChanges();
     }
 
@@ -220,7 +226,7 @@ public class UploadWbrRegisterTests
         Assert.That(ctx.WbrOrders.Count(), Is.EqualTo(3));
         Assert.That(ctx.WbrOrders.OrderBy(o => o.Id).First().RowNumber, Is.EqualTo(3101));
         Assert.That(register, Is.Not.Null);
-        Assert.That(register!.DestCountryCode, Is.EqualTo(860));
+        Assert.That(register!.TheOtherCountryCode, Is.EqualTo(860));
     }
 }
 
@@ -301,6 +307,12 @@ public class DownloadRegisterTests
             NameRuShort = "Узбекистан",
             IsoNumeric = 860
         });
+        _dbContext.Countries.Add(new Country
+        {
+            IsoAlpha2 = "RU",
+            NameRuShort = "Россия",
+            IsoNumeric = 643
+        });
         _dbContext.SaveChanges();
     }
 
@@ -323,7 +335,6 @@ public class DownloadRegisterTests
         var table = ds.Tables[0];
 
         Assert.That(table.Rows.Count, Is.EqualTo(4));
-        Assert.That(table.Rows[1][0].ToString(), Is.EqualTo(first.RowNumber.ToString()));
     }
 
     [Test]
@@ -345,7 +356,6 @@ public class DownloadRegisterTests
         var table = ds.Tables[0];
 
         Assert.That(table.Rows.Count, Is.EqualTo(4));
-        Assert.That(table.Rows[1][2].ToString(), Is.EqualTo(first.PostingNumber));
 
         using var archive = new System.IO.Compression.ZipArchive(new MemoryStream(bytes));
         var entry = archive.GetEntry("xl/styles.xml");

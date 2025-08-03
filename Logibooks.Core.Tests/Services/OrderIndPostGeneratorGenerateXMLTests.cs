@@ -90,7 +90,7 @@ namespace Logibooks.Core.Tests.Services
                 InvoiceDate = DateOnly.FromDateTime(DateTime.Today),
                 TransportationTypeId = 1,
                 CustomsProcedureId = 1,
-                DestCountryCode = 643,
+                TheOtherCountryCode = 643,
                 CompanyId = 1,
                 FileName = "test.xml"
             };
@@ -104,7 +104,7 @@ namespace Logibooks.Core.Tests.Services
 
             // Load the register with all related data
             var loadedRegister = _dbContext.Registers
-                .Include(r => r.DestinationCountry)
+                .Include(r => r.TheOtherCountry)
                 .Include(r => r.TransportationType)
                 .Include(r => r.CustomsProcedure)
                 .Include(r => r.Company)
@@ -170,7 +170,7 @@ namespace Logibooks.Core.Tests.Services
                 InvoiceDate = DateOnly.FromDateTime(DateTime.Today),
                 TransportationTypeId = 1,
                 CustomsProcedureId = 1,
-                DestCountryCode = 643,
+                TheOtherCountryCode = 643,
                 CompanyId = 1,
                 FileName = "test.xml"
             };
@@ -184,7 +184,7 @@ namespace Logibooks.Core.Tests.Services
 
             // Load the register with all related data
             var loadedRegister = _dbContext.Registers
-                .Include(r => r.DestinationCountry)
+                .Include(r => r.TheOtherCountry)
                 .Include(r => r.TransportationType)
                 .Include(r => r.CustomsProcedure)
                 .Include(r => r.Company)
@@ -200,8 +200,8 @@ namespace Logibooks.Core.Tests.Services
                 Patronymic = "Иванович", 
                 City = "Москва", 
                 Address = "ул. Тест, д.1", 
-                PassportSeries = "AB", 
-                PassportNumber = "123456" 
+                PassportSeries = "AB123456", 
+                PassportNumber = "AB123456"
             };
 
             _dbContext.OzonOrders.Add(order);
@@ -220,8 +220,8 @@ namespace Logibooks.Core.Tests.Services
                 fields["CONSIGNOR_CHOICE"] == "1" &&
                 fields["SENDER"] == "Иванов Иван Иванович" &&
                 fields["CONSIGNOR_IDENTITYCARD_IDENTITYCARDCODE"] == "10" &&
-                fields["CONSIGNOR_IDENTITYCARD_IDENTITYCARDSERIES"] == "AB" &&
-                fields["CONSIGNOR_IDENTITYCARD_IDENTITYCARDNUMBER"] == "123456"
+                fields["CONSIGNOR_IDENTITYCARD_IDENTITYCARDSERIES"] == "AB123" &&
+                fields["CONSIGNOR_IDENTITYCARD_IDENTITYCARDNUMBER"] == "456"
             ), It.IsAny<IEnumerable<IDictionary<string, string?>>>()), Times.Once);
         }
 
@@ -248,7 +248,7 @@ namespace Logibooks.Core.Tests.Services
                 InvoiceDate = DateOnly.FromDateTime(DateTime.Today),
                 TransportationTypeId = 1,
                 CustomsProcedureId = 1,
-                DestCountryCode = 643,
+                TheOtherCountryCode = 643,
                 CompanyId = 1,
                 FileName = "test.xml"
             };
@@ -262,7 +262,7 @@ namespace Logibooks.Core.Tests.Services
 
             // Load the register with all related data
             var loadedRegister = _dbContext.Registers
-                .Include(r => r.DestinationCountry)
+                .Include(r => r.TheOtherCountry)
                 .Include(r => r.TransportationType)
                 .Include(r => r.CustomsProcedure)
                 .Include(r => r.Company)
@@ -319,7 +319,7 @@ namespace Logibooks.Core.Tests.Services
                 InvoiceDate = DateOnly.FromDateTime(DateTime.Today),
                 TransportationTypeId = 1,
                 CustomsProcedureId = 1,
-                DestCountryCode = 643,
+                TheOtherCountryCode = 643,
                 CompanyId = 1,
                 FileName = "test.xml"
             };
@@ -333,7 +333,7 @@ namespace Logibooks.Core.Tests.Services
 
             // Load the register with all related data
             var loadedRegister = _dbContext.Registers
-                .Include(r => r.DestinationCountry)
+                .Include(r => r.TheOtherCountry)
                 .Include(r => r.TransportationType)
                 .Include(r => r.CustomsProcedure)
                 .Include(r => r.Company)
@@ -402,7 +402,7 @@ namespace Logibooks.Core.Tests.Services
                 InvoiceDate = DateOnly.FromDateTime(DateTime.Today),
                 TransportationTypeId = 1,
                 CustomsProcedureId = 1,
-                DestCountryCode = 643,
+                TheOtherCountryCode = 643,
                 CompanyId = 1,
                 FileName = "test.xml"
             };
@@ -416,7 +416,7 @@ namespace Logibooks.Core.Tests.Services
 
             // Load the register with all related data
             var loadedRegister = _dbContext.Registers
-                .Include(r => r.DestinationCountry)
+                .Include(r => r.TheOtherCountry)
                 .Include(r => r.TransportationType)
                 .Include(r => r.CustomsProcedure)
                 .Include(r => r.Company)
@@ -468,7 +468,7 @@ namespace Logibooks.Core.Tests.Services
                 TransportationTypeId = 1, // Non-nullable, set to default
                 CustomsProcedureId = 1, // Non-nullable, set to default
                 CompanyId = 1, // Non-nullable, set to default
-                DestCountryCode = null, // This can be null
+                TheOtherCountryCode = null, // This can be null
                 FileName = "test.xml" 
             };
 

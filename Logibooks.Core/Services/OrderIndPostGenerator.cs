@@ -45,7 +45,7 @@ public class OrderIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServic
         var order = await _db.Orders.AsNoTracking()
             .Include(o => o.Country)
             .Include(o => o.Register)
-                .ThenInclude(r => r.DestinationCountry)
+                .ThenInclude(r => r.TheOtherCountry)
             .Include(o => o.Register)
                 .ThenInclude(r => r.TransportationType)
             .Include(o => o.Register)
@@ -71,7 +71,7 @@ public class OrderIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServic
 
         var originCountryCode = register.CustomsProcedure?.Code == 10
             ? "RU"
-            : register.DestinationCountry?.IsoAlpha2 ?? Placeholders.NotSet;
+            : register.TheOtherCountry?.IsoAlpha2 ?? Placeholders.NotSet;
         
         var fields = new Dictionary<string, string?>
         {
@@ -87,7 +87,8 @@ public class OrderIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServic
             { "DELIVERYTERMS_TRADINGCOUNTRYCODE", originCountryCode },
             { "DELIVERYTERMS_DISPATCHCOUNTRYCODE", originCountryCode },
             { "DELIVERYTERMS_DELIVERYTERMSSTRINGCODE", "CPT" },
-            { "SERVICE", "0" }
+            { "SERVICE", "0" },
+            { "PLACES", "1" }
         };
 
 
@@ -98,8 +99,13 @@ public class OrderIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServic
             fields["PERSONSURNAME"] = order.GetSurName();
             fields["PERSONNAME"] = order.GetName();
             fields["PERSONMIDDLENAME"] = order.GetMiddleName();
-            fields["CONSIGNEE_ADDRESS_COUNTRYCODE"] = SetOrDefault(register?.DestinationCountry?.IsoAlpha2); 
-            fields["CONSIGNEE_ADDRESS_COUNRYNAME"] = SetOrDefault(register?.DestinationCountry?.NameRuShort);
+            fields["CONSIGNEE_ADDRESS_COUNTRYCODE"] = SetOrDefault(register?.TheOtherCountry?.IsoAlpha2);
+            // CONSIGNEE_ADDRESS_COUNRYNAME так в схеме
+            fields["CONSIGNEE_ADDRESS_COUNRYNAME"] = SetOrDefault(register?.TheOtherCountry?.NameRuShort);
+            fields["CONSIGNEE_IDENTITYCARD_IDENTITYCARDCODE"] = "10";
+            fields["CONSIGNEE_IDENTITYCARD_IDENTITYCARDSERIES"] = order.GetSeries();
+            fields["CONSIGNEE_IDENTITYCARD_IDENTITYCARDNUMBER"] = order.GetNumber();
+            fields["CONSIGNEE_IDENTITYCARD_COUNTRYCODE"] = SetOrDefault(register?.TheOtherCountry?.IsoAlpha2);
             fields["CITY"] = order.GetCity();
             fields["STREETHOUSE"] = order.GetStreet();
 
@@ -119,6 +125,7 @@ public class OrderIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServic
             fields["CONSIGNEE_SHORTNAME"] = SetOrDefault(register?.Company?.ShortName);
             fields["CONSIGNEE_RFORGANIZATIONFEATURES_KPP"] = SetOrDefault(register?.Company?.Kpp);
             fields["CONSIGNEE_ADDRESS_COUNTRYCODE"] = SetOrDefault(register?.Company?.Country.IsoAlpha2);
+            // CONSIGNEE_ADDRESS_COUNRYNAME  так в схеме
             fields["CONSIGNEE_ADDRESS_COUNRYNAME"] = SetOrDefault(register?.Company?.Country.NameRuShort);
             fields["RFORGANIZATIONFEATURES_INN"] = SetOrDefault(register?.Company?.Inn);
             fields["CITY"] = SetOrDefault(register?.Company?.City);
@@ -129,10 +136,11 @@ public class OrderIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServic
             fields["CONSIGNOR_IDENTITYCARD_IDENTITYCARDCODE"] = "10";
             fields["CONSIGNOR_IDENTITYCARD_IDENTITYCARDSERIES"] = order.GetSeries();
             fields["CONSIGNOR_IDENTITYCARD_IDENTITYCARDNUMBER"] = order.GetNumber();
+            fields["CONSIGNOR_IDENTITYCARD_COUNTRYCODE"] = SetOrDefault(register?.TheOtherCountry?.IsoAlpha2);
             fields["CONSIGNOR_ADDRESS_CITY"] = order.GetCity();
             fields["CONSIGNOR_ADDRESS_STREETHOUSE"] = order.GetStreet();
-            fields["COUNTRYCODE"] = SetOrDefault(register?.DestinationCountry?.IsoAlpha2);
-            fields["COUNTRYNAME"] = SetOrDefault(register?.DestinationCountry?.NameRuShort);
+            fields["COUNTRYCODE"] = SetOrDefault(register?.TheOtherCountry?.IsoAlpha2);
+            fields["COUNTRYNAME"] = SetOrDefault(register?.TheOtherCountry?.NameRuShort);
 
         }
 
@@ -199,7 +207,7 @@ public class OrderIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServic
         {
             orders = await _db.WbrOrders.AsNoTracking()
                 .Include(o => o.Country)
-                .Include(o => o.Register).ThenInclude(r => r.DestinationCountry)
+                .Include(o => o.Register).ThenInclude(r => r.TheOtherCountry)
                 .Include(o => o.Register).ThenInclude(r => r.TransportationType)
                 .Include(o => o.Register).ThenInclude(r => r.CustomsProcedure)
                 .Include(o => o.Register).ThenInclude(r => r.Company)
@@ -214,7 +222,7 @@ public class OrderIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServic
         {
             orders = await _db.OzonOrders.AsNoTracking()
                 .Include(o => o.Country)
-                .Include(o => o.Register).ThenInclude(r => r.DestinationCountry)
+                .Include(o => o.Register).ThenInclude(r => r.TheOtherCountry)
                 .Include(o => o.Register).ThenInclude(r => r.TransportationType)
                 .Include(o => o.Register).ThenInclude(r => r.CustomsProcedure)
                 .Include(o => o.Register).ThenInclude(r => r.Company)
@@ -227,15 +235,8 @@ public class OrderIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServic
         }
         else
         {
-            orders = await _db.Orders.AsNoTracking()
-                .Include(o => o.Country)
-                .Include(o => o.Register).ThenInclude(r => r.DestinationCountry)
-                .Include(o => o.Register).ThenInclude(r => r.TransportationType)
-                .Include(o => o.Register).ThenInclude(r => r.CustomsProcedure)
-                .Include(o => o.Register).ThenInclude(r => r.Company)
-                    .ThenInclude(c => c!.Country)
-                .Where(o => o.RegisterId == registerId)
-                .ToListAsync();
+            // If register is neither Ozon nor WBR, return empty zip file
+            orders = [];
         }
 
         var fileBase = !string.IsNullOrWhiteSpace(register.InvoiceNumber) ? register.InvoiceNumber : registerId.ToString();

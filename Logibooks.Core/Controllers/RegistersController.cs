@@ -1,4 +1,4 @@
-// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
+﻿// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
 // All rights reserved.
 // This file is a part of Logibooks Core application
 //
@@ -26,12 +26,15 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SharpCompress.Archives;
+using System.Linq.Expressions;
 
 using Logibooks.Core.Authorization;
+using Logibooks.Core.Constants;
 using Logibooks.Core.Data;
 using Logibooks.Core.Models;
 using Logibooks.Core.RestModels;
 using Logibooks.Core.Services;
+using Logibooks.Core.Extensions;
 
 namespace Logibooks.Core.Controllers;
 
@@ -56,16 +59,15 @@ public class RegistersController(
         "filename", 
         "date", 
         "orderstotal", 
-        "companyid", 
-        "companyshortname", 
-        "destcountrycode", 
-        "countryalpha2", 
+        "recipientid", 
+        "senderid", 
+        "destcountrycode",
+        "origcountrycode",
         "transportationtypeid", 
-        "transportationtypename", 
         "customsprocedureid", 
-        "customsprocedurename", 
         "invoicenumber", 
-        "invoicedate"
+        "invoicedate",
+        "dealnumber"
     ];
 
     private readonly int maxPageSize = 100;
@@ -73,11 +75,42 @@ public class RegistersController(
     private readonly IRegisterProcessingService _processingService = processingService;
     private readonly IOrderIndPostGenerator _indPostGenerator = indPostGenerator;
 
+    private static Expression<Func<Register, string>> PartySortSelector(bool byRecipient)
+    {
+        return r =>
+            r.CustomsProcedure != null && r.CustomsProcedure.Code == 10
+                ? (byRecipient
+                    ? (r.TheOtherCompany != null ? (r.TheOtherCompany.ShortName ?? string.Empty) : string.Empty)
+                    : (r.Company != null ? (r.Company.ShortName ?? string.Empty) : string.Empty))
+                : (byRecipient
+                    ? (r.Company != null ? (r.Company.ShortName ?? string.Empty) : string.Empty)
+                    : (r.TheOtherCompany != null ? (r.TheOtherCompany.ShortName ?? string.Empty) : string.Empty));
+    }
+
+    private static Expression<Func<Register, string>> CountrySortSelector(bool byDestination)
+    {
+        return r =>
+            r.CustomsProcedure != null && r.CustomsProcedure.Code == 10
+                ? (byDestination
+                    ? (r.TheOtherCountryCode == null
+                        ? string.Empty
+                        : r.TheOtherCountryCode == CountryConstants.RussiaIsoNumeric
+                            ? CountryConstants.RussiaNameRuShort
+                            : (r.TheOtherCountry != null ? (r.TheOtherCountry.NameRuShort ?? string.Empty) : string.Empty))
+                    : CountryConstants.RussiaNameRuShort)
+                : (byDestination
+                    ? CountryConstants.RussiaNameRuShort
+                    : (r.TheOtherCountryCode == null
+                        ? string.Empty
+                        : r.TheOtherCountryCode == CountryConstants.RussiaIsoNumeric
+                            ? CountryConstants.RussiaNameRuShort
+                            : (r.TheOtherCountry != null ? (r.TheOtherCountry.NameRuShort ?? string.Empty) : string.Empty)));
+    }
+
     [HttpGet("{id}")]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(RegisterViewItem))]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
-
     public async Task<ActionResult<RegisterViewItem>> GetRegister(int id)
     {
         _logger.LogDebug("GetRegister for id={id}", id);
@@ -91,20 +124,7 @@ public class RegistersController(
 
         var register = await _db.Registers
             .AsNoTracking()
-            .Where(r => r.Id == id)
-            .Select(r => new
-            {
-                r.Id,
-                r.FileName,
-                r.DTime,
-                r.CompanyId,
-                r.InvoiceNumber,
-                r.InvoiceDate,
-                r.DestCountryCode,
-                r.TransportationTypeId,
-                r.CustomsProcedureId
-            })
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(r => r.Id == id);
 
         if (register == null)
         {
@@ -115,24 +135,12 @@ public class RegistersController(
         var ordersStats = await FetchOrdersStatsAsync([id]);
         var ordersByStatus = ordersStats.GetValueOrDefault(id, new Dictionary<int, int>());
 
-        var view = new RegisterViewItem
-        {
-            Id = register.Id,
-            FileName = register.FileName,
-            Date = register.DTime,
-            CompanyId = register.CompanyId,
-            InvoiceNumber = register.InvoiceNumber,
-            InvoiceDate = register.InvoiceDate,
-            DestCountryCode = register.DestCountryCode,
-            TransportationTypeId = register.TransportationTypeId,
-            CustomsProcedureId = register.CustomsProcedureId,
-            OrdersTotal = ordersByStatus.Values.Sum(),
-            OrdersByStatus = ordersByStatus
-        };
+        var view = register.ToViewItem(ordersByStatus);
 
         _logger.LogDebug("GetRegister returning register with {count} orders", view.OrdersTotal);
         return view;
     }
+
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(PagedResult<RegisterViewItem>))]
     [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(ErrMessage))]
@@ -178,59 +186,59 @@ public class RegistersController(
 
         IQueryable<Register> baseQuery = _db.Registers
             .Include(r => r.Company)
-            .Include(r => r.DestinationCountry)
+            .Include(r => r.TheOtherCompany)
+            .Include(r => r.TheOtherCountry)
             .Include(r => r.TransportationType)
             .Include(r => r.CustomsProcedure)
             .AsNoTracking();
 
         if (!string.IsNullOrWhiteSpace(search))
-        {
-            baseQuery = baseQuery.Where(r => 
-                   EF.Functions.Like(r.FileName, $"%{search}%")
-                || EF.Functions.Like(r.InvoiceNumber, $"%{search}%")
-                || (r.Company != null && EF.Functions.Like(r.Company.ShortName, $"%{search}%"))
-                || (r.DestinationCountry != null && EF.Functions.Like(r.DestinationCountry.NameRuOfficial, $"%{search}%"))
-                || (r.TransportationType != null && EF.Functions.Like(r.TransportationType.Name, $"%{search}%"))
-                || (r.CustomsProcedure != null && EF.Functions.Like(r.CustomsProcedure.Name, $"%{search}%"))
-            );
+        {           
+            if (!CountryConstants.RussiaNameRuShort.Contains(search, StringComparison.OrdinalIgnoreCase))
+            {
+                baseQuery = baseQuery.Where(r => 
+                       EF.Functions.Like(r.FileName, $"%{search}%")
+                    || (r.InvoiceNumber != null && EF.Functions.Like(r.InvoiceNumber, $"%{search}%"))
+                    || (r.DealNumber != null && EF.Functions.Like(r.DealNumber, $"%{search}%"))
+                    || (r.Company != null && EF.Functions.Like(r.Company.ShortName, $"%{search}%"))
+                    || (r.TheOtherCompany != null && EF.Functions.Like(r.TheOtherCompany.ShortName, $"%{search}%"))
+                    || (r.TheOtherCountry != null && EF.Functions.Like(r.TheOtherCountry.NameRuShort, $"%{search}%"))
+                    || (r.TransportationType != null && EF.Functions.Like(r.TransportationType.Name, $"%{search}%"))
+                    || (r.CustomsProcedure != null && EF.Functions.Like(r.CustomsProcedure.Name, $"%{search}%"))
+                );
+            }
         }
 
-        // Project to view items with orders total included for sorting
-        IQueryable<RegisterViewItem> query = baseQuery
-            .Select(r => new RegisterViewItem
-            {
-                Id = r.Id,
-                FileName = r.FileName,
-                CompanyId = r.CompanyId,
-                Date = r.DTime,
-                InvoiceNumber = r.InvoiceNumber,
-                InvoiceDate = r.InvoiceDate,
-                DestCountryCode = r.DestCountryCode,
-                TransportationTypeId = r.TransportationTypeId,
-                CustomsProcedureId = r.CustomsProcedureId,
-                OrdersTotal = r.Orders.Count(),
-                CompanyShortName = r.Company != null ? r.Company.ShortName : string.Empty,
-                NameRuOfficial = r.DestinationCountry != null ? r.DestinationCountry.NameRuOfficial : string.Empty,
-                TransportationTypeName = r.TransportationType != null ? r.TransportationType.Name : string.Empty,
-                CustomsProcedureName = r.CustomsProcedure != null ? r.CustomsProcedure.Name : string.Empty
-            });
+        IQueryable<Register> query = baseQuery;
 
         query = (sortBy.ToLower(), sortOrder) switch
         {
             ("filename", "asc") => query.OrderBy(r => r.FileName),
             ("filename", "desc") => query.OrderByDescending(r => r.FileName),
-            ("date", "asc") => query.OrderBy(r => r.Date),
-            ("date", "desc") => query.OrderByDescending(r => r.Date),
-            ("orderstotal", "asc") => query.OrderBy(r => r.OrdersTotal),
-            ("orderstotal", "desc") => query.OrderByDescending(r => r.OrdersTotal),
-            ("companyid", "asc") => query.OrderBy(r => r.CompanyShortName),
-            ("companyid", "desc") => query.OrderByDescending(r => r.CompanyShortName),
-            ("destcountrycode", "asc") => query.OrderBy(r => r.NameRuOfficial),
-            ("destcountrycode", "desc") => query.OrderByDescending(r => r.NameRuOfficial),
-            ("transportationtypeid", "asc") => query.OrderBy(r => r.TransportationTypeName),
-            ("transportationtypeid", "desc") => query.OrderByDescending(r => r.TransportationTypeName),
-            ("customsprocedureid", "asc") => query.OrderBy(r => r.CustomsProcedureName),
-            ("customsprocedureid", "desc") => query.OrderByDescending(r => r.CustomsProcedureName),
+            ("date", "asc") => query.OrderBy(r => r.DTime),
+            ("date", "desc") => query.OrderByDescending(r => r.DTime),
+            ("dealnumber", "asc") => query.OrderBy(r => r.DealNumber),
+            ("dealnumber", "desc") => query.OrderByDescending(r => r.DealNumber),
+            ("orderstotal", "asc") => query.OrderBy(r => r.Orders.Count()),
+            ("orderstotal", "desc") => query.OrderByDescending(r => r.Orders.Count()),
+            ("companyid", "asc") => query.OrderBy(r => r.Company != null ? r.Company.ShortName : string.Empty),
+            ("companyid", "desc") => query.OrderByDescending(r => r.Company != null ? r.Company.ShortName : string.Empty),
+            ("theothercompanyid", "asc") => query.OrderBy(r => r.TheOtherCompany != null ? r.TheOtherCompany.ShortName : string.Empty),
+            ("theothercompanyid", "desc") => query.OrderByDescending(r => r.TheOtherCompany != null ? r.TheOtherCompany.ShortName : string.Empty),
+            ("recipientid", "asc") => query.OrderBy(PartySortSelector(true)),
+            ("recipientid", "desc") => query.OrderByDescending(PartySortSelector(true)),
+            ("senderid", "asc") => query.OrderBy(PartySortSelector(false)),
+            ("senderid", "desc") => query.OrderByDescending(PartySortSelector(false)),
+            ("destcountrycode", "asc") => query.OrderBy(CountrySortSelector(true)),
+            ("destcountrycode", "desc") => query.OrderByDescending(CountrySortSelector(true)),
+            ("origcountrycode", "asc") => query.OrderBy(CountrySortSelector(false)),
+            ("origcountrycode", "desc") => query.OrderByDescending(CountrySortSelector(false)),
+            ("theothercountrycode", "asc") => query.OrderBy(r => r.TheOtherCountry != null ? r.TheOtherCountry.NameRuShort : string.Empty),
+            ("theothercountrycode", "desc") => query.OrderByDescending(r => r.TheOtherCountry != null ? r.TheOtherCountry.NameRuShort : string.Empty),
+            ("transportationtypeid", "asc") => query.OrderBy(r => r.TransportationType != null ? r.TransportationType.Name : string.Empty),
+            ("transportationtypeid", "desc") => query.OrderByDescending(r => r.TransportationType != null ? r.TransportationType.Name : string.Empty),
+            ("customsprocedureid", "asc") => query.OrderBy(r => r.CustomsProcedure != null ? r.CustomsProcedure.Name : string.Empty),
+            ("customsprocedureid", "desc") => query.OrderByDescending(r => r.CustomsProcedure != null ? r.CustomsProcedure.Name : string.Empty),
             ("invoicenumber", "asc") => query.OrderBy(r => r.InvoiceNumber),
             ("invoicenumber", "desc") => query.OrderByDescending(r => r.InvoiceNumber),
             ("invoicedate", "asc") => query.OrderBy(r => r.InvoiceDate),
@@ -259,16 +267,11 @@ public class RegistersController(
         var ids = items.Select(r => r.Id).ToList();
         var stats = await FetchOrdersStatsAsync(ids);
 
-        foreach (var item in items)
-        {
-            var byStatus = stats.GetValueOrDefault(item.Id, new Dictionary<int, int>());
-            item.OrdersByStatus = byStatus;
-            item.OrdersTotal = byStatus.Values.Sum();
-        }
+        var viewItems = items.Select(r => r.ToViewItem(stats.GetValueOrDefault(r.Id, new Dictionary<int, int>()))).ToList();
 
         var result = new PagedResult<RegisterViewItem>
         {
-            Items = items,
+            Items = viewItems,
             Pagination = new PaginationInfo
             {
                 CurrentPage = actualPage,
@@ -282,7 +285,7 @@ public class RegistersController(
             Search = search
         };
 
-        _logger.LogDebug("GetRegisters returning count: {count} items", items.Count);
+        _logger.LogDebug("GetRegisters returning count: {count} items", viewItems.Count);
         return Ok(result);
     }
 
@@ -417,32 +420,35 @@ public class RegistersController(
             return _404Register(id);
         }
 
-        if (update.DestCountryCode != null &&
-            !await _db.Countries.AsNoTracking().AnyAsync(c => c.IsoNumeric == update.DestCountryCode))
+        if (update.TheOtherCountryCode != null && update.TheOtherCountryCode != 0 &&
+            !await _db.Countries.AsNoTracking().AnyAsync(c => c.IsoNumeric == update.TheOtherCountryCode))
         {
             _logger.LogDebug("PutRegister returning '404 Not Found' - country");
-            return _404Object(update.DestCountryCode.Value);
+            return _404Object(update.TheOtherCountryCode.Value);
         }
 
-        if (update.TransportationTypeId != null &&
+        if (update.TransportationTypeId != null && update.TransportationTypeId != 0 &&
             !await _db.TransportationTypes.AsNoTracking().AnyAsync(t => t.Id == update.TransportationTypeId))
         {
             _logger.LogDebug("PutRegister returning '404 Not Found' - transportation type");
             return _404Object(update.TransportationTypeId.Value);
         }
 
-        if (update.CustomsProcedureId != null &&
+        if (update.CustomsProcedureId != null && update.CustomsProcedureId != 0 &&
             !await _db.CustomsProcedures.AsNoTracking().AnyAsync(c => c.Id == update.CustomsProcedureId))
         {
             _logger.LogDebug("PutRegister returning '404 Not Found' - customs procedure");
             return _404Object(update.CustomsProcedureId.Value);
         }
 
-        if (update.InvoiceNumber != null) register.InvoiceNumber = update.InvoiceNumber;
-        if (update.InvoiceDate != null) register.InvoiceDate = update.InvoiceDate;
-        if (update.DestCountryCode != null) register.DestCountryCode = update.DestCountryCode ?? 643;
-        if (update.TransportationTypeId != null) register.TransportationTypeId = update.TransportationTypeId ?? 1;
-        if (update.CustomsProcedureId != null) register.CustomsProcedureId = update.CustomsProcedureId ?? 1;
+        if (update.TheOtherCompanyId != null && update.TheOtherCompanyId != 0 &&
+            !await _db.Companies.AsNoTracking().AnyAsync(c => c.Id == update.TheOtherCompanyId))
+        {
+            _logger.LogDebug("PutRegister returning '404 Not Found' - company");
+            return _404Object(update.TheOtherCompanyId.Value);
+        }
+
+        register.ApplyUpdateFrom(update);
 
         _db.Entry(register).State = EntityState.Modified;
         await _db.SaveChangesAsync();
@@ -475,12 +481,6 @@ public class RegistersController(
             _logger.LogDebug("DeleteRegister returning '404 Not Found'");
             return _404Register(id);
         }
-
-        // bool hasOrders = await _db.Orders.AnyAsync(r => r.RegisterId == id);
-        // if (hasOrders)
-        // {
-        //    return _409Register();
-        // }
 
         _db.Registers.Remove(register);
         await _db.SaveChangesAsync();
@@ -798,7 +798,6 @@ public class RegistersController(
                 g => g.ToDictionary(x => x.StatusId, x => x.Count));
     }
 
-    // Helper method to apply common Include chains for order queries
     private static IQueryable<TOrder> ApplyOrderIncludes<TOrder>(IQueryable<TOrder> query) where TOrder : BaseOrder
     {
         return query
@@ -808,5 +807,4 @@ public class RegistersController(
                 .ThenInclude(bofp => bofp.FeacnPrefix)
                     .ThenInclude(fp => fp.FeacnOrder);
     }
-
 }

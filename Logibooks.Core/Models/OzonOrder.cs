@@ -144,8 +144,20 @@ public class OzonOrder : BaseOrder
     public override string GetSurName() => LastName ?? Placeholders.NotSet;
     public override string GetName() => FirstName ?? Placeholders.NotSet;
     public override string GetMiddleName() => Patronymic ?? Placeholders.NotSet;
-    public override string GetSeries() => PassportSeries ?? Placeholders.NotSet;
-    public override string GetNumber() => PassportNumber ?? Placeholders.NotSet;
+    public override string GetSeries()
+    {
+        string? p = PassportSeries?.Trim();
+        if (string.IsNullOrWhiteSpace(p)) return Placeholders.NotSet;
+        if (p.Length < 5) return p;
+        return p[..5];
+    }
+    public override string GetNumber()
+    {
+        string? p = PassportNumber?.Trim();
+        if (string.IsNullOrWhiteSpace(p)) return Placeholders.NotSet;
+        if (p.Length < 5) return p;
+        return p[5..];
+    }
 
-    public override string GetFullName() => $"{LastName} {FirstName} {Patronymic}".Trim();
+    public override string GetFullName() => $"{LastName} {FirstName} {Patronymic}";
 }
