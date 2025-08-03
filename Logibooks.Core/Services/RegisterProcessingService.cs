@@ -24,7 +24,6 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 using ClosedXML.Excel;
-using DocumentFormat.OpenXml.EMMA;
 using ExcelDataReader;
 using Logibooks.Core.Data;
 using Logibooks.Core.Models;
