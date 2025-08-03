@@ -229,7 +229,7 @@ public class RegistersControllerSortingTests : RegistersControllerTestsBase
             new Register { Id = 2, FileName = "r2.xlsx", CompanyId = 2, TheOtherCompanyId = 3, CustomsProcedureId = 2 }
         );
         await _dbContext.SaveChangesAsync();
-        var result = await _controller.GetRegisters(sortBy: "recepientid", sortOrder: "asc");
+        var result = await _controller.GetRegisters(sortBy: "recipientid", sortOrder: "asc");
         var ok = result.Result as OkObjectResult;
         var pr = ok!.Value as PagedResult<RegisterViewItem>;
         var items = pr!.Items.ToArray();
