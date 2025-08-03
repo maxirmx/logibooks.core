@@ -159,10 +159,8 @@ public class RegistersController(
             .AsNoTracking();
 
         if (!string.IsNullOrWhiteSpace(search))
-        {
-            bool containsRussia = "россия".Contains(search, StringComparison.OrdinalIgnoreCase);
-            
-            if (!containsRussia)
+        {           
+            if (!"россия".Contains(search, StringComparison.OrdinalIgnoreCase))
             {
                 baseQuery = baseQuery.Where(r => 
                        EF.Functions.Like(r.FileName, $"%{search}%")
