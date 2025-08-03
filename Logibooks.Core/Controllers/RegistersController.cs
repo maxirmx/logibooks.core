@@ -29,6 +29,7 @@ using SharpCompress.Archives;
 using System.Linq.Expressions;
 
 using Logibooks.Core.Authorization;
+using Logibooks.Core.Constants;
 using Logibooks.Core.Data;
 using Logibooks.Core.Models;
 using Logibooks.Core.RestModels;
@@ -93,16 +94,16 @@ public class RegistersController(
                 ? (byDestination
                     ? (r.TheOtherCountryCode == null
                         ? string.Empty
-                        : r.TheOtherCountryCode == 643
-                            ? "Россия"
+                        : r.TheOtherCountryCode == CountryConstants.RussiaIsoNumeric
+                            ? CountryConstants.RussiaNameRuShort
                             : (r.TheOtherCountry != null ? (r.TheOtherCountry.NameRuShort ?? string.Empty) : string.Empty))
-                    : "Россия")
+                    : CountryConstants.RussiaNameRuShort)
                 : (byDestination
-                    ? "Россия"
+                    ? CountryConstants.RussiaNameRuShort
                     : (r.TheOtherCountryCode == null
                         ? string.Empty
-                        : r.TheOtherCountryCode == 643
-                            ? "Россия"
+                        : r.TheOtherCountryCode == CountryConstants.RussiaIsoNumeric
+                            ? CountryConstants.RussiaNameRuShort
                             : (r.TheOtherCountry != null ? (r.TheOtherCountry.NameRuShort ?? string.Empty) : string.Empty)));
     }
 
@@ -193,7 +194,7 @@ public class RegistersController(
 
         if (!string.IsNullOrWhiteSpace(search))
         {           
-            if (!"россия".Contains(search, StringComparison.OrdinalIgnoreCase))
+            if (!CountryConstants.RussiaNameRuShort.Contains(search, StringComparison.OrdinalIgnoreCase))
             {
                 baseQuery = baseQuery.Where(r => 
                        EF.Functions.Like(r.FileName, $"%{search}%")
