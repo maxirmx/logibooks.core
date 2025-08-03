@@ -219,9 +219,9 @@ public class RegistersControllerSortingTests : RegistersControllerTestsBase
         Assert.That(items[1].Id, Is.EqualTo(1)); // Earlier invoice date comes second
     }
 
-    // Sorting by RecepientId ascending
+    // Sorting by RecipientId ascending
     [Test]
-    public async Task GetRegisters_SortsByRecepientId_Ascending()
+    public async Task GetRegisters_SortsByRecipientId_Ascending()
     {
         SetCurrentUserId(1);
         _dbContext.Registers.AddRange(
@@ -279,7 +279,7 @@ public class RegistersControllerSortingTests : RegistersControllerTestsBase
             "filename",
             "date",
             "orderstotal",
-            "recepientid",
+            "recipientid",
             "senderid",
             "destcountrycode",
             "origcountrycode",

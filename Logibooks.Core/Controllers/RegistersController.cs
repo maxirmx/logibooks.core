@@ -58,7 +58,7 @@ public class RegistersController(
         "filename", 
         "date", 
         "orderstotal", 
-        "recepientid", 
+        "recipientid", 
         "senderid", 
         "destcountrycode",
         "origcountrycode",
