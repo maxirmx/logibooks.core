@@ -235,15 +235,8 @@ public class OrderIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServic
         }
         else
         {
-            orders = await _db.Orders.AsNoTracking()
-                .Include(o => o.Country)
-                .Include(o => o.Register).ThenInclude(r => r.TheOtherCountry)
-                .Include(o => o.Register).ThenInclude(r => r.TransportationType)
-                .Include(o => o.Register).ThenInclude(r => r.CustomsProcedure)
-                .Include(o => o.Register).ThenInclude(r => r.Company)
-                    .ThenInclude(c => c!.Country)
-                .Where(o => o.RegisterId == registerId)
-                .ToListAsync();
+            // If register is neither Ozon nor WBR, return empty zip file
+            orders = [];
         }
 
         var fileBase = !string.IsNullOrWhiteSpace(register.InvoiceNumber) ? register.InvoiceNumber : registerId.ToString();
