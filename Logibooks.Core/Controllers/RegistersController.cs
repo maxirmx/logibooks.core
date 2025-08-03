@@ -29,6 +29,7 @@ using SharpCompress.Archives;
 using System.Linq.Expressions;
 
 using Logibooks.Core.Authorization;
+using Logibooks.Core.Constants;
 using Logibooks.Core.Data;
 using Logibooks.Core.Models;
 using Logibooks.Core.RestModels;
@@ -84,6 +85,26 @@ public class RegistersController(
                 : (byRecipient
                     ? (r.Company != null ? (r.Company.ShortName ?? string.Empty) : string.Empty)
                     : (r.TheOtherCompany != null ? (r.TheOtherCompany.ShortName ?? string.Empty) : string.Empty));
+    }
+
+    private static Expression<Func<Register, string>> CountrySortSelector(bool byDestination)
+    {
+        return r =>
+            r.CustomsProcedure != null && r.CustomsProcedure.Code == 10
+                ? (byDestination
+                    ? (r.TheOtherCountryCode == null
+                        ? string.Empty
+                        : r.TheOtherCountryCode == CountryConstants.RussiaIsoNumeric
+                            ? CountryConstants.RussiaNameRuShort
+                            : (r.TheOtherCountry != null ? (r.TheOtherCountry.NameRuShort ?? string.Empty) : string.Empty))
+                    : CountryConstants.RussiaNameRuShort)
+                : (byDestination
+                    ? CountryConstants.RussiaNameRuShort
+                    : (r.TheOtherCountryCode == null
+                        ? string.Empty
+                        : r.TheOtherCountryCode == CountryConstants.RussiaIsoNumeric
+                            ? CountryConstants.RussiaNameRuShort
+                            : (r.TheOtherCountry != null ? (r.TheOtherCountry.NameRuShort ?? string.Empty) : string.Empty)));
     }
 
     [HttpGet("{id}")]
@@ -173,7 +194,7 @@ public class RegistersController(
 
         if (!string.IsNullOrWhiteSpace(search))
         {           
-            if (!"россия".Contains(search, StringComparison.OrdinalIgnoreCase))
+            if (!CountryConstants.RussiaNameRuShort.Contains(search, StringComparison.OrdinalIgnoreCase))
             {
                 baseQuery = baseQuery.Where(r => 
                        EF.Functions.Like(r.FileName, $"%{search}%")
@@ -208,6 +229,10 @@ public class RegistersController(
             ("recipientid", "desc") => query.OrderByDescending(PartySortSelector(true)),
             ("senderid", "asc") => query.OrderBy(PartySortSelector(false)),
             ("senderid", "desc") => query.OrderByDescending(PartySortSelector(false)),
+            ("destcountrycode", "asc") => query.OrderBy(CountrySortSelector(true)),
+            ("destcountrycode", "desc") => query.OrderByDescending(CountrySortSelector(true)),
+            ("origcountrycode", "asc") => query.OrderBy(CountrySortSelector(false)),
+            ("origcountrycode", "desc") => query.OrderByDescending(CountrySortSelector(false)),
             ("theothercountrycode", "asc") => query.OrderBy(r => r.TheOtherCountry != null ? r.TheOtherCountry.NameRuShort : string.Empty),
             ("theothercountrycode", "desc") => query.OrderByDescending(r => r.TheOtherCountry != null ? r.TheOtherCountry.NameRuShort : string.Empty),
             ("transportationtypeid", "asc") => query.OrderBy(r => r.TransportationType != null ? r.TransportationType.Name : string.Empty),
