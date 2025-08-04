@@ -180,7 +180,7 @@ public class WbrOrder : BaseOrder
     {
         if (string.IsNullOrWhiteSpace(RecipientAddress)) return Placeholders.NotSet;
         var parts = RecipientAddress.Split(',');
-        return parts.Length > 2 ? string.Join(",", parts.Skip(2).Select(p => p.Trim())) : RecipientAddress;
+        return parts.Length >= 4 ? string.Join(",", parts.Skip(2).Select(p => p.Trim())) : RecipientAddress;
     }
 
     public override string GetSurName()

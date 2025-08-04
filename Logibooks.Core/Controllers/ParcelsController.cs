@@ -268,19 +268,6 @@ public class ParcelsController(
         sortBy ??= "id";
         sortOrder = string.IsNullOrEmpty(sortOrder) ? "asc" : sortOrder.ToLower();
 
-        var allowedSortBy = new[] { "id", "status", "tnved" };
-        if (!allowedSortBy.Contains(sortBy.ToLower()))
-        {
-            _logger.LogDebug("GetOrders returning '400 Bad Request' - invalid sortBy");
-            return _400();
-        }
-
-        if (sortOrder != "asc" && sortOrder != "desc")
-        {
-            _logger.LogDebug("GetOrders returning '400 Bad Request' - invalid sortOrder");
-            return _400();
-        }
-
         var ok = await _userService.CheckLogist(_curUserId);
         if (!ok)
         {
@@ -288,49 +275,147 @@ public class ParcelsController(
             return _403();
         }
 
-        IQueryable<BaseOrder> query = _db.Orders.AsNoTracking()
-            .Include(o => o.BaseOrderStopWords)
-            .Include(o => o.BaseOrderFeacnPrefixes)
-                .ThenInclude(bofp => bofp.FeacnPrefix)
-                    .ThenInclude(fp => fp.FeacnOrder)
-            .Where(o => o.RegisterId == registerId);
-
-        if (statusId != null)
+        // First determine the register type
+        var register = await _db.Registers.AsNoTracking()
+            .FirstOrDefaultAsync(r => r.Id == registerId);
+        
+        if (register == null)
         {
-            query = query.Where(o => o.StatusId == statusId);
+            _logger.LogDebug("GetOrders returning '404 Not Found' - register not found");
+            return _404Register(registerId);
         }
 
-        if (!string.IsNullOrWhiteSpace(tnVed))
+        List<BaseOrder> items;
+        int totalCount;
+        int actualPage;
+        int actualPageSize;
+        int totalPages;
+
+        // Create a typed query based on the register company type
+        if (register.CompanyId == IRegisterProcessingService.GetWBRId())
         {
-            query = query.Where(o => o.TnVed != null && o.TnVed.Contains(tnVed));
+            // Use WBR-specific allowed sort fields
+            var allowedSortBy = new[] { "id", "statusid", "checkstatusid", "tnved", "shk" };
+            if (!allowedSortBy.Contains(sortBy.ToLower()))
+            {
+                _logger.LogDebug("GetOrders returning '400 Bad Request' - invalid sortBy for WBR");
+                return _400();
+            }
+
+            // For WBR orders, use WbrOrders and can directly sort by Shk
+            var query = _db.WbrOrders.AsNoTracking()
+                .Include(o => o.BaseOrderStopWords)
+                .Include(o => o.BaseOrderFeacnPrefixes)
+                    .ThenInclude(bofp => bofp.FeacnPrefix)
+                        .ThenInclude(fp => fp.FeacnOrder)
+                .Where(o => o.RegisterId == registerId);
+
+            if (statusId != null)
+            {
+                query = query.Where(o => o.StatusId == statusId);
+            }
+
+            if (!string.IsNullOrWhiteSpace(tnVed))
+            {
+                query = query.Where(o => o.TnVed != null && o.TnVed.Contains(tnVed));
+            }
+
+            // Apply sorting with direct property access for Shk
+            query = (sortBy.ToLower(), sortOrder) switch
+            {
+                ("statusid", "asc") => query.OrderBy(o => o.StatusId),
+                ("statusid", "desc") => query.OrderByDescending(o => o.StatusId),
+                ("checkstatusid", "asc") => query.OrderBy(o => o.CheckStatusId),
+                ("checkstatusid", "desc") => query.OrderByDescending(o => o.CheckStatusId),
+                ("tnved", "asc") => query.OrderBy(o => o.TnVed),
+                ("tnved", "desc") => query.OrderByDescending(o => o.TnVed),
+                ("shk", "asc") => query.OrderBy(o => o.Shk), // Direct property sorting
+                ("shk", "desc") => query.OrderByDescending(o => o.Shk), // Direct property sorting
+                ("id", "desc") => query.OrderByDescending(o => o.Id),
+                _ => query.OrderBy(o => o.Id)
+            };
+
+            totalCount = await query.CountAsync();
+
+            actualPage = pageSize == -1 ? 1 : page;
+            actualPageSize = pageSize == -1 ? (totalCount == 0 ? 1 : totalCount) : pageSize;
+            totalPages = (int)Math.Ceiling(totalCount / (double)actualPageSize);
+
+            if (actualPage > totalPages && totalPages > 0)
+            {
+                actualPage = 1;
+            }
+
+            items = (await query
+                .Skip((actualPage - 1) * actualPageSize)
+                .Take(actualPageSize)
+                .ToListAsync()).Cast<BaseOrder>().ToList();
         }
-
-        query = (sortBy.ToLower(), sortOrder) switch
+        else if (register.CompanyId == IRegisterProcessingService.GetOzonId())
         {
-            ("status", "asc") => query.OrderBy(o => o.StatusId),
-            ("status", "desc") => query.OrderByDescending(o => o.StatusId),
-            ("tnved", "asc") => query.OrderBy(o => o.TnVed),
-            ("tnved", "desc") => query.OrderByDescending(o => o.TnVed),
-            ("id", "desc") => query.OrderByDescending(o => o.Id),
-            _ => query.OrderBy(o => o.Id)
-        };
+            // Use Ozon-specific allowed sort fields
+            var allowedSortBy = new[] { "id", "statusid", "checkstatusid", "tnved", "postingnumber" };
+            if (!allowedSortBy.Contains(sortBy.ToLower()))
+            {
+                _logger.LogDebug("GetOrders returning '400 Bad Request' - invalid sortBy for Ozon");
+                return _400();
+            }
 
-        var totalCount = await query.CountAsync();
+            // For Ozon orders, use OzonOrders and can directly sort by PostingNumber
+            var query = _db.OzonOrders.AsNoTracking()
+                .Include(o => o.BaseOrderStopWords)
+                .Include(o => o.BaseOrderFeacnPrefixes)
+                    .ThenInclude(bofp => bofp.FeacnPrefix)
+                        .ThenInclude(fp => fp.FeacnOrder)
+                .Where(o => o.RegisterId == registerId);
 
-        int actualPage = pageSize == -1 ? 1 : page;
-        int actualPageSize = pageSize == -1 ? (totalCount == 0 ? 1 : totalCount) : pageSize;
+            if (statusId != null)
+            {
+                query = query.Where(o => o.StatusId == statusId);
+            }
 
-        var totalPages = (int)Math.Ceiling(totalCount / (double)actualPageSize);
+            if (!string.IsNullOrWhiteSpace(tnVed))
+            {
+                query = query.Where(o => o.TnVed != null && o.TnVed.Contains(tnVed));
+            }
 
-        if (actualPage > totalPages && totalPages > 0)
-        {
-            actualPage = 1;
+            // Apply sorting with direct property access for PostingNumber
+            query = (sortBy.ToLower(), sortOrder) switch
+            {
+                ("statusid", "asc") => query.OrderBy(o => o.StatusId),
+                ("statusid", "desc") => query.OrderByDescending(o => o.StatusId),
+                ("checkstatusid", "asc") => query.OrderBy(o => o.CheckStatusId),
+                ("checkstatusid", "desc") => query.OrderByDescending(o => o.CheckStatusId),
+                ("tnved", "asc") => query.OrderBy(o => o.TnVed),
+                ("tnved", "desc") => query.OrderByDescending(o => o.TnVed),
+                ("postingnumber", "asc") => query.OrderBy(o => o.PostingNumber), // Use PostingNumber
+                ("postingnumber", "desc") => query.OrderByDescending(o => o.PostingNumber), // Use PostingNumber
+                ("id", "desc") => query.OrderByDescending(o => o.Id),
+                _ => query.OrderBy(o => o.Id)
+            };
+
+            totalCount = await query.CountAsync();
+
+            actualPage = pageSize == -1 ? 1 : page;
+            actualPageSize = pageSize == -1 ? (totalCount == 0 ? 1 : totalCount) : pageSize;
+            totalPages = (int)Math.Ceiling(totalCount / (double)actualPageSize);
+
+            if (actualPage > totalPages && totalPages > 0)
+            {
+                actualPage = 1;
+            }
+
+            items = (await query
+                .Skip((actualPage - 1) * actualPageSize)
+                .Take(actualPageSize)
+                .ToListAsync()).Cast<BaseOrder>().ToList();
         }
-
-        var items = await query
-            .Skip((actualPage - 1) * actualPageSize)
-            .Take(actualPageSize)
-            .ToListAsync();
+        else
+        {
+            // For non-WBR, non-Ozon registers, return error
+            _logger.LogDebug("GetOrders returning '400 Bad Request' - unsupported register company type");
+            return _400CompanyId(register.CompanyId);
+        }
 
         var viewItems = items.Select(o => new OrderViewItem(o)).ToList();
 
