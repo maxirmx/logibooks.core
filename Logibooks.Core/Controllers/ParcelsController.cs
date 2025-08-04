@@ -294,7 +294,6 @@ public class ParcelsController(
         // Create a typed query based on the register company type
         if (register.CompanyId == IRegisterProcessingService.GetWBRId())
         {
-            // Use WBR-specific allowed sort fields
             var allowedSortBy = new[] { "id", "statusid", "checkstatusid", "tnved", "shk" };
             if (!allowedSortBy.Contains(sortBy.ToLower()))
             {
@@ -302,7 +301,6 @@ public class ParcelsController(
                 return _400();
             }
 
-            // For WBR orders, use WbrOrders and can directly sort by Shk
             var query = _db.WbrOrders.AsNoTracking()
                 .Include(o => o.BaseOrderStopWords)
                 .Include(o => o.BaseOrderFeacnPrefixes)
@@ -320,7 +318,6 @@ public class ParcelsController(
                 query = query.Where(o => o.TnVed != null && o.TnVed.Contains(tnVed));
             }
 
-            // Apply sorting with direct property access for Shk
             query = (sortBy.ToLower(), sortOrder) switch
             {
                 ("statusid", "asc") => query.OrderBy(o => o.StatusId),
@@ -329,8 +326,8 @@ public class ParcelsController(
                 ("checkstatusid", "desc") => query.OrderByDescending(o => o.CheckStatusId),
                 ("tnved", "asc") => query.OrderBy(o => o.TnVed),
                 ("tnved", "desc") => query.OrderByDescending(o => o.TnVed),
-                ("shk", "asc") => query.OrderBy(o => o.Shk), // Direct property sorting
-                ("shk", "desc") => query.OrderByDescending(o => o.Shk), // Direct property sorting
+                ("shk", "asc") => query.OrderBy(o => o.Shk), 
+                ("shk", "desc") => query.OrderByDescending(o => o.Shk), 
                 ("id", "desc") => query.OrderByDescending(o => o.Id),
                 _ => query.OrderBy(o => o.Id)
             };
@@ -361,7 +358,6 @@ public class ParcelsController(
                 return _400();
             }
 
-            // For Ozon orders, use OzonOrders and can directly sort by PostingNumber
             var query = _db.OzonOrders.AsNoTracking()
                 .Include(o => o.BaseOrderStopWords)
                 .Include(o => o.BaseOrderFeacnPrefixes)
@@ -379,7 +375,6 @@ public class ParcelsController(
                 query = query.Where(o => o.TnVed != null && o.TnVed.Contains(tnVed));
             }
 
-            // Apply sorting with direct property access for PostingNumber
             query = (sortBy.ToLower(), sortOrder) switch
             {
                 ("statusid", "asc") => query.OrderBy(o => o.StatusId),
@@ -388,8 +383,8 @@ public class ParcelsController(
                 ("checkstatusid", "desc") => query.OrderByDescending(o => o.CheckStatusId),
                 ("tnved", "asc") => query.OrderBy(o => o.TnVed),
                 ("tnved", "desc") => query.OrderByDescending(o => o.TnVed),
-                ("postingnumber", "asc") => query.OrderBy(o => o.PostingNumber), // Use PostingNumber
-                ("postingnumber", "desc") => query.OrderByDescending(o => o.PostingNumber), // Use PostingNumber
+                ("postingnumber", "asc") => query.OrderBy(o => o.PostingNumber), 
+                ("postingnumber", "desc") => query.OrderByDescending(o => o.PostingNumber), 
                 ("id", "desc") => query.OrderByDescending(o => o.Id),
                 _ => query.OrderBy(o => o.Id)
             };
