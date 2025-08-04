@@ -140,7 +140,13 @@ public class OzonOrder : BaseOrder
     public override string GetWeight() => FormatWeight(WeightKg);
     public override string GetUrl() => ProductLink ?? "https://www.ozon.ru/product/unknown-product";
     public override string GetCity() => City ?? Placeholders.NotSet;
-    public override string GetStreet() => Address ?? Placeholders.NotSet;
+    public override string GetStreet()
+    {
+        if (string.IsNullOrWhiteSpace(Address)) return Placeholders.NotSet;
+        var parts = Address.Split(',');
+        return parts.Length >= 4 ? string.Join(",", parts.Skip(2).Select(p => p.Trim())) : Address;
+    }
+
     public override string GetSurName() => LastName ?? Placeholders.NotSet;
     public override string GetName() => FirstName ?? Placeholders.NotSet;
     public override string GetMiddleName() => Patronymic ?? Placeholders.NotSet;
