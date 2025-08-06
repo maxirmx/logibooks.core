@@ -31,6 +31,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
+using AutoMapper;
 using NUnit.Framework;
 using Moq;
 
@@ -39,8 +40,6 @@ using Logibooks.Core.Data;
 using Logibooks.Core.Models;
 using Logibooks.Core.RestModels;
 using Logibooks.Core.Services;
-using AutoMapper;
-using System.Collections.Generic;
 
 namespace Logibooks.Core.Tests.Controllers.Parcels;
 

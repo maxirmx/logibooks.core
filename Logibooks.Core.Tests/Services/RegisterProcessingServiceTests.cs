@@ -323,7 +323,7 @@ public class DownloadRegisterTests
         var reference = await _service.UploadRegisterFromExcelAsync(_service.GetWBRId(), content, "Реестр_207730349.xlsx");
 
         var first = _dbContext.WbrOrders.OrderBy(o => o.Id).First();
-        first.CheckStatusId = (int)OrderCheckStatusCode.HasIssues;
+        first.CheckStatusId = (int)ParcelCheckStatusCode.HasIssues;
         await _dbContext.SaveChangesAsync();
 
         var bytes = await _service.DownloadRegisterToExcelAsync(reference.Id);
@@ -344,7 +344,7 @@ public class DownloadRegisterTests
         var reference = await _service.UploadRegisterFromExcelAsync(_service.GetOzonId(), content, "Озон_Short.xlsx");
 
         var first = _dbContext.OzonOrders.OrderBy(o => o.Id).First();
-        first.CheckStatusId = (int)OrderCheckStatusCode.HasIssues;
+        first.CheckStatusId = (int)ParcelCheckStatusCode.HasIssues;
         await _dbContext.SaveChangesAsync();
 
         var bytes = await _service.DownloadRegisterToExcelAsync(reference.Id);

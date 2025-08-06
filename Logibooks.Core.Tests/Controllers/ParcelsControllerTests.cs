@@ -545,7 +545,7 @@ public class ParcelsControllerTests
     public async Task GetCheckStatuses_ReturnsAllCheckStatuses()
     {
         // Arrange
-        var statuses = new List<OrderCheckStatus>
+        var statuses = new List<ParcelCheckStatus>
         {
             new() { Id = 1, Title = "Loaded" },
             new() { Id = 101, Title = "Problem" },
@@ -563,7 +563,7 @@ public class ParcelsControllerTests
         var okResult = result.Result as OkObjectResult;
         Assert.That(okResult!.Value, Is.Not.Null);
 
-        var returnedStatuses = okResult.Value as IEnumerable<OrderCheckStatus>;
+        var returnedStatuses = okResult.Value as IEnumerable<ParcelCheckStatus>;
         Assert.That(returnedStatuses, Is.Not.Null);
         Assert.That(returnedStatuses!.Count(), Is.EqualTo(3));
 
@@ -587,7 +587,7 @@ public class ParcelsControllerTests
         var okResult = result.Result as OkObjectResult;
         Assert.That(okResult!.Value, Is.Not.Null);
 
-        var returnedStatuses = okResult.Value as IEnumerable<OrderCheckStatus>;
+        var returnedStatuses = okResult.Value as IEnumerable<ParcelCheckStatus>;
         Assert.That(returnedStatuses, Is.Not.Null);
         Assert.That(returnedStatuses!.Count(), Is.EqualTo(0));
     }
@@ -596,7 +596,7 @@ public class ParcelsControllerTests
     public async Task GetCheckStatuses_OrdersStatusesByIdAscending()
     {
         // Arrange - add in non-sequential order
-        var statuses = new List<OrderCheckStatus>
+        var statuses = new List<ParcelCheckStatus>
         {
             new() { Id = 201, Title = "Verified" },
             new() { Id = 1, Title = "Loaded" },
@@ -610,7 +610,7 @@ public class ParcelsControllerTests
 
         // Assert
         var okResult = result.Result as OkObjectResult;
-        var returnedStatuses = okResult!.Value as IEnumerable<OrderCheckStatus>;
+        var returnedStatuses = okResult!.Value as IEnumerable<ParcelCheckStatus>;
         var statusList = returnedStatuses!.ToList();
 
         // Verify ordering by Id
@@ -624,9 +624,9 @@ public class ParcelsControllerTests
     {
         // Arrange - don't set any user in HttpContext
         // This ensures the method works without checking user roles
-        var statuses = new List<OrderCheckStatus>
+        var statuses = new List<ParcelCheckStatus>
         {
-            new OrderCheckStatus { Id = 1, Title = "Status" }
+            new ParcelCheckStatus { Id = 1, Title = "Status" }
         };
         _dbContext.CheckStatuses.AddRange(statuses);
         await _dbContext.SaveChangesAsync();
@@ -637,7 +637,7 @@ public class ParcelsControllerTests
         // Assert - should work without any auth checks
         Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
         var okResult = result.Result as OkObjectResult;
-        var returnedStatuses = okResult!.Value as IEnumerable<OrderCheckStatus>;
+        var returnedStatuses = okResult!.Value as IEnumerable<ParcelCheckStatus>;
         Assert.That(returnedStatuses!.Count(), Is.EqualTo(1));
     }
 
@@ -645,7 +645,7 @@ public class ParcelsControllerTests
     public async Task GetCheckStatuses_ReturnsCompleteOrderCheckStatusObjects()
     {
         // Arrange
-        var status = new OrderCheckStatus { Id = 42, Title = "Test Status" };
+        var status = new ParcelCheckStatus { Id = 42, Title = "Test Status" };
         _dbContext.CheckStatuses.Add(status);
         await _dbContext.SaveChangesAsync();
 
@@ -654,7 +654,7 @@ public class ParcelsControllerTests
 
         // Assert
         var okResult = result.Result as OkObjectResult;
-        var returnedStatuses = okResult!.Value as IEnumerable<OrderCheckStatus>;
+        var returnedStatuses = okResult!.Value as IEnumerable<ParcelCheckStatus>;
         var returnedStatus = returnedStatuses!.First();
 
         // Verify all properties are returned correctly
@@ -668,7 +668,7 @@ public class ParcelsControllerTests
         // Arrange
         var reg = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
         _dbContext.Registers.Add(reg);
-        var status = new OrderStatus { Id = 1, Title = "Test Status" };
+        var status = new ParcelStatus { Id = 1, Title = "Test Status" };
         var order = new WbrOrder { Shk = "12345678", RegisterId = 1, StatusId = 1, Status = status };
         _dbContext.Statuses.Add(status);
         _dbContext.Orders.Add(order);
@@ -703,7 +703,7 @@ public class ParcelsControllerTests
         // Arrange
         var reg = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
         _dbContext.Registers.Add(reg);
-        var status = new OrderStatus { Id = 1, Title = "Available" };
+        var status = new ParcelStatus { Id = 1, Title = "Available" };
         var order = new WbrOrder { Shk = "ABC123", RegisterId = 1,  StatusId = 1, Status = status };
         _dbContext.Statuses.Add(status);
         _dbContext.Orders.Add(order);
@@ -1062,7 +1062,7 @@ public class ParcelsControllerTests
         var result = await _controller.ApproveOrder(100);
         Assert.That(result, Is.TypeOf<NoContentResult>());
         var saved = await _dbContext.Orders.FindAsync(100);
-        Assert.That(saved!.CheckStatusId, Is.EqualTo((int)OrderCheckStatusCode.Approved));
+        Assert.That(saved!.CheckStatusId, Is.EqualTo((int)ParcelCheckStatusCode.Approved));
     }
 
     [Test]

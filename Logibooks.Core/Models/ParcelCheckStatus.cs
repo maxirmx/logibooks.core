@@ -23,13 +23,20 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
+
 namespace Logibooks.Core.Models;
-public enum OrderCheckStatusCode
+
+[Table("check_statuses")]
+public class ParcelCheckStatus
 {
-    NotChecked = 1,
-    HasIssues = 101,
-    InvalidFeacnFormat = 102,
-    NonexistingFeacn = 103,
-    NoIssues = 201,
-    Approved = 301
+    [Column("id")]
+    public int Id { get; set; }
+
+    [Column("title")]
+    public required string Title { get; set; }
+
+    [JsonIgnore]
+    public ICollection<BaseOrder> Orders { get; set; } = [];
 }

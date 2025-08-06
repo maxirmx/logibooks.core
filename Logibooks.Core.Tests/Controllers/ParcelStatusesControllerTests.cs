@@ -86,8 +86,8 @@ public class ParcelStatusesControllerTests
     public async Task GetStatuses_ReturnsAll_ForLogist()
     {
         SetCurrentUserId(2);
-        _dbContext.Statuses.AddRange(new OrderStatus { Id = 1,  Title = "Loaded" },
-                                     new OrderStatus { Id = 2,  Title = "Processed" });
+        _dbContext.Statuses.AddRange(new ParcelStatus { Id = 1,  Title = "Loaded" },
+                                     new ParcelStatus { Id = 2,  Title = "Processed" });
         await _dbContext.SaveChangesAsync();
 
         var result = await _controller.GetStatuses();
@@ -130,7 +130,7 @@ public class ParcelStatusesControllerTests
     public async Task DeleteStatus_ReturnsConflict_WhenUsed()
     {
         SetCurrentUserId(1);
-        var status = new OrderStatus { Id = 5, Title = "Used" };
+        var status = new ParcelStatus { Id = 5, Title = "Used" };
         var reg = new Register { Id = 1, FileName = "r" };
         var order = new WbrOrder { Id = 1, RegisterId = 1, StatusId = 5 };
         _dbContext.Statuses.Add(status);
@@ -150,7 +150,7 @@ public class ParcelStatusesControllerTests
     {
         // Arrange
         SetCurrentUserId(2); // Logist
-        var status = new OrderStatus { Id = 3, Title = "Specific Status" };
+        var status = new ParcelStatus { Id = 3, Title = "Specific Status" };
         _dbContext.Statuses.Add(status);
         await _dbContext.SaveChangesAsync();
 
@@ -170,7 +170,7 @@ public class ParcelStatusesControllerTests
     {
         // Arrange
         SetCurrentUserId(1); // Admin
-        var status = new OrderStatus { Id = 4, Title = "Admin Viewable Status" };
+        var status = new ParcelStatus { Id = 4, Title = "Admin Viewable Status" };
         _dbContext.Statuses.Add(status);
         await _dbContext.SaveChangesAsync();
 
@@ -210,7 +210,7 @@ public class ParcelStatusesControllerTests
     {
         // Arrange
         SetCurrentUserId(2); // Logist
-        var status = new OrderStatus { Id = 6, Title = "Property Test Status" };
+        var status = new ParcelStatus { Id = 6, Title = "Property Test Status" };
         _dbContext.Statuses.Add(status);
         await _dbContext.SaveChangesAsync();
 

@@ -91,7 +91,7 @@ public class OrderValidationServiceTests
         Assert.That(ctx.Set<BaseOrderStopWord>().Count(), Is.EqualTo(1));
         var link = ctx.Set<BaseOrderStopWord>().Single();
         Assert.That(link.StopWordId, Is.EqualTo(2));
-        Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)OrderCheckStatusCode.HasIssues));
+        Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)ParcelCheckStatusCode.HasIssues));
     }
 
     [Test]
@@ -109,7 +109,7 @@ public class OrderValidationServiceTests
         await svc.ValidateAsync(order, morphologyContext, stopWordsContext);
 
         Assert.That(ctx.Set<BaseOrderStopWord>().Any(), Is.False);
-        Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)OrderCheckStatusCode.NoIssues));
+        Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)ParcelCheckStatusCode.NoIssues));
     }
 
     [Test]
@@ -127,7 +127,7 @@ public class OrderValidationServiceTests
         await svc.ValidateAsync(order, morphologyContext, stopWordsContext);
 
         Assert.That(ctx.Set<BaseOrderStopWord>().Single().StopWordId, Is.EqualTo(5));
-        Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)OrderCheckStatusCode.HasIssues));
+        Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)ParcelCheckStatusCode.HasIssues));
     }
 
     [Test]
@@ -148,7 +148,7 @@ public class OrderValidationServiceTests
 
         var link = ctx.Set<BaseOrderStopWord>().Single();
         Assert.That(link.StopWordId, Is.EqualTo(7));
-        Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)OrderCheckStatusCode.HasIssues));
+        Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)ParcelCheckStatusCode.HasIssues));
     }
 
     [Test]
@@ -178,7 +178,7 @@ public class OrderValidationServiceTests
 
         Assert.That(links.Count, Is.EqualTo(2), "Should find exactly 2 matches");
         Assert.That(foundIds, Is.EquivalentTo(new[] { 10, 20 }), "Should find both exact and morphology matches");
-        Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)OrderCheckStatusCode.HasIssues));
+        Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)ParcelCheckStatusCode.HasIssues));
     }
 
     [Test]
@@ -210,7 +210,7 @@ public class OrderValidationServiceTests
 
         Assert.That(links.Count, Is.EqualTo(1), "Should replace existing links");
         Assert.That(links.Single().StopWordId, Is.EqualTo(800), "Should have new link only");
-        Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)OrderCheckStatusCode.HasIssues));
+        Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)ParcelCheckStatusCode.HasIssues));
     }
 
     [Test]

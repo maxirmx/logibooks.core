@@ -33,15 +33,15 @@ public class OrderStatusDto
     public string Title { get; set; } = string.Empty;
 
     public OrderStatusDto() {}
-    public OrderStatusDto(OrderStatus status)
+    public OrderStatusDto(ParcelStatus status)
     {
         Id = status.Id;
         Title = status.Title;
     }
 
-    public OrderStatus ToModel()
+    public ParcelStatus ToModel()
     {
-        return new OrderStatus
+        return new ParcelStatus
         {
             Id = Id,
             Title = Title

@@ -604,8 +604,8 @@ public class RegistersController(
 
         IQueryable<BaseOrder> query = _db.Orders.AsNoTracking()
             .Where(o => o.RegisterId == registerId &&
-                        o.CheckStatusId >= (int)OrderCheckStatusCode.HasIssues && 
-                        o.CheckStatusId < (int)OrderCheckStatusCode.NoIssues)
+                        o.CheckStatusId >= (int)ParcelCheckStatusCode.HasIssues && 
+                        o.CheckStatusId < (int)ParcelCheckStatusCode.NoIssues)
             .OrderBy(o => o.Id);
 
         var next = await query
@@ -639,6 +639,74 @@ public class RegistersController(
         }
 
         _logger.LogDebug("NextOrder returning order {id}", order.Id);
+        return new OrderViewItem(order);
+    }
+
+    [HttpGet("prevorder/{orderId}")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(OrderViewItem))]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
+    [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
+    public async Task<ActionResult<OrderViewItem>> PrevOrder(int orderId)
+    {
+        _logger.LogDebug("PrevOrder for orderId={orderId}", orderId);
+
+        if (!await _userService.CheckLogist(_curUserId))
+        {
+            _logger.LogDebug("PrevOrder returning '403 Forbidden'");
+            return _403();
+        }
+
+        var current = await _db.Orders.AsNoTracking()
+            .Include(o => o.Register)
+            .FirstOrDefaultAsync(o => o.Id == orderId);
+
+        if (current == null)
+        {
+            _logger.LogDebug("PrevOrder returning '404 Not Found' - order");
+            return _404Order(orderId);
+        }
+
+        int registerId = current.RegisterId;
+        int companyId = current.Register.CompanyId;
+
+        IQueryable<BaseOrder> query = _db.Orders.AsNoTracking()
+            .Where(o => o.RegisterId == registerId &&
+                        o.CheckStatusId >= (int)ParcelCheckStatusCode.HasIssues && 
+                        o.CheckStatusId < (int)ParcelCheckStatusCode.NoIssues)
+            .OrderByDescending(o => o.Id);
+
+        var prev = await query
+            .OrderBy(o => o.Id < orderId ? 0 : 1)
+            .ThenByDescending(o => o.Id)
+            .FirstOrDefaultAsync();
+
+        if (prev == null)
+        {
+            _logger.LogDebug("PrevOrder returning '204 No Content'");
+            return NoContent();
+        }
+
+        BaseOrder? order = null;
+
+        if (companyId == IRegisterProcessingService.GetWBRId())
+        {
+            order = await ApplyOrderIncludes(_db.WbrOrders.AsNoTracking())
+                .FirstOrDefaultAsync(o => o.Id == prev.Id);
+        }
+        else if (companyId == IRegisterProcessingService.GetOzonId())
+        {
+            order = await ApplyOrderIncludes(_db.OzonOrders.AsNoTracking())
+                .FirstOrDefaultAsync(o => o.Id == prev.Id);
+        }
+
+        if (order == null)
+        {
+            _logger.LogDebug("PrevOrder returning '204 No Content' - derived order not found");
+            return NoContent();
+        }
+
+        _logger.LogDebug("PrevOrder returning order {id}", order.Id);
         return new OrderViewItem(order);
     }
 

@@ -207,8 +207,8 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
                 ws.Cell(row, c + 1).Value = cellValue;
             }
 
-            if (baseOrder.CheckStatusId >= (int)OrderCheckStatusCode.HasIssues &&
-                baseOrder.CheckStatusId < (int)OrderCheckStatusCode.NoIssues)
+            if (baseOrder.CheckStatusId >= (int)ParcelCheckStatusCode.HasIssues &&
+                baseOrder.CheckStatusId < (int)ParcelCheckStatusCode.NoIssues)
             {
                 ws.Row(row).Style.Fill.BackgroundColor = XLColor.Red;
             }
