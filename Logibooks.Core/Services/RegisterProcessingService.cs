@@ -32,6 +32,7 @@ using Logibooks.Core.Settings;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;
 using System.Reflection;
+using System.Drawing;
 
 namespace Logibooks.Core.Services;
 
@@ -79,6 +80,9 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
         }
 
         var table = dataSet.Tables[0];
+        using var colorStream = new MemoryStream(content);
+        using var colorWorkbook = new XLWorkbook(colorStream);
+        var worksheet = colorWorkbook.Worksheet(1);
         var headerRow = table.Rows[0];
         var columnMap = new Dictionary<int, string>();
         for (int c = 0; c < table.Columns.Count; c++)
@@ -113,13 +117,13 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
         // Create orders based on company type
         if (isWbr)
         {
-            var orders = CreateWbrOrders(table, register.Id, columnMap);
+            var orders = CreateWbrOrders(table, register.Id, columnMap, worksheet);
             _db.Orders.AddRange(orders);
             count = orders.Count;
         }
         else // Ozon
         {
-            var orders = CreateOzonOrders(table, register.Id, columnMap);
+            var orders = CreateOzonOrders(table, register.Id, columnMap, worksheet);
             _db.Orders.AddRange(orders);
             count = orders.Count;
         }
@@ -270,7 +274,7 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
         }
     }
 
-    private List<WbrOrder> CreateWbrOrders(System.Data.DataTable table, int registerId, Dictionary<int, string> columnMap)
+    private List<WbrOrder> CreateWbrOrders(System.Data.DataTable table, int registerId, Dictionary<int, string> columnMap, IXLWorksheet worksheet)
     {
         var orders = new List<WbrOrder>();
         var orderType = typeof(WbrOrder);
@@ -327,13 +331,24 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
                     }
                 }
             }
+
+            var (hasColor, rowColor) = GetRowColor(worksheet, r + 1, table.Columns.Count);
+            if (hasColor)
+            {
+                order.CheckStatusId = (int)ParcelCheckStatusCode.MarkedByPartner;
+                if (rowColor is not null)
+                {
+                    order.PartnerColorXL = rowColor;
+                }
+            }
+
             if (order.CountryCode != 0) orders.Add(order);
         }
 
         return orders;
     }
 
-    private List<OzonOrder> CreateOzonOrders(System.Data.DataTable table, int registerId, Dictionary<int, string> columnMap)
+    private List<OzonOrder> CreateOzonOrders(System.Data.DataTable table, int registerId, Dictionary<int, string> columnMap, IXLWorksheet worksheet)
     {
         var orders = new List<OzonOrder>();
         var orderType = typeof(OzonOrder);
@@ -390,10 +405,42 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
                     }
                 }
             }
+
+            var (hasColor, rowColor) = GetRowColor(worksheet, r + 1, table.Columns.Count);
+            if (hasColor)
+            {
+                order.CheckStatusId = (int)ParcelCheckStatusCode.MarkedByPartner;
+                if (rowColor is not null)
+                {
+                    order.PartnerColorXL = rowColor;
+                }
+            }
+
             if (order.CountryCode != 0) orders.Add(order);
         }
 
         return orders;
+    }
+
+    private static (bool hasColor, XLColor? color) GetRowColor(IXLWorksheet worksheet, int rowNumber, int columnCount)
+    {
+        for (int c = 1; c <= columnCount; c++)
+        {
+            var bg = worksheet.Cell(rowNumber, c).Style.Fill.BackgroundColor;
+            try
+            {
+                int argb = bg.Color.ToArgb();
+                if (argb != Color.White.ToArgb() && argb != Color.Empty.ToArgb() && argb != Color.Transparent.ToArgb())
+                {
+                    return (true, bg);
+                }
+            }
+            catch
+            {
+                return (true, null);
+            }
+        }
+        return (false, null);
     }
 
     private object? ConvertValueToPropertyType(string? value, Type propertyType, string propertyName)
