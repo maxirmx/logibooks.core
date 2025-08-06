@@ -55,13 +55,22 @@ public class OrderIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServic
                     .ThenInclude(c => c!.Country)
             .FirstOrDefaultAsync(o => o.Id == orderId);
 
-        return order == null
-            ? throw new InvalidOperationException($"Order not found [id={orderId}]")
-            : (GenerateFilename(order), GenerateXML(order));
+        if (order == null)
+            throw new InvalidOperationException($"Order not found [id={orderId}]");
+
+        // Skip if in [HasIssues, NoIssues)
+        if (order.CheckStatusId >= (int)ParcelCheckStatusCode.HasIssues && order.CheckStatusId < (int)ParcelCheckStatusCode.NoIssues)
+            throw new InvalidOperationException($"Order is not eligible for IndPost XML [id={orderId}]");
+
+        return (GenerateFilename(order), GenerateXML(order));
     }
 
     public string GenerateXML(BaseOrder order)
     {
+        // Skip if in [HasIssues, NoIssues)
+        if (order.CheckStatusId >= (int)ParcelCheckStatusCode.HasIssues && order.CheckStatusId < (int)ParcelCheckStatusCode.NoIssues)
+            throw new InvalidOperationException($"Order is not eligible for IndPost XML [id={order.Id}]");
+
         var register = order.Register!;
 
         var date = register.InvoiceDate.HasValue == true
@@ -212,7 +221,7 @@ public class OrderIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServic
                 .Include(o => o.Register).ThenInclude(r => r.CustomsProcedure)
                 .Include(o => o.Register).ThenInclude(r => r.Company)
                     .ThenInclude(c => c!.Country)
-                .Where(o => o.RegisterId == registerId)
+                .Where(o => o.RegisterId == registerId && !(o.CheckStatusId >= (int)ParcelCheckStatusCode.HasIssues && o.CheckStatusId < (int)ParcelCheckStatusCode.NoIssues))
                 .GroupBy(o => o.Shk)
                 .Select(g => g.First())
                 .Cast<BaseOrder>()
@@ -227,7 +236,7 @@ public class OrderIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServic
                 .Include(o => o.Register).ThenInclude(r => r.CustomsProcedure)
                 .Include(o => o.Register).ThenInclude(r => r.Company)
                     .ThenInclude(c => c!.Country)
-                .Where(o => o.RegisterId == registerId)
+                .Where(o => o.RegisterId == registerId && !(o.CheckStatusId >= (int)ParcelCheckStatusCode.HasIssues && o.CheckStatusId < (int)ParcelCheckStatusCode.NoIssues))
                 .GroupBy(o => o.PostingNumber)
                 .Select(g => g.First())
                 .Cast<BaseOrder>()
@@ -246,6 +255,10 @@ public class OrderIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServic
         {
             foreach (var order in orders)
             {
+                // Already filtered, but double check
+                if (order.CheckStatusId >= (int)ParcelCheckStatusCode.HasIssues && order.CheckStatusId < (int)ParcelCheckStatusCode.NoIssues)
+                    continue;
+
                 var entry = archive.CreateEntry($"{fileBase}_{order.GetParcelNumber()}.xml");
                 using var writer = new StreamWriter(entry.Open(), Encoding.UTF8);
                 var xml = GenerateXML(order);
