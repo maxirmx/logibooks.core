@@ -28,6 +28,7 @@ using System.Text.Json;
 using System.Linq;
 using Logibooks.Core.Models;
 using Logibooks.Core.Settings;
+using DocumentFormat.OpenXml.InkML;
 
 namespace Logibooks.Core.RestModels;
 
@@ -58,8 +59,9 @@ public class OrderViewItem
     public string? Patronymic { get; set; }
     public string? PostingNumber { get; set; }
     public string? OzonId { get; set; }
-    public List<int> StopWordIds { get; set; } = new();
-    public List<int> FeacnOrderIds { get; set; } = new();
+    public List<int> StopWordIds { get; set; } = [];
+    public List<int> FeacnOrderIds { get; set; } = [];
+    public Timestamp? LastView { get; set; } = null;
 
     public OrderViewItem(BaseOrder order)
     {
