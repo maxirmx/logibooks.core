@@ -89,9 +89,13 @@ public class ParcelViewsControllerTests
     }
 
     [Test]
-    public async Task Back_RemovesLastTwiceAndReturnsReferenceOfNewLast()
+    public async Task Back_RemovesLastTwiceAndReturnsOrderViewItemWithDTime()
     {
         SetCurrentUserId(7);
+        var order1 = new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1 };
+        var order2 = new WbrOrder { Id = 2, RegisterId = 1, StatusId = 1 };
+        var order3 = new WbrOrder { Id = 3, RegisterId = 1, StatusId = 1 };
+        _dbContext.Orders.AddRange(order1, order2, order3);
         _dbContext.ParcelViews.AddRange(
             new ParcelView { UserId = 7, BaseOrderId = 1, DTime = System.DateTime.UtcNow.AddMinutes(-10) },
             new ParcelView { UserId = 7, BaseOrderId = 2, DTime = System.DateTime.UtcNow.AddMinutes(-5) },
@@ -101,8 +105,13 @@ public class ParcelViewsControllerTests
         await _dbContext.SaveChangesAsync();
 
         var result = await _controller.Back();
-        Assert.That(result.Value, Is.Not.Null);
-        Assert.That(result.Value!.Id, Is.EqualTo(2)); // The new last after removing 3
+        Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
+        var okResult = result.Result as OkObjectResult;
+        var item = okResult!.Value as OrderViewItem;
+        Assert.That(item, Is.Not.Null);
+        Assert.That(item!.Id, Is.EqualTo(2));
+        Assert.That(item.DTime, Is.Not.Null);
+
         Assert.That(_dbContext.ParcelViews.Count(p => p.UserId == 7), Is.EqualTo(1));
         Assert.That(_dbContext.ParcelViews.Any(p => p.UserId == 7 && p.BaseOrderId == 2), Is.False);
         Assert.That(_dbContext.ParcelViews.Any(p => p.UserId == 7 && p.BaseOrderId == 3), Is.False);
