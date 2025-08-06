@@ -361,6 +361,41 @@ public class OrderIndPostGeneratorTests
     }
 
     [Test]
+    public void GenerateXML_ThrowsException_WhenOrderMarkedByPartner()
+    {
+        var register = new Register
+        {
+            Id = 20,
+            CompanyId = 2,
+            TransportationTypeId = 1,
+            CustomsProcedureId = 1,
+            FileName = "marked.xlsx",
+            DTime = DateTime.Now,
+            InvoiceNumber = "INV-MARKED",
+            InvoiceDate = new DateOnly(2024, 6, 1),
+            TheOtherCountryCode = 860
+        };
+
+        _dbContext.Registers.Add(register);
+
+        var order = new WbrOrder
+        {
+            Id = 21,
+            RegisterId = 20,
+            StatusId = 1,
+            CountryCode = 643,
+            CheckStatusId = (int)ParcelCheckStatusCode.MarkedByPartner
+        };
+
+        _dbContext.Orders.Add(order);
+        _dbContext.SaveChanges();
+
+        var svc = new OrderIndPostGenerator(_dbContext, new IndPostXmlService());
+        var ex = Assert.ThrowsAsync<InvalidOperationException>(async () => await svc.GenerateXML(21));
+        Assert.That(ex!.Message, Does.Contain("marked by partner"));
+    }
+
+    [Test]
     public async Task GenerateXML4R_ReturnsEmptyZip_WhenNoOrders()
     {
         var register = new Register {
@@ -401,6 +436,44 @@ public class OrderIndPostGeneratorTests
         using var ms = new MemoryStream(zipData);
         using var archive = new ZipArchive(ms, ZipArchiveMode.Read);
         Assert.That(archive.Entries.Count, Is.EqualTo(2));
+    }
+
+    [Test]
+    public async Task GenerateXML4R_SkipsOrdersMarkedByPartner()
+    {
+        var register = new Register
+        {
+            Id = 800,
+            CompanyId = 1,
+            TransportationTypeId = 1,
+            CustomsProcedureId = 1,
+            FileName = "skip_marked.xlsx",
+            DTime = DateTime.Now,
+            TheOtherCountryCode = 860
+        };
+        _dbContext.Registers.Add(register);
+        await _dbContext.SaveChangesAsync();
+
+        var loadedRegister = await _dbContext.Registers
+            .Include(r => r.Company)
+            .Include(r => r.TransportationType)
+            .Include(r => r.CustomsProcedure)
+            .Include(r => r.TheOtherCountry)
+            .FirstAsync(r => r.Id == 800);
+
+        _dbContext.OzonOrders.AddRange(
+            new OzonOrder { Id = 801, RegisterId = 800, Register = loadedRegister, StatusId = 1, CountryCode = 643, PostingNumber = "PN1", CheckStatusId = (int)ParcelCheckStatusCode.NotChecked },
+            new OzonOrder { Id = 802, RegisterId = 800, Register = loadedRegister, StatusId = 1, CountryCode = 643, PostingNumber = "PN2", CheckStatusId = (int)ParcelCheckStatusCode.MarkedByPartner }
+        );
+        await _dbContext.SaveChangesAsync();
+
+        var svc = new OrderIndPostGenerator(_dbContext, new IndPostXmlService());
+        var (fileName, zipData) = await svc.GenerateXML4R(800);
+
+        using var ms = new MemoryStream(zipData);
+        using var archive = new ZipArchive(ms, ZipArchiveMode.Read);
+        Assert.That(archive.Entries.Count, Is.EqualTo(1));
+        Assert.That(archive.Entries[0].Name, Does.Contain("PN1"));
     }
 
     public class DummyOrder : BaseOrder {

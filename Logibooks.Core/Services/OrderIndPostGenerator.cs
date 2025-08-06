@@ -55,13 +55,20 @@ public class OrderIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServic
                     .ThenInclude(c => c!.Country)
             .FirstOrDefaultAsync(o => o.Id == orderId);
 
-        return order == null
-            ? throw new InvalidOperationException($"Order not found [id={orderId}]")
-            : (GenerateFilename(order), GenerateXML(order));
+        if (order == null)
+            throw new InvalidOperationException($"Order not found [id={orderId}]");
+
+        if (order.CheckStatusId == (int)ParcelCheckStatusCode.MarkedByPartner)
+            throw new InvalidOperationException($"Order is marked by partner [id={orderId}]");
+
+        return (GenerateFilename(order), GenerateXML(order));
     }
 
     public string GenerateXML(BaseOrder order)
     {
+        if (order.CheckStatusId == (int)ParcelCheckStatusCode.MarkedByPartner)
+            throw new InvalidOperationException($"Order is marked by partner [id={order.Id}]");
+
         var register = order.Register!;
 
         var date = register.InvoiceDate.HasValue == true
@@ -212,7 +219,7 @@ public class OrderIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServic
                 .Include(o => o.Register).ThenInclude(r => r.CustomsProcedure)
                 .Include(o => o.Register).ThenInclude(r => r.Company)
                     .ThenInclude(c => c!.Country)
-                .Where(o => o.RegisterId == registerId)
+                .Where(o => o.RegisterId == registerId && o.CheckStatusId != (int)ParcelCheckStatusCode.MarkedByPartner)
                 .GroupBy(o => o.Shk)
                 .Select(g => g.First())
                 .Cast<BaseOrder>()
@@ -227,7 +234,7 @@ public class OrderIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServic
                 .Include(o => o.Register).ThenInclude(r => r.CustomsProcedure)
                 .Include(o => o.Register).ThenInclude(r => r.Company)
                     .ThenInclude(c => c!.Country)
-                .Where(o => o.RegisterId == registerId)
+                .Where(o => o.RegisterId == registerId && o.CheckStatusId != (int)ParcelCheckStatusCode.MarkedByPartner)
                 .GroupBy(o => o.PostingNumber)
                 .Select(g => g.First())
                 .Cast<BaseOrder>()
@@ -246,6 +253,9 @@ public class OrderIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServic
         {
             foreach (var order in orders)
             {
+                if (order.CheckStatusId == (int)ParcelCheckStatusCode.MarkedByPartner)
+                    continue;
+
                 var entry = archive.CreateEntry($"{fileBase}_{order.GetParcelNumber()}.xml");
                 using var writer = new StreamWriter(entry.Open(), Encoding.UTF8);
                 var xml = GenerateXML(order);
