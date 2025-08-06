@@ -535,7 +535,7 @@ namespace Logibooks.Core.Migrations
 
                     b.Property<DateTime>("DTime")
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("timestamp");
+                        .HasColumnName("dtime");
 
                     b.Property<int>("UserId")
                         .HasColumnType("integer")

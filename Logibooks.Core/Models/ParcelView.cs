@@ -36,7 +36,7 @@ public class ParcelView
     [Column("id")]
     public int Id { get; set; }
 
-    [Column("timestamp")]
+    [Column("dtime")]
     public DateTime DTime { get; set; } = DateTime.UtcNow;
 
     [Column("user_id")]
@@ -52,6 +52,4 @@ public class ParcelView
     [ForeignKey("BaseOrderId")]
     [JsonIgnore]
     public BaseOrder BaseOrder { get; set; } = null!;
-    [Column("dtime")]
-    public DateTime DTime { get; set; }
 }
