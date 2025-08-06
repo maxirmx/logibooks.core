@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Logibooks.Core.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250806153918_0_8_5_SupportPartnerColor_and_ViewHistory")]
+    [Migration("20250806201055_0_8_5_SupportPartnerColor_and_ViewHistory")]
     partial class _0_8_5_SupportPartnerColor_and_ViewHistory
     {
         /// <inheritdoc />
@@ -356,7 +356,7 @@ namespace Logibooks.Core.Migrations
                         new
                         {
                             Id = 3,
-                            Comment = "Операции in отношении драгоценных металлов и драгоценных камней",
+                            Comment = "Операции в отношении драгоценных металлов и драгоценных камней",
                             Enabled = true,
                             Title = "Приказ ФТС России от 12 мая 2011 г. N 971 \"О компетенции таможенных органов по совершению таможенных операций в отношении драгоценных металлов и драгоценных камней\"",
                             Url = "11pr0971"
@@ -536,7 +536,7 @@ namespace Logibooks.Core.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("base_order_id");
 
-                    b.Property<DateTime>("Timestamp")
+                    b.Property<DateTime>("DTime")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("timestamp");
 
@@ -546,10 +546,9 @@ namespace Logibooks.Core.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex(new[] { "BaseOrderId", "UserId" }, "IX_parcel_views_baseorderid_userid")
-                        .IsUnique();
+                    b.HasIndex("UserId");
 
-                    b.HasIndex(new[] { "UserId", "Timestamp" }, "IX_parcel_views_userid_timestamp");
+                    b.HasIndex(new[] { "BaseOrderId", "UserId", "DTime" }, "IX_parcel_views_baseorderid_userid_dtime");
 
                     b.ToTable("parcel_views");
                 });

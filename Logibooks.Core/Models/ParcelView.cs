@@ -30,15 +30,14 @@ using System.Text.Json.Serialization;
 namespace Logibooks.Core.Models;
 
 [Table("parcel_views")]
-[Index(nameof(UserId), nameof(Timestamp), Name = "IX_parcel_views_userid_timestamp")]
-[Index(nameof(BaseOrderId), nameof(UserId), IsUnique = true, Name = "IX_parcel_views_baseorderid_userid")]
+[Index(nameof(BaseOrderId), nameof(UserId), nameof(DTime),  Name = "IX_parcel_views_baseorderid_userid_dtime")]
 public class ParcelView
 {
     [Column("id")]
     public int Id { get; set; }
 
     [Column("timestamp")]
-    public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+    public DateTime DTime { get; set; } = DateTime.UtcNow;
 
     [Column("user_id")]
     public int UserId { get; set; }

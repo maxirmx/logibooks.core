@@ -51,23 +51,15 @@ namespace Logibooks.Core.Migrations
                 columns: new[] { "id", "title" },
                 values: new object[] { 200, "Отмечено партнёром" });
 
-            migrationBuilder.UpdateData(
-                table: "feacn_orders",
-                keyColumn: "id",
-                keyValue: 3,
-                column: "comment",
-                value: "Операции in отношении драгоценных металлов и драгоценных камней");
+            migrationBuilder.CreateIndex(
+                name: "IX_parcel_views_baseorderid_userid_dtime",
+                table: "parcel_views",
+                columns: new[] { "base_order_id", "user_id", "timestamp" });
 
             migrationBuilder.CreateIndex(
-                name: "IX_parcel_views_baseorderid_userid",
+                name: "IX_parcel_views_user_id",
                 table: "parcel_views",
-                columns: new[] { "base_order_id", "user_id" },
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_parcel_views_userid_timestamp",
-                table: "parcel_views",
-                columns: new[] { "user_id", "timestamp" });
+                column: "user_id");
         }
 
         /// <inheritdoc />
@@ -84,13 +76,6 @@ namespace Logibooks.Core.Migrations
             migrationBuilder.DropColumn(
                 name: "partner_color",
                 table: "base_orders");
-
-            migrationBuilder.UpdateData(
-                table: "feacn_orders",
-                keyColumn: "id",
-                keyValue: 3,
-                column: "comment",
-                value: "Операции в отношении драгоценных металлов и драгоценных камней");
         }
     }
 }
