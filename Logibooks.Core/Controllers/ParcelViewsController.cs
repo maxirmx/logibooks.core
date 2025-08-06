@@ -1,3 +1,28 @@
+// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
+// All rights reserved.
+// This file is a part of Logibooks Core application
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions
+// are met:
+// 1. Redistributions of source code must retain the above copyright
+// notice, this list of conditions and the following disclaimer.
+// 2. Redistributions in binary form must reproduce the above copyright
+// notice, this list of conditions and the following disclaimer in the
+// documentation and/or other materials provided with the distribution.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+// 'AS IS' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+// TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+// PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR CONTRIBUTORS
+// BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+// POSSIBILITY OF SUCH DAMAGE.
+
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -20,8 +45,16 @@ public class ParcelViewsController(
 {
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
     public async Task<IActionResult> Add(Reference dto)
     {
+        // Validate that the BaseOrderId exists in the database
+        var orderExists = await _db.Orders.AnyAsync(o => o.Id == dto.Id);
+        if (!orderExists)
+        {
+            return _404Order(dto.Id);
+        }
+
         var pv = new ParcelView
         {
             UserId = _curUserId,
@@ -38,13 +71,24 @@ public class ParcelViewsController(
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<ActionResult<Reference>> Back()
     {
-        var pv = await _db.ParcelViews
-                          .Where(v => v.UserId == _curUserId)
-                          .OrderByDescending(v => v.DTime)
-                          .FirstOrDefaultAsync();
-        if (pv == null) return NoContent();
-        var res = new Reference { Id = pv.BaseOrderId };
-        _db.ParcelViews.Remove(pv);
+        var items = await _db.ParcelViews
+            .Where(v => v.UserId == _curUserId)
+            .OrderByDescending(v => v.DTime)
+            .Take(2)
+            .ToListAsync();
+
+        if (items.Count == 0)
+            return NoContent();
+
+        _db.ParcelViews.Remove(items[0]);
+        if (items.Count == 1)
+        {
+            await _db.SaveChangesAsync();
+            return NoContent();
+        }
+
+        var res = new Reference { Id = items[1].BaseOrderId };
+        _db.ParcelViews.Remove(items[1]);
         await _db.SaveChangesAsync();
         return res;
     }

@@ -54,8 +54,16 @@ public class ParcelViewsControllerTests
     [Test]
     public async Task Add_CreatesRecordForCurrentUser()
     {
+        // Arrange
         SetCurrentUserId(5);
+        var order = new WbrOrder { Id = 42, RegisterId = 1, StatusId = 1 };
+        _dbContext.Orders.Add(order);
+        await _dbContext.SaveChangesAsync();
+        
+        // Act
         var result = await _controller.Add(new Reference { Id = 42 });
+        
+        // Assert
         Assert.That(result, Is.TypeOf<NoContentResult>());
         var pv = _dbContext.ParcelViews.Single();
         Assert.That(pv.UserId, Is.EqualTo(5));
@@ -64,21 +72,41 @@ public class ParcelViewsControllerTests
     }
 
     [Test]
-    public async Task Back_ReturnsLastAddedAndRemovesIt()
+    public async Task Add_ReturnsNotFound_WhenOrderDoesNotExist()
+    {
+        // Arrange
+        SetCurrentUserId(5);
+        
+        // Act
+        var result = await _controller.Add(new Reference { Id = 999 });
+        
+        // Assert
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var notFoundResult = result as ObjectResult;
+        var errorMessage = notFoundResult!.Value as ErrMessage;
+        Assert.That(errorMessage!.Msg, Does.Contain("999"));
+        Assert.That(_dbContext.ParcelViews.Any(), Is.False, "No ParcelView should be created");
+    }
+
+    [Test]
+    public async Task Back_RemovesLastTwiceAndReturnsReferenceOfNewLast()
     {
         SetCurrentUserId(7);
         _dbContext.ParcelViews.AddRange(
-            new ParcelView { UserId = 7, BaseOrderId = 1, DTime = System.DateTime.UtcNow.AddMinutes(-5) },
-            new ParcelView { UserId = 7, BaseOrderId = 2, DTime = System.DateTime.UtcNow },
-            new ParcelView { UserId = 8, BaseOrderId = 3, DTime = System.DateTime.UtcNow }
+            new ParcelView { UserId = 7, BaseOrderId = 1, DTime = System.DateTime.UtcNow.AddMinutes(-10) },
+            new ParcelView { UserId = 7, BaseOrderId = 2, DTime = System.DateTime.UtcNow.AddMinutes(-5) },
+            new ParcelView { UserId = 7, BaseOrderId = 3, DTime = System.DateTime.UtcNow },
+            new ParcelView { UserId = 8, BaseOrderId = 4, DTime = System.DateTime.UtcNow }
         );
         await _dbContext.SaveChangesAsync();
 
         var result = await _controller.Back();
         Assert.That(result.Value, Is.Not.Null);
-        Assert.That(result.Value!.Id, Is.EqualTo(2));
+        Assert.That(result.Value!.Id, Is.EqualTo(2)); // The new last after removing 3
         Assert.That(_dbContext.ParcelViews.Count(p => p.UserId == 7), Is.EqualTo(1));
         Assert.That(_dbContext.ParcelViews.Any(p => p.UserId == 7 && p.BaseOrderId == 2), Is.False);
+        Assert.That(_dbContext.ParcelViews.Any(p => p.UserId == 7 && p.BaseOrderId == 3), Is.False);
+        Assert.That(_dbContext.ParcelViews.Any(p => p.UserId == 7 && p.BaseOrderId == 1), Is.True);
     }
 
     [Test]
