@@ -514,9 +514,15 @@ public class RegistersController(
             return _404Status(statusId);
         }
 
-        await _db.Orders
-            .Where(o => o.RegisterId == id)
-            .ExecuteUpdateAsync(s => s.SetProperty(o => o.StatusId, statusId));
+        // Update orders in memory instead of using ExecuteUpdateAsync
+        var ordersToUpdate = await _db.Orders
+            .Where(o => o.RegisterId == id && o.CheckStatusId != (int)ParcelCheckStatusCode.MarkedByPartner)
+            .ToListAsync();
+        foreach (var order in ordersToUpdate)
+        {
+            order.StatusId = statusId;
+        }
+        await _db.SaveChangesAsync();
 
         _logger.LogDebug("SetOrderStatuses updated register {id}", id);
         return NoContent();
@@ -605,7 +611,7 @@ public class RegistersController(
         IQueryable<BaseOrder> query = _db.Orders.AsNoTracking()
             .Where(o => o.RegisterId == registerId &&
                         o.CheckStatusId >= (int)ParcelCheckStatusCode.HasIssues && 
-                        o.CheckStatusId < (int)ParcelCheckStatusCode.NoIssues)
+                        o.CheckStatusId < (int)ParcelCheckStatusCode.MarkedByPartner)
             .OrderBy(o => o.Id);
 
         var next = await query

@@ -1070,5 +1070,52 @@ public class RegistersControllerTests : RegistersControllerTestsBase
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
         _mockIndPostGenerator.Verify(g => g.GenerateXML4R(It.IsAny<int>()), Times.Never);
     }
+
+    [Test]
+    public async Task NextOrder_SkipsMarkedByPartnerOrders()
+    {
+        SetCurrentUserId(1);
+        _dbContext.CheckStatuses.AddRange(
+            new ParcelCheckStatus { Id = 101, Title = "Has" },
+            new ParcelCheckStatus { Id = 201, Title = "Ok" },
+            new ParcelCheckStatus { Id = 200, Title = "MarkedByPartner" }
+        );
+        var reg = new Register { Id = 1, FileName = "r.xlsx", CompanyId = 2, TheOtherCompanyId = 3 };
+        _dbContext.Registers.Add(reg);
+        _dbContext.Orders.AddRange(
+            new WbrOrder { Id = 10, RegisterId = 1, StatusId = 1, CheckStatusId = 101 },
+            new WbrOrder { Id = 20, RegisterId = 1, StatusId = 1, CheckStatusId = 200 }, // MarkedByPartner
+            new WbrOrder { Id = 30, RegisterId = 1, StatusId = 1, CheckStatusId = 101 }
+        );
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.NextOrder(10);
+        Assert.That(result.Value, Is.Not.Null);
+        Assert.That(result.Value!.Id, Is.EqualTo(30)); // Should skip 20
+    }
+
+    [Test]
+    public async Task SetOrderStatuses_DoesNotUpdateMarkedByPartnerOrders()
+    {
+        SetCurrentUserId(1);
+        _dbContext.CheckStatuses.AddRange(
+            new ParcelCheckStatus { Id = 101, Title = "Has" },
+            new ParcelCheckStatus { Id = 200, Title = "MarkedByPartner" }
+        );
+        _dbContext.Statuses.Add(new ParcelStatus { Id = 99, Title = "TestStatus" });
+        var reg = new Register { Id = 2, FileName = "r.xlsx", CompanyId = 2, TheOtherCompanyId = 3 };
+        _dbContext.Registers.Add(reg);
+        _dbContext.Orders.AddRange(
+            new WbrOrder { Id = 1, RegisterId = 2, StatusId = 1, CheckStatusId = 101 },
+            new WbrOrder { Id = 2, RegisterId = 2, StatusId = 1, CheckStatusId = 200 }
+        );
+        await _dbContext.SaveChangesAsync();
+
+        await _controller.SetOrderStatuses(2, 99);
+        var order1 = await _dbContext.Orders.FindAsync(1);
+        var order2 = await _dbContext.Orders.FindAsync(2);
+        Assert.That(order1!.StatusId, Is.EqualTo(99)); // Updated
+        Assert.That(order2!.StatusId, Is.EqualTo(1));  // Not updated
+    }
 }
 
