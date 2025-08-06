@@ -56,8 +56,8 @@ public class RegistersControllerCrudTests : RegistersControllerTestsBase
     {
         SetCurrentUserId(1);
         _dbContext.CheckStatuses.AddRange(
-            new OrderCheckStatus { Id = 1,  Title = "Loaded" },
-            new OrderCheckStatus { Id = 2,  Title = "Processed" }
+            new ParcelCheckStatus { Id = 1,  Title = "Loaded" },
+            new ParcelCheckStatus { Id = 2,  Title = "Processed" }
         );
         var r1 = new Register { Id = 1, FileName = "r1.xlsx", CompanyId = 2, TheOtherCompanyId = 3 };
         var r2 = new Register { Id = 2, FileName = "r2.xlsx", CompanyId = 2, TheOtherCompanyId = 3 };
@@ -137,8 +137,8 @@ public class RegistersControllerCrudTests : RegistersControllerTestsBase
     {
         SetCurrentUserId(1);
         _dbContext.CheckStatuses.AddRange(
-            new OrderCheckStatus { Id = 1,  Title = "Loaded" },
-            new OrderCheckStatus { Id = 2,  Title = "Processed" }
+            new ParcelCheckStatus { Id = 1,  Title = "Loaded" },
+            new ParcelCheckStatus { Id = 2,  Title = "Processed" }
         );
         var register = new Register { Id = 1, FileName = "reg.xlsx", CompanyId = 2, TheOtherCompanyId = 3 };
         _dbContext.Registers.Add(register);
@@ -162,9 +162,9 @@ public class RegistersControllerCrudTests : RegistersControllerTestsBase
     {
         SetCurrentUserId(1);
         _dbContext.CheckStatuses.AddRange(
-            new OrderCheckStatus { Id = 1,  Title = "Loaded" },
-            new OrderCheckStatus { Id = 2,  Title = "Processed" },
-            new OrderCheckStatus { Id = 3,  Title = "Delivered" }
+            new ParcelCheckStatus { Id = 1,  Title = "Loaded" },
+            new ParcelCheckStatus { Id = 2,  Title = "Processed" },
+            new ParcelCheckStatus { Id = 3,  Title = "Delivered" }
         );
         var register = new Register { Id = 1, FileName = "reg.xlsx", CompanyId = 2, TheOtherCompanyId = 3 };
         _dbContext.Registers.Add(register);

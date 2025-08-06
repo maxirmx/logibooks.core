@@ -604,8 +604,8 @@ public class RegistersController(
 
         IQueryable<BaseOrder> query = _db.Orders.AsNoTracking()
             .Where(o => o.RegisterId == registerId &&
-                        o.CheckStatusId >= (int)OrderCheckStatusCode.HasIssues && 
-                        o.CheckStatusId < (int)OrderCheckStatusCode.NoIssues)
+                        o.CheckStatusId >= (int)ParcelCheckStatusCode.HasIssues && 
+                        o.CheckStatusId < (int)ParcelCheckStatusCode.NoIssues)
             .OrderBy(o => o.Id);
 
         var next = await query
@@ -672,8 +672,8 @@ public class RegistersController(
 
         IQueryable<BaseOrder> query = _db.Orders.AsNoTracking()
             .Where(o => o.RegisterId == registerId &&
-                        o.CheckStatusId >= (int)OrderCheckStatusCode.HasIssues && 
-                        o.CheckStatusId < (int)OrderCheckStatusCode.NoIssues)
+                        o.CheckStatusId >= (int)ParcelCheckStatusCode.HasIssues && 
+                        o.CheckStatusId < (int)ParcelCheckStatusCode.NoIssues)
             .OrderByDescending(o => o.Id);
 
         var prev = await query

@@ -23,13 +23,12 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+using ClosedXML.Excel;
+using DocumentFormat.OpenXml.Wordprocessing;
 using Microsoft.EntityFrameworkCore;
-
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Globalization;
 using System.Text.Json.Serialization;
-
-using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace Logibooks.Core.Models;
 
@@ -49,11 +48,11 @@ public abstract class BaseOrder
 
     [Column("status_id")]
     public int StatusId { get; set; }
-    public OrderStatus Status { get; set; } = null!;
+    public ParcelStatus Status { get; set; } = null!;
 
     [Column("check_status_id")]
     public int CheckStatusId { get; set; }
-    public OrderCheckStatus CheckStatus { get; set; } = null!;
+    public ParcelCheckStatus CheckStatus { get; set; } = null!;
 
     [Column("product_name")]
     public string? ProductName { get; set; }
@@ -66,6 +65,18 @@ public abstract class BaseOrder
 
     [JsonIgnore]
     public Country? Country { get; set; }
+
+    [Column("partner_color")]
+    [JsonIgnore]
+    public uint PartnerColor { get; set; }
+
+    [NotMapped]
+    [JsonIgnore]
+    public XLColor PartnerColorXL
+    {
+        get => XLColor.FromArgb((int)PartnerColor);
+        set => PartnerColor = (uint)value.Color.ToArgb();
+    }
 
     public ICollection<BaseOrderStopWord> BaseOrderStopWords { get; set; } = [];
     public ICollection<BaseOrderFeacnPrefix> BaseOrderFeacnPrefixes { get; set; } = [];

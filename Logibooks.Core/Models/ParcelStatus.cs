@@ -29,7 +29,7 @@ using System.Text.Json.Serialization;
 namespace Logibooks.Core.Models;
 
 [Table("statuses")]
-public class OrderStatus
+public class ParcelStatus
 {
     [Column("id")]
     public int Id { get; set; }
@@ -38,5 +38,5 @@ public class OrderStatus
     public required string Title { get; set; }
 
     [JsonIgnore]
-    public ICollection<BaseOrder> Orders { get; set; } = new List<BaseOrder>();
+    public ICollection<BaseOrder> Orders { get; set; } = [];
 }

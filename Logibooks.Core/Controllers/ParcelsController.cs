@@ -513,7 +513,7 @@ public class ParcelsController(
             return _404Order(id);
         }
 
-        order.CheckStatusId = (int)OrderCheckStatusCode.Approved;
+        order.CheckStatusId = (int)ParcelCheckStatusCode.Approved;
         _db.Entry(order).State = EntityState.Modified;
         await _db.SaveChangesAsync();
 
@@ -544,8 +544,8 @@ public class ParcelsController(
     }
 
     [HttpGet("checkstatuses")]
-    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<OrderCheckStatus>))]
-    public async Task<ActionResult<IEnumerable<OrderCheckStatus>>> GetCheckStatuses()
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<ParcelCheckStatus>))]
+    public async Task<ActionResult<IEnumerable<ParcelCheckStatus>>> GetCheckStatuses()
     {
         var statuses = await _db.CheckStatuses.AsNoTracking().OrderBy(s => s.Id).ToListAsync();
         _logger.LogDebug("GetCheckStatuses returning {count} items", statuses.Count);

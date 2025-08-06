@@ -31,6 +31,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
+using AutoMapper;
 using NUnit.Framework;
 using Moq;
 
@@ -39,14 +40,13 @@ using Logibooks.Core.Data;
 using Logibooks.Core.Models;
 using Logibooks.Core.RestModels;
 using Logibooks.Core.Services;
-using AutoMapper;
-using System.Collections.Generic;
 
 namespace Logibooks.Core.Tests.Controllers.Parcels;
 
 [TestFixture]
 public class ParcelsControllerSortingTests
 {
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
     private AppDbContext _dbContext;
     private Mock<IHttpContextAccessor> _mockHttpContextAccessor;
     private Mock<IOrderValidationService> _mockValidationService;
@@ -57,6 +57,7 @@ public class ParcelsControllerSortingTests
     private IUserInformationService _userService;
     private ParcelsController _controller;
     private User _logistUser;
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
 
     [SetUp]
     public void Setup()

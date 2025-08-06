@@ -899,8 +899,8 @@ public class RegistersControllerTests : RegistersControllerTestsBase
     {
         SetCurrentUserId(1);
         _dbContext.CheckStatuses.AddRange(
-            new OrderCheckStatus { Id = 101, Title = "Has" },
-            new OrderCheckStatus { Id = 201, Title = "Ok" });
+            new ParcelCheckStatus { Id = 101, Title = "Has" },
+            new ParcelCheckStatus { Id = 201, Title = "Ok" });
         var reg = new Register { Id = 1, FileName = "r.xlsx", CompanyId = 2, TheOtherCompanyId = 3 };
         _dbContext.Registers.Add(reg);
         _dbContext.Orders.AddRange(
@@ -920,7 +920,7 @@ public class RegistersControllerTests : RegistersControllerTestsBase
     public async Task NextOrder_PerformsCircularSearch()
     {
         SetCurrentUserId(1);
-        _dbContext.CheckStatuses.Add(new OrderCheckStatus { Id = 101, Title = "Has" });
+        _dbContext.CheckStatuses.Add(new ParcelCheckStatus { Id = 101, Title = "Has" });
         var reg = new Register { Id = 1, FileName = "r.xlsx", CompanyId = 1, TheOtherCompanyId = 3 }; // Ozon company
         _dbContext.Registers.Add(reg);
         var ozonOrder1 = new OzonOrder { Id = 1, RegisterId = 1, StatusId = 1, CheckStatusId = 101 };
@@ -940,7 +940,7 @@ public class RegistersControllerTests : RegistersControllerTestsBase
     public async Task NextOrder_ReturnsNoContent_WhenNoMatches()
     {
         SetCurrentUserId(1);
-        _dbContext.CheckStatuses.Add(new OrderCheckStatus { Id = 201, Title = "Ok" });
+        _dbContext.CheckStatuses.Add(new ParcelCheckStatus { Id = 201, Title = "Ok" });
         var reg = new Register { Id = 1, FileName = "r.xlsx", CompanyId = 2 };
         _dbContext.Registers.Add(reg);
         _dbContext.Orders.Add(new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1, CheckStatusId = 201 });
@@ -978,8 +978,8 @@ public class RegistersControllerTests : RegistersControllerTestsBase
     {
         SetCurrentUserId(1);
         _dbContext.CheckStatuses.AddRange(
-            new OrderCheckStatus { Id = 101, Title = "Has" },
-            new OrderCheckStatus { Id = 201, Title = "Ok" });
+            new ParcelCheckStatus { Id = 101, Title = "Has" },
+            new ParcelCheckStatus { Id = 201, Title = "Ok" });
         var reg = new Register { Id = 1, FileName = "r.xlsx", CompanyId = 2 };
         _dbContext.Registers.Add(reg);
         _dbContext.Orders.AddRange(
@@ -999,7 +999,7 @@ public class RegistersControllerTests : RegistersControllerTestsBase
     public async Task PrevOrder_PerformsCircularSearch()
     {
         SetCurrentUserId(1);
-        _dbContext.CheckStatuses.Add(new OrderCheckStatus { Id = 101, Title = "Has" });
+        _dbContext.CheckStatuses.Add(new ParcelCheckStatus { Id = 101, Title = "Has" });
         var reg = new Register { Id = 1, FileName = "r.xlsx", CompanyId = 1, TheOtherCompanyId = 3 }; // Ozon company
         _dbContext.Registers.Add(reg);
         var ozonOrder1 = new OzonOrder { Id = 1, RegisterId = 1, StatusId = 1, CheckStatusId = 101 };
@@ -1019,7 +1019,7 @@ public class RegistersControllerTests : RegistersControllerTestsBase
     public async Task PrevOrder_ReturnsNoContent_WhenNoMatches()
     {
         SetCurrentUserId(1);
-        _dbContext.CheckStatuses.Add(new OrderCheckStatus { Id = 201, Title = "Ok" });
+        _dbContext.CheckStatuses.Add(new ParcelCheckStatus { Id = 201, Title = "Ok" });
         var reg = new Register { Id = 1, FileName = "r.xlsx", CompanyId = 2 };
         _dbContext.Registers.Add(reg);
         _dbContext.Orders.Add(new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1, CheckStatusId = 201 });
