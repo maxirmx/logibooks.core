@@ -3,6 +3,7 @@ using System;
 using Logibooks.Core.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Logibooks.Core.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250806153918_0_8_5_SupportPartnerColor_and_ViewHistory")]
+    partial class _0_8_5_SupportPartnerColor_and_ViewHistory
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -533,17 +536,21 @@ namespace Logibooks.Core.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("base_order_id");
 
-                    b.Property<DateTime>("DTime")
+                    b.Property<DateTime>("Timestamp")
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("dtime");
+                        .HasColumnName("timestamp");
 
                     b.Property<int>("UserId")
                         .HasColumnType("integer")
                         .HasColumnName("user_id");
 
                     b.HasKey("Id");
-                    b.HasIndex("UserId");
-                    b.HasIndex(new[] { "BaseOrderId", "UserId", "DTime" }, "IX_parcel_views_baseorderid_userid_dtime");
+
+                    b.HasIndex(new[] { "BaseOrderId", "UserId" }, "IX_parcel_views_baseorderid_userid")
+                        .IsUnique();
+
+                    b.HasIndex(new[] { "UserId", "Timestamp" }, "IX_parcel_views_userid_timestamp");
+
                     b.ToTable("parcel_views");
                 });
 

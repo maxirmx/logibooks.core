@@ -20,6 +20,7 @@
     <PackageReference Include="YamlDotNet" Version="16.3.0" />
     <PackageReference Include="ExcelDataReader" Version="3.7.0" />
     <PackageReference Include="ExcelDataReader.DataSet" Version="3.7.0" />
+    <PackageReference Include="ClosedXML" Version="0.102.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Logibooks.Core\Logibooks.Core.csproj" />

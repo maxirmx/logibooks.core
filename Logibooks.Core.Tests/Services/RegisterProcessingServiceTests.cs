@@ -11,6 +11,7 @@ using System.Reflection;
 using ExcelDataReader.Exceptions;
 using ExcelDataReader;
 using Logibooks.Core.Models;
+using ClosedXML.Excel;
 
 namespace Logibooks.Core.Tests.Services;
 
@@ -173,6 +174,32 @@ public class UploadOzonRegisterTests
         Assert.That(register, Is.Not.Null);
         Assert.That(register!.TheOtherCountryCode, Is.EqualTo(860));
     }
+
+    [Test]
+    public async Task UploadOzonRegisterFromExcelAsync_MarkedRowsSetStatusAndColor()
+    {
+        var file = Path.Combine("test.data", "Озон_Short.xlsx");
+        var bytes = await File.ReadAllBytesAsync(file);
+        using (var ms = new MemoryStream(bytes))
+        {
+            using var wb = new XLWorkbook(ms);
+            var ws = wb.Worksheet(1);
+            ws.Row(2).Style.Fill.BackgroundColor = XLColor.Red;
+            using var msOut = new MemoryStream();
+            wb.SaveAs(msOut);
+            bytes = msOut.ToArray();
+        }
+
+        await _service.UploadRegisterFromExcelAsync(_service.GetOzonId(), bytes, "Озон_Short_colored.xlsx");
+
+        var ctx = (AppDbContext)typeof(RegisterProcessingService)
+            .GetField("_db", BindingFlags.NonPublic | BindingFlags.Instance)!
+            .GetValue(_service)!;
+
+        var first = ctx.OzonOrders.OrderBy(o => o.Id).First();
+        Assert.That(first.CheckStatusId, Is.EqualTo((int)ParcelCheckStatusCode.MarkedByPartner));
+        Assert.That(first.PartnerColor, Is.Not.EqualTo(0));
+    }
 }
 
 public class UploadWbrRegisterTests
@@ -227,6 +254,31 @@ public class UploadWbrRegisterTests
         Assert.That(ctx.WbrOrders.OrderBy(o => o.Id).First().RowNumber, Is.EqualTo(3101));
         Assert.That(register, Is.Not.Null);
         Assert.That(register!.TheOtherCountryCode, Is.EqualTo(860));
+    }
+
+    [Test]
+    public async Task UploadWbrRegisterFromExcelAsync_MarkedRowsSetStatusAndColor()
+    {
+        var file = Path.Combine("test.data", "Реестр_207730349.xlsx");
+        var bytes = await File.ReadAllBytesAsync(file);
+        using (var ms = new MemoryStream(bytes))
+        {
+            using var wb = new XLWorkbook(ms);
+            var ws = wb.Worksheet(1);
+            ws.Row(2).Style.Fill.BackgroundColor = XLColor.Red;
+            using var msOut = new MemoryStream();
+            wb.SaveAs(msOut);
+            bytes = msOut.ToArray();
+        }
+
+        await _service.UploadRegisterFromExcelAsync(_service.GetWBRId(), bytes, "Реестр_207730349_colored.xlsx");
+
+        var ctx = (AppDbContext)typeof(RegisterProcessingService)
+            .GetField("_db", BindingFlags.NonPublic | BindingFlags.Instance)! 
+            .GetValue(_service)!;
+
+        Assert.That(ctx.WbrOrders.Any(o => o.CheckStatusId == (int)ParcelCheckStatusCode.MarkedByPartner && o.PartnerColor != 0));
+        Assert.That(ctx.WbrOrders.Any(o => o.CheckStatusId == (int)ParcelCheckStatusCode.NotChecked && o.PartnerColor == 0));
     }
 }
 
