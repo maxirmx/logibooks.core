@@ -599,7 +599,7 @@ public class OrderIndPostGeneratorTests
             RegisterId = 30,
             StatusId = 1,
             CountryCode = 643,
-            CheckStatusId = (int)ParcelCheckStatusCode.NotChecked // Below NoIssues
+            CheckStatusId = (int)ParcelCheckStatusCode.HasIssues // Below NoIssues
         };
         _dbContext.Orders.Add(order);
         await _dbContext.SaveChangesAsync();
@@ -631,7 +631,7 @@ public class OrderIndPostGeneratorTests
             StatusId = 1,
             CountryCode = 643,
             Shk = "A",
-            CheckStatusId = (int)ParcelCheckStatusCode.NotChecked // Should be skipped
+            CheckStatusId = (int)ParcelCheckStatusCode.HasIssues // Should be skipped
         };
         var order2 = new WbrOrder
         {
@@ -640,7 +640,7 @@ public class OrderIndPostGeneratorTests
             StatusId = 1,
             CountryCode = 643,
             Shk = "B",
-            CheckStatusId = (int)ParcelCheckStatusCode.NoIssues // Should be included
+            CheckStatusId = (int)ParcelCheckStatusCode.NotChecked // Should be included
         };
         _dbContext.WbrOrders.AddRange(order1, order2);
         _dbContext.SaveChanges();
