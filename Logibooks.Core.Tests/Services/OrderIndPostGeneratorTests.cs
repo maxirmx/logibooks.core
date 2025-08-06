@@ -113,7 +113,13 @@ public class OrderIndPostGeneratorTests
 
         _dbContext.Registers.Add(register);
 
-        var order = new WbrOrder { Id = 3, RegisterId = 10, StatusId = 1, CountryCode = 643 };
+        var order = new WbrOrder { 
+            Id = 3, 
+            RegisterId = 10, 
+            StatusId = 1, 
+            CountryCode = 643,
+            CheckStatusId = (int)ParcelCheckStatusCode.NoIssues
+        };
 
         _dbContext.Orders.Add(order);
         _dbContext.SaveChanges();
@@ -148,7 +154,8 @@ public class OrderIndPostGeneratorTests
             CountryCode = 643,
             Shk = "WBR-SHK-1",
             ProductName = "WBR Product",
-            TnVed = "12345678"
+            TnVed = "12345678",
+            CheckStatusId = (int)ParcelCheckStatusCode.NoIssues
         };
         _dbContext.WbrOrders.Add(order);
         _dbContext.SaveChanges();
@@ -184,7 +191,8 @@ public class OrderIndPostGeneratorTests
             CountryCode = 643,
             PostingNumber = "OZON-PN-1",
             ProductName = "Ozon Product",
-            TnVed = "87654321"
+            TnVed = "87654321",
+            CheckStatusId = (int)ParcelCheckStatusCode.NoIssues
         };
         _dbContext.OzonOrders.Add(order);
         _dbContext.SaveChanges();
@@ -235,9 +243,36 @@ public class OrderIndPostGeneratorTests
             .FirstAsync(r => r.Id == 300);
 
         _dbContext.WbrOrders.AddRange(
-            new WbrOrder { Id = 301, RegisterId = 300, Register = loadedRegister, StatusId = 1, CountryCode = countryRu.IsoNumeric, Shk = "A" },
-            new WbrOrder { Id = 302, RegisterId = 300, Register = loadedRegister, StatusId = 1, CountryCode = countryRu.IsoNumeric, Shk = "A" },
-            new WbrOrder { Id = 303, RegisterId = 300, Register = loadedRegister, StatusId = 1, CountryCode = countryRu.IsoNumeric, Shk = "B" }
+            new WbrOrder 
+            { 
+                Id = 301, 
+                RegisterId = 300, 
+                Register = loadedRegister, 
+                StatusId = 1, 
+                CountryCode = countryRu.IsoNumeric, 
+                Shk = "A",
+                CheckStatusId = (int)ParcelCheckStatusCode.NoIssues
+            },
+            new WbrOrder 
+            { 
+                Id = 302, 
+                RegisterId = 300, 
+                Register = loadedRegister, 
+                StatusId = 1, 
+                CountryCode = countryRu.IsoNumeric, 
+                Shk = "A",
+                CheckStatusId = (int)ParcelCheckStatusCode.NoIssues
+            },
+            new WbrOrder 
+            { 
+                Id = 303, 
+                RegisterId = 300, 
+                Register = loadedRegister, 
+                StatusId = 1, 
+                CountryCode = countryRu.IsoNumeric, 
+                Shk = "B",
+                CheckStatusId = (int)ParcelCheckStatusCode.NoIssues
+            }
         );
         await _dbContext.SaveChangesAsync();
 
@@ -294,9 +329,35 @@ public class OrderIndPostGeneratorTests
             .FirstAsync(r => r.Id == 400);
 
         _dbContext.OzonOrders.AddRange(
-            new OzonOrder { Id = 401, RegisterId = 400, Register = loadedRegister, StatusId = 1, CountryCode = countryRu.IsoNumeric, PostingNumber = "X" },
-            new OzonOrder { Id = 402, RegisterId = 400, Register = loadedRegister, StatusId = 1, CountryCode = countryRu.IsoNumeric, PostingNumber = "X" },
-            new OzonOrder { Id = 403, RegisterId = 400, Register = loadedRegister, StatusId = 1, CountryCode = countryRu.IsoNumeric, PostingNumber = "Y" }
+            new OzonOrder { 
+                Id = 401, 
+                RegisterId = 400, 
+                Register = loadedRegister, 
+                StatusId = 1, 
+                CountryCode = countryRu.IsoNumeric, 
+                PostingNumber = "X",
+                CheckStatusId = (int)ParcelCheckStatusCode.NoIssues
+            },
+            new OzonOrder 
+            { 
+                Id = 402, 
+                RegisterId = 400, 
+                Register = loadedRegister, 
+                StatusId = 1, 
+                CountryCode = countryRu.IsoNumeric, 
+                PostingNumber = "X",
+                CheckStatusId = (int)ParcelCheckStatusCode.Approved
+            },
+            new OzonOrder 
+            { 
+                Id = 403, 
+                RegisterId = 400, 
+                Register = loadedRegister, 
+                StatusId = 1, 
+                CountryCode = countryRu.IsoNumeric, 
+                PostingNumber = "Y",
+                CheckStatusId = (int)ParcelCheckStatusCode.NoIssues
+            }
         );
         await _dbContext.SaveChangesAsync();
 
@@ -392,7 +453,7 @@ public class OrderIndPostGeneratorTests
 
         var svc = new OrderIndPostGenerator(_dbContext, new IndPostXmlService());
         var ex = Assert.ThrowsAsync<InvalidOperationException>(async () => await svc.GenerateXML(21));
-        Assert.That(ex!.Message, Does.Contain("marked by partner"));
+        Assert.That(ex!.Message, Does.Contain("Order is not eligible for IndPost XML"));
     }
 
     [Test]
@@ -426,9 +487,33 @@ public class OrderIndPostGeneratorTests
         await _dbContext.SaveChangesAsync();
         var loadedRegister = await _dbContext.Registers.FirstAsync(r => r.Id == 600);
         _dbContext.OzonOrders.AddRange(
-            new OzonOrder { Id = 601, RegisterId = 600, Register = loadedRegister, StatusId = 1, PostingNumber = "Z" },
-            new OzonOrder { Id = 602, RegisterId = 600, Register = loadedRegister, StatusId = 1, PostingNumber = "Z" },
-            new OzonOrder { Id = 603, RegisterId = 600, Register = loadedRegister, StatusId = 1, PostingNumber = "W" }
+            new OzonOrder 
+            { 
+                Id = 601, 
+                RegisterId = 600, 
+                Register = loadedRegister, 
+                StatusId = 1, 
+                PostingNumber = "Z",
+                CheckStatusId = (int)ParcelCheckStatusCode.NoIssues
+            },
+            new OzonOrder 
+            { 
+                Id = 602, 
+                RegisterId = 600, 
+                Register = loadedRegister, 
+                StatusId = 1, 
+                PostingNumber = "Z",
+                CheckStatusId = (int)ParcelCheckStatusCode.NoIssues
+            },
+            new OzonOrder 
+            { 
+                Id = 603, 
+                RegisterId = 600, 
+                Register = loadedRegister, 
+                StatusId = 1, 
+                PostingNumber = "W",
+                CheckStatusId = (int)ParcelCheckStatusCode.NoIssues
+            }
         );
         await _dbContext.SaveChangesAsync();
         var svc = new OrderIndPostGenerator(_dbContext, new IndPostXmlService());
@@ -462,8 +547,24 @@ public class OrderIndPostGeneratorTests
             .FirstAsync(r => r.Id == 800);
 
         _dbContext.OzonOrders.AddRange(
-            new OzonOrder { Id = 801, RegisterId = 800, Register = loadedRegister, StatusId = 1, CountryCode = 643, PostingNumber = "PN1", CheckStatusId = (int)ParcelCheckStatusCode.NotChecked },
-            new OzonOrder { Id = 802, RegisterId = 800, Register = loadedRegister, StatusId = 1, CountryCode = 643, PostingNumber = "PN2", CheckStatusId = (int)ParcelCheckStatusCode.MarkedByPartner }
+            new OzonOrder { 
+                Id = 801, 
+                RegisterId = 800, 
+                Register = loadedRegister, 
+                StatusId = 1, 
+                CountryCode = 643, 
+                PostingNumber = "PN1", 
+                CheckStatusId = (int)ParcelCheckStatusCode.NoIssues
+            },
+            new OzonOrder 
+            { 
+                Id = 802, 
+                RegisterId = 800, 
+                Register = loadedRegister, 
+                StatusId = 1, 
+                CountryCode = 643, 
+                PostingNumber = "PN2", 
+                CheckStatusId = (int)ParcelCheckStatusCode.MarkedByPartner }
         );
         await _dbContext.SaveChangesAsync();
 
@@ -474,6 +575,156 @@ public class OrderIndPostGeneratorTests
         using var archive = new ZipArchive(ms, ZipArchiveMode.Read);
         Assert.That(archive.Entries.Count, Is.EqualTo(1));
         Assert.That(archive.Entries[0].Name, Does.Contain("PN1"));
+    }
+
+    [Test]
+    public async Task GenerateXML_ThrowsException_WhenOrderCheckStatusIsBelowNoIssues()
+    {
+        var register = new Register
+        {
+            Id = 30,
+            CompanyId = 2,
+            TransportationTypeId = 1,
+            CustomsProcedureId = 1,
+            FileName = "below_noissues.xlsx",
+            DTime = DateTime.Now,
+            InvoiceNumber = "INV-BELOW",
+            InvoiceDate = new DateOnly(2024, 6, 1),
+            TheOtherCountryCode = 860
+        };
+        _dbContext.Registers.Add(register);
+        var order = new WbrOrder
+        {
+            Id = 31,
+            RegisterId = 30,
+            StatusId = 1,
+            CountryCode = 643,
+            CheckStatusId = (int)ParcelCheckStatusCode.NotChecked // Below NoIssues
+        };
+        _dbContext.Orders.Add(order);
+        await _dbContext.SaveChangesAsync();
+        var svc = new OrderIndPostGenerator(_dbContext, new IndPostXmlService());
+        var ex = Assert.ThrowsAsync<InvalidOperationException>(async () => await svc.GenerateXML(31));
+        Assert.That(ex!.Message, Does.Contain("not eligible for IndPost XML"));
+    }
+
+    [Test]
+    public async Task GenerateXML4R_SkipsOrdersWithCheckStatusBelowNoIssues()
+    {
+        var register = new Register
+        {
+            Id = 32,
+            CompanyId = 2,
+            TransportationTypeId = 1,
+            CustomsProcedureId = 1,
+            FileName = "skip_below_noissues.xlsx",
+            DTime = DateTime.Now,
+            InvoiceNumber = "INV-SKIP-BELOW",
+            InvoiceDate = new DateOnly(2024, 6, 1),
+            TheOtherCountryCode = 860
+        };
+        _dbContext.Registers.Add(register);
+        var order1 = new WbrOrder
+        {
+            Id = 33,
+            RegisterId = 32,
+            StatusId = 1,
+            CountryCode = 643,
+            Shk = "A",
+            CheckStatusId = (int)ParcelCheckStatusCode.NotChecked // Should be skipped
+        };
+        var order2 = new WbrOrder
+        {
+            Id = 34,
+            RegisterId = 32,
+            StatusId = 1,
+            CountryCode = 643,
+            Shk = "B",
+            CheckStatusId = (int)ParcelCheckStatusCode.NoIssues // Should be included
+        };
+        _dbContext.WbrOrders.AddRange(order1, order2);
+        _dbContext.SaveChanges();
+        var svc = new OrderIndPostGenerator(_dbContext, new IndPostXmlService());
+        var (fileName, zipData) = await svc.GenerateXML4R(32);
+        using var ms = new MemoryStream(zipData);
+        using var archive = new ZipArchive(ms, ZipArchiveMode.Read);
+        Assert.That(archive.Entries.Count, Is.EqualTo(1));
+        Assert.That(archive.Entries[0].Name, Does.Contain("B"));
+    }
+
+    [Test]
+    public async Task GenerateXML_ThrowsException_WhenOrderCheckStatusIsInHasIssuesToNoIssuesRange()
+    {
+        var register = new Register
+        {
+            Id = 35,
+            CompanyId = 2,
+            TransportationTypeId = 1,
+            CustomsProcedureId = 1,
+            FileName = "range_hasissues_noissues.xlsx",
+            DTime = DateTime.Now,
+            InvoiceNumber = "INV-RANGE",
+            InvoiceDate = new DateOnly(2024, 6, 1),
+            TheOtherCountryCode = 860
+        };
+        _dbContext.Registers.Add(register);
+        var order = new WbrOrder
+        {
+            Id = 36,
+            RegisterId = 35,
+            StatusId = 1,
+            CountryCode = 643,
+            CheckStatusId = (int)ParcelCheckStatusCode.HasIssues // In range
+        };
+        _dbContext.Orders.Add(order);
+        await _dbContext.SaveChangesAsync();
+        var svc = new OrderIndPostGenerator(_dbContext, new IndPostXmlService());
+        var ex = Assert.ThrowsAsync<InvalidOperationException>(async () => await svc.GenerateXML(36));
+        Assert.That(ex!.Message, Does.Contain("not eligible for IndPost XML"));
+    }
+
+    [Test]
+    public async Task GenerateXML4R_SkipsOrdersWithCheckStatusInHasIssuesToNoIssuesRange()
+    {
+        var register = new Register
+        {
+            Id = 37,
+            CompanyId = 2,
+            TransportationTypeId = 1,
+            CustomsProcedureId = 1,
+            FileName = "skip_range_hasissues_noissues.xlsx",
+            DTime = DateTime.Now,
+            InvoiceNumber = "INV-SKIP-RANGE",
+            InvoiceDate = new DateOnly(2024, 6, 1),
+            TheOtherCountryCode = 860
+        };
+        _dbContext.Registers.Add(register);
+        var order1 = new WbrOrder
+        {
+            Id = 38,
+            RegisterId = 37,
+            StatusId = 1,
+            CountryCode = 643,
+            Shk = "A",
+            CheckStatusId = (int)ParcelCheckStatusCode.HasIssues // Should be skipped
+        };
+        var order2 = new WbrOrder
+        {
+            Id = 39,
+            RegisterId = 37,
+            StatusId = 1,
+            CountryCode = 643,
+            Shk = "B",
+            CheckStatusId = (int)ParcelCheckStatusCode.NoIssues // Should be included
+        };
+        _dbContext.WbrOrders.AddRange(order1, order2);
+        await _dbContext.SaveChangesAsync();
+        var svc = new OrderIndPostGenerator(_dbContext, new IndPostXmlService());
+        var (fileName, zipData) = await svc.GenerateXML4R(37);
+        using var ms = new MemoryStream(zipData);
+        using var archive = new ZipArchive(ms, ZipArchiveMode.Read);
+        Assert.That(archive.Entries.Count, Is.EqualTo(1));
+        Assert.That(archive.Entries[0].Name, Does.Contain("B"));
     }
 
     public class DummyOrder : BaseOrder {
