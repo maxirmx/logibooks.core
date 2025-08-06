@@ -120,7 +120,8 @@ namespace Logibooks.Core.Tests.Services
                 FirstName = "Иван", 
                 Patronymic = "Иванович", 
                 City = "Москва", 
-                Address = "ул. Тест, д.1" 
+                Address = "ул. Тест, д.1", 
+                CheckStatusId = (int)ParcelCheckStatusCode.NoIssues
             };
 
             _dbContext.OzonOrders.Add(order);
@@ -201,7 +202,8 @@ namespace Logibooks.Core.Tests.Services
                 City = "Москва", 
                 Address = "ул. Тест, д.1", 
                 PassportSeries = "AB123456", 
-                PassportNumber = "AB123456"
+                PassportNumber = "AB123456",
+                CheckStatusId = (int)ParcelCheckStatusCode.Approved
             };
 
             _dbContext.OzonOrders.Add(order);
@@ -277,7 +279,8 @@ namespace Logibooks.Core.Tests.Services
                 FirstName = "Иван", 
                 Patronymic = "Иванович", 
                 City = "Москва", 
-                Address = "ул. Тест, д.1" 
+                Address = "ул. Тест, д.1",
+                CheckStatusId = (int)ParcelCheckStatusCode.NoIssues
             };
 
             _dbContext.OzonOrders.Add(order);
@@ -355,7 +358,8 @@ namespace Logibooks.Core.Tests.Services
                 Quantity = 2, 
                 UnitPrice = 10.5m, 
                 WeightKg = 1.234m, 
-                ProductLink = "https://ozon.ru/product/ozon-product" 
+                ProductLink = "https://ozon.ru/product/ozon-product",
+                CheckStatusId = (int)ParcelCheckStatusCode.NoIssues
             };
 
             _dbContext.OzonOrders.Add(order);
@@ -434,7 +438,8 @@ namespace Logibooks.Core.Tests.Services
                 Quantity = 2, 
                 UnitPrice = 10.5m, 
                 WeightKg = 1.234m, 
-                ProductLink = "https://example.com/product" 
+                ProductLink = "https://example.com/product",
+                CheckStatusId = (int)ParcelCheckStatusCode.NoIssues
             };
 
             _dbContext.WbrOrders.Add(order);
@@ -481,7 +486,8 @@ namespace Logibooks.Core.Tests.Services
             var order = new OzonOrder { 
                 Id = 1,
                 Register = loadedRegister,
-                RegisterId = 1
+                RegisterId = 1,
+                CheckStatusId = (int)ParcelCheckStatusCode.NoIssues
             };
 
             _dbContext.OzonOrders.Add(order);
