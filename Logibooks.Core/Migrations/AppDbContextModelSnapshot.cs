@@ -353,7 +353,7 @@ namespace Logibooks.Core.Migrations
                         new
                         {
                             Id = 3,
-                            Comment = "Операции in отношении драгоценных металлов и драгоценных камней",
+                            Comment = "Операции в отношении драгоценных металлов и драгоценных камней",
                             Enabled = true,
                             Title = "Приказ ФТС России от 12 мая 2011 г. N 971 \"О компетенции таможенных органов по совершению таможенных операций в отношении драгоценных металлов и драгоценных камней\"",
                             Url = "11pr0971"
@@ -542,8 +542,11 @@ namespace Logibooks.Core.Migrations
                         .HasColumnName("user_id");
 
                     b.HasKey("Id");
+
                     b.HasIndex("UserId");
+
                     b.HasIndex(new[] { "BaseOrderId", "UserId", "DTime" }, "IX_parcel_views_baseorderid_userid_dtime");
+
                     b.ToTable("parcel_views");
                 });
 

@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Logibooks.Core.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250806202340_0_8_5_SupportPartnerColor_and_ViewHistory")]
+    [Migration("20250806223107_0_8_5_SupportPartnerColor_and_ViewHistory")]
     partial class _0_8_5_SupportPartnerColor_and_ViewHistory
     {
         /// <inheritdoc />
