@@ -51,6 +51,8 @@ namespace Logibooks.Core.Data
         public DbSet<CustomsProcedure> CustomsProcedures => Set<CustomsProcedure>();
         public DbSet<BaseOrderFeacnPrefix> BaseOrderFeacnPrefixes => Set<BaseOrderFeacnPrefix>();
         public DbSet<TransportationType> TransportationTypes => Set<TransportationType>();
+        public DbSet<ParcelView> ParcelViews => Set<ParcelView>();
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -87,6 +89,18 @@ namespace Logibooks.Core.Data
             modelBuilder.Entity<User>()
                 .HasIndex(u => u.Email)
                 .IsUnique();
+
+            modelBuilder.Entity<ParcelView>()
+                .HasOne(pv => pv.User)
+                .WithMany()
+                .HasForeignKey(pv => pv.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ParcelView>()
+                .HasOne(pv => pv.BaseOrder)
+                .WithMany()
+                .HasForeignKey(pv => pv.BaseOrderId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<Register>()
                 .HasOne(o => o.Company)
@@ -329,7 +343,7 @@ namespace Logibooks.Core.Data
                     Id = 3,
                     Title = "Приказ ФТС России от 12 мая 2011 г. N 971 \"О компетенции таможенных органов по совершению таможенных операций в отношении драгоценных металлов и драгоценных камней\"",
                     Url = "11pr0971",
-                    Comment = "Операции в отношении драгоценных металлов и драгоценных камней"
+                    Comment = "Операции in отношении драгоценных металлов и драгоценных камней"
                 },
                 new FeacnOrder
                 {
