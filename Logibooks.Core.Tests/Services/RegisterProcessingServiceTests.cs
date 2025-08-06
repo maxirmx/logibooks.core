@@ -415,4 +415,54 @@ public class DownloadRegisterTests
         var styles = sr.ReadToEnd();
         Assert.That(styles.Contains("FFFF0000"), Is.True);
     }
+
+    [Test]
+    public async Task DownloadRegister_MarkedByPartner_UsesPartnerColor()
+    {
+        var content = await File.ReadAllBytesAsync(Path.Combine("test.data", "Озон_Short.xlsx"));
+        var reference = await _service.UploadRegisterFromExcelAsync(_service.GetOzonId(), content, "Озон_Short.xlsx");
+
+        var first = _dbContext.OzonOrders.OrderBy(o => o.Id).First();
+        first.CheckStatusId = (int)ParcelCheckStatusCode.MarkedByPartner;
+        first.PartnerColorXL = XLColor.FromArgb(0, 255, 0);
+        await _dbContext.SaveChangesAsync();
+
+        var bytes = await _service.DownloadRegisterToExcelAsync(reference.Id);
+
+        using var archive = new System.IO.Compression.ZipArchive(new MemoryStream(bytes));
+        var entry = archive.GetEntry("xl/styles.xml");
+        using var sr = new StreamReader(entry!.Open());
+        var styles = sr.ReadToEnd();
+        Assert.That(styles.Contains("FF00FF00"), Is.True);
+        Assert.That(styles.Contains("FFFF0000"), Is.False);
+    }
+
+    [Test]
+    public async Task DownloadRegister_PreservesOrder()
+    {
+        var content = await File.ReadAllBytesAsync(Path.Combine("test.data", "Озон_Short.xlsx"));
+        var reference = await _service.UploadRegisterFromExcelAsync(_service.GetOzonId(), content, "Озон_Short.xlsx");
+
+        var bytes = await _service.DownloadRegisterToExcelAsync(reference.Id);
+
+        System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+        using var ms = new MemoryStream(bytes);
+        using var reader = ExcelReaderFactory.CreateReader(ms);
+        var ds = reader.AsDataSet();
+        var table = ds.Tables[0];
+
+        var postings = new[]
+        {
+            table.Rows[1][2]?.ToString(),
+            table.Rows[2][2]?.ToString(),
+            table.Rows[3][2]?.ToString()
+        };
+
+        Assert.That(postings, Is.EqualTo(new[]
+        {
+            "0180993146-0049-7",
+            "0180993146-0049-6",
+            "0208022828-0010-1"
+        }));
+    }
 }

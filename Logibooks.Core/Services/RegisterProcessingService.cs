@@ -158,6 +158,7 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
         {
             orders = await _db.WbrOrders.AsNoTracking()
                 .Where(o => o.RegisterId == registerId)
+                .OrderBy(o => o.Id)
                 .Cast<BaseOrder>()
                 .ToListAsync(cancellationToken);
         }
@@ -165,6 +166,7 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
         {
             orders = await _db.OzonOrders.AsNoTracking()
                 .Where(o => o.RegisterId == registerId)
+                .OrderBy(o => o.Id)
                 .Cast<BaseOrder>()
                 .ToListAsync(cancellationToken);
         }
@@ -211,8 +213,15 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
                 ws.Cell(row, c + 1).Value = cellValue;
             }
 
-            if (baseOrder.CheckStatusId >= (int)ParcelCheckStatusCode.HasIssues &&
-                baseOrder.CheckStatusId < (int)ParcelCheckStatusCode.NoIssues)
+            if (baseOrder.CheckStatusId == (int)ParcelCheckStatusCode.MarkedByPartner)
+            {
+                if (baseOrder.PartnerColor != 0)
+                {
+                    ws.Row(row).Style.Fill.BackgroundColor = baseOrder.PartnerColorXL;
+                }
+            }
+            else if (baseOrder.CheckStatusId >= (int)ParcelCheckStatusCode.HasIssues &&
+                     baseOrder.CheckStatusId < (int)ParcelCheckStatusCode.NoIssues)
             {
                 ws.Row(row).Style.Fill.BackgroundColor = XLColor.Red;
             }
