@@ -23,22 +23,36 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace Logibooks.Core.Models;
 
 [Table("parcel_views")]
+[Index(nameof(UserId), nameof(Timestamp), Name = "IX_parcel_views_userid_timestamp")]
+[Index(nameof(BaseOrderId), nameof(UserId), IsUnique = true, Name = "IX_parcel_views_baseorderid_userid")]
 public class ParcelView
 {
     [Column("id")]
     public int Id { get; set; }
 
+    [Column("timestamp")]
+    public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+
     [Column("user_id")]
     public int UserId { get; set; }
+
+    [ForeignKey("UserId")]
+    [JsonIgnore]
+    public User User { get; set; } = null!;
 
     [Column("base_order_id")]
     public int BaseOrderId { get; set; }
 
+    [ForeignKey("BaseOrderId")]
+    [JsonIgnore]
+    public BaseOrder BaseOrder { get; set; } = null!;
     [Column("dtime")]
     public DateTime DTime { get; set; }
 }

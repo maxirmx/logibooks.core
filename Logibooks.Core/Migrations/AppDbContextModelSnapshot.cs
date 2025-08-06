@@ -353,7 +353,7 @@ namespace Logibooks.Core.Migrations
                         new
                         {
                             Id = 3,
-                            Comment = "Операции в отношении драгоценных металлов и драгоценных камней",
+                            Comment = "Операции in отношении драгоценных металлов и драгоценных камней",
                             Enabled = true,
                             Title = "Приказ ФТС России от 12 мая 2011 г. N 971 \"О компетенции таможенных органов по совершению таможенных операций в отношении драгоценных металлов и драгоценных камней\"",
                             Url = "11pr0971"
@@ -518,6 +518,37 @@ namespace Logibooks.Core.Migrations
                             Id = 1,
                             Title = "Не известен"
                         });
+                });
+
+            modelBuilder.Entity("Logibooks.Core.Models.ParcelView", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BaseOrderId")
+                        .HasColumnType("integer")
+                        .HasColumnName("base_order_id");
+
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("timestamp");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex(new[] { "BaseOrderId", "UserId" }, "IX_parcel_views_baseorderid_userid")
+                        .IsUnique();
+
+                    b.HasIndex(new[] { "UserId", "Timestamp" }, "IX_parcel_views_userid_timestamp");
+
+                    b.ToTable("parcel_views");
                 });
 
             modelBuilder.Entity("Logibooks.Core.Models.Register", b =>
@@ -1272,6 +1303,25 @@ namespace Logibooks.Core.Migrations
                         .IsRequired();
 
                     b.Navigation("FeacnPrefix");
+                });
+
+            modelBuilder.Entity("Logibooks.Core.Models.ParcelView", b =>
+                {
+                    b.HasOne("Logibooks.Core.Models.BaseOrder", "BaseOrder")
+                        .WithMany()
+                        .HasForeignKey("BaseOrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Logibooks.Core.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("BaseOrder");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Logibooks.Core.Models.Register", b =>
