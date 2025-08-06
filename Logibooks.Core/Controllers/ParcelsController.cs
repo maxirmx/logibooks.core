@@ -126,9 +126,16 @@ public class ParcelsController(
             return _404Order(id);
         }
 
+        var lastView = await _db.ParcelViews
+            .Where(v => v.UserId == _curUserId && v.BaseOrderId == order.Id)
+            .OrderByDescending(v => v.DTime)
+            .FirstOrDefaultAsync();
+        var viewItem = new OrderViewItem(order);
+        viewItem.DTime = lastView?.DTime;
         _logger.LogDebug("GetOrder returning {orderType} order for companyId={cid}",
             order.GetType().Name, companyId);
-        return new OrderViewItem(order);
+
+        return viewItem;
     }
 
     [HttpPut("{id}")]
@@ -553,6 +560,7 @@ public class ParcelsController(
     }
 
 }
+
 
 
 

@@ -1092,4 +1092,40 @@ public class ParcelsControllerTests
         var obj = result as ObjectResult;
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
     }
+
+    [Test]
+    public async Task GetOrder_SetsTimestampToLatestParcelViewForUser()
+    {
+        SetCurrentUserId(1);
+        var register = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
+        var order = new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "A" };
+        _dbContext.Registers.Add(register);
+        _dbContext.Orders.Add(order);
+        await _dbContext.SaveChangesAsync();
+
+        // Add two ParcelViews for this user and order, with different timestamps
+        var pv1 = new ParcelView { UserId = 1, BaseOrderId = 1, DTime = DateTime.UtcNow.AddMinutes(-10) };
+        var pv2 = new ParcelView { UserId = 1, BaseOrderId = 1, DTime = DateTime.UtcNow.AddMinutes(-5) };
+        _dbContext.ParcelViews.AddRange(pv1, pv2);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.GetOrder(1);
+        Assert.That(result.Value, Is.Not.Null);
+        Assert.That(result.Value!.DTime, Is.EqualTo(pv2.DTime));
+    }
+
+    [Test]
+    public async Task GetOrder_SetsTimestampToNullIfNoParcelViewExists()
+    {
+        SetCurrentUserId(1);
+        var register = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
+        var order = new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "A" };
+        _dbContext.Registers.Add(register);
+        _dbContext.Orders.Add(order);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.GetOrder(1);
+        Assert.That(result.Value, Is.Not.Null);
+        Assert.That(result.Value!.DTime, Is.Null);
+    }
 }

@@ -533,21 +533,17 @@ namespace Logibooks.Core.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("base_order_id");
 
-                    b.Property<DateTime>("Timestamp")
+                    b.Property<DateTime>("DTime")
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("timestamp");
+                        .HasColumnName("dtime");
 
                     b.Property<int>("UserId")
                         .HasColumnType("integer")
                         .HasColumnName("user_id");
 
                     b.HasKey("Id");
-
-                    b.HasIndex(new[] { "BaseOrderId", "UserId" }, "IX_parcel_views_baseorderid_userid")
-                        .IsUnique();
-
-                    b.HasIndex(new[] { "UserId", "Timestamp" }, "IX_parcel_views_userid_timestamp");
-
+                    b.HasIndex("UserId");
+                    b.HasIndex(new[] { "BaseOrderId", "UserId", "DTime" }, "IX_parcel_views_baseorderid_userid_dtime");
                     b.ToTable("parcel_views");
                 });
 
