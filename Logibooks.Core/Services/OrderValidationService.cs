@@ -46,6 +46,11 @@ public class OrderValidationService(
         FeacnPrefixCheckContext? feacnContext = null,
         CancellationToken cancellationToken = default)
     {
+        if (order.CheckStatusId == (int)ParcelCheckStatusCode.MarkedByPartner)
+        {
+            return;
+        }
+
         // remove existing links for this order
         var existing1 = _db.Set<BaseOrderStopWord>().Where(l => l.BaseOrderId == order.Id);
         _db.Set<BaseOrderStopWord>().RemoveRange(existing1);
