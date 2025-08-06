@@ -214,6 +214,34 @@ public class OrderValidationServiceTests
     }
 
     [Test]
+    public async Task ValidateAsync_SkipsMarkedByPartner()
+    {
+        using var ctx = CreateContext();
+        var order = new WbrOrder
+        {
+            Id = 1,
+            RegisterId = 1,
+            CheckStatusId = (int)ParcelCheckStatusCode.MarkedByPartner,
+            ProductName = "This is SPAM",
+            TnVed = "1234567890"
+        };
+        ctx.Orders.Add(order);
+        ctx.StopWords.Add(new StopWord { Id = 2, Word = "spam", MatchTypeId = (int)StopWordMatchTypeCode.ExactSymbols });
+        ctx.Set<BaseOrderStopWord>().Add(new BaseOrderStopWord { BaseOrderId = 1, StopWordId = 99 });
+        await ctx.SaveChangesAsync();
+
+        var svc = CreateService(ctx);
+        var stopWordsContext = svc.InitializeStopWordsContext(ctx.StopWords.ToList());
+        var morphologyContext = new MorphologyContext();
+        await svc.ValidateAsync(order, morphologyContext, stopWordsContext);
+
+        var links = ctx.Set<BaseOrderStopWord>().ToList();
+        Assert.That(links.Count, Is.EqualTo(1));
+        Assert.That(links.Single().StopWordId, Is.EqualTo(99));
+        Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)ParcelCheckStatusCode.MarkedByPartner));
+    }
+
+    [Test]
     public void GetMatchingStopWordsFromContext_IgnoresEmptyStopWord()
     {
         // Arrange

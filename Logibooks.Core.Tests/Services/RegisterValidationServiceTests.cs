@@ -264,14 +264,15 @@ public class RegisterValidationServiceTests
     }
 
     [Test]
-    public async Task StartValidationAsync_SkipsOrdersWithApprovedOrGreaterCheckStatusId()
+    public async Task StartValidationAsync_SkipsOrdersWithMarkedByPartnerOrGreaterCheckStatusId()
     {
         using var ctx = CreateContext();
         ctx.Registers.Add(new Register { Id = 200, FileName = "r.xlsx" });
         ctx.Orders.AddRange(
-            new WbrOrder { Id = 201, RegisterId = 200, StatusId = 1, CheckStatusId = 1 }, // should be validated
-            new WbrOrder { Id = 202, RegisterId = 200, StatusId = 1, CheckStatusId = 301 }, // should be skipped
-            new WbrOrder { Id = 203, RegisterId = 200, StatusId = 1, CheckStatusId = 400 }  // should be skipped
+            new WbrOrder { Id = 201, RegisterId = 200, StatusId = 1, CheckStatusId = 1 },   // should be validated
+            new WbrOrder { Id = 202, RegisterId = 200, StatusId = 1, CheckStatusId = 200 }, // marked by partner, should be skipped
+            new WbrOrder { Id = 203, RegisterId = 200, StatusId = 1, CheckStatusId = 301 }, // approved, should be skipped
+            new WbrOrder { Id = 204, RegisterId = 200, StatusId = 1, CheckStatusId = 400 }  // greater than approved, should be skipped
         );
         await ctx.SaveChangesAsync();
 
@@ -306,6 +307,13 @@ public class RegisterValidationServiceTests
             Times.Never);
         mock.Verify(m => m.ValidateAsync(
             It.Is<BaseOrder>(o => o.Id == 203),
+            It.IsAny<MorphologyContext>(),
+            It.IsAny<StopWordsContext>(),
+            It.IsAny<FeacnPrefixCheckContext?>(),
+            It.IsAny<CancellationToken>()),
+            Times.Never);
+        mock.Verify(m => m.ValidateAsync(
+            It.Is<BaseOrder>(o => o.Id == 204),
             It.IsAny<MorphologyContext>(),
             It.IsAny<StopWordsContext>(),
             It.IsAny<FeacnPrefixCheckContext?>(),
