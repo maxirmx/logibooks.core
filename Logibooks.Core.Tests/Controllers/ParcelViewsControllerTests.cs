@@ -78,7 +78,7 @@ public class ParcelViewsControllerTests
         Assert.That(result.Value, Is.Not.Null);
         Assert.That(result.Value!.Id, Is.EqualTo(2));
         Assert.That(_dbContext.ParcelViews.Count(p => p.UserId == 7), Is.EqualTo(1));
-        ClassicAssert.IsFalse(_dbContext.ParcelViews.Any(p => p.UserId == 7 && p.BaseOrderId == 2));
+        Assert.That(_dbContext.ParcelViews.Any(p => p.UserId == 7 && p.BaseOrderId == 2), Is.False);
     }
 
     [Test]
