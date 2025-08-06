@@ -125,4 +125,42 @@ public class ParcelViewsControllerTests
         var result = await _controller.Back();
         Assert.That(result.Result, Is.TypeOf<NoContentResult>());
     }
+
+    [Test]
+    public async Task Back_ReturnsNoContent_WhenNoParcelViewsExist()
+    {
+        SetCurrentUserId(10);
+        // No ParcelViews for user 10
+        var result = await _controller.Back();
+        Assert.That(result.Result, Is.TypeOf<NoContentResult>());
+    }
+
+    [Test]
+    public async Task Back_ReturnsNoContent_WhenOnlyOneParcelViewExists()
+    {
+        SetCurrentUserId(11);
+        var order = new WbrOrder { Id = 100, RegisterId = 1, StatusId = 1 };
+        _dbContext.Orders.Add(order);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ParcelViews.Add(new ParcelView { UserId = 11, BaseOrderId = 100, DTime = System.DateTime.UtcNow });
+        await _dbContext.SaveChangesAsync();
+        var result = await _controller.Back();
+        Assert.That(result.Result, Is.TypeOf<NoContentResult>());
+    }
+
+    [Test]
+    public async Task Back_ReturnsNoContent_WhenSecondParcelViewHasNoBaseOrder()
+    {
+        SetCurrentUserId(12);
+        var order = new WbrOrder { Id = 200, RegisterId = 1, StatusId = 1 };
+        _dbContext.Orders.Add(order);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ParcelViews.AddRange(
+            new ParcelView { UserId = 12, BaseOrderId = 200, DTime = System.DateTime.UtcNow.AddMinutes(-5) },
+            new ParcelView { UserId = 12, BaseOrderId = 201, DTime = System.DateTime.UtcNow }
+        );
+        await _dbContext.SaveChangesAsync();
+        var result = await _controller.Back();
+        Assert.That(result.Result, Is.TypeOf<NoContentResult>());
+    }
 }
