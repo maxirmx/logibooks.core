@@ -429,13 +429,10 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
             var bg = worksheet.Cell(rowNumber, c).Style.Fill.BackgroundColor;
             try
             {
-                if (bg.Color != null)
+                int argb = bg.Color.ToArgb();
+                if (argb != Color.White.ToArgb() && argb != Color.Empty.ToArgb() && argb != Color.Transparent.ToArgb())
                 {
-                    int argb = bg.Color.ToArgb();
-                    if (argb != Color.White.ToArgb() && argb != Color.Empty.ToArgb() && argb != Color.Transparent.ToArgb())
-                    {
-                        return (true, bg);
-                    }
+                    return (true, bg);
                 }
             }
             catch
