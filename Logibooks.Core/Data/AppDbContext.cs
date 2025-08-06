@@ -51,6 +51,7 @@ namespace Logibooks.Core.Data
         public DbSet<CustomsProcedure> CustomsProcedures => Set<CustomsProcedure>();
         public DbSet<BaseOrderFeacnPrefix> BaseOrderFeacnPrefixes => Set<BaseOrderFeacnPrefix>();
         public DbSet<TransportationType> TransportationTypes => Set<TransportationType>();
+        public DbSet<ParcelView> ParcelViews => Set<ParcelView>();
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
