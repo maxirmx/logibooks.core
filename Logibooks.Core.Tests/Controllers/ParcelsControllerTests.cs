@@ -392,6 +392,26 @@ public class ParcelsControllerTests
     }
 
     [Test]
+    public async Task GetOrders_SkipsMarkedByPartner()
+    {
+        SetCurrentUserId(1);
+        var reg = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
+        _dbContext.Registers.Add(reg);
+        _dbContext.Orders.AddRange(
+            new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1, CheckStatusId = 1 },
+            new WbrOrder { Id = 2, RegisterId = 1, StatusId = 1, CheckStatusId = (int)ParcelCheckStatusCode.MarkedByPartner }
+        );
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.GetOrders(registerId: 1);
+        var ok = result.Result as OkObjectResult;
+        var pr = ok!.Value as PagedResult<OrderViewItem>;
+
+        Assert.That(pr!.Items.Count(), Is.EqualTo(1));
+        Assert.That(pr.Items.First().Id, Is.EqualTo(1));
+    }
+
+    [Test]
     public async Task GetOrders_ReturnsForbidden_ForNonLogist()
     {
         SetCurrentUserId(99); // unknown user
@@ -439,6 +459,23 @@ public class ParcelsControllerTests
         // Create an order with a register that references a non-existent company
         var register = new Register { Id = 1, CompanyId = 999, FileName = "r.xlsx" }; // Company 999 doesn't exist
         var order = new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "A" };
+        _dbContext.Registers.Add(register);
+        _dbContext.Orders.Add(order);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.GetOrder(1);
+
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+    }
+
+    [Test]
+    public async Task GetOrder_ReturnsNotFound_ForMarkedByPartner()
+    {
+        SetCurrentUserId(1);
+        var register = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
+        var order = new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1, CheckStatusId = (int)ParcelCheckStatusCode.MarkedByPartner };
         _dbContext.Registers.Add(register);
         _dbContext.Orders.Add(order);
         await _dbContext.SaveChangesAsync();
@@ -698,6 +735,24 @@ public class ParcelsControllerTests
     }
 
     [Test]
+    public async Task GetOrderStatus_ReturnsNotFound_ForMarkedByPartner()
+    {
+        var reg = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
+        _dbContext.Registers.Add(reg);
+        var status = new ParcelStatus { Id = 1, Title = "Available" };
+        var order = new WbrOrder { Shk = "ABC", RegisterId = 1, StatusId = 1, Status = status, CheckStatusId = (int)ParcelCheckStatusCode.MarkedByPartner };
+        _dbContext.Statuses.Add(status);
+        _dbContext.Orders.Add(order);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.GetOrderStatus("ABC");
+
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var objResult = result.Result as ObjectResult;
+        Assert.That(objResult!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+    }
+
+    [Test]
     public async Task GetOrderStatusWorksWithoutAuthentication()
     {
         // Arrange
@@ -779,6 +834,30 @@ public class ParcelsControllerTests
     {
         SetCurrentUserId(1);
         var result = await _controller.ValidateOrder(99);
+
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+        _mockValidationService.Verify(s => s.ValidateAsync(
+            It.IsAny<BaseOrder>(),
+            It.IsAny<MorphologyContext>(),
+            It.IsAny<StopWordsContext>(),
+            It.IsAny<FeacnPrefixCheckContext?>(),
+            It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Test]
+    public async Task ValidateOrder_ReturnsNotFound_ForMarkedByPartner()
+    {
+        SetCurrentUserId(1);
+        var register = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
+        var order = new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1, CheckStatusId = (int)ParcelCheckStatusCode.MarkedByPartner };
+        _dbContext.Registers.Add(register);
+        _dbContext.Orders.Add(order);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.ValidateOrder(1);
 
         Assert.That(result, Is.TypeOf<ObjectResult>());
         var obj = result as ObjectResult;
