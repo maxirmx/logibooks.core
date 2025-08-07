@@ -725,15 +725,15 @@ public class RegistersController(
         var grouped = await _db.Orders
             .AsNoTracking()
             .Where(o => registerIds.Contains(o.RegisterId))
-            .GroupBy(o => new { o.RegisterId, o.StatusId })
-            .Select(g => new { g.Key.RegisterId, g.Key.StatusId, Count = g.Count() })
+            .GroupBy(o => new { o.RegisterId, o.CheckStatusId })
+            .Select(g => new { g.Key.RegisterId, g.Key.CheckStatusId, Count = g.Count() })
             .ToListAsync();
 
         return grouped
             .GroupBy(g => g.RegisterId)
             .ToDictionary(
                 g => g.Key,
-                g => g.ToDictionary(x => x.StatusId, x => x.Count));
+                g => g.Where(x => x.Count > 0).ToDictionary(x => x.CheckStatusId, x => x.Count));
     }
 
     private static IQueryable<TOrder> ApplyOrderIncludes<TOrder>(IQueryable<TOrder> query) where TOrder : BaseOrder
