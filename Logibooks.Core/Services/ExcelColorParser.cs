@@ -5,14 +5,14 @@ namespace Logibooks.Core.Services;
 
 internal static class ExcelColorParser
 {
-    internal static (bool hasColor, XLColor? color) GetRowColor(IXLWorksheet worksheet, int rowNumber, int columnCount)
+    internal static (bool hasColor, XLColor? color) GetRowColor(IXLWorksheet worksheet, int rowNumber, ILogger logger)
     {
         try
         {
             var bg = worksheet.Cell(rowNumber, 1).Style.Fill.BackgroundColor;
             if (bg.ColorType == XLColorType.Theme || bg.ColorType == XLColorType.Indexed || bg.ColorType == XLColorType.Color)
             {
-                XLColor resolvedColor = ConvertToRgbColor(bg);
+                XLColor resolvedColor = ConvertToRgbColor(bg, logger);
                 if (IsSignificantColor(resolvedColor))
                 {
                     return (true, resolvedColor);
@@ -21,14 +21,14 @@ internal static class ExcelColorParser
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Exception in GetRowColor: {ex}");
+            logger.LogError(ex, "Excption in GetRowColor");
             return (true, null);
         }
 
         return (false, null);
     }
 
-    internal static XLColor ConvertToRgbColor(XLColor color)
+    internal static XLColor ConvertToRgbColor(XLColor color, ILogger logger)
     {
         XLColor xLColor = color;
         if (color.ColorType == XLColorType.Theme)

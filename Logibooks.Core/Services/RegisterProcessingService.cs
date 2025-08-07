@@ -348,7 +348,7 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
                 }
             }
 
-            var (hasColor, rowColor) = ExcelColorParser.GetRowColor(worksheet, r + 1, table.Columns.Count);
+            var (hasColor, rowColor) = ExcelColorParser.GetRowColor(worksheet, r + 1, _logger);
             if (hasColor)
             {
                 order.CheckStatusId = (int)ParcelCheckStatusCode.MarkedByPartner;
@@ -422,7 +422,7 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
                 }
             }
 
-            var (hasColor, rowColor) = ExcelColorParser.GetRowColor(worksheet, r + 1, table.Columns.Count);
+            var (hasColor, rowColor) = ExcelColorParser.GetRowColor(worksheet, r + 1, _logger);
             if (hasColor)
             {
                 order.CheckStatusId = (int)ParcelCheckStatusCode.MarkedByPartner;

@@ -1,11 +1,15 @@
 using ClosedXML.Excel;
 using Logibooks.Core.Services;
+using Microsoft.Extensions.Logging;
+using Moq;
 using NUnit.Framework;
 
 namespace Logibooks.Core.Tests.Services;
 
 public class ExcelColorParserTests
 {
+    private ILogger _logger = new Mock<ILogger>().Object;
+
     [Test]
     public void GetRowColor_ReturnsTrue_WithThemeColor()
     {
@@ -13,7 +17,7 @@ public class ExcelColorParserTests
         var ws = workbook.AddWorksheet();
         ws.Cell(1, 1).Style.Fill.BackgroundColor = XLColor.FromTheme(XLThemeColor.Accent2);
 
-        var (hasColor, color) = ExcelColorParser.GetRowColor(ws, 1, 1);
+        var (hasColor, color) = ExcelColorParser.GetRowColor(ws, 1, _logger);
 
         Assert.That(hasColor, Is.True);
         Assert.That(color, Is.Not.Null);
@@ -27,7 +31,7 @@ public class ExcelColorParserTests
         var ws = workbook.AddWorksheet();
         ws.Cell(1, 1).Style.Fill.BackgroundColor = XLColor.White;
 
-        var (hasColor, color) = ExcelColorParser.GetRowColor(ws, 1, 1);
+        var (hasColor, color) = ExcelColorParser.GetRowColor(ws, 1, _logger);
 
         Assert.That(hasColor, Is.False);
         Assert.That(color, Is.Null);
@@ -38,7 +42,7 @@ public class ExcelColorParserTests
     {
         var themeColor = XLColor.FromTheme(XLThemeColor.Accent1, 0.5);
 
-        var rgb = ExcelColorParser.ConvertToRgbColor(themeColor);
+        var rgb = ExcelColorParser.ConvertToRgbColor(themeColor, _logger);
 
         Assert.That(rgb.Color.R, Is.EqualTo(98));
         Assert.That(rgb.Color.G, Is.EqualTo(161));
