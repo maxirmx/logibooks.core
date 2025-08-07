@@ -140,12 +140,14 @@ public class OrderIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServic
             // CONSIGNEE_ADDRESS_COUNRYNAME  так в схеме
             fields["CONSIGNEE_ADDRESS_COUNRYNAME"] = SetOrDefault(register?.Company?.Country.NameRuShort);
             fields["RFORGANIZATIONFEATURES_INN"] = SetOrDefault(register?.Company?.Inn);
+            fields["RFORGANIZATIONFEATURES_OGRN"] = SetOrDefault(register?.Company?.Ogrn);
             fields["CITY"] = SetOrDefault(register?.Company?.City);
             fields["STREETHOUSE"] = SetOrDefault(register?.Company?.Street);
 
             fields["CONSIGNOR_CHOICE"] = "1";
             fields["SENDER"] = order.GetFullName();
             fields["CONSIGNOR_IDENTITYCARD_IDENTITYCARDCODE"] = "10";
+            fields["CONSIGNOR_IDENTITYCARD_FULLIDENTITYCARDNAME"] = "Иностранный паспорт";
             fields["CONSIGNOR_IDENTITYCARD_IDENTITYCARDSERIES"] = order.GetSeries();
             fields["CONSIGNOR_IDENTITYCARD_IDENTITYCARDNUMBER"] = order.GetNumber();
             fields["CONSIGNOR_IDENTITYCARD_COUNTRYCODE"] = SetOrDefault(register?.TheOtherCountry?.IsoAlpha2);
@@ -161,13 +163,15 @@ public class OrderIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServic
         IEnumerable<BaseOrder> ordersForGoods;
         if (order is OzonOrder ozonOrder)
         {
-            ordersForGoods = _db.OzonOrders.AsNoTracking()
-                .Where(o => o.PostingNumber == ozonOrder.PostingNumber && o.RegisterId == ozonOrder.RegisterId)
-                .ToList<BaseOrder>();
+            ordersForGoods = 
+                [.. _db.OzonOrders.AsNoTracking().Where(o => o.PostingNumber == ozonOrder.PostingNumber && 
+                                                        o.RegisterId == ozonOrder.RegisterId)];
         }
         else if (order is WbrOrder wbrOrder)
         {
-            ordersForGoods = [.. _db.WbrOrders.AsNoTracking().Where(o => o.Shk == wbrOrder.Shk && o.RegisterId == wbrOrder.RegisterId)];
+            ordersForGoods = 
+                [.. _db.WbrOrders.AsNoTracking().Where(o => o.Shk == wbrOrder.Shk && 
+                                                                         o.RegisterId == wbrOrder.RegisterId)];
         }
         else
         {

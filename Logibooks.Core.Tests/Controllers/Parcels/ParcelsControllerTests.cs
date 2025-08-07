@@ -44,7 +44,7 @@ using AutoMapper;
 using System.Collections.Generic;
 using Logibooks.Core.Services;
 
-namespace Logibooks.Core.Tests.Controllers;
+namespace Logibooks.Core.Tests.Controllers.Parcels;
 
 [TestFixture]
 public class ParcelsControllerTests
@@ -67,7 +67,7 @@ public class ParcelsControllerTests
     public void Setup()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseInMemoryDatabase($"parcels_controller_db_{System.Guid.NewGuid()}")
+            .UseInMemoryDatabase($"parcels_controller_db_{Guid.NewGuid()}")
             .Options;
         _dbContext = new AppDbContext(options);
 

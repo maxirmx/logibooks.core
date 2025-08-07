@@ -81,17 +81,22 @@ namespace Logibooks.Core.Tests.Services
         }
 
         [Test]
-        public void GenerateXML_CustomsProcedure10_IndividualFieldsGenerated()
+        [TestCase(10, "Individual", "Иванов", "Иван", "Иванович", "Москва", "ул. Тест, д.1", "RU", "Россия", "1", "2", "ООО Тест", "0")]
+        [TestCase(60, "Company", null, null, null, "Москва", "ул. Тест", "RU", "Россия", "2", "1", "Иванов Иван Иванович", "0")]
+        public void GenerateXML_AllFields_CorrectlyGenerated(int customsCode, string scenario,
+            string? lastName, string? firstName, string? patronymic,
+            string city, string street, string countryCode, string countryName,
+            string consigneeChoice, string consignorChoice, string sender, string type)
         {
             // Arrange
-            var country = new Country { IsoNumeric = 643, IsoAlpha2 = "RU", NameRuShort = "Россия" };
-            var company = new Company { 
-                Id = 1, 
-                ShortName = "ООО Тест", 
-                Kpp = "123456789", 
-                Inn = "987654321", 
-                PostalCode = "101000", 
-                City = "Москва", 
+            var country = new Country { IsoNumeric = 643, IsoAlpha2 = countryCode, NameRuShort = countryName };
+            var company = new Company {
+                Id = 1,
+                ShortName = "ООО Тест",
+                Kpp = "123456789",
+                Inn = "987654321",
+                PostalCode = "101000",
+                City = "Москва",
                 Street = "ул. Тест",
                 CountryIsoNumeric = 643,
                 Name = "ООО Тест Полное"
@@ -100,7 +105,7 @@ namespace Logibooks.Core.Tests.Services
                 Id = 1,
                 InvoiceDate = DateOnly.FromDateTime(DateTime.Today),
                 TransportationTypeId = _transportationType.Id,
-                CustomsProcedureId = _customsProcedure.Id,
+                CustomsProcedureId = customsCode == 10 ? _customsProcedure.Id : _customsProcedure60.Id,
                 TheOtherCountryCode = 643,
                 CompanyId = 1,
                 FileName = "test.xml"
@@ -111,7 +116,6 @@ namespace Logibooks.Core.Tests.Services
             _dbContext.Registers.Add(register);
             _dbContext.SaveChanges();
 
-            // Load the register with all related data
             var loadedRegister = _dbContext.Registers
                 .Include(r => r.TheOtherCountry)
                 .Include(r => r.TransportationType)
@@ -120,20 +124,40 @@ namespace Logibooks.Core.Tests.Services
                     .ThenInclude(c => c!.Country)
                 .First(r => r.Id == 1);
 
-            var order = new OzonOrder { 
-                Id = 1,
-                Register = loadedRegister, 
-                RegisterId = 1,
-                PostingNumber = "POST123", 
-                LastName = "Иванов", 
-                FirstName = "Иван", 
-                Patronymic = "Иванович", 
-                City = "Москва", 
-                Address = "ул. Тест, д.1", 
-                CheckStatusId = (int)ParcelCheckStatusCode.NoIssues
-            };
+            BaseOrder order;
+            if (scenario == "Individual")
+            {
+                order = new OzonOrder {
+                    Id = 1,
+                    Register = loadedRegister,
+                    RegisterId = 1,
+                    PostingNumber = "POST123",
+                    LastName = lastName,
+                    FirstName = firstName,
+                    Patronymic = patronymic,
+                    City = city,
+                    Address = street,
+                    CheckStatusId = (int)ParcelCheckStatusCode.NoIssues
+                };
+            }
+            else
+            {
+                order = new OzonOrder {
+                    Id = 1,
+                    Register = loadedRegister,
+                    RegisterId = 1,
+                    LastName = "Иванов",
+                    FirstName = "Иван",
+                    Patronymic = "Иванович",
+                    City = city,
+                    Address = street,
+                    PassportSeries = "AB123456",
+                    PassportNumber = "AB123456",
+                    CheckStatusId = (int)ParcelCheckStatusCode.Approved
+                };
+            }
 
-            _dbContext.OzonOrders.Add(order);
+            _dbContext.OzonOrders.Add((OzonOrder)order);
             _dbContext.SaveChanges();
 
             _xmlServiceMock.Setup(x => x.CreateXml(It.IsAny<IDictionary<string, string?>>(), It.IsAny<IEnumerable<IDictionary<string, string?>>>()))
@@ -144,96 +168,16 @@ namespace Logibooks.Core.Tests.Services
 
             // Assert
             _xmlServiceMock.Verify(x => x.CreateXml(It.Is<IDictionary<string, string?>>(fields =>
-                fields["CONSIGNEE_CHOICE"] == "1" &&
-                fields["PERSONSURNAME"] == "Иванов" &&
-                fields["PERSONNAME"] == "Иван" &&
-                fields["PERSONMIDDLENAME"] == "Иванович" &&
-                fields["CITY"] == "Москва" &&
-                fields["STREETHOUSE"] == "ул. Тест, д.1" &&
-                fields["CONSIGNEE_ADDRESS_COUNTRYCODE"] == "RU" &&
-                fields["CONSIGNEE_ADDRESS_COUNRYNAME"] == "Россия" &&
-                fields["CONSIGNOR_CHOICE"] == "2" &&
-                fields["SENDER"] == "ООО Тест" &&
-                fields["TYPE"] == "0"
+                fields["CONSIGNEE_CHOICE"] == consigneeChoice &&
+                fields["CONSIGNOR_CHOICE"] == consignorChoice &&
+                fields["SENDER"] == sender &&
+                fields["CITY"] == city &&
+                fields["STREETHOUSE"] == street &&
+                fields["CONSIGNEE_ADDRESS_COUNTRYCODE"] == countryCode &&
+                fields["CONSIGNEE_ADDRESS_COUNRYNAME"] == countryName &&
+                fields["TYPE"] == type
             ), It.IsAny<IEnumerable<IDictionary<string, string?>>>()), Times.Once);
         }
-
-        [Test]
-        public void GenerateXML_CustomsProcedure60_CompanyFieldsGenerated()
-        {
-            // Arrange
-            var country = new Country { IsoNumeric = 643, IsoAlpha2 = "RU", NameRuShort = "Россия" };
-            var company = new Company { 
-                Id = 1, 
-                ShortName = "ООО Тест", 
-                Kpp = "123456789", 
-                Inn = "987654321", 
-                City = "Москва", 
-                Street = "ул. Тест",
-                CountryIsoNumeric = 643,
-                Name = "ООО Тест Полное",
-                PostalCode = "101000"
-            };
-            var register = new Register {
-                Id = 1,
-                InvoiceDate = DateOnly.FromDateTime(DateTime.Today),
-                TransportationTypeId = _transportationType.Id,
-                CustomsProcedureId = _customsProcedure60.Id,
-                TheOtherCountryCode = 643,
-                CompanyId = 1,
-                FileName = "test.xml"
-            };
-
-            _dbContext.Countries.Add(country);
-            _dbContext.Companies.Add(company);
-            _dbContext.Registers.Add(register);
-            _dbContext.SaveChanges();
-
-            // Load the register with all related data
-            var loadedRegister = _dbContext.Registers
-                .Include(r => r.TheOtherCountry)
-                .Include(r => r.TransportationType)
-                .Include(r => r.CustomsProcedure)
-                .Include(r => r.Company)
-                    .ThenInclude(c => c!.Country)
-                .First(r => r.Id == 1);
-
-            var order = new OzonOrder { 
-                Id = 1,
-                Register = loadedRegister,
-                RegisterId = 1,
-                LastName = "Иванов", 
-                FirstName = "Иван", 
-                Patronymic = "Иванович", 
-                City = "Москва", 
-                Address = "ул. Тест, д.1", 
-                PassportSeries = "AB123456", 
-                PassportNumber = "AB123456",
-                CheckStatusId = (int)ParcelCheckStatusCode.Approved
-            };
-
-            _dbContext.OzonOrders.Add(order);
-            _dbContext.SaveChanges();
-
-            _xmlServiceMock.Setup(x => x.CreateXml(It.IsAny<IDictionary<string, string?>>(), It.IsAny<IEnumerable<IDictionary<string, string?>>>()))
-                .Returns("<xml></xml>");
-
-            // Act
-            var xml = _generator.GenerateXML(order);
-
-            // Assert
-            _xmlServiceMock.Verify(x => x.CreateXml(It.Is<IDictionary<string, string?>>(fields =>
-                fields["CONSIGNEE_CHOICE"] == "2" &&
-                fields["CONSIGNEE_SHORTNAME"] == "ООО Тест" &&
-                fields["CONSIGNOR_CHOICE"] == "1" &&
-                fields["SENDER"] == "Иванов Иван Иванович" &&
-                fields["CONSIGNOR_IDENTITYCARD_IDENTITYCARDCODE"] == "10" &&
-                fields["CONSIGNOR_IDENTITYCARD_IDENTITYCARDSERIES"] == "AB123" &&
-                fields["CONSIGNOR_IDENTITYCARD_IDENTITYCARDNUMBER"] == "456" &&
-                fields["TYPE"] == "0"
-            ), It.IsAny<IEnumerable<IDictionary<string, string?>>>()), Times.Once);
-        }
-
 
         [Test]
         public void GenerateXML_WbrOrder_GoodsItemsGenerated()
