@@ -82,7 +82,7 @@ internal static class ExcelColorParser
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine($"Failed to convert indexed color: {ex}");
+                logger.LogError(ex, "Failed to convert indexed color");
             }
         }
 
