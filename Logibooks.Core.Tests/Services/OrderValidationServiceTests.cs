@@ -91,7 +91,7 @@ public class OrderValidationServiceTests
         Assert.That(ctx.Set<BaseOrderStopWord>().Count(), Is.EqualTo(1));
         var link = ctx.Set<BaseOrderStopWord>().Single();
         Assert.That(link.StopWordId, Is.EqualTo(2));
-        Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)OrderCheckStatusCode.HasIssues));
+        Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)ParcelCheckStatusCode.HasIssues));
     }
 
     [Test]
@@ -109,7 +109,7 @@ public class OrderValidationServiceTests
         await svc.ValidateAsync(order, morphologyContext, stopWordsContext);
 
         Assert.That(ctx.Set<BaseOrderStopWord>().Any(), Is.False);
-        Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)OrderCheckStatusCode.NoIssues));
+        Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)ParcelCheckStatusCode.NoIssues));
     }
 
     [Test]
@@ -127,7 +127,7 @@ public class OrderValidationServiceTests
         await svc.ValidateAsync(order, morphologyContext, stopWordsContext);
 
         Assert.That(ctx.Set<BaseOrderStopWord>().Single().StopWordId, Is.EqualTo(5));
-        Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)OrderCheckStatusCode.HasIssues));
+        Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)ParcelCheckStatusCode.HasIssues));
     }
 
     [Test]
@@ -148,7 +148,7 @@ public class OrderValidationServiceTests
 
         var link = ctx.Set<BaseOrderStopWord>().Single();
         Assert.That(link.StopWordId, Is.EqualTo(7));
-        Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)OrderCheckStatusCode.HasIssues));
+        Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)ParcelCheckStatusCode.HasIssues));
     }
 
     [Test]
@@ -178,7 +178,7 @@ public class OrderValidationServiceTests
 
         Assert.That(links.Count, Is.EqualTo(2), "Should find exactly 2 matches");
         Assert.That(foundIds, Is.EquivalentTo(new[] { 10, 20 }), "Should find both exact and morphology matches");
-        Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)OrderCheckStatusCode.HasIssues));
+        Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)ParcelCheckStatusCode.HasIssues));
     }
 
     [Test]
@@ -210,7 +210,35 @@ public class OrderValidationServiceTests
 
         Assert.That(links.Count, Is.EqualTo(1), "Should replace existing links");
         Assert.That(links.Single().StopWordId, Is.EqualTo(800), "Should have new link only");
-        Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)OrderCheckStatusCode.HasIssues));
+        Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)ParcelCheckStatusCode.HasIssues));
+    }
+
+    [Test]
+    public async Task ValidateAsync_SkipsMarkedByPartner()
+    {
+        using var ctx = CreateContext();
+        var order = new WbrOrder
+        {
+            Id = 1,
+            RegisterId = 1,
+            CheckStatusId = (int)ParcelCheckStatusCode.MarkedByPartner,
+            ProductName = "This is SPAM",
+            TnVed = "1234567890"
+        };
+        ctx.Orders.Add(order);
+        ctx.StopWords.Add(new StopWord { Id = 2, Word = "spam", MatchTypeId = (int)StopWordMatchTypeCode.ExactSymbols });
+        ctx.Set<BaseOrderStopWord>().Add(new BaseOrderStopWord { BaseOrderId = 1, StopWordId = 99 });
+        await ctx.SaveChangesAsync();
+
+        var svc = CreateService(ctx);
+        var stopWordsContext = svc.InitializeStopWordsContext(ctx.StopWords.ToList());
+        var morphologyContext = new MorphologyContext();
+        await svc.ValidateAsync(order, morphologyContext, stopWordsContext);
+
+        var links = ctx.Set<BaseOrderStopWord>().ToList();
+        Assert.That(links.Count, Is.EqualTo(1));
+        Assert.That(links.Single().StopWordId, Is.EqualTo(99));
+        Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)ParcelCheckStatusCode.MarkedByPartner));
     }
 
     [Test]

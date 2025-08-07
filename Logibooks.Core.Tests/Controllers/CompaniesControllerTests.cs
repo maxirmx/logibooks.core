@@ -116,39 +116,45 @@ public class CompaniesControllerTests
     {
         SetCurrentUserId(1); // Admin user
 
-        // Create three companies
-        var dto1 = new CompanyDto { Inn = "111", Kpp = "111", Name = "Ozon", ShortName = "Ozon", CountryIsoNumeric = 840, PostalCode = "p1", City = "c1", Street = "s1" };
-        var dto2 = new CompanyDto { Inn = "222", Kpp = "222", Name = "WBR", ShortName = "WBR", CountryIsoNumeric = 840, PostalCode = "p2", City = "c2", Street = "s2" };
-        var dto3 = new CompanyDto { Inn = "333", Kpp = "333", Name = "Temp", ShortName = "Temp", CountryIsoNumeric = 840, PostalCode = "p3", City = "c3", Street = "s3" };
+        // Create three companies with digit-only Ogrn
+        var dto1 = new CompanyDto { Inn = "111", Kpp = "111", Ogrn = "1234567890123", Name = "Ozon", ShortName = "Ozon", CountryIsoNumeric = 840, PostalCode = "p1", City = "c1", Street = "s1" };
+        var dto2 = new CompanyDto { Inn = "222", Kpp = "222", Ogrn = "2345678901234", Name = "WBR", ShortName = "WBR", CountryIsoNumeric = 840, PostalCode = "p2", City = "c2", Street = "s2" };
+        var dto3 = new CompanyDto { Inn = "333", Kpp = "333", Ogrn = "3456789012345", Name = "Temp", ShortName = "Temp", CountryIsoNumeric = 840, PostalCode = "p3", City = "c3", Street = "s3" };
 
         // Add first company
         var created1 = await _controller.PostCompany(dto1);
         var createdDto1 = (created1.Result as CreatedAtActionResult)!.Value as CompanyDto;
         Assert.That(createdDto1!.Id, Is.EqualTo(1));
+        Assert.That(createdDto1.Ogrn, Is.EqualTo("1234567890123"));
 
         // Add second company
         var created2 = await _controller.PostCompany(dto2);
         var createdDto2 = (created2.Result as CreatedAtActionResult)!.Value as CompanyDto;
         Assert.That(createdDto2!.Id, Is.EqualTo(2));
+        Assert.That(createdDto2.Ogrn, Is.EqualTo("2345678901234"));
 
         // Add third company
         var created3 = await _controller.PostCompany(dto3);
         var createdDto3 = (created3.Result as CreatedAtActionResult)!.Value as CompanyDto;
         Assert.That(createdDto3!.Id, Is.EqualTo(3));
+        Assert.That(createdDto3.Ogrn, Is.EqualTo("3456789012345"));
 
         // Test GET for company with ID 1
         var get = await _controller.GetCompany(1);
         Assert.That(get.Value!.Name, Is.EqualTo("Ozon"));
+        Assert.That(get.Value!.Ogrn, Is.EqualTo("1234567890123"));
 
         // Test PUT for company with ID 1
         dto1.Id = 1;
         dto1.Name = "Ozon Updated";
+        dto1.Ogrn = "9876543210123";
         var update = await _controller.PutCompany(1, dto1);
         Assert.That(update, Is.TypeOf<NoContentResult>());
 
         // Verify the update was successful
         var updated = await _controller.GetCompany(1);
         Assert.That(updated.Value!.Name, Is.EqualTo("Ozon Updated"));
+        Assert.That(updated.Value!.Ogrn, Is.EqualTo("9876543210123"));
 
         // Verify all companies are in the list
         var list = await _controller.GetCompanies();
@@ -300,5 +306,38 @@ public class CompaniesControllerTests
         Assert.That(res, Is.TypeOf<ObjectResult>());
         var obj = res as ObjectResult;
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status409Conflict));
+    }
+
+    [Test]
+    public async Task PutCompany_ReturnsNotFound_WhenCompanyMissing()
+    {
+        SetCurrentUserId(1); // Admin
+        var dto = new CompanyDto { Id = 999, Inn = "i", Kpp = "k", Name = "n", ShortName = "sn", CountryIsoNumeric = 840, PostalCode = "p", City = "c", Street = "s" };
+        var res = await _controller.PutCompany(999, dto);
+        Assert.That(res, Is.TypeOf<ObjectResult>());
+        var obj = res as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+    }
+
+    [Test]
+    public async Task PutCompany_ReturnsBadRequest_WhenIdMismatch()
+    {
+        SetCurrentUserId(1); // Admin
+        var comp = new Company { Inn = "i", Kpp = "k", Name = "n", ShortName = "sn", CountryIsoNumeric = 840, PostalCode = "p", City = "c", Street = "s" };
+        _dbContext.Companies.Add(comp);
+        await _dbContext.SaveChangesAsync();
+        var dto = new CompanyDto(comp) { Id = comp.Id + 1 };
+        var res = await _controller.PutCompany(comp.Id, dto);
+        Assert.That(res, Is.TypeOf<BadRequestResult>());
+    }
+
+    [Test]
+    public async Task DeleteCompany_ReturnsNotFound_WhenCompanyMissing()
+    {
+        SetCurrentUserId(1); // Admin
+        var res = await _controller.DeleteCompany(999);
+        Assert.That(res, Is.TypeOf<ObjectResult>());
+        var obj = res as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
     }
 }

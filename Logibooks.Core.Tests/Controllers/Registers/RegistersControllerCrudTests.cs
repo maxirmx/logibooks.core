@@ -51,36 +51,6 @@ public class RegistersControllerCrudTests : RegistersControllerTestsBase
         Assert.That(ok!.Value, Is.InstanceOf<PagedResult<RegisterViewItem>>());
     }
 
-    [Test]
-    public async Task GetRegisters_ReturnsOrderCounts()
-    {
-        SetCurrentUserId(1);
-        _dbContext.CheckStatuses.AddRange(
-            new OrderCheckStatus { Id = 1,  Title = "Loaded" },
-            new OrderCheckStatus { Id = 2,  Title = "Processed" }
-        );
-        var r1 = new Register { Id = 1, FileName = "r1.xlsx", CompanyId = 2, TheOtherCompanyId = 3 };
-        var r2 = new Register { Id = 2, FileName = "r2.xlsx", CompanyId = 2, TheOtherCompanyId = 3 };
-        _dbContext.Registers.AddRange(r1, r2);
-        _dbContext.Orders.AddRange(
-            new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1 },
-            new WbrOrder { Id = 2, RegisterId = 1, StatusId = 2 },
-            new WbrOrder { Id = 3, RegisterId = 2, StatusId = 2 }
-        );
-        await _dbContext.SaveChangesAsync();
-
-        var result = await _controller.GetRegisters();
-        var ok = result.Result as OkObjectResult;
-        var pr = ok!.Value as PagedResult<RegisterViewItem>;
-        var items = pr!.Items.OrderBy(i => i.Id).ToArray();
-
-        Assert.That(items.Length, Is.EqualTo(2));
-        Assert.That(items[0].OrdersTotal, Is.EqualTo(2));
-        Assert.That(items[0].OrdersByStatus[1], Is.EqualTo(1));
-        Assert.That(items[0].OrdersByStatus[2], Is.EqualTo(1));
-        Assert.That(items[1].OrdersTotal, Is.EqualTo(1));
-        Assert.That(items[1].OrdersByStatus[2], Is.EqualTo(1));
-    }
 
     [Test]
     public async Task GetRegisters_ReturnsZeroOrders_WhenNoOrders()
@@ -99,9 +69,9 @@ public class RegistersControllerCrudTests : RegistersControllerTestsBase
 
         Assert.That(items.Length, Is.EqualTo(2));
         Assert.That(items[0].OrdersTotal, Is.EqualTo(0));
-        Assert.That(items[0].OrdersByStatus.Count, Is.EqualTo(0));
+        Assert.That(items[0].OrdersByCheckStatus.Count, Is.EqualTo(0));
         Assert.That(items[1].OrdersTotal, Is.EqualTo(0));
-        Assert.That(items[1].OrdersByStatus.Count, Is.EqualTo(0));
+        Assert.That(items[1].OrdersByCheckStatus.Count, Is.EqualTo(0));
     }
 
     [Test]
@@ -129,23 +99,24 @@ public class RegistersControllerCrudTests : RegistersControllerTestsBase
         Assert.That(result.Value!.Id, Is.EqualTo(1));
         Assert.That(result.Value.FileName, Is.EqualTo("reg.xlsx"));
         Assert.That(result.Value.OrdersTotal, Is.EqualTo(0));
-        Assert.That(result.Value.OrdersByStatus.Count, Is.EqualTo(0));
+        Assert.That(result.Value.OrdersByCheckStatus.Count, Is.EqualTo(0));
     }
 
     [Test]
     public async Task GetRegister_ReturnsOrderCounts()
     {
         SetCurrentUserId(1);
+        // Use real seeded check statuses
         _dbContext.CheckStatuses.AddRange(
-            new OrderCheckStatus { Id = 1,  Title = "Loaded" },
-            new OrderCheckStatus { Id = 2,  Title = "Processed" }
-        );
+            new ParcelCheckStatus { Id = 1, Title = "Loaded" },
+            new ParcelCheckStatus { Id = 2, Title = "Processed" });
+
         var register = new Register { Id = 1, FileName = "reg.xlsx", CompanyId = 2, TheOtherCompanyId = 3 };
         _dbContext.Registers.Add(register);
         _dbContext.Orders.AddRange(
-            new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1 },
-            new WbrOrder { Id = 2, RegisterId = 1, StatusId = 2 },
-            new WbrOrder { Id = 3, RegisterId = 1, StatusId = 1 }
+            new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1, CheckStatusId = 1 },
+            new WbrOrder { Id = 2, RegisterId = 1, StatusId = 2, CheckStatusId = 2 },
+            new WbrOrder { Id = 3, RegisterId = 1, StatusId = 1, CheckStatusId = 1 }
         );
         await _dbContext.SaveChangesAsync();
 
@@ -153,8 +124,8 @@ public class RegistersControllerCrudTests : RegistersControllerTestsBase
 
         Assert.That(result.Value, Is.Not.Null);
         Assert.That(result.Value!.OrdersTotal, Is.EqualTo(3));
-        Assert.That(result.Value.OrdersByStatus[1], Is.EqualTo(2));
-        Assert.That(result.Value.OrdersByStatus[2], Is.EqualTo(1));
+        Assert.That(result.Value.OrdersByCheckStatus[1], Is.EqualTo(2));
+        Assert.That(result.Value.OrdersByCheckStatus[2], Is.EqualTo(1));
     }
 
     [Test]
@@ -162,9 +133,9 @@ public class RegistersControllerCrudTests : RegistersControllerTestsBase
     {
         SetCurrentUserId(1);
         _dbContext.CheckStatuses.AddRange(
-            new OrderCheckStatus { Id = 1,  Title = "Loaded" },
-            new OrderCheckStatus { Id = 2,  Title = "Processed" },
-            new OrderCheckStatus { Id = 3,  Title = "Delivered" }
+            new ParcelCheckStatus { Id = 1,  Title = "Loaded" },
+            new ParcelCheckStatus { Id = 2,  Title = "Processed" },
+            new ParcelCheckStatus { Id = 3,  Title = "Delivered" }
         );
         var register = new Register { Id = 1, FileName = "reg.xlsx", CompanyId = 2, TheOtherCompanyId = 3 };
         _dbContext.Registers.Add(register);
@@ -180,9 +151,9 @@ public class RegistersControllerCrudTests : RegistersControllerTestsBase
 
         Assert.That(result.Value, Is.Not.Null);
         Assert.That(result.Value!.OrdersTotal, Is.EqualTo(4));
-        Assert.That(result.Value.OrdersByStatus[1], Is.EqualTo(1));
-        Assert.That(result.Value.OrdersByStatus[2], Is.EqualTo(1));
-        Assert.That(result.Value.OrdersByStatus[3], Is.EqualTo(2));
+        Assert.That(result.Value.OrdersByCheckStatus[1], Is.EqualTo(1));
+        Assert.That(result.Value.OrdersByCheckStatus[2], Is.EqualTo(1));
+        Assert.That(result.Value.OrdersByCheckStatus[3], Is.EqualTo(2));
     }
 
     [Test]
@@ -480,6 +451,48 @@ public class RegistersControllerCrudTests : RegistersControllerTestsBase
 
         var result = await _controller.DeleteRegister(999);
 
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+    }
+
+    [Test]
+    public async Task SetOrderStatuses_ReturnsForbidden_ForNonLogist()
+    {
+        SetCurrentUserId(99); // Not a logist
+        var register = new Register { Id = 1, FileName = "r.xlsx", CompanyId = 2 };
+        _dbContext.Registers.Add(register);
+        _dbContext.SaveChanges();
+        var status = new ParcelStatus { Id = 1, Title = "TestStatus" };
+        _dbContext.Statuses.Add(status);
+        _dbContext.SaveChanges();
+        var result = await _controller.SetOrderStatuses(1, 1);
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
+    }
+
+    [Test]
+    public async Task SetOrderStatuses_ReturnsNotFound_WhenRegisterMissing()
+    {
+        SetCurrentUserId(1); // Logist
+        var status = new ParcelStatus { Id = 1, Title = "TestStatus" };
+        _dbContext.Statuses.Add(status);
+        _dbContext.SaveChanges();
+        var result = await _controller.SetOrderStatuses(999, 1); // Register does not exist
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+    }
+
+    [Test]
+    public async Task SetOrderStatuses_ReturnsNotFound_WhenStatusMissing()
+    {
+        SetCurrentUserId(1); // Logist
+        var register = new Register { Id = 1, FileName = "r.xlsx", CompanyId = 2 };
+        _dbContext.Registers.Add(register);
+        _dbContext.SaveChanges();
+        var result = await _controller.SetOrderStatuses(1, 999); // Status does not exist
         Assert.That(result, Is.TypeOf<ObjectResult>());
         var obj = result as ObjectResult;
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));

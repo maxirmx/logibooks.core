@@ -79,6 +79,9 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
         }
 
         var table = dataSet.Tables[0];
+        using var colorStream = new MemoryStream(content);
+        using var colorWorkbook = new XLWorkbook(colorStream);
+        var worksheet = colorWorkbook.Worksheet(1);
         var headerRow = table.Rows[0];
         var columnMap = new Dictionary<int, string>();
         for (int c = 0; c < table.Columns.Count; c++)
@@ -113,13 +116,13 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
         // Create orders based on company type
         if (isWbr)
         {
-            var orders = CreateWbrOrders(table, register.Id, columnMap);
+            var orders = CreateWbrOrders(table, register.Id, columnMap, worksheet);
             _db.Orders.AddRange(orders);
             count = orders.Count;
         }
         else // Ozon
         {
-            var orders = CreateOzonOrders(table, register.Id, columnMap);
+            var orders = CreateOzonOrders(table, register.Id, columnMap, worksheet);
             _db.Orders.AddRange(orders);
             count = orders.Count;
         }
@@ -154,6 +157,7 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
         {
             orders = await _db.WbrOrders.AsNoTracking()
                 .Where(o => o.RegisterId == registerId)
+                .OrderBy(o => o.Id)
                 .Cast<BaseOrder>()
                 .ToListAsync(cancellationToken);
         }
@@ -161,12 +165,13 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
         {
             orders = await _db.OzonOrders.AsNoTracking()
                 .Where(o => o.RegisterId == registerId)
+                .OrderBy(o => o.Id)
                 .Cast<BaseOrder>()
                 .ToListAsync(cancellationToken);
         }
 
         using var wb = new XLWorkbook();
-        var ws = wb.Worksheets.Add("register");
+        var ws = wb.Worksheets.Add("Реестр");
 
         for (int i = 0; i < headers.Count; i++)
         {
@@ -194,7 +199,7 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
                 string cellValue = string.Empty;
                 if (val is DateOnly dOnly)
                 {
-                    cellValue = dOnly.ToString("yyyy-MM-dd", RussianCulture);
+                    cellValue = dOnly.ToString("dd.MM.yyyy", RussianCulture);
                 }
                 else if (val is DateTime dt)
                 {
@@ -207,14 +212,29 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
                 ws.Cell(row, c + 1).Value = cellValue;
             }
 
-            if (baseOrder.CheckStatusId >= (int)OrderCheckStatusCode.HasIssues &&
-                baseOrder.CheckStatusId < (int)OrderCheckStatusCode.NoIssues)
+            if (baseOrder.CheckStatusId == (int)ParcelCheckStatusCode.MarkedByPartner)
+            {
+                if (baseOrder.PartnerColor != 0)
+                {
+                    ws.Row(row).Style.Fill.BackgroundColor = baseOrder.PartnerColorXL;
+                }
+            }
+            else if (baseOrder.CheckStatusId >= (int)ParcelCheckStatusCode.HasIssues &&
+                     baseOrder.CheckStatusId < (int)ParcelCheckStatusCode.NoIssues)
             {
                 ws.Row(row).Style.Fill.BackgroundColor = XLColor.Red;
             }
 
             row++;
         }
+
+        var dataRange = ws.Range(1, 1, row - 1, headers.Count);
+        dataRange.SetAutoFilter();
+        ws.SheetView.FreezeRows(1);
+
+        ws.Columns().AdjustToContents(5.0, 30.0);
+        const double rowHeight = 15.0; // Height in points (1 row ≈ 15 points)
+        ws.Rows().Height = rowHeight;
 
         using var ms = new MemoryStream();
         wb.SaveAs(ms);
@@ -270,7 +290,7 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
         }
     }
 
-    private List<WbrOrder> CreateWbrOrders(System.Data.DataTable table, int registerId, Dictionary<int, string> columnMap)
+    private List<WbrOrder> CreateWbrOrders(System.Data.DataTable table, int registerId, Dictionary<int, string> columnMap, IXLWorksheet worksheet)
     {
         var orders = new List<WbrOrder>();
         var orderType = typeof(WbrOrder);
@@ -327,13 +347,24 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
                     }
                 }
             }
+
+            var (hasColor, rowColor) = ExcelColorParser.GetRowColor(worksheet, r + 1, _logger);
+            if (hasColor)
+            {
+                order.CheckStatusId = (int)ParcelCheckStatusCode.MarkedByPartner;
+                if (rowColor is not null)
+                {
+                    order.PartnerColorXL = rowColor;
+                }
+            }
+
             if (order.CountryCode != 0) orders.Add(order);
         }
 
         return orders;
     }
 
-    private List<OzonOrder> CreateOzonOrders(System.Data.DataTable table, int registerId, Dictionary<int, string> columnMap)
+    private List<OzonOrder> CreateOzonOrders(System.Data.DataTable table, int registerId, Dictionary<int, string> columnMap, IXLWorksheet worksheet)
     {
         var orders = new List<OzonOrder>();
         var orderType = typeof(OzonOrder);
@@ -390,11 +421,23 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
                     }
                 }
             }
+
+            var (hasColor, rowColor) = ExcelColorParser.GetRowColor(worksheet, r + 1, _logger);
+            if (hasColor)
+            {
+                order.CheckStatusId = (int)ParcelCheckStatusCode.MarkedByPartner;
+                if (rowColor is not null)
+                {
+                    order.PartnerColorXL = rowColor;
+                }
+            }
+
             if (order.CountryCode != 0) orders.Add(order);
         }
 
         return orders;
     }
+
 
     private object? ConvertValueToPropertyType(string? value, Type propertyType, string propertyName)
     {

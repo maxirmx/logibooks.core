@@ -514,9 +514,15 @@ public class RegistersController(
             return _404Status(statusId);
         }
 
-        await _db.Orders
-            .Where(o => o.RegisterId == id)
-            .ExecuteUpdateAsync(s => s.SetProperty(o => o.StatusId, statusId));
+        // Update orders in memory instead of using ExecuteUpdateAsync
+        var ordersToUpdate = await _db.Orders
+            .Where(o => o.RegisterId == id && o.CheckStatusId != (int)ParcelCheckStatusCode.MarkedByPartner)
+            .ToListAsync();
+        foreach (var order in ordersToUpdate)
+        {
+            order.StatusId = statusId;
+        }
+        await _db.SaveChangesAsync();
 
         _logger.LogDebug("SetOrderStatuses updated register {id}", id);
         return NoContent();
@@ -604,8 +610,8 @@ public class RegistersController(
 
         IQueryable<BaseOrder> query = _db.Orders.AsNoTracking()
             .Where(o => o.RegisterId == registerId &&
-                        o.CheckStatusId >= (int)OrderCheckStatusCode.HasIssues && 
-                        o.CheckStatusId < (int)OrderCheckStatusCode.NoIssues)
+                        o.CheckStatusId >= (int)ParcelCheckStatusCode.HasIssues && 
+                        o.CheckStatusId < (int)ParcelCheckStatusCode.MarkedByPartner)
             .OrderBy(o => o.Id);
 
         var next = await query
@@ -719,15 +725,15 @@ public class RegistersController(
         var grouped = await _db.Orders
             .AsNoTracking()
             .Where(o => registerIds.Contains(o.RegisterId))
-            .GroupBy(o => new { o.RegisterId, o.StatusId })
-            .Select(g => new { g.Key.RegisterId, g.Key.StatusId, Count = g.Count() })
+            .GroupBy(o => new { o.RegisterId, o.CheckStatusId })
+            .Select(g => new { g.Key.RegisterId, g.Key.CheckStatusId, Count = g.Count() })
             .ToListAsync();
 
         return grouped
             .GroupBy(g => g.RegisterId)
             .ToDictionary(
                 g => g.Key,
-                g => g.ToDictionary(x => x.StatusId, x => x.Count));
+                g => g.Where(x => x.Count > 0).ToDictionary(x => x.CheckStatusId, x => x.Count));
     }
 
     private static IQueryable<TOrder> ApplyOrderIncludes<TOrder>(IQueryable<TOrder> query) where TOrder : BaseOrder

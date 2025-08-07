@@ -95,7 +95,9 @@ public class RegisterValidationService(
             try
             {
                 var orders = await scopedDb.Orders
-                    .Where(o => o.RegisterId == registerId && o.CheckStatusId < (int)OrderCheckStatusCode.Approved)
+                    .Where(o => o.RegisterId == registerId &&
+                                o.CheckStatusId < (int)ParcelCheckStatusCode.Approved &&
+                                o.CheckStatusId != (int)ParcelCheckStatusCode.MarkedByPartner)
                     .Select(o => o.Id)
                     .ToListAsync(process.Cts.Token);
                 process.Total = orders.Count;

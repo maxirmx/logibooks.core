@@ -111,14 +111,7 @@ public class CompaniesController(
             return _409CompanyInn(dto.Inn);
         }
 
-        company.Inn = dto.Inn;
-        company.Kpp = dto.Kpp;
-        company.Name = dto.Name;
-        company.ShortName = dto.ShortName;
-        company.CountryIsoNumeric = dto.CountryIsoNumeric;
-        company.PostalCode = dto.PostalCode;
-        company.City = dto.City;
-        company.Street = dto.Street;
+        dto.UpdateModel(company);
         try
         {
             _db.Entry(company).State = EntityState.Modified;

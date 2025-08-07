@@ -80,7 +80,7 @@ public class ParcelsController(
         // First, get the order with its register to determine the company type
         var orderWithRegister = await _db.Orders.AsNoTracking()
             .Include(o => o.Register)
-            .FirstOrDefaultAsync(o => o.Id == id);
+            .FirstOrDefaultAsync(o => o.Id == id && o.CheckStatusId != (int)ParcelCheckStatusCode.MarkedByPartner);
 
         if (orderWithRegister == null)
         {
@@ -107,7 +107,7 @@ public class ParcelsController(
                 .Include(o => o.BaseOrderFeacnPrefixes)
                     .ThenInclude(bofp => bofp.FeacnPrefix)
                         .ThenInclude(fp => fp.FeacnOrder)
-                .FirstOrDefaultAsync(o => o.Id == id);
+                .FirstOrDefaultAsync(o => o.Id == id && o.CheckStatusId != (int)ParcelCheckStatusCode.MarkedByPartner);
         }
         else if (companyId == IRegisterProcessingService.GetOzonId())
         {
@@ -117,7 +117,7 @@ public class ParcelsController(
                 .Include(o => o.BaseOrderFeacnPrefixes)
                     .ThenInclude(bofp => bofp.FeacnPrefix)
                         .ThenInclude(fp => fp.FeacnOrder)
-                .FirstOrDefaultAsync(o => o.Id == id);
+                .FirstOrDefaultAsync(o => o.Id == id && o.CheckStatusId != (int)ParcelCheckStatusCode.MarkedByPartner);
         }
 
         if (order == null)
@@ -126,9 +126,16 @@ public class ParcelsController(
             return _404Order(id);
         }
 
+        var lastView = await _db.ParcelViews
+            .Where(v => v.UserId == _curUserId && v.BaseOrderId == order.Id)
+            .OrderByDescending(v => v.DTime)
+            .FirstOrDefaultAsync();
+        var viewItem = new OrderViewItem(order);
+        viewItem.DTime = lastView?.DTime;
         _logger.LogDebug("GetOrder returning {orderType} order for companyId={cid}",
             order.GetType().Name, companyId);
-        return new OrderViewItem(order);
+
+        return viewItem;
     }
 
     [HttpPut("{id}")]
@@ -149,7 +156,7 @@ public class ParcelsController(
         // First, get the order with its register to determine the company type
         var orderWithRegister = await _db.Orders
             .Include(o => o.Register)
-            .FirstOrDefaultAsync(o => o.Id == id);
+            .FirstOrDefaultAsync(o => o.Id == id && o.CheckStatusId != (int)ParcelCheckStatusCode.MarkedByPartner);
 
         if (orderWithRegister == null)
         {
@@ -172,13 +179,13 @@ public class ParcelsController(
         {
             order = await _db.WbrOrders
                 .Include(o => o.Register)
-                .FirstOrDefaultAsync(o => o.Id == id);
+                .FirstOrDefaultAsync(o => o.Id == id && o.CheckStatusId != (int)ParcelCheckStatusCode.MarkedByPartner);
         }
         else if (companyId == IRegisterProcessingService.GetOzonId())
         {
             order = await _db.OzonOrders
                 .Include(o => o.Register)
-                .FirstOrDefaultAsync(o => o.Id == id);
+                .FirstOrDefaultAsync(o => o.Id == id && o.CheckStatusId != (int)ParcelCheckStatusCode.MarkedByPartner);
         }
 
         if (order == null)
@@ -220,7 +227,7 @@ public class ParcelsController(
         // First, get the order with its register to determine the company type
         var orderWithRegister = await _db.Orders
             .Include(o => o.Register)
-            .FirstOrDefaultAsync(o => o.Id == id);
+            .FirstOrDefaultAsync(o => o.Id == id && o.CheckStatusId != (int)ParcelCheckStatusCode.MarkedByPartner);
 
         if (orderWithRegister == null)
         {
@@ -306,7 +313,7 @@ public class ParcelsController(
                 .Include(o => o.BaseOrderFeacnPrefixes)
                     .ThenInclude(bofp => bofp.FeacnPrefix)
                         .ThenInclude(fp => fp.FeacnOrder)
-                .Where(o => o.RegisterId == registerId);
+                .Where(o => o.RegisterId == registerId && o.CheckStatusId != (int)ParcelCheckStatusCode.MarkedByPartner);
 
             if (statusId != null)
             {
@@ -363,7 +370,7 @@ public class ParcelsController(
                 .Include(o => o.BaseOrderFeacnPrefixes)
                     .ThenInclude(bofp => bofp.FeacnPrefix)
                         .ThenInclude(fp => fp.FeacnOrder)
-                .Where(o => o.RegisterId == registerId);
+                .Where(o => o.RegisterId == registerId && o.CheckStatusId != (int)ParcelCheckStatusCode.MarkedByPartner);
 
             if (statusId != null)
             {
@@ -447,7 +454,8 @@ public class ParcelsController(
             return _403();
         }
 
-        var order = await _db.Orders.FindAsync(id);
+        var order = await _db.Orders
+            .FirstOrDefaultAsync(o => o.Id == id && o.CheckStatusId != (int)ParcelCheckStatusCode.MarkedByPartner);
         if (order == null)
         {
             _logger.LogDebug("ValidateOrder returning '404 Not Found'");
@@ -479,7 +487,8 @@ public class ParcelsController(
             return _403();
         }
 
-        var order = await _db.Orders.AsNoTracking().FirstOrDefaultAsync(o => o.Id == id);
+        var order = await _db.Orders.AsNoTracking()
+            .FirstOrDefaultAsync(o => o.Id == id && o.CheckStatusId != (int)ParcelCheckStatusCode.MarkedByPartner);
         if (order == null)
         {
             _logger.LogDebug("Generate returning '404 Not Found'");
@@ -506,14 +515,15 @@ public class ParcelsController(
             return _403();
         }
 
-        var order = await _db.Orders.FindAsync(id);
+        var order = await _db.Orders
+            .FirstOrDefaultAsync(o => o.Id == id && o.CheckStatusId != (int)ParcelCheckStatusCode.MarkedByPartner);
         if (order == null)
         {
             _logger.LogDebug("ApproveOrder returning '404 Not Found'");
             return _404Order(id);
         }
 
-        order.CheckStatusId = (int)OrderCheckStatusCode.Approved;
+        order.CheckStatusId = (int)ParcelCheckStatusCode.Approved;
         _db.Entry(order).State = EntityState.Modified;
         await _db.SaveChangesAsync();
 
@@ -530,7 +540,7 @@ public class ParcelsController(
         _logger.LogDebug("GetOrderStatus for shk={orderNumber}", orderNumber);
 
         var statusTitle = await _db.WbrOrders.AsNoTracking()
-            .Where(o => o.Shk == orderNumber)
+            .Where(o => o.Shk == orderNumber && o.CheckStatusId != (int)ParcelCheckStatusCode.MarkedByPartner)
             .Select(o => o.Status.Title)
             .FirstOrDefaultAsync();
 
@@ -544,8 +554,8 @@ public class ParcelsController(
     }
 
     [HttpGet("checkstatuses")]
-    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<OrderCheckStatus>))]
-    public async Task<ActionResult<IEnumerable<OrderCheckStatus>>> GetCheckStatuses()
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<ParcelCheckStatus>))]
+    public async Task<ActionResult<IEnumerable<ParcelCheckStatus>>> GetCheckStatuses()
     {
         var statuses = await _db.CheckStatuses.AsNoTracking().OrderBy(s => s.Id).ToListAsync();
         _logger.LogDebug("GetCheckStatuses returning {count} items", statuses.Count);
@@ -553,6 +563,7 @@ public class ParcelsController(
     }
 
 }
+
 
 
 

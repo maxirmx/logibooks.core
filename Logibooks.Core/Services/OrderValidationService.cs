@@ -46,6 +46,11 @@ public class OrderValidationService(
         FeacnPrefixCheckContext? feacnContext = null,
         CancellationToken cancellationToken = default)
     {
+        if (order.CheckStatusId == (int)ParcelCheckStatusCode.MarkedByPartner)
+        {
+            return;
+        }
+
         // remove existing links for this order
         var existing1 = _db.Set<BaseOrderStopWord>().Where(l => l.BaseOrderId == order.Id);
         _db.Set<BaseOrderStopWord>().RemoveRange(existing1);
@@ -56,12 +61,12 @@ public class OrderValidationService(
 
         if (string.IsNullOrWhiteSpace(order.TnVed) || !TnVedRegex.IsMatch(order.TnVed))
         {
-            order.CheckStatusId = (int)OrderCheckStatusCode.InvalidFeacnFormat; 
+            order.CheckStatusId = (int)ParcelCheckStatusCode.InvalidFeacnFormat; 
             await _db.SaveChangesAsync(cancellationToken);
             return;
         }
 
-        order.CheckStatusId = (int)OrderCheckStatusCode.NotChecked;
+        order.CheckStatusId = (int)ParcelCheckStatusCode.NotChecked;
         await _db.SaveChangesAsync(cancellationToken);
 
         var productName = order.ProductName ?? string.Empty;
@@ -81,11 +86,11 @@ public class OrderValidationService(
         }
         if (links1.Count > 0 || links2.Any())
         {
-            order.CheckStatusId = (int)OrderCheckStatusCode.HasIssues;
+            order.CheckStatusId = (int)ParcelCheckStatusCode.HasIssues;
         }
         else
         {
-            order.CheckStatusId = (int)OrderCheckStatusCode.NoIssues;
+            order.CheckStatusId = (int)ParcelCheckStatusCode.NoIssues;
         }
         await _db.SaveChangesAsync(cancellationToken);
     }

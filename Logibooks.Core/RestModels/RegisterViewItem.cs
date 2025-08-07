@@ -41,9 +41,8 @@ public class RegisterViewItem
     public int TransportationTypeId { get; set; }
     public int CustomsProcedureId { get; set; }
     public int OrdersTotal { get; set; }
-    public Dictionary<int, int> OrdersByStatus { get; set; } = new();
+    public Dictionary<int, int> OrdersByCheckStatus { get; set; } = new();
 
-    // Added for sorting by reference fields
     [JsonIgnore]
     public string CompanyShortName { get; set; } = string.Empty;
     [JsonIgnore]

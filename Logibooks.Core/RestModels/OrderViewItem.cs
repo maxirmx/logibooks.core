@@ -61,7 +61,7 @@ public class OrderViewItem
     public string? OzonId { get; set; }
     public List<int> StopWordIds { get; set; } = [];
     public List<int> FeacnOrderIds { get; set; } = [];
-    public Timestamp? LastView { get; set; } = null;
+    public DateTime? DTime { get; set; }
 
     public OrderViewItem(BaseOrder order)
     {

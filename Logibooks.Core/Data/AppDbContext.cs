@@ -36,8 +36,8 @@ namespace Logibooks.Core.Data
         public DbSet<Role> Roles => Set<Role>();
         public DbSet<UserRole> UserRoles => Set<UserRole>();
         public DbSet<Register> Registers => Set<Register>();
-        public DbSet<OrderStatus> Statuses => Set<OrderStatus>();
-        public DbSet<OrderCheckStatus> CheckStatuses => Set<OrderCheckStatus>();
+        public DbSet<ParcelStatus> Statuses => Set<ParcelStatus>();
+        public DbSet<ParcelCheckStatus> CheckStatuses => Set<ParcelCheckStatus>();
         public DbSet<BaseOrder> Orders => Set<BaseOrder>();
         public DbSet<WbrOrder> WbrOrders => Set<WbrOrder>();
         public DbSet<OzonOrder> OzonOrders => Set<OzonOrder>();
@@ -52,6 +52,7 @@ namespace Logibooks.Core.Data
         public DbSet<BaseOrderFeacnPrefix> BaseOrderFeacnPrefixes => Set<BaseOrderFeacnPrefix>();
         public DbSet<TransportationType> TransportationTypes => Set<TransportationType>();
         public DbSet<ParcelView> ParcelViews => Set<ParcelView>();
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -88,6 +89,18 @@ namespace Logibooks.Core.Data
             modelBuilder.Entity<User>()
                 .HasIndex(u => u.Email)
                 .IsUnique();
+
+            modelBuilder.Entity<ParcelView>()
+                .HasOne(pv => pv.User)
+                .WithMany()
+                .HasForeignKey(pv => pv.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ParcelView>()
+                .HasOne(pv => pv.BaseOrder)
+                .WithMany()
+                .HasForeignKey(pv => pv.BaseOrderId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<Register>()
                 .HasOne(o => o.Company)
@@ -196,17 +209,18 @@ namespace Logibooks.Core.Data
                 new Role { Id = 2, Name = "administrator", Title = "Администратор" }
             );
 
-            modelBuilder.Entity<OrderStatus>().HasData(
-                new OrderStatus { Id = 1, Title = "Не известен" }
+            modelBuilder.Entity<ParcelStatus>().HasData(
+                new ParcelStatus { Id = 1, Title = "Не известен" }
             );
 
-            modelBuilder.Entity<OrderCheckStatus>().HasData(
-                new OrderCheckStatus { Id = 1, Title = "Не проверен" },
-                new OrderCheckStatus { Id = 101, Title = "Запрет" },
-                new OrderCheckStatus { Id = 102, Title = "Неправильный формат ТН ВЭД" },
-                new OrderCheckStatus { Id = 103, Title = "Несуществующий ТН ВЭД" },
-                new OrderCheckStatus { Id = 201, Title = "Ок" },
-                new OrderCheckStatus { Id = 301, Title = "Согласовано" }
+            modelBuilder.Entity<ParcelCheckStatus>().HasData(
+                new ParcelCheckStatus { Id = (int)ParcelCheckStatusCode.NotChecked, Title = "Не проверен" },
+                new ParcelCheckStatus { Id = (int)ParcelCheckStatusCode.HasIssues, Title = "Запрет" },
+                new ParcelCheckStatus { Id = (int)ParcelCheckStatusCode.InvalidFeacnFormat, Title = "Неправильный формат ТН ВЭД" },
+                new ParcelCheckStatus { Id = (int)ParcelCheckStatusCode.NonexistingFeacn, Title = "Несуществующий ТН ВЭД" },
+                new ParcelCheckStatus { Id = (int)ParcelCheckStatusCode.MarkedByPartner, Title = "Отмечено партнёром" },
+                new ParcelCheckStatus { Id = (int)ParcelCheckStatusCode.NoIssues, Title = "Ок" },
+                new ParcelCheckStatus { Id = (int)ParcelCheckStatusCode.Approved, Title = "Согласовано" }
             );
 
             modelBuilder.Entity<User>().HasData(

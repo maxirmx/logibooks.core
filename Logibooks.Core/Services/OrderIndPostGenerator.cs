@@ -55,19 +55,31 @@ public class OrderIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServic
                     .ThenInclude(c => c!.Country)
             .FirstOrDefaultAsync(o => o.Id == orderId);
 
-        return order == null
-            ? throw new InvalidOperationException($"Order not found [id={orderId}]")
-            : (GenerateFilename(order), GenerateXML(order));
+        if (order == null)
+            throw new InvalidOperationException($"Order not found [id={orderId}]");
+
+        // Skip if in [HasIssues, NoIssues)
+        if (order.CheckStatusId >= (int)ParcelCheckStatusCode.HasIssues && order.CheckStatusId < (int)ParcelCheckStatusCode.NoIssues)
+            throw new InvalidOperationException($"Order is not eligible for IndPost XML [id={orderId}]");
+
+        return (GenerateFilename(order), GenerateXML(order));
     }
 
     public string GenerateXML(BaseOrder order)
     {
+        // Skip if in [HasIssues, NoIssues)
+        if (order.CheckStatusId >= (int)ParcelCheckStatusCode.HasIssues && order.CheckStatusId < (int)ParcelCheckStatusCode.NoIssues)
+            throw new InvalidOperationException($"Order is not eligible for IndPost XML [id={order.Id}]");
+
         var register = order.Register!;
 
         var date = register.InvoiceDate.HasValue == true
                     ? register.InvoiceDate.Value.ToString("yyyy-MM-dd")
                     : Placeholders.NotSet;
-        var typeValue = register.TransportationType?.Code.ToString() ?? Placeholders.NotSet;
+
+        var typeValue = register.TransportationType != null
+                        ? ((int)register.TransportationType.Code).ToString()
+                        : Placeholders.NotSet;
 
         var originCountryCode = register.CustomsProcedure?.Code == 10
             ? "RU"
@@ -128,12 +140,14 @@ public class OrderIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServic
             // CONSIGNEE_ADDRESS_COUNRYNAME  так в схеме
             fields["CONSIGNEE_ADDRESS_COUNRYNAME"] = SetOrDefault(register?.Company?.Country.NameRuShort);
             fields["RFORGANIZATIONFEATURES_INN"] = SetOrDefault(register?.Company?.Inn);
+            fields["RFORGANIZATIONFEATURES_OGRN"] = SetOrDefault(register?.Company?.Ogrn);
             fields["CITY"] = SetOrDefault(register?.Company?.City);
             fields["STREETHOUSE"] = SetOrDefault(register?.Company?.Street);
 
             fields["CONSIGNOR_CHOICE"] = "1";
             fields["SENDER"] = order.GetFullName();
             fields["CONSIGNOR_IDENTITYCARD_IDENTITYCARDCODE"] = "10";
+            fields["CONSIGNOR_IDENTITYCARD_FULLIDENTITYCARDNAME"] = "Иностранный паспорт";
             fields["CONSIGNOR_IDENTITYCARD_IDENTITYCARDSERIES"] = order.GetSeries();
             fields["CONSIGNOR_IDENTITYCARD_IDENTITYCARDNUMBER"] = order.GetNumber();
             fields["CONSIGNOR_IDENTITYCARD_COUNTRYCODE"] = SetOrDefault(register?.TheOtherCountry?.IsoAlpha2);
@@ -149,13 +163,15 @@ public class OrderIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServic
         IEnumerable<BaseOrder> ordersForGoods;
         if (order is OzonOrder ozonOrder)
         {
-            ordersForGoods = _db.OzonOrders.AsNoTracking()
-                .Where(o => o.PostingNumber == ozonOrder.PostingNumber && o.RegisterId == ozonOrder.RegisterId)
-                .ToList<BaseOrder>();
+            ordersForGoods = 
+                [.. _db.OzonOrders.AsNoTracking().Where(o => o.PostingNumber == ozonOrder.PostingNumber && 
+                                                        o.RegisterId == ozonOrder.RegisterId)];
         }
         else if (order is WbrOrder wbrOrder)
         {
-            ordersForGoods = [.. _db.WbrOrders.AsNoTracking().Where(o => o.Shk == wbrOrder.Shk && o.RegisterId == wbrOrder.RegisterId)];
+            ordersForGoods = 
+                [.. _db.WbrOrders.AsNoTracking().Where(o => o.Shk == wbrOrder.Shk && 
+                                                                         o.RegisterId == wbrOrder.RegisterId)];
         }
         else
         {
@@ -212,7 +228,7 @@ public class OrderIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServic
                 .Include(o => o.Register).ThenInclude(r => r.CustomsProcedure)
                 .Include(o => o.Register).ThenInclude(r => r.Company)
                     .ThenInclude(c => c!.Country)
-                .Where(o => o.RegisterId == registerId)
+                .Where(o => o.RegisterId == registerId && !(o.CheckStatusId >= (int)ParcelCheckStatusCode.HasIssues && o.CheckStatusId < (int)ParcelCheckStatusCode.NoIssues))
                 .GroupBy(o => o.Shk)
                 .Select(g => g.First())
                 .Cast<BaseOrder>()
@@ -227,7 +243,7 @@ public class OrderIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServic
                 .Include(o => o.Register).ThenInclude(r => r.CustomsProcedure)
                 .Include(o => o.Register).ThenInclude(r => r.Company)
                     .ThenInclude(c => c!.Country)
-                .Where(o => o.RegisterId == registerId)
+                .Where(o => o.RegisterId == registerId && !(o.CheckStatusId >= (int)ParcelCheckStatusCode.HasIssues && o.CheckStatusId < (int)ParcelCheckStatusCode.NoIssues))
                 .GroupBy(o => o.PostingNumber)
                 .Select(g => g.First())
                 .Cast<BaseOrder>()
@@ -246,6 +262,10 @@ public class OrderIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServic
         {
             foreach (var order in orders)
             {
+                // Already filtered, but double check
+                if (order.CheckStatusId >= (int)ParcelCheckStatusCode.HasIssues && order.CheckStatusId < (int)ParcelCheckStatusCode.NoIssues)
+                    continue;
+
                 var entry = archive.CreateEntry($"{fileBase}_{order.GetParcelNumber()}.xml");
                 using var writer = new StreamWriter(entry.Open(), Encoding.UTF8);
                 var xml = GenerateXML(order);

@@ -44,7 +44,7 @@ using AutoMapper;
 using System.Collections.Generic;
 using Logibooks.Core.Services;
 
-namespace Logibooks.Core.Tests.Controllers;
+namespace Logibooks.Core.Tests.Controllers.Parcels;
 
 [TestFixture]
 public class ParcelsControllerTests
@@ -67,7 +67,7 @@ public class ParcelsControllerTests
     public void Setup()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseInMemoryDatabase($"parcels_controller_db_{System.Guid.NewGuid()}")
+            .UseInMemoryDatabase($"parcels_controller_db_{Guid.NewGuid()}")
             .Options;
         _dbContext = new AppDbContext(options);
 
@@ -392,6 +392,26 @@ public class ParcelsControllerTests
     }
 
     [Test]
+    public async Task GetOrders_SkipsMarkedByPartner()
+    {
+        SetCurrentUserId(1);
+        var reg = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
+        _dbContext.Registers.Add(reg);
+        _dbContext.Orders.AddRange(
+            new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1, CheckStatusId = 1 },
+            new WbrOrder { Id = 2, RegisterId = 1, StatusId = 1, CheckStatusId = (int)ParcelCheckStatusCode.MarkedByPartner }
+        );
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.GetOrders(registerId: 1);
+        var ok = result.Result as OkObjectResult;
+        var pr = ok!.Value as PagedResult<OrderViewItem>;
+
+        Assert.That(pr!.Items.Count(), Is.EqualTo(1));
+        Assert.That(pr.Items.First().Id, Is.EqualTo(1));
+    }
+
+    [Test]
     public async Task GetOrders_ReturnsForbidden_ForNonLogist()
     {
         SetCurrentUserId(99); // unknown user
@@ -439,6 +459,23 @@ public class ParcelsControllerTests
         // Create an order with a register that references a non-existent company
         var register = new Register { Id = 1, CompanyId = 999, FileName = "r.xlsx" }; // Company 999 doesn't exist
         var order = new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "A" };
+        _dbContext.Registers.Add(register);
+        _dbContext.Orders.Add(order);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.GetOrder(1);
+
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+    }
+
+    [Test]
+    public async Task GetOrder_ReturnsNotFound_ForMarkedByPartner()
+    {
+        SetCurrentUserId(1);
+        var register = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
+        var order = new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1, CheckStatusId = (int)ParcelCheckStatusCode.MarkedByPartner };
         _dbContext.Registers.Add(register);
         _dbContext.Orders.Add(order);
         await _dbContext.SaveChangesAsync();
@@ -545,7 +582,7 @@ public class ParcelsControllerTests
     public async Task GetCheckStatuses_ReturnsAllCheckStatuses()
     {
         // Arrange
-        var statuses = new List<OrderCheckStatus>
+        var statuses = new List<ParcelCheckStatus>
         {
             new() { Id = 1, Title = "Loaded" },
             new() { Id = 101, Title = "Problem" },
@@ -563,7 +600,7 @@ public class ParcelsControllerTests
         var okResult = result.Result as OkObjectResult;
         Assert.That(okResult!.Value, Is.Not.Null);
 
-        var returnedStatuses = okResult.Value as IEnumerable<OrderCheckStatus>;
+        var returnedStatuses = okResult.Value as IEnumerable<ParcelCheckStatus>;
         Assert.That(returnedStatuses, Is.Not.Null);
         Assert.That(returnedStatuses!.Count(), Is.EqualTo(3));
 
@@ -587,7 +624,7 @@ public class ParcelsControllerTests
         var okResult = result.Result as OkObjectResult;
         Assert.That(okResult!.Value, Is.Not.Null);
 
-        var returnedStatuses = okResult.Value as IEnumerable<OrderCheckStatus>;
+        var returnedStatuses = okResult.Value as IEnumerable<ParcelCheckStatus>;
         Assert.That(returnedStatuses, Is.Not.Null);
         Assert.That(returnedStatuses!.Count(), Is.EqualTo(0));
     }
@@ -596,7 +633,7 @@ public class ParcelsControllerTests
     public async Task GetCheckStatuses_OrdersStatusesByIdAscending()
     {
         // Arrange - add in non-sequential order
-        var statuses = new List<OrderCheckStatus>
+        var statuses = new List<ParcelCheckStatus>
         {
             new() { Id = 201, Title = "Verified" },
             new() { Id = 1, Title = "Loaded" },
@@ -610,7 +647,7 @@ public class ParcelsControllerTests
 
         // Assert
         var okResult = result.Result as OkObjectResult;
-        var returnedStatuses = okResult!.Value as IEnumerable<OrderCheckStatus>;
+        var returnedStatuses = okResult!.Value as IEnumerable<ParcelCheckStatus>;
         var statusList = returnedStatuses!.ToList();
 
         // Verify ordering by Id
@@ -624,9 +661,9 @@ public class ParcelsControllerTests
     {
         // Arrange - don't set any user in HttpContext
         // This ensures the method works without checking user roles
-        var statuses = new List<OrderCheckStatus>
+        var statuses = new List<ParcelCheckStatus>
         {
-            new OrderCheckStatus { Id = 1, Title = "Status" }
+            new ParcelCheckStatus { Id = 1, Title = "Status" }
         };
         _dbContext.CheckStatuses.AddRange(statuses);
         await _dbContext.SaveChangesAsync();
@@ -637,7 +674,7 @@ public class ParcelsControllerTests
         // Assert - should work without any auth checks
         Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
         var okResult = result.Result as OkObjectResult;
-        var returnedStatuses = okResult!.Value as IEnumerable<OrderCheckStatus>;
+        var returnedStatuses = okResult!.Value as IEnumerable<ParcelCheckStatus>;
         Assert.That(returnedStatuses!.Count(), Is.EqualTo(1));
     }
 
@@ -645,7 +682,7 @@ public class ParcelsControllerTests
     public async Task GetCheckStatuses_ReturnsCompleteOrderCheckStatusObjects()
     {
         // Arrange
-        var status = new OrderCheckStatus { Id = 42, Title = "Test Status" };
+        var status = new ParcelCheckStatus { Id = 42, Title = "Test Status" };
         _dbContext.CheckStatuses.Add(status);
         await _dbContext.SaveChangesAsync();
 
@@ -654,7 +691,7 @@ public class ParcelsControllerTests
 
         // Assert
         var okResult = result.Result as OkObjectResult;
-        var returnedStatuses = okResult!.Value as IEnumerable<OrderCheckStatus>;
+        var returnedStatuses = okResult!.Value as IEnumerable<ParcelCheckStatus>;
         var returnedStatus = returnedStatuses!.First();
 
         // Verify all properties are returned correctly
@@ -668,7 +705,7 @@ public class ParcelsControllerTests
         // Arrange
         var reg = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
         _dbContext.Registers.Add(reg);
-        var status = new OrderStatus { Id = 1, Title = "Test Status" };
+        var status = new ParcelStatus { Id = 1, Title = "Test Status" };
         var order = new WbrOrder { Shk = "12345678", RegisterId = 1, StatusId = 1, Status = status };
         _dbContext.Statuses.Add(status);
         _dbContext.Orders.Add(order);
@@ -698,12 +735,30 @@ public class ParcelsControllerTests
     }
 
     [Test]
+    public async Task GetOrderStatus_ReturnsNotFound_ForMarkedByPartner()
+    {
+        var reg = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
+        _dbContext.Registers.Add(reg);
+        var status = new ParcelStatus { Id = 1, Title = "Available" };
+        var order = new WbrOrder { Shk = "ABC", RegisterId = 1, StatusId = 1, Status = status, CheckStatusId = (int)ParcelCheckStatusCode.MarkedByPartner };
+        _dbContext.Statuses.Add(status);
+        _dbContext.Orders.Add(order);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.GetOrderStatus("ABC");
+
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var objResult = result.Result as ObjectResult;
+        Assert.That(objResult!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+    }
+
+    [Test]
     public async Task GetOrderStatusWorksWithoutAuthentication()
     {
         // Arrange
         var reg = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
         _dbContext.Registers.Add(reg);
-        var status = new OrderStatus { Id = 1, Title = "Available" };
+        var status = new ParcelStatus { Id = 1, Title = "Available" };
         var order = new WbrOrder { Shk = "ABC123", RegisterId = 1,  StatusId = 1, Status = status };
         _dbContext.Statuses.Add(status);
         _dbContext.Orders.Add(order);
@@ -779,6 +834,30 @@ public class ParcelsControllerTests
     {
         SetCurrentUserId(1);
         var result = await _controller.ValidateOrder(99);
+
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+        _mockValidationService.Verify(s => s.ValidateAsync(
+            It.IsAny<BaseOrder>(),
+            It.IsAny<MorphologyContext>(),
+            It.IsAny<StopWordsContext>(),
+            It.IsAny<FeacnPrefixCheckContext?>(),
+            It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Test]
+    public async Task ValidateOrder_ReturnsNotFound_ForMarkedByPartner()
+    {
+        SetCurrentUserId(1);
+        var register = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
+        var order = new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1, CheckStatusId = (int)ParcelCheckStatusCode.MarkedByPartner };
+        _dbContext.Registers.Add(register);
+        _dbContext.Orders.Add(order);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.ValidateOrder(1);
 
         Assert.That(result, Is.TypeOf<ObjectResult>());
         var obj = result as ObjectResult;
@@ -1062,7 +1141,7 @@ public class ParcelsControllerTests
         var result = await _controller.ApproveOrder(100);
         Assert.That(result, Is.TypeOf<NoContentResult>());
         var saved = await _dbContext.Orders.FindAsync(100);
-        Assert.That(saved!.CheckStatusId, Is.EqualTo((int)OrderCheckStatusCode.Approved));
+        Assert.That(saved!.CheckStatusId, Is.EqualTo((int)ParcelCheckStatusCode.Approved));
     }
 
     [Test]
@@ -1091,5 +1170,41 @@ public class ParcelsControllerTests
         Assert.That(result, Is.TypeOf<ObjectResult>());
         var obj = result as ObjectResult;
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+    }
+
+    [Test]
+    public async Task GetOrder_SetsTimestampToLatestParcelViewForUser()
+    {
+        SetCurrentUserId(1);
+        var register = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
+        var order = new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "A" };
+        _dbContext.Registers.Add(register);
+        _dbContext.Orders.Add(order);
+        await _dbContext.SaveChangesAsync();
+
+        // Add two ParcelViews for this user and order, with different timestamps
+        var pv1 = new ParcelView { UserId = 1, BaseOrderId = 1, DTime = DateTime.UtcNow.AddMinutes(-10) };
+        var pv2 = new ParcelView { UserId = 1, BaseOrderId = 1, DTime = DateTime.UtcNow.AddMinutes(-5) };
+        _dbContext.ParcelViews.AddRange(pv1, pv2);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.GetOrder(1);
+        Assert.That(result.Value, Is.Not.Null);
+        Assert.That(result.Value!.DTime, Is.EqualTo(pv2.DTime));
+    }
+
+    [Test]
+    public async Task GetOrder_SetsTimestampToNullIfNoParcelViewExists()
+    {
+        SetCurrentUserId(1);
+        var register = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
+        var order = new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "A" };
+        _dbContext.Registers.Add(register);
+        _dbContext.Orders.Add(order);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.GetOrder(1);
+        Assert.That(result.Value, Is.Not.Null);
+        Assert.That(result.Value!.DTime, Is.Null);
     }
 }

@@ -67,14 +67,15 @@ public class ParcelViewsController(
     }
 
     [HttpPut]
-    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(Reference))]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(OrderViewItem))]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    public async Task<ActionResult<Reference>> Back()
+    public async Task<ActionResult<OrderViewItem>> Back()
     {
         var items = await _db.ParcelViews
             .Where(v => v.UserId == _curUserId)
             .OrderByDescending(v => v.DTime)
             .Take(2)
+            .Include(v => v.BaseOrder)
             .ToListAsync();
 
         if (items.Count == 0)
@@ -87,9 +88,21 @@ public class ParcelViewsController(
             return NoContent();
         }
 
-        var res = new Reference { Id = items[1].BaseOrderId };
-        _db.ParcelViews.Remove(items[1]);
+        var appliedView = items[1];
+        var order = appliedView.BaseOrder;
+        if (order == null)
+        {
+            await _db.SaveChangesAsync();
+            return NoContent();
+        }
+
+        var result = new OrderViewItem(order)
+        {
+            DTime = appliedView.DTime
+        };
+
+        _db.ParcelViews.Remove(appliedView);
         await _db.SaveChangesAsync();
-        return res;
+        return Ok(result);
     }
 }
