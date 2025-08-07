@@ -32,6 +32,7 @@ public class CompanyDto
     public int Id { get; set; }
     public string Inn { get; set; } = string.Empty;
     public string Kpp { get; set; } = string.Empty;
+    public string Ogrn { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string ShortName { get; set; } = string.Empty;
     public short CountryIsoNumeric { get; set; }
@@ -45,6 +46,7 @@ public class CompanyDto
         Id = c.Id;
         Inn = c.Inn;
         Kpp = c.Kpp;
+        Ogrn = c.Ogrn;
         Name = c.Name;
         ShortName = c.ShortName;
         CountryIsoNumeric = c.CountryIsoNumeric;
@@ -60,6 +62,7 @@ public class CompanyDto
             Id = Id,
             Inn = Inn,
             Kpp = Kpp,
+            Ogrn = Ogrn,
             Name = Name,
             ShortName = ShortName,
             CountryIsoNumeric = CountryIsoNumeric,
@@ -67,5 +70,18 @@ public class CompanyDto
             City = City,
             Street = Street
         };
+    }
+
+    public void UpdateModel(Company company)
+    {
+        company.Inn = Inn;
+        company.Kpp = Kpp;
+        company.Ogrn = Ogrn;
+        company.Name = Name;
+        company.ShortName = ShortName;
+        company.CountryIsoNumeric = CountryIsoNumeric;
+        company.PostalCode = PostalCode;
+        company.City = City;
+        company.Street = Street;
     }
 }
