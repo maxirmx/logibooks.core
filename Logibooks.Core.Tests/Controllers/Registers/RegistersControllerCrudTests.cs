@@ -455,4 +455,46 @@ public class RegistersControllerCrudTests : RegistersControllerTestsBase
         var obj = result as ObjectResult;
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
     }
+
+    [Test]
+    public async Task SetOrderStatuses_ReturnsForbidden_ForNonLogist()
+    {
+        SetCurrentUserId(99); // Not a logist
+        var register = new Register { Id = 1, FileName = "r.xlsx", CompanyId = 2 };
+        _dbContext.Registers.Add(register);
+        _dbContext.SaveChanges();
+        var status = new ParcelStatus { Id = 1, Title = "TestStatus" };
+        _dbContext.Statuses.Add(status);
+        _dbContext.SaveChanges();
+        var result = await _controller.SetOrderStatuses(1, 1);
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
+    }
+
+    [Test]
+    public async Task SetOrderStatuses_ReturnsNotFound_WhenRegisterMissing()
+    {
+        SetCurrentUserId(1); // Logist
+        var status = new ParcelStatus { Id = 1, Title = "TestStatus" };
+        _dbContext.Statuses.Add(status);
+        _dbContext.SaveChanges();
+        var result = await _controller.SetOrderStatuses(999, 1); // Register does not exist
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+    }
+
+    [Test]
+    public async Task SetOrderStatuses_ReturnsNotFound_WhenStatusMissing()
+    {
+        SetCurrentUserId(1); // Logist
+        var register = new Register { Id = 1, FileName = "r.xlsx", CompanyId = 2 };
+        _dbContext.Registers.Add(register);
+        _dbContext.SaveChanges();
+        var result = await _controller.SetOrderStatuses(1, 999); // Status does not exist
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+    }
 }
