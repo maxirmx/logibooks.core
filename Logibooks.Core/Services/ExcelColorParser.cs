@@ -79,8 +79,9 @@ internal static class ExcelColorParser
                 var rgbFromIndexed = XLColor.FromColor(color.Color);
                 xLColor = rgbFromIndexed;
             }
-            catch
+            catch (Exception ex)
             {
+                Console.Error.WriteLine($"Failed to convert indexed color: {ex}");
             }
         }
 
