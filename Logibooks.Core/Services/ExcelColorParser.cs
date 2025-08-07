@@ -19,8 +19,9 @@ internal static class ExcelColorParser
                 }
             }
         }
-        catch
+        catch (Exception ex)
         {
+            Console.WriteLine($"Exception in GetRowColor: {ex}");
             return (true, null);
         }
 
