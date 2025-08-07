@@ -43,7 +43,6 @@ public class RegisterViewItem
     public int OrdersTotal { get; set; }
     public Dictionary<int, int> OrdersByStatus { get; set; } = new();
 
-    // Added for sorting by reference fields
     [JsonIgnore]
     public string CompanyShortName { get; set; } = string.Empty;
     [JsonIgnore]
