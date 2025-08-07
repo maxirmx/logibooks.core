@@ -307,4 +307,37 @@ public class CompaniesControllerTests
         var obj = res as ObjectResult;
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status409Conflict));
     }
+
+    [Test]
+    public async Task PutCompany_ReturnsNotFound_WhenCompanyMissing()
+    {
+        SetCurrentUserId(1); // Admin
+        var dto = new CompanyDto { Id = 999, Inn = "i", Kpp = "k", Name = "n", ShortName = "sn", CountryIsoNumeric = 840, PostalCode = "p", City = "c", Street = "s" };
+        var res = await _controller.PutCompany(999, dto);
+        Assert.That(res, Is.TypeOf<ObjectResult>());
+        var obj = res as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+    }
+
+    [Test]
+    public async Task PutCompany_ReturnsBadRequest_WhenIdMismatch()
+    {
+        SetCurrentUserId(1); // Admin
+        var comp = new Company { Inn = "i", Kpp = "k", Name = "n", ShortName = "sn", CountryIsoNumeric = 840, PostalCode = "p", City = "c", Street = "s" };
+        _dbContext.Companies.Add(comp);
+        await _dbContext.SaveChangesAsync();
+        var dto = new CompanyDto(comp) { Id = comp.Id + 1 };
+        var res = await _controller.PutCompany(comp.Id, dto);
+        Assert.That(res, Is.TypeOf<BadRequestResult>());
+    }
+
+    [Test]
+    public async Task DeleteCompany_ReturnsNotFound_WhenCompanyMissing()
+    {
+        SetCurrentUserId(1); // Admin
+        var res = await _controller.DeleteCompany(999);
+        Assert.That(res, Is.TypeOf<ObjectResult>());
+        var obj = res as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+    }
 }
