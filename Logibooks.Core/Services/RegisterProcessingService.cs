@@ -32,7 +32,6 @@ using Logibooks.Core.Settings;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;
 using System.Reflection;
-using System.Drawing;
 
 namespace Logibooks.Core.Services;
 
@@ -349,7 +348,7 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
                 }
             }
 
-            var (hasColor, rowColor) = GetRowColor(worksheet, r + 1, table.Columns.Count);
+            var (hasColor, rowColor) = ExcelColorParser.GetRowColor(worksheet, r + 1, table.Columns.Count);
             if (hasColor)
             {
                 order.CheckStatusId = (int)ParcelCheckStatusCode.MarkedByPartner;
@@ -423,7 +422,7 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
                 }
             }
 
-            var (hasColor, rowColor) = GetRowColor(worksheet, r + 1, table.Columns.Count);
+            var (hasColor, rowColor) = ExcelColorParser.GetRowColor(worksheet, r + 1, table.Columns.Count);
             if (hasColor)
             {
                 order.CheckStatusId = (int)ParcelCheckStatusCode.MarkedByPartner;
@@ -439,116 +438,6 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
         return orders;
     }
 
-    private static (bool hasColor, XLColor? color) GetRowColor(IXLWorksheet worksheet, int rowNumber, int columnCount)
-    {
-        try
-        {
-            // First, check if the entire row has a background color (most efficient)
-            //var rowStyle = worksheet.Row(rowNumber).Style.Fill.BackgroundColor;
-            //if (rowStyle.ColorType == XLColorType.Theme || rowStyle.ColorType == XLColorType.Indexed || rowStyle.ColorType == XLColorType.Color)
-            //{
-            //    XLColor resolvedColor = ConvertToRgbColor(rowStyle);
-            //    if (IsSignificantColor(resolvedColor))
-            //    {
-            //        return (true, resolvedColor);
-            //    }
-            //}
-
-            // If no row-level color, check individual cells (but limit the search)
-            //int maxCellsToCheck = Math.Min(columnCount, 5); // Check max 5 cells for performance
-            //for (int c = 1; c <= maxCellsToCheck; c++)
-            //{
-                var bg = worksheet.Cell(rowNumber, 1).Style.Fill.BackgroundColor;
-                if (bg.ColorType == XLColorType.Theme || bg.ColorType == XLColorType.Indexed || bg.ColorType == XLColorType.Color)
-                {
-                    XLColor resolvedColor = ConvertToRgbColor(bg);
-                    if (IsSignificantColor(resolvedColor))
-                    {
-                        return (true, resolvedColor);
-                    }
-                }
-            //}
-        }
-        catch
-        {
-            return (true, null);
-        }
-
-        return (false, null);
-    }
-
-    private static XLColor ConvertToRgbColor(XLColor color)
-    {
-        XLColor xLColor = color;
-        if (color.ColorType == XLColorType.Theme)
-        {
-            // Convert theme colors to RGB equivalents
-            var rgbColor = color.ThemeColor switch
-            {
-                XLThemeColor.Accent1 => XLColor.FromArgb(79, 129, 189),   // Blue
-                XLThemeColor.Accent2 => XLColor.FromArgb(192, 80, 77),    // Red
-                XLThemeColor.Accent3 => XLColor.FromArgb(155, 187, 89),   // Green
-                XLThemeColor.Accent4 => XLColor.FromArgb(128, 100, 162),  // Purple
-                XLThemeColor.Accent5 => XLColor.FromArgb(75, 172, 198),   // Light Blue
-                XLThemeColor.Accent6 => XLColor.FromArgb(247, 150, 70),   // Orange
-                XLThemeColor.Background1 => XLColor.White,
-                XLThemeColor.Background2 => XLColor.FromArgb(242, 242, 242),
-                XLThemeColor.Text1 => XLColor.Black,
-                XLThemeColor.Text2 => XLColor.FromArgb(68, 68, 68),
-                _ => XLColor.FromArgb(200, 200, 200) // Default gray for unknown theme colors
-            };
-
-            // Apply tint if present (simplified tint calculation)
-            if (color.ThemeTint != 0)
-            {
-                var baseColor = rgbColor.Color;
-                var tint = color.ThemeTint;
-
-                if (tint > 0)
-                {
-                    // Lighten the color
-                    var factor = 1.0 + (tint * 0.5); // Adjust multiplier as needed
-                    var r = Math.Min(255, (int)(baseColor.R * factor));
-                    var g = Math.Min(255, (int)(baseColor.G * factor));
-                    var b = Math.Min(255, (int)(baseColor.B * factor));
-                    return XLColor.FromArgb(r, g, b);
-                }
-                else
-                {
-                    // Darken the color
-                    var factor = Math.Max(0.1, 1.0 + tint); // Prevent completely black
-                    var r = Math.Max(0, (int)(baseColor.R * factor));
-                    var g = Math.Max(0, (int)(baseColor.G * factor));
-                    var b = Math.Max(0, (int)(baseColor.B * factor));
-                    return XLColor.FromArgb(r, g, b);
-                }
-            }
-
-            xLColor = rgbColor;
-        }
-        else if (color.ColorType == XLColorType.Indexed)
-        {
-            try
-            {
-                // Try to get the RGB equivalent directly from the Color property
-                var rgbFromIndexed = XLColor.FromColor(color.Color);
-                xLColor = rgbFromIndexed;
-            }
-            catch
-            {
-            }
-        }
-
-        return xLColor;
-    }
-
-    private static bool IsSignificantColor(XLColor color)
-    {
-        int argb = color.Color.ToArgb();
-        return argb != Color.White.ToArgb() &&
-               argb != Color.Empty.ToArgb() &&
-               argb != Color.Transparent.ToArgb();
-    }
 
     private object? ConvertValueToPropertyType(string? value, Type propertyType, string propertyName)
     {
