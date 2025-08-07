@@ -76,7 +76,10 @@ public class OrderIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServic
         var date = register.InvoiceDate.HasValue == true
                     ? register.InvoiceDate.Value.ToString("yyyy-MM-dd")
                     : Placeholders.NotSet;
-        var typeValue = register.TransportationType?.Code.ToString() ?? Placeholders.NotSet;
+
+        var typeValue = register.TransportationType != null
+                        ? ((int)register.TransportationType.Code).ToString()
+                        : Placeholders.NotSet;
 
         var originCountryCode = register.CustomsProcedure?.Code == 10
             ? "RU"
