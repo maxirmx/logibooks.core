@@ -40,6 +40,9 @@ public class Company
     [Column("kpp")]
     public string Kpp { get; set; } = string.Empty;
 
+    [Column("ogrn")]
+    public string Ogrn { get; set; } = string.Empty;
+
     [Column("name")]
     public string Name { get; set; } = string.Empty;
 

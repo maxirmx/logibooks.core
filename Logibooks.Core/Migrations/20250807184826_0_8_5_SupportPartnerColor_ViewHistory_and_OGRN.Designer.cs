@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Logibooks.Core.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250806223107_0_8_5_SupportPartnerColor_and_ViewHistory")]
-    partial class _0_8_5_SupportPartnerColor_and_ViewHistory
+    [Migration("20250807184826_0_8_5_SupportPartnerColor_ViewHistory_and_OGRN")]
+    partial class _0_8_5_SupportPartnerColor_ViewHistory_and_OGRN
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -146,6 +146,11 @@ namespace Logibooks.Core.Migrations
                         .HasColumnType("text")
                         .HasColumnName("name");
 
+                    b.Property<string>("Ogrn")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("ogrn");
+
                     b.Property<string>("PostalCode")
                         .IsRequired()
                         .HasColumnType("text")
@@ -179,6 +184,7 @@ namespace Logibooks.Core.Migrations
                             Inn = "7704217370",
                             Kpp = "997750001",
                             Name = "ООО \"Интернет Решения\"",
+                            Ogrn = "",
                             PostalCode = "123112",
                             ShortName = "",
                             Street = "Пресненская набережная д.10, пом.1, этаж 41, ком.6"
@@ -191,6 +197,7 @@ namespace Logibooks.Core.Migrations
                             Inn = "9714053621",
                             Kpp = "507401001",
                             Name = "",
+                            Ogrn = "",
                             PostalCode = "",
                             ShortName = "ООО \"РВБ\"",
                             Street = "Индустриальный Парк Коледино, д.6, стр.1"

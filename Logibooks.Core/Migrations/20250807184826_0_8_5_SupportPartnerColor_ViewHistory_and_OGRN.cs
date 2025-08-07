@@ -7,11 +7,18 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Logibooks.Core.Migrations
 {
     /// <inheritdoc />
-    public partial class _0_8_5_SupportPartnerColor_and_ViewHistory : Migration
+    public partial class _0_8_5_SupportPartnerColor_ViewHistory_and_OGRN : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.AddColumn<string>(
+                name: "ogrn",
+                table: "companies",
+                type: "text",
+                nullable: false,
+                defaultValue: "");
+
             migrationBuilder.AddColumn<long>(
                 name: "partner_color",
                 table: "base_orders",
@@ -51,6 +58,20 @@ namespace Logibooks.Core.Migrations
                 columns: new[] { "id", "title" },
                 values: new object[] { 200, "Отмечено партнёром" });
 
+            migrationBuilder.UpdateData(
+                table: "companies",
+                keyColumn: "id",
+                keyValue: 1,
+                column: "ogrn",
+                value: "");
+
+            migrationBuilder.UpdateData(
+                table: "companies",
+                keyColumn: "id",
+                keyValue: 2,
+                column: "ogrn",
+                value: "");
+
             migrationBuilder.CreateIndex(
                 name: "IX_parcel_views_baseorderid_userid_dtime",
                 table: "parcel_views",
@@ -72,6 +93,10 @@ namespace Logibooks.Core.Migrations
                 table: "check_statuses",
                 keyColumn: "id",
                 keyValue: 200);
+
+            migrationBuilder.DropColumn(
+                name: "ogrn",
+                table: "companies");
 
             migrationBuilder.DropColumn(
                 name: "partner_color",
