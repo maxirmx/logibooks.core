@@ -136,11 +136,11 @@ public class OrderIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServic
             fields["CONSIGNEE_CHOICE"] = "2";
             fields["CONSIGNEE_SHORTNAME"] = SetOrDefault(register?.Company?.ShortName);
             fields["CONSIGNEE_RFORGANIZATIONFEATURES_KPP"] = SetOrDefault(register?.Company?.Kpp);
+            fields["CONSIGNEE_RFORGANIZATIONFEATURES_OGRN"] = SetOrDefault(register?.Company?.Ogrn);
             fields["CONSIGNEE_ADDRESS_COUNTRYCODE"] = SetOrDefault(register?.Company?.Country.IsoAlpha2);
             // CONSIGNEE_ADDRESS_COUNRYNAME  так в схеме
             fields["CONSIGNEE_ADDRESS_COUNRYNAME"] = SetOrDefault(register?.Company?.Country.NameRuShort);
             fields["RFORGANIZATIONFEATURES_INN"] = SetOrDefault(register?.Company?.Inn);
-            fields["RFORGANIZATIONFEATURES_OGRN"] = SetOrDefault(register?.Company?.Ogrn);
             fields["CITY"] = SetOrDefault(register?.Company?.City);
             fields["STREETHOUSE"] = SetOrDefault(register?.Company?.Street);
 
