@@ -61,7 +61,7 @@ public class OrderValidationService(
 
         if (string.IsNullOrWhiteSpace(order.TnVed) || !TnVedRegex.IsMatch(order.TnVed))
         {
-            order.CheckStatusId = (int)ParcelCheckStatusCode.InvalidFeacnFormat; 
+            order.CheckStatusId = (int)ParcelCheckStatusCode.InvalidFeacnFormat;
             await _db.SaveChangesAsync(cancellationToken);
             return;
         }
@@ -71,6 +71,20 @@ public class OrderValidationService(
 
         var productName = order.ProductName ?? string.Empty;
         var links1 = SelectStopWordLinks(order.Id, productName, stopWordsContext, morphologyContext);
+
+        if (order is WbrOrder wbr && !string.IsNullOrWhiteSpace(wbr.Description))
+        {
+            var linksDesc = SelectStopWordLinks(order.Id, wbr.Description, stopWordsContext, morphologyContext);
+            // Add linksDesc to links1, keeping uniqueness by StopWordId
+            var existingIds = new HashSet<int>(links1.Select(l => l.StopWordId));
+            foreach (var link in linksDesc)
+            {
+                if (existingIds.Add(link.StopWordId))
+                {
+                    links1.Add(link);
+                }
+            }
+        }
 
         var links2 = feacnContext != null
             ? _feacnPrefixCheckService.CheckOrder(order, feacnContext)
@@ -84,6 +98,7 @@ public class OrderValidationService(
         {
             _db.AddRange(links2);
         }
+        // If stopwords found in productName or description, or feacn links found, set HasIssues
         if (links1.Count > 0 || links2.Any())
         {
             order.CheckStatusId = (int)ParcelCheckStatusCode.HasIssues;
@@ -151,7 +166,6 @@ public class OrderValidationService(
 
         return result;
     }
-
 
     public StopWordsContext InitializeStopWordsContext(IEnumerable<StopWord> exactMatchStopWords)
     {
