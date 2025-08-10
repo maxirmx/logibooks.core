@@ -48,7 +48,7 @@ builder.WebHost.ConfigureKestrel(options =>
     options.ListenAnyIP(8080);
 });
 
-builder.Services.AddAutoMapper(cfg => cfg.AddProfile<OrderMappingProfile>());
+builder.Services.AddAutoMapper(cfg => cfg.AddProfile<ParcelMappingProfile>());
 
 builder.Services
     .Configure<AppSettings>(builder.Configuration.GetSection("AppSettings"))

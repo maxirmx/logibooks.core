@@ -29,9 +29,9 @@ using Logibooks.Core.RestModels;
 
 namespace Logibooks.Core.Extensions;
 
-public class OrderMappingProfile : Profile
+public class ParcelMappingProfile : Profile
 {
-    public OrderMappingProfile()
+    public ParcelMappingProfile()
     {
         MapOrderUpdate<WbrOrder>();
         MapOrderUpdate<OzonOrder>();
