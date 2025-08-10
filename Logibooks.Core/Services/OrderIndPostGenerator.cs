@@ -124,6 +124,7 @@ public class OrderIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServic
             fields["CONSIGNOR_CHOICE"] = "2";
             fields["SENDER"] = SetOrDefault(register?.Company?.ShortName);
             fields["CONSIGNOR_RFORGANIZATIONFEATURES_KPP"] = SetOrDefault(register?.Company?.Kpp);
+            fields["CONSIGNOR_RFORGANIZATIONFEATURES_OGRN"] = SetOrDefault(register?.Company?.Ogrn);
             fields["CONSIGNOR_RFORGANIZATIONFEATURES_INN"] = SetOrDefault(register?.Company?.Inn);
             fields["CONSIGNOR_ADDRESS_POSTALCODE"] = SetOrDefault(register?.Company?.PostalCode);
             fields["CONSIGNOR_ADDRESS_CITY"] = SetOrDefault(register?.Company?.City);

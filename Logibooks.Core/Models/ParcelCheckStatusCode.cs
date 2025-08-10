@@ -30,6 +30,7 @@ public enum ParcelCheckStatusCode
     HasIssues = 101,
     InvalidFeacnFormat = 102,
     NonexistingFeacn = 103,
+    HasIssuesAtDescription = 104,
     MarkedByPartner = 200,
     NoIssues = 201,
     Approved = 301
