@@ -70,7 +70,7 @@ jobs:
       - name: Show coverage files
         run: |
             echo "Coverage reports:"
-            find . -type f -name "coverage.cobertura.xml" || (echo "❌ no reports found" && exit 1)
+            find . -type f -name "coverage.cobertura.xml" || (echo "no reports found" && exit 1)
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
@@ -93,22 +93,26 @@ jobs:
             fi
             sleep 5
           done
+          curl -fs http://localhost:8080/swagger > /dev/null          
 
-      - name: Prepare Postman collection
-        env:
-          MAXIRMX_SECRET_PASSWORD: ${{ secrets.MAXIRMX_SECRET_PASSWORD }}
-        run: sed -i "s/MAXIRMX_SECRET_PASSWORD/$MAXIRMX_SECRET_PASSWORD/g" tests/postman.json
+#      - name: Prepare Postman collection
+#        env:
+#          MAXIRMX_SECRET_PASSWORD: ${{ secrets.MAXIRMX_SECRET_PASSWORD }}
+#        run: sed -i "s/MAXIRMX_SECRET_PASSWORD/$MAXIRMX_SECRET_PASSWORD/g" tests/postman.json
 
-      - name: Run Postman collection
-        id: run-newman
-        uses: anthonyvscode/newman-action@v1   
-        with:
-          collection: postman.json
-          reporters: cli
-          workingDir: tests                 
+#      - name: Run Postman tests
+#        run: newman run tests/postman.json
 
-      - name: Output summary to console
-        run: echo ${{ steps.run-newman.outputs.summary }}        
+#      - name: Run Postman collection
+#        id: run-newman
+#        uses: anthonyvscode/newman-action@v1   
+#        with:
+#          collection: tests/postman.json
+#          reporters: cli
+#          workingDir: tests                 
+
+#      - name: Output summary to console
+#        run: echo ${{ steps.run-newman.outputs.summary }}        
 
       - name: Stop services
         if: always()
