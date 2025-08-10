@@ -7,19 +7,6 @@
 
 This is the core backend service for the Logibooks logistics system. It provides a RESTful API over a PostgreSQL database using Entity Framework Core.
 
-## Technologies
-
-- ASP.NET Core 7.0
-- PostgreSQL
-- Entity Framework Core
-- Docker & Docker Compose
-- Swagger UI (for API docs)
-
-### Default Roles
-
-- Logist (`Логист`)
-- Administrator (`Администратор`)
-
 ## Getting Started
 
 ### Prerequisites
@@ -37,18 +24,6 @@ docker-compose up --build
 
 - API: https://localhost:8081/api/sample
 - Swagger UI: https://localhost:8081/swagger
-
-The HTTPS certificate should be placed in the `https` folder next to
-`docker-compose.yml` as `aspnetapp.pfx`. This folder is mounted into the
-container and the password for the certificate is set to `changeit` in
-`docker-compose.yml`.
-
-### EF Core Migrations
-
-```bash
-dotnet ef migrations add InitialCreate --project Logibooks.Core
-dotnet ef database update --project Logibooks.Core
-```
 
 ---
 
