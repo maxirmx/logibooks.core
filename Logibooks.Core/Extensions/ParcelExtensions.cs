@@ -29,7 +29,7 @@ using Logibooks.Core.RestModels;
 
 namespace Logibooks.Core.Extensions;
 
-public static class OrderExtensions
+public static class ParcelExtensions
 {
     public static void UpdateFrom(this WbrOrder order, OrderUpdateItem updateItem, IMapper mapper)
     {

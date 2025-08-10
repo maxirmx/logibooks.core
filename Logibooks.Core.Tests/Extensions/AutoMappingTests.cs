@@ -22,7 +22,7 @@ public class AutoMapperIntegrationTests
     {
         var services = new ServiceCollection();
         services.AddLogging();
-        services.AddAutoMapper(cfg => cfg.AddProfile<OrderMappingProfile>());
+        services.AddAutoMapper(cfg => cfg.AddProfile<ParcelMappingProfile>());
         _serviceProvider = services.BuildServiceProvider();
         _mapper = _serviceProvider.GetRequiredService<IMapper>();
     }
