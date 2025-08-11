@@ -152,6 +152,10 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
         var headers = mapping.HeaderMappings.Keys.ToList();
         var propMap = mapping.HeaderMappings.ToDictionary(k => k.Key, v => v.Value);
 
+        // Build country code lookup
+        var countryAlpha2Lookup = (await _db.Countries.AsNoTracking().ToListAsync(cancellationToken))
+            .ToDictionary(c => c.IsoNumeric, c => c.IsoAlpha2 ?? string.Empty);
+
         List<BaseOrder> orders;
         if (isWbr)
         {
@@ -197,7 +201,11 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
                 }
                 object? val = prop?.GetValue(baseOrder);
                 string cellValue = string.Empty;
-                if (val is DateOnly dOnly)
+                if (propName == nameof(BaseOrder.CountryCode) && val is short countryNumeric)
+                {
+                    cellValue = countryAlpha2Lookup.TryGetValue(countryNumeric, out var alpha2) ? alpha2 : countryNumeric.ToString();
+                }
+                else if (val is DateOnly dOnly)
                 {
                     cellValue = dOnly.ToString("dd.MM.yyyy", RussianCulture);
                 }
