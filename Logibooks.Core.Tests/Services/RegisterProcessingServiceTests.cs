@@ -465,4 +465,67 @@ public class DownloadRegisterTests
             "0208022828-0010-1"
         }));
     }
+
+    [Test]
+    public async Task DownloadRegister_WritesAlpha2CountryCode()
+    {
+        // Arrange: Use country already created in Setup
+        var country = _dbContext.Countries.First(c => c.IsoNumeric == 860);
+
+        var oRegister = new Register { FileName = "oreg.xlsx", CompanyId = _service.GetOzonId() };
+        var wRegister = new Register { FileName = "wreg.xlsx", CompanyId = _service.GetWBRId() };
+        _dbContext.Registers.Add(oRegister);
+        _dbContext.Registers.Add(wRegister);
+        await _dbContext.SaveChangesAsync();
+
+        var wOrder = new WbrOrder
+        {
+            RegisterId = wRegister.Id,
+            CountryCode = country.IsoNumeric,
+            ProductName = "Test",
+            TnVed = "12345678",
+            StatusId = 1,
+            CheckStatusId = 1
+        };
+        _dbContext.WbrOrders.Add(wOrder);
+
+        var oOrder = new OzonOrder
+        {
+            RegisterId = oRegister.Id,
+            CountryCode = country.IsoNumeric,
+            ProductName = "Test",
+            TnVed = "12345678",
+            StatusId = 1,
+            CheckStatusId = 1
+        };
+        _dbContext.OzonOrders.Add(oOrder);
+
+        await _dbContext.SaveChangesAsync();
+
+        // Act: Download Excel
+        foreach (int c in new[] { wRegister.Id, oRegister.Id })
+        {
+            var bytes = await _service.DownloadRegisterToExcelAsync(c);
+            System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+            using var ms = new MemoryStream(bytes);
+            using var reader = ExcelReaderFactory.CreateReader(ms);
+            var ds = reader.AsDataSet();
+            var table = ds.Tables[0];
+
+            // Find the CountryCode column index
+            int countryCol = -1;
+            for (int i = 0; i < table.Columns.Count; i++)
+            {
+                if (table.Rows[0][i]?.ToString()?.ToLowerInvariant().Contains("страна") == true)
+                {
+                    countryCol = i;
+                    break;
+                }
+            }
+            Assert.That(countryCol, Is.GreaterThanOrEqualTo(0), "CountryCode column not found");
+            // Assert: The cell contains the alpha2 code
+            var cellValue = table.Rows[1][countryCol]?.ToString();
+            Assert.That(cellValue, Is.EqualTo("UZ"));
+        }
+    }
 }
