@@ -1,4 +1,4 @@
-namespace Logibooks.Core.Services;
+namespace Logibooks.Core.Interfaces;
 
 using Logibooks.Core.RestModels;
 

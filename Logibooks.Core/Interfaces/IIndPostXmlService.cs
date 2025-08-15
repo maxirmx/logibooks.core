@@ -12,7 +12,7 @@
 // documentation and/or other materials provided with the distribution.
 //
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-// 'AS IS' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+//'AS IS' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
 // TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
 // PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR CONTRIBUTORS
 // BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -23,28 +23,9 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-using Logibooks.Core.Models;
+namespace Logibooks.Core.Interfaces;
 
-namespace Logibooks.Core.Services;
-
-public enum MorphologySupportLevel
+public interface IIndPostXmlService
 {
-    NoSupport,
-    FormsSupport,
-    FullSupport
-}
-
-
-
-public interface IMorphologySearchService
-{
-    MorphologyContext InitializeContext(IEnumerable<StopWord> stopWords);
-    IEnumerable<int> CheckText(MorphologyContext context, string text);
-    MorphologySupportLevel CheckWord(string word);
-}
-
-public class MorphologyContext
-{
-    internal Dictionary<string, HashSet<int>> NormalForms { get; } = new();
-    internal Dictionary<Pullenti.Semantic.Utils.DerivateGroup, HashSet<int>> Groups { get; } = new();
+    string CreateXml(IDictionary<string, string?> fields, IEnumerable<IDictionary<string, string?>> goodsItems);
 }

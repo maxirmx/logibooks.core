@@ -39,6 +39,7 @@ using Logibooks.Core.Controllers;
 using Logibooks.Core.Data;
 using Logibooks.Core.Models;
 using Logibooks.Core.Services;
+using Logibooks.Core.Interfaces;
 
 namespace Logibooks.Core.Tests.Controllers.Registers;
 

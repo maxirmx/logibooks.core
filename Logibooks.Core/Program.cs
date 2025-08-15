@@ -33,6 +33,7 @@ using Logibooks.Core.Settings;
 using Logibooks.Core.Services;
 using Logibooks.Core.Filters;
 using Quartz;
+using Logibooks.Core.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 var config = builder.Configuration;

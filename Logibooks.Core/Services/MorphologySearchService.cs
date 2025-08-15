@@ -31,6 +31,7 @@ using System.Linq;
 using Pullenti.Morph;
 using Pullenti.Semantic.Utils;
 using Logibooks.Core.Models;
+using Logibooks.Core.Interfaces;
 
 public class MorphologySearchService : IMorphologySearchService
 {

@@ -40,7 +40,8 @@ using Logibooks.Core.Models;
 using Logibooks.Core.RestModels;
 using Logibooks.Core.Services;
 using System.Collections.Generic;
-using MorphologySupportLevel = Logibooks.Core.Services.MorphologySupportLevel;
+using MorphologySupportLevel = Logibooks.Core.Interfaces.MorphologySupportLevel;
+using Logibooks.Core.Interfaces;
 
 namespace Logibooks.Core.Tests.Controllers;
 

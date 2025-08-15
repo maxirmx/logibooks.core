@@ -36,6 +36,7 @@ using Logibooks.Core.Models;
 using Logibooks.Core.Services;
 using Logibooks.Core.Constants;
 using Logibooks.Core.Data;
+using Logibooks.Core.Interfaces;
 
 namespace Logibooks.Core.Tests.Services
 {

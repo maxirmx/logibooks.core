@@ -12,7 +12,7 @@
 // documentation and/or other materials provided with the distribution.
 //
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-// 'AS IS' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+//'AS IS' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
 // TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
 // PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR CONTRIBUTORS
 // BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -23,13 +23,10 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-using Logibooks.Core.RestModels;
+namespace Logibooks.Core.Interfaces;
 
-namespace Logibooks.Core.Services;
-
-public interface IRegisterValidationService
+public interface IOrderIndPostGenerator
 {
-    Task<Guid> StartValidationAsync(int registerId, CancellationToken cancellationToken = default);
-    ValidationProgress? GetProgress(Guid handleId);
-    bool CancelValidation(Guid handleId);
+    Task<(string, string)> GenerateXML(int orderId);
+    Task<(string, byte[])> GenerateXML4R(int registerId);
 }

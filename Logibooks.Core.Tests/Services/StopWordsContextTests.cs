@@ -29,6 +29,7 @@ using System.Linq;
 
 using Logibooks.Core.Models;
 using Logibooks.Core.Services;
+using Logibooks.Core.Interfaces;
 
 namespace Logibooks.Core.Tests.Services;
 

@@ -43,6 +43,7 @@ using Logibooks.Core.RestModels;
 using AutoMapper;
 using System.Collections.Generic;
 using Logibooks.Core.Services;
+using Logibooks.Core.Interfaces;
 
 namespace Logibooks.Core.Tests.Controllers.Parcels;
 

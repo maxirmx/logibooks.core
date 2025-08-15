@@ -23,9 +23,27 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-namespace Logibooks.Core.Services;
+using Logibooks.Core.Models;
+using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
+[assembly: InternalsVisibleTo("Logibooks.Core.Tests")]
 
-public interface IIndPostXmlService
+namespace Logibooks.Core.Interfaces;
+
+public interface IOrderValidationService
 {
-    string CreateXml(IDictionary<string, string?> fields, IEnumerable<IDictionary<string, string?>> goodsItems);
+    Task ValidateAsync(BaseOrder order,
+        MorphologyContext morphologyContext,
+        StopWordsContext stopWordsContext,
+        FeacnPrefixCheckContext? feacnContext = null,
+        CancellationToken cancellationToken = default);
+
+    StopWordsContext InitializeStopWordsContext(IEnumerable<StopWord> exactMatchStopWords);
+}
+
+public class StopWordsContext
+{
+    internal List<StopWord> ExactSymbolsMatchItems { get; } = [];
+    internal List<(StopWord sw, Regex regex)> ExactWordRegexes { get; } = [];
+    internal List<(StopWord sw, Regex regex)> PhraseRegexes { get; } = [];
 }

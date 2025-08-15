@@ -33,7 +33,7 @@ using Logibooks.Core.Data;
 using Logibooks.Core.Extensions;
 using Logibooks.Core.Models;
 using Logibooks.Core.RestModels;
-using Logibooks.Core.Services;
+using Logibooks.Core.Interfaces;
 
 namespace Logibooks.Core.Controllers;
 

@@ -37,6 +37,7 @@ using Logibooks.Core.Models;
 using Logibooks.Core.Services;
 using System;
 using System.Threading;
+using Logibooks.Core.Interfaces;
 
 namespace Logibooks.Core.Tests.Controllers;
 

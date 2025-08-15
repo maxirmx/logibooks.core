@@ -29,6 +29,7 @@ using Microsoft.EntityFrameworkCore;
 using Logibooks.Core.Data;
 using Logibooks.Core.Models;
 using Logibooks.Core.RestModels;
+using Logibooks.Core.Interfaces;
 
 namespace Logibooks.Core.Services;
 

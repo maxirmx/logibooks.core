@@ -26,6 +26,7 @@
 using ClosedXML.Excel;
 using ExcelDataReader;
 using Logibooks.Core.Data;
+using Logibooks.Core.Interfaces;
 using Logibooks.Core.Models;
 using Logibooks.Core.RestModels;
 using Logibooks.Core.Settings;
