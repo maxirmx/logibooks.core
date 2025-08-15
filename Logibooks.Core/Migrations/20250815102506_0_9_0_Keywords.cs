@@ -17,12 +17,12 @@ namespace Logibooks.Core.Migrations
                 name: "FK_stop_words_stop_word_match_types_match_type_id",
                 table: "stop_words");
 
-            // Rename the existing table instead of dropping and recreating
+            // Rename the table instead of dropping and recreating
             migrationBuilder.RenameTable(
                 name: "stop_word_match_types",
                 newName: "word_match_types");
 
-            // Fix the typo in the existing data
+            // Update the data with the typo fix
             migrationBuilder.UpdateData(
                 table: "word_match_types",
                 keyColumn: "id",
@@ -94,20 +94,6 @@ namespace Logibooks.Core.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
-            migrationBuilder.UpdateData(
-                table: "transportation_types",
-                keyColumn: "id",
-                keyValue: 1,
-                column: "name",
-                value: "AWB");
-
-            migrationBuilder.UpdateData(
-                table: "transportation_types",
-                keyColumn: "id",
-                keyValue: 2,
-                column: "name",
-                value: "CMR");
-
             migrationBuilder.CreateIndex(
                 name: "IX_base_order_key_words_key_word_id",
                 table: "base_order_key_words",
@@ -154,33 +140,11 @@ namespace Logibooks.Core.Migrations
             migrationBuilder.DropTable(
                 name: "feacn_codes");
 
-            // Revert the typo fix
-            migrationBuilder.UpdateData(
-                table: "word_match_types",
-                keyColumn: "id",
-                keyValue: 1,
-                column: "name",
-                value: "Точная последовательность букв, цифр и проблелов");
-
-            // Rename the table back to its original name
+            // Rename the table back to original name
             migrationBuilder.RenameTable(
                 name: "word_match_types",
                 newName: "stop_word_match_types");
 
-
-            migrationBuilder.UpdateData(
-                table: "transportation_types",
-                keyColumn: "id",
-                keyValue: 1,
-                column: "name",
-                value: "Авиа");
-
-            migrationBuilder.UpdateData(
-                table: "transportation_types",
-                keyColumn: "id",
-                keyValue: 2,
-                column: "name",
-                value: "Авто");
 
             migrationBuilder.AddForeignKey(
                 name: "FK_stop_words_stop_word_match_types_match_type_id",

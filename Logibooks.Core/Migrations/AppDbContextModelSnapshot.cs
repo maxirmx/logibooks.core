@@ -786,13 +786,13 @@ namespace Logibooks.Core.Migrations
                         {
                             Id = 1,
                             Code = 0m,
-                            Name = "AWB"
+                            Name = "Авиа"
                         },
                         new
                         {
                             Id = 2,
                             Code = 1m,
-                            Name = "CMR"
+                            Name = "Авто"
                         });
                 });
 
@@ -1408,7 +1408,7 @@ namespace Logibooks.Core.Migrations
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("Logibooks.Core.Models.WordMatchType", "MatchType")
-                        .WithMany()
+                        .WithMany("KeyWords")
                         .HasForeignKey("MatchTypeId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -1601,6 +1601,8 @@ namespace Logibooks.Core.Migrations
 
             modelBuilder.Entity("Logibooks.Core.Models.WordMatchType", b =>
                 {
+                    b.Navigation("KeyWords");
+
                     b.Navigation("StopWords");
                 });
 #pragma warning restore 612, 618

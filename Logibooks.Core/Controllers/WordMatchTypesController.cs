@@ -29,8 +29,6 @@ using Microsoft.EntityFrameworkCore;
 using Logibooks.Core.Authorization;
 using Logibooks.Core.Data;
 using Logibooks.Core.RestModels;
-using Logibooks.Core.Services;
-using Logibooks.Core.Models;
 
 namespace Logibooks.Core.Controllers;
 
