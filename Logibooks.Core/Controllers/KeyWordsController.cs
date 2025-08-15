@@ -68,7 +68,7 @@ public class KeyWordsController(
     [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(KeyWordDto))]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status409Conflict, Type = typeof(ErrMessage))]
-    public async Task<ActionResult<KeyWordDto>> PostKeyWord(KeyWordDto dto)
+    public async Task<ActionResult<KeyWordDto>> CreateKeyWord(KeyWordDto dto)
     {
         if (!await _userService.CheckAdmin(_curUserId)) return _403();
 
@@ -87,7 +87,7 @@ public class KeyWordsController(
         }
         catch (DbUpdateException ex) when (ex.InnerException?.Message?.Contains("IX_key_words_word") == true)
         {
-            _logger.LogDebug("PostKeyWord returning '409 Conflict' due to database constraint");
+            _logger.LogDebug("CreateKeyWord returning '409 Conflict' due to database constraint");
             return _409KeyWord(dto.Word);
         }
     }
@@ -97,7 +97,7 @@ public class KeyWordsController(
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status409Conflict, Type = typeof(ErrMessage))]
-    public async Task<IActionResult> PutKeyWord(int id, KeyWordDto dto)
+    public async Task<IActionResult> UpdateKeyWord(int id, KeyWordDto dto)
     {
         if (!await _userService.CheckAdmin(_curUserId)) return _403();
         if (id != dto.Id) return BadRequest();
@@ -123,7 +123,7 @@ public class KeyWordsController(
         }
         catch (DbUpdateException ex) when (ex.InnerException?.Message?.Contains("IX_key_words_word") == true)
         {
-            _logger.LogDebug("PutKeyWord returning '409 Conflict' due to database constraint");
+            _logger.LogDebug("UpdateKeyWord returning '409 Conflict' due to database constraint");
             return _409KeyWord(dto.Word);
         }
     }
