@@ -81,5 +81,45 @@ public class KeywordsProcessingServiceTests
             () => _service.UploadKeywordsFromExcelAsync(content, "bad.xlsx"));
         Assert.That(ex!.Message, Does.Contain("должен содержать ровно 10 цифр"));
     }
+
+    [Test]
+    public void UploadKeywordsFromExcelAsync_EmptyExcel_Throws()
+    {
+        using var wb = new XLWorkbook();
+        var ws = wb.Worksheets.Add("Лист1");
+        using var ms = new MemoryStream();
+        wb.SaveAs(ms);
+        var content = ms.ToArray();
+        var ex = Assert.ThrowsAsync<InvalidOperationException>(
+            () => _service.UploadKeywordsFromExcelAsync(content, "empty.xlsx"));
+        Assert.That(ex!.Message, Does.Contain("Файл не содержит данных"));
+    }
+
+    [Test]
+    public void UploadKeywordsFromExcelAsync_MissingColumns_Throws()
+    {
+        using var wb = new XLWorkbook();
+        var ws = wb.Worksheets.Add("Лист1");
+        ws.Cell(1, 1).Value = "wrong1";
+        ws.Cell(1, 2).Value = "wrong2";
+        ws.Cell(2, 1).Value = "1234567890";
+        ws.Cell(2, 2).Value = "товар";
+        using var ms = new MemoryStream();
+        wb.SaveAs(ms);
+        var content = ms.ToArray();
+        var ex = Assert.ThrowsAsync<InvalidOperationException>(
+            () => _service.UploadKeywordsFromExcelAsync(content, "missingcols.xlsx"));
+        Assert.That(ex!.Message, Does.Contain("Не найдены столбцы"));
+    }
+
+    [Test]
+    public void UploadKeywordsFromExcelAsync_InvalidExcel_ThrowsWrapped()
+    {
+        // Pass random bytes to simulate corrupted/invalid Excel
+        var content = new byte[] { 1, 2, 3, 4, 5 };
+        var ex = Assert.ThrowsAsync<InvalidOperationException>(
+            () => _service.UploadKeywordsFromExcelAsync(content, "invalid.xlsx"));
+        Assert.That(ex!.Message, Does.Contain("Ошибка обработки файла ключевых слов"));
+    }
 }
 

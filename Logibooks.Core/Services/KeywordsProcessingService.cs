@@ -23,14 +23,16 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+using System.Globalization;
+using System.Text.RegularExpressions;
+
+using Microsoft.EntityFrameworkCore;
+
 using ExcelDataReader;
+
 using Logibooks.Core.Data;
 using Logibooks.Core.Interfaces;
 using Logibooks.Core.Models;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Storage;
-using System.Globalization;
-using System.Text.RegularExpressions;
 
 namespace Logibooks.Core.Services;
 
@@ -39,6 +41,7 @@ public class KeywordsProcessingService(AppDbContext db, ILogger<KeywordsProcessi
     private readonly AppDbContext _db = db;
     private readonly ILogger<KeywordsProcessingService> _logger = logger;
     private static readonly CultureInfo RussianCulture = new("ru-RU");
+    private static readonly Regex TenDigitCodeRegex = new("^[\\d]{10}$", RegexOptions.Compiled);
 
     public async Task<List<KeyWord>> UploadKeywordsFromExcelAsync(
         byte[] content,
@@ -52,7 +55,7 @@ public class KeywordsProcessingService(AppDbContext db, ILogger<KeywordsProcessi
             using var reader = ExcelReaderFactory.CreateReader(ms);
             var dataSet = reader.AsDataSet();
             if (dataSet.Tables.Count == 0 || dataSet.Tables[0].Rows.Count == 0)
-                throw new InvalidOperationException("Excel файл пуст или не содержит данных");
+                throw new InvalidOperationException("Файл не содержит данных");
 
             var table = dataSet.Tables[0];
             var header = table.Rows[0];
@@ -71,7 +74,6 @@ public class KeywordsProcessingService(AppDbContext db, ILogger<KeywordsProcessi
                 throw new InvalidOperationException("Не найдены столбцы 'код' и 'наименование'");
 
             var parsed = new List<KeyWord>();
-            var regex = new Regex("^\\d{10}$");
             for (int r = 1; r < table.Rows.Count; r++)
             {
                 var code = table.Rows[r][codeCol]?.ToString()?.Trim() ?? string.Empty;
@@ -79,7 +81,7 @@ public class KeywordsProcessingService(AppDbContext db, ILogger<KeywordsProcessi
                 if (string.IsNullOrWhiteSpace(code) || string.IsNullOrWhiteSpace(name))
                     continue;
 
-                if (!regex.IsMatch(code))
+                if (!TenDigitCodeRegex.IsMatch(code))
                     throw new InvalidOperationException($"Код '{code}' в строке {r + 1} должен содержать ровно 10 цифр");
 
                 var words = name
@@ -90,7 +92,7 @@ public class KeywordsProcessingService(AppDbContext db, ILogger<KeywordsProcessi
 
                 foreach (var word in words)
                 {
-                    int matchType = word.Contains(' ')
+                    int matchType = word.Any(char.IsWhiteSpace)
                         ? (int)WordMatchTypeCode.Phrase
                         : (int)WordMatchTypeCode.WeakMorphology;
                     parsed.Add(new KeyWord
@@ -102,37 +104,16 @@ public class KeywordsProcessingService(AppDbContext db, ILogger<KeywordsProcessi
                 }
             }
 
-            IDbContextTransaction? tx = null;
             if (_db.Database.ProviderName != "Microsoft.EntityFrameworkCore.InMemory")
-                tx = await _db.Database.BeginTransactionAsync(cancellationToken);
-
-            var existing = await _db.KeyWords.ToListAsync(cancellationToken);
-            var existingDict = existing.ToDictionary(k => k.Word.ToLower(RussianCulture), k => k);
-            var incomingWords = new HashSet<string>(parsed.Select(p => p.Word), StringComparer.OrdinalIgnoreCase);
-
-            foreach (var kw in parsed)
             {
-                if (existingDict.TryGetValue(kw.Word, out var existingKw))
-                {
-                    existingKw.FeacnCode = kw.FeacnCode;
-                    existingKw.MatchTypeId = kw.MatchTypeId;
-                    _db.KeyWords.Update(existingKw);
-                }
-                else
-                {
-                    _db.KeyWords.Add(kw);
-                }
-            }
-
-            foreach (var kw in existing)
-            {
-                if (!incomingWords.Contains(kw.Word))
-                    _db.KeyWords.Remove(kw);
-            }
-
-            await _db.SaveChangesAsync(cancellationToken);
-            if (tx != null)
+                await using var tx = await _db.Database.BeginTransactionAsync(cancellationToken);
+                await ProcessKeywords(parsed, cancellationToken);
                 await tx.CommitAsync(cancellationToken);
+            }
+            else
+            {
+                await ProcessKeywords(parsed, cancellationToken);
+            }
             return parsed;
         }
         catch (InvalidOperationException)
@@ -144,6 +125,35 @@ public class KeywordsProcessingService(AppDbContext db, ILogger<KeywordsProcessi
             _logger.LogError(ex, "Ошибка обработки файла {File}", fileName);
             throw new InvalidOperationException("Ошибка обработки файла ключевых слов", ex);
         }
+    }
+
+    private async Task ProcessKeywords(List<KeyWord> parsed, CancellationToken cancellationToken)
+    {
+        var existing = await _db.KeyWords.ToListAsync(cancellationToken);
+        var existingDict = existing.ToDictionary(k => k.Word.ToLower(RussianCulture), k => k);
+        var incomingWords = new HashSet<string>(parsed.Select(p => p.Word), StringComparer.OrdinalIgnoreCase);
+
+        foreach (var kw in parsed)
+        {
+            if (existingDict.TryGetValue(kw.Word, out var existingKw))
+            {
+                existingKw.FeacnCode = kw.FeacnCode;
+                existingKw.MatchTypeId = kw.MatchTypeId;
+                _db.KeyWords.Update(existingKw);
+            }
+            else
+            {
+                _db.KeyWords.Add(kw);
+            }
+        }
+
+        foreach (var kw in existing)
+        {
+            if (!incomingWords.Contains(kw.Word))
+                _db.KeyWords.Remove(kw);
+        }
+
+        await _db.SaveChangesAsync(cancellationToken);
     }
 }
 
