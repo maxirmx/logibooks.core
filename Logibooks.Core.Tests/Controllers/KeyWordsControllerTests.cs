@@ -36,6 +36,7 @@ using NUnit.Framework;
 
 using Logibooks.Core.Controllers;
 using Logibooks.Core.Data;
+using Logibooks.Core.Interfaces;
 using Logibooks.Core.Models;
 using Logibooks.Core.RestModels;
 using Logibooks.Core.Services;
