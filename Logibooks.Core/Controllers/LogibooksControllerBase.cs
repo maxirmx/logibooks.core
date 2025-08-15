@@ -141,6 +141,11 @@ public class LogibooksControllerPreBase(AppDbContext db, ILogger logger) : Contr
         return StatusCode(StatusCodes.Status409Conflict,
                           new ErrMessage { Msg = $"Стоп-слово уже существует [слово = {word}]" });
     }
+    protected ObjectResult _409KeyWord(string word)
+    {
+        return StatusCode(StatusCodes.Status409Conflict,
+                          new ErrMessage { Msg = $"Ключевое слово уже существует [слово = {word}]" });
+    }
     protected ObjectResult _500Mapping(string fname)
     {
         return StatusCode(StatusCodes.Status500InternalServerError,
