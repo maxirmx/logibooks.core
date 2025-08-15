@@ -80,6 +80,7 @@ public abstract class BaseOrder
 
     public ICollection<BaseOrderStopWord> BaseOrderStopWords { get; set; } = [];
     public ICollection<BaseOrderFeacnPrefix> BaseOrderFeacnPrefixes { get; set; } = [];
+    public ICollection<BaseOrderKeyWord> BaseOrderKeyWords { get; set; } = [];
 
     // IndPost generation API
     public abstract string GetParcelNumber();

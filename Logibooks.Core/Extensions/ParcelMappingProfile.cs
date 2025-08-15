@@ -39,7 +39,7 @@ public class ParcelMappingProfile : Profile
 
     private void MapOrderUpdate<TOrder>() where TOrder : BaseOrder
     {
-        CreateMap<OrderUpdateItem, TOrder>()
+        CreateMap<ParcelUpdateItem, TOrder>()
             .ForMember(dest => dest.Id, opt => opt.Ignore())
             .ForMember(dest => dest.RegisterId, opt => opt.Ignore())
             .ForMember(dest => dest.Register, opt => opt.Ignore())

@@ -41,7 +41,7 @@ public class StopWord
 
     [Column("match_type_id")]
     public int MatchTypeId { get; set; } = 1;
-    public StopWordMatchType MatchType { get; set; } = null!;
+    public WordMatchType MatchType { get; set; } = null!;
 
     public ICollection<BaseOrderStopWord> BaseOrderStopWords { get; set; } = new List<BaseOrderStopWord>();
 }

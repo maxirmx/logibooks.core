@@ -23,7 +23,6 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-using DocumentFormat.OpenXml.Office2010.Excel;
 using Logibooks.Core.Models;
 using Microsoft.EntityFrameworkCore;
 namespace Logibooks.Core.Data
@@ -43,7 +42,7 @@ namespace Logibooks.Core.Data
         public DbSet<OzonOrder> OzonOrders => Set<OzonOrder>();
         public DbSet<Country> Countries => Set<Country>();
         public DbSet<Company> Companies => Set<Company>();
-        public DbSet<StopWordMatchType> StopWordMatchTypes => Set<StopWordMatchType>();
+        public DbSet<WordMatchType> WordMatchTypes => Set<WordMatchType>();
         public DbSet<StopWord> StopWords => Set<StopWord>();
         public DbSet<FeacnOrder> FeacnOrders => Set<FeacnOrder>();
         public DbSet<FeacnPrefix> FeacnPrefixes => Set<FeacnPrefix>();
@@ -52,6 +51,8 @@ namespace Logibooks.Core.Data
         public DbSet<BaseOrderFeacnPrefix> BaseOrderFeacnPrefixes => Set<BaseOrderFeacnPrefix>();
         public DbSet<TransportationType> TransportationTypes => Set<TransportationType>();
         public DbSet<ParcelView> ParcelViews => Set<ParcelView>();
+        public DbSet<KeyWord> KeyWords => Set<KeyWord>();
+        public DbSet<FeacnCode> FeacnCodes => Set<FeacnCode>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -64,7 +65,7 @@ namespace Logibooks.Core.Data
                 .HasKey(cc => cc.IsoNumeric);
 
             modelBuilder.Entity<Company>()
-                .HasKey(cо => cо.Id);
+                .HasKey(co => co.Id);
 
             modelBuilder.Entity<Company>()
                 .HasOne(c => c.Country)
@@ -303,8 +304,8 @@ namespace Logibooks.Core.Data
             );
 
             modelBuilder.Entity<TransportationType>().HasData(
-                new TransportationType { Id = 1, Code = TransportationTypeCode.Avia, Name = "Авиа" },
-                new TransportationType { Id = 2, Code = TransportationTypeCode.Auto, Name = "Авто" }
+                new TransportationType { Id = 1, Code = TransportationTypeCode.Avia, Name = "AWB" },
+                new TransportationType { Id = 2, Code = TransportationTypeCode.Auto, Name = "CMR" }
             );
 
             modelBuilder.Entity<UserRole>().HasData(
@@ -366,13 +367,38 @@ namespace Logibooks.Core.Data
                 new CustomsProcedure { Id = 2, Code = 60, Name = "Реимпорт" }
             );
 
-            modelBuilder.Entity<StopWordMatchType>().HasData(
-                new StopWordMatchType { Id = (int)StopWordMatchTypeCode.ExactSymbols, Name = "Точная последовательность букв, цифр и проблелов" },
-                new StopWordMatchType { Id = (int)StopWordMatchTypeCode.ExactWord, Name = "Точное слово" },
-                new StopWordMatchType { Id = (int)StopWordMatchTypeCode.Phrase, Name = "Фраза (последовательность слов)" },
-                new StopWordMatchType { Id = (int)StopWordMatchTypeCode.WeakMorphology, Name = "Слово и его формы (Золото -> c золотом, о золоте, ...)" },
-                new StopWordMatchType { Id = (int)StopWordMatchTypeCode.StrongMorphology, Name = "Слово и однокоренные (Золото -> золотой, золотистый, ...)" }
+            modelBuilder.Entity<WordMatchType>().HasData(
+                new WordMatchType { Id = (int)WordMatchTypeCode.ExactSymbols, Name = "Точная последовательность букв, цифр и пробелов" },
+                new WordMatchType { Id = (int)WordMatchTypeCode.ExactWord, Name = "Точное слово" },
+                new WordMatchType { Id = (int)WordMatchTypeCode.Phrase, Name = "Фраза (последовательность слов)" },
+                new WordMatchType { Id = (int)WordMatchTypeCode.WeakMorphology, Name = "Слово и его формы (Золото -> c золотом, о золоте, ...)" },
+                new WordMatchType { Id = (int)WordMatchTypeCode.StrongMorphology, Name = "Слово и однокоренные (Золото -> золотой, золотистый, ...)" }
             );
+
+            modelBuilder.Entity<KeyWord>()
+                .HasOne(k => k.FeacnCode)
+                .WithMany(f => f.KeyWords)
+                .HasForeignKey(k => k.FeacnCodeId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<KeyWord>()
+                .HasOne(k => k.MatchType)
+                .WithMany(mt => mt.KeyWords)
+                .HasForeignKey(k => k.MatchTypeId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<BaseOrderKeyWord>()
+                .HasKey(bokw => new { bokw.BaseOrderId, bokw.KeyWordId });
+
+            modelBuilder.Entity<BaseOrderKeyWord>()
+                .HasOne(bokw => bokw.BaseOrder)
+                .WithMany(bo => bo.BaseOrderKeyWords)
+                .HasForeignKey(bokw => bokw.BaseOrderId);
+
+            modelBuilder.Entity<BaseOrderKeyWord>()
+                .HasOne(bokw => bokw.KeyWord)
+                .WithMany(kw => kw.BaseOrderKeyWords)
+                .HasForeignKey(bokw => bokw.KeyWordId);
         }
     }
 }

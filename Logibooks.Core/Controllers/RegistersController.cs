@@ -580,29 +580,29 @@ public class RegistersController(
         return File(archive, "application/zip", fileName);
     }
 
-    [HttpGet("nextorder/{orderId}")]
-    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(OrderViewItem))]
+    [HttpGet("nextparcel/{parcelId}")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ParcelViewItem))]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
-    public async Task<ActionResult<OrderViewItem>> NextOrder(int orderId)
+    public async Task<ActionResult<ParcelViewItem>> NextParcel(int parcelId)
     {
-        _logger.LogDebug("NextOrder for orderId={orderId}", orderId);
+        _logger.LogDebug("NextParcel for parcelId={parcelId}", parcelId);
 
         if (!await _userService.CheckLogist(_curUserId))
         {
-            _logger.LogDebug("NextOrder returning '403 Forbidden'");
+            _logger.LogDebug("NextParcel returning '403 Forbidden'");
             return _403();
         }
 
         var current = await _db.Orders.AsNoTracking()
             .Include(o => o.Register)
-            .FirstOrDefaultAsync(o => o.Id == orderId);
+            .FirstOrDefaultAsync(o => o.Id == parcelId);
 
         if (current == null)
         {
-            _logger.LogDebug("NextOrder returning '404 Not Found' - order");
-            return _404Order(orderId);
+            _logger.LogDebug("NextParcel returning '404 Not Found' - parcel");
+            return _404Order(parcelId);
         }
 
         int registerId = current.RegisterId;
@@ -615,37 +615,37 @@ public class RegistersController(
             .OrderBy(o => o.Id);
 
         var next = await query
-            .OrderBy(o => o.Id > orderId ? 0 : 1) 
+            .OrderBy(o => o.Id > parcelId ? 0 : 1) 
             .ThenBy(o => o.Id)                   
             .FirstOrDefaultAsync();
 
         if (next == null)
         {
-            _logger.LogDebug("NextOrder returning '204 No Content'");
+            _logger.LogDebug("NextParcel returning '204 No Content'");
             return NoContent();
         }
 
-        BaseOrder? order = null;
+        BaseOrder? parcel = null;
 
         if (companyId == IRegisterProcessingService.GetWBRId())
         {
-            order = await ApplyOrderIncludes(_db.WbrOrders.AsNoTracking())
+            parcel = await ApplyOrderIncludes(_db.WbrOrders.AsNoTracking())
                 .FirstOrDefaultAsync(o => o.Id == next.Id);
         }
         else if (companyId == IRegisterProcessingService.GetOzonId())
         {
-            order = await ApplyOrderIncludes(_db.OzonOrders.AsNoTracking())
+            parcel = await ApplyOrderIncludes(_db.OzonOrders.AsNoTracking())
                 .FirstOrDefaultAsync(o => o.Id == next.Id);
         }
 
-        if (order == null)
+        if (parcel == null)
         {
-            _logger.LogDebug("NextOrder returning '204 No Content' - derived order not found");
+            _logger.LogDebug("NextParcel returning '204 No Content' - derived parcel not found");
             return NoContent();
         }
 
-        _logger.LogDebug("NextOrder returning order {id}", order.Id);
-        return new OrderViewItem(order);
+        _logger.LogDebug("NextParcel returning order {id}", parcel.Id);
+        return new ParcelViewItem(parcel);
     }
 
     [HttpPost("{id}/validate")]

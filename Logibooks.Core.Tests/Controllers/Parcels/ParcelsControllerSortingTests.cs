@@ -152,7 +152,7 @@ public class ParcelsControllerSortingTests
         
         // Assert
         var okResult = result.Result as OkObjectResult;
-        var pagedResult = okResult!.Value as PagedResult<OrderViewItem>;
+        var pagedResult = okResult!.Value as PagedResult<ParcelViewItem>;
         var items = pagedResult!.Items.ToArray();
         
         Assert.That(items.Length, Is.EqualTo(3));
@@ -180,7 +180,7 @@ public class ParcelsControllerSortingTests
         
         // Assert
         var okResult = result.Result as OkObjectResult;
-        var pagedResult = okResult!.Value as PagedResult<OrderViewItem>;
+        var pagedResult = okResult!.Value as PagedResult<ParcelViewItem>;
         var items = pagedResult!.Items.ToArray();
         
         Assert.That(items.Length, Is.EqualTo(3));
@@ -208,7 +208,7 @@ public class ParcelsControllerSortingTests
         
         // Assert
         var okResult = result.Result as OkObjectResult;
-        var pagedResult = okResult!.Value as PagedResult<OrderViewItem>;
+        var pagedResult = okResult!.Value as PagedResult<ParcelViewItem>;
         var items = pagedResult!.Items.ToArray();
         
         Assert.That(items.Length, Is.EqualTo(3));
@@ -236,7 +236,7 @@ public class ParcelsControllerSortingTests
         
         // Assert
         var okResult = result.Result as OkObjectResult;
-        var pagedResult = okResult!.Value as PagedResult<OrderViewItem>;
+        var pagedResult = okResult!.Value as PagedResult<ParcelViewItem>;
         var items = pagedResult!.Items.ToArray();
         
         Assert.That(items.Length, Is.EqualTo(3));
@@ -264,7 +264,7 @@ public class ParcelsControllerSortingTests
         
         // Assert
         var okResult = result.Result as OkObjectResult;
-        var pagedResult = okResult!.Value as PagedResult<OrderViewItem>;
+        var pagedResult = okResult!.Value as PagedResult<ParcelViewItem>;
         var items = pagedResult!.Items.ToArray();
         
         Assert.That(items.Length, Is.EqualTo(3));
@@ -292,7 +292,7 @@ public class ParcelsControllerSortingTests
         
         // Assert
         var okResult = result.Result as OkObjectResult;
-        var pagedResult = okResult!.Value as PagedResult<OrderViewItem>;
+        var pagedResult = okResult!.Value as PagedResult<ParcelViewItem>;
         var items = pagedResult!.Items.ToArray();
         
         Assert.That(items.Length, Is.EqualTo(3));
@@ -324,7 +324,7 @@ public class ParcelsControllerSortingTests
         
         // Assert
         var okResult = result.Result as OkObjectResult;
-        var pagedResult = okResult!.Value as PagedResult<OrderViewItem>;
+        var pagedResult = okResult!.Value as PagedResult<ParcelViewItem>;
         var items = pagedResult!.Items.ToArray();
         
         Assert.That(items.Length, Is.EqualTo(3));
@@ -352,7 +352,7 @@ public class ParcelsControllerSortingTests
         
         // Assert
         var okResult = result.Result as OkObjectResult;
-        var pagedResult = okResult!.Value as PagedResult<OrderViewItem>;
+        var pagedResult = okResult!.Value as PagedResult<ParcelViewItem>;
         var items = pagedResult!.Items.ToArray();
         
         Assert.That(items.Length, Is.EqualTo(3));
@@ -380,7 +380,7 @@ public class ParcelsControllerSortingTests
         
         // Assert
         var okResult = result.Result as OkObjectResult;
-        var pagedResult = okResult!.Value as PagedResult<OrderViewItem>;
+        var pagedResult = okResult!.Value as PagedResult<ParcelViewItem>;
         var items = pagedResult!.Items.ToArray();
         
         Assert.That(items.Length, Is.EqualTo(3));
@@ -413,7 +413,7 @@ public class ParcelsControllerSortingTests
         
         // Assert
         var okResult = result.Result as OkObjectResult;
-        var pagedResult = okResult!.Value as PagedResult<OrderViewItem>;
+        var pagedResult = okResult!.Value as PagedResult<ParcelViewItem>;
         var items = pagedResult!.Items.ToArray();
         
         Assert.That(items.Length, Is.EqualTo(2));
@@ -442,7 +442,7 @@ public class ParcelsControllerSortingTests
         
         // Assert
         var okResult = result.Result as OkObjectResult;
-        var pagedResult = okResult!.Value as PagedResult<OrderViewItem>;
+        var pagedResult = okResult!.Value as PagedResult<ParcelViewItem>;
         var items = pagedResult!.Items.ToArray();
         
         Assert.That(items.Length, Is.EqualTo(2));
@@ -476,7 +476,7 @@ public class ParcelsControllerSortingTests
         
         // Assert
         var okResult = result.Result as OkObjectResult;
-        var pagedResult = okResult!.Value as PagedResult<OrderViewItem>;
+        var pagedResult = okResult!.Value as PagedResult<ParcelViewItem>;
         var items = pagedResult!.Items.ToArray();
         
         Assert.That(items.Length, Is.EqualTo(2));
@@ -515,7 +515,7 @@ public class ParcelsControllerSortingTests
         
         // Assert
         var okResult = result.Result as OkObjectResult;
-        var pagedResult = okResult!.Value as PagedResult<OrderViewItem>;
+        var pagedResult = okResult!.Value as PagedResult<ParcelViewItem>;
         var items = pagedResult!.Items.ToArray();
         
         Assert.That(items.Length, Is.EqualTo(5));
@@ -556,7 +556,7 @@ public class ParcelsControllerSortingTests
         
         // Assert
         var okResult = result.Result as OkObjectResult;
-        var pagedResult = okResult!.Value as PagedResult<OrderViewItem>;
+        var pagedResult = okResult!.Value as PagedResult<ParcelViewItem>;
         var items = pagedResult!.Items.ToArray();
         
         Assert.That(items.Length, Is.EqualTo(20));
@@ -590,7 +590,7 @@ public class ParcelsControllerSortingTests
         
         // Assert
         var okResult = result.Result as OkObjectResult;
-        var pagedResult = okResult!.Value as PagedResult<OrderViewItem>;
+        var pagedResult = okResult!.Value as PagedResult<ParcelViewItem>;
         var items = pagedResult!.Items.ToArray();
         
         Assert.That(pagedResult.Pagination.CurrentPage, Is.EqualTo(1)); // Should reset to page 1

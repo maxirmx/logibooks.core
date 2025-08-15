@@ -32,7 +32,7 @@ using DocumentFormat.OpenXml.InkML;
 
 namespace Logibooks.Core.RestModels;
 
-public class OrderViewItem
+public class ParcelViewItem
 {
     public int Id { get; set; }
     public int RegisterId { get; set; }
@@ -63,7 +63,7 @@ public class OrderViewItem
     public List<int> FeacnOrderIds { get; set; } = [];
     public DateTime? DTime { get; set; }
 
-    public OrderViewItem(BaseOrder order)
+    public ParcelViewItem(BaseOrder order)
     {
         Id = order.Id;
         RegisterId = order.RegisterId;

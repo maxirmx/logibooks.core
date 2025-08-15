@@ -76,12 +76,12 @@ public class StopWordsController(
     {
         if (!await _userService.CheckAdmin(_curUserId)) return _403();
 
-        if (dto.MatchTypeId >= (int)StopWordMatchTypeCode.MorphologyMatchTypes)
+        if (dto.MatchTypeId >= (int)WordMatchTypeCode.MorphologyMatchTypes)
         {
             var checkResult = _morphologySearchService.CheckWord(dto.Word);
             if (
                 checkResult == MorphologySupportLevel.NoSupport ||
-                (dto.MatchTypeId >= (int)StopWordMatchTypeCode.StrongMorphology && checkResult == MorphologySupportLevel.FormsSupport)
+                (dto.MatchTypeId >= (int)WordMatchTypeCode.StrongMorphology && checkResult == MorphologySupportLevel.FormsSupport)
             )
             {
                 return StatusCode(StatusCodes.Status418ImATeapot, new MorphologySupportLevelDto {
@@ -124,12 +124,12 @@ public class StopWordsController(
         var sw = await _db.StopWords.FindAsync(id);
         if (sw == null) return _404Object(id);
 
-        if (dto.MatchTypeId >= (int)StopWordMatchTypeCode.MorphologyMatchTypes)
+        if (dto.MatchTypeId >= (int)WordMatchTypeCode.MorphologyMatchTypes)
         {
             var checkResult = _morphologySearchService.CheckWord(dto.Word);
             if (
                 checkResult == MorphologySupportLevel.NoSupport ||
-                (dto.MatchTypeId >= (int)StopWordMatchTypeCode.StrongMorphology && checkResult == MorphologySupportLevel.FormsSupport)
+                (dto.MatchTypeId >= (int)WordMatchTypeCode.StrongMorphology && checkResult == MorphologySupportLevel.FormsSupport)
             )
             {
                 return StatusCode(StatusCodes.Status418ImATeapot, new MorphologySupportLevelDto {
@@ -174,15 +174,4 @@ public class StopWordsController(
         await _db.SaveChangesAsync();
         return NoContent();
     }
-
-    [HttpGet("matchtypes")]
-    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<StopWordMatchType>))]
-    public async Task<ActionResult<IEnumerable<StopWordMatchType>>> GetMatchTypes()
-    {
-        var matchTypes = await _db.StopWordMatchTypes.AsNoTracking().OrderBy(s => s.Id).ToListAsync();
-        _logger.LogDebug("GetMatchTypes returning {count} items", matchTypes.Count);
-        return Ok(matchTypes);
-    }
-
-
 }

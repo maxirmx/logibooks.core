@@ -1,4 +1,4 @@
-﻿// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
+// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
 // All rights reserved.
 // This file is a part of Logibooks Core application
 //
@@ -23,21 +23,28 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-using AutoMapper;
-using Logibooks.Core.Models;
-using Logibooks.Core.RestModels;
+using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations.Schema;
+using DocumentFormat.OpenXml.Wordprocessing;
 
-namespace Logibooks.Core.Extensions;
+namespace Logibooks.Core.Models;
 
-public static class ParcelExtensions
+[Table("key_words")]
+[Index(nameof(Word), IsUnique = true, Name = "IX_key_words_word")]
+public class KeyWord
 {
-    public static void UpdateFrom(this WbrOrder order, ParcelUpdateItem updateItem, IMapper mapper)
-    {
-        mapper.Map(updateItem, order);
-    }
+    [Column("id")]
+    public int Id { get; set; }
 
-    public static void UpdateFrom(this OzonOrder order, ParcelUpdateItem updateItem, IMapper mapper)
-    {
-        mapper.Map(updateItem, order);
-    }
+    [Column("word")]
+    public required string Word { get; set; } = string.Empty;
+
+    [Column("match_type_id")]
+    public int MatchTypeId { get; set; } = 1;
+    public WordMatchType MatchType { get; set; } = null!;
+
+    [Column("feacn_code_id")]
+    public int? FeacnCodeId { get; set; }
+    public FeacnCode? FeacnCode { get; set; }
+    public ICollection<BaseOrderKeyWord> BaseOrderKeyWords { get; set; } = [];
 }

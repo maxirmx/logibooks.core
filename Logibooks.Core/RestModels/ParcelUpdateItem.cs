@@ -23,28 +23,37 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+using System.Text.Json;
+using Logibooks.Core.Settings;
+
 namespace Logibooks.Core.RestModels;
 
-using Logibooks.Core.Models;
-
-public class OrderStatusDto
+public class ParcelUpdateItem
 {
-    public int Id { get; set; }
-    public string Title { get; set; } = string.Empty;
+    public int? StatusId { get; set; }
+    public string? OrderNumber { get; set; }
+    public string? Shk { get; set; }
+    public string? TnVed { get; set; }
+    public string? ProductName { get; set; }
+    public short? CountryCode { get; set; }
+    public decimal? WeightKg { get; set; }
+    public decimal? Quantity { get; set; }
+    public decimal? UnitPrice { get; set; }
+    public string? Currency { get; set; }
+    public string? ProductLink { get; set; }
+    public string? RecipientName { get; set; }
+    public string? PassportNumber { get; set; }
 
-    public OrderStatusDto() {}
-    public OrderStatusDto(ParcelStatus status)
-    {
-        Id = status.Id;
-        Title = status.Title;
-    }
+    // Ozon specific fields
+    public string? PostingNumber { get; set; }
+    public int? PlacesCount { get; set; }
+    public string? Article { get; set; }
+    public string? LastName { get; set; }
+    public string? FirstName { get; set; }
+    public string? Patronymic { get; set; }
 
-    public ParcelStatus ToModel()
+    public override string ToString()
     {
-        return new ParcelStatus
-        {
-            Id = Id,
-            Title = Title
-        };
+        return JsonSerializer.Serialize(this, JOptions.DefaultOptions);
     }
 }

@@ -47,27 +47,27 @@ public class ParcelStatusesController(
 {
     private readonly IUserInformationService _userService = userService;
     [HttpGet]
-    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<OrderStatusDto>))]
-    public async Task<ActionResult<IEnumerable<OrderStatusDto>>> GetStatuses()
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<ParcelStatusDto>))]
+    public async Task<ActionResult<IEnumerable<ParcelStatusDto>>> GetStatuses()
     {
         var statuses = await _db.Statuses.AsNoTracking().OrderBy(s => s.Id).ToListAsync();
-        return statuses.Select(s => new OrderStatusDto(s)).ToList();
+        return statuses.Select(s => new ParcelStatusDto(s)).ToList();
     }
 
     [HttpGet("{id}")]
-    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(OrderStatusDto))]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ParcelStatusDto))]
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
-    public async Task<ActionResult<OrderStatusDto>> GetStatus(int id)
+    public async Task<ActionResult<ParcelStatusDto>> GetStatus(int id)
     {
         var status = await _db.Statuses.AsNoTracking().FirstOrDefaultAsync(s => s.Id == id);
         if (status == null) return _404Object(id);
-        return new OrderStatusDto(status);
+        return new ParcelStatusDto(status);
     }
 
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(Reference))]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
-    public async Task<ActionResult<Reference>> CreateStatus(OrderStatusDto dto)
+    public async Task<ActionResult<Reference>> CreateStatus(ParcelStatusDto dto)
     {
         if (!await _userService.CheckAdmin(_curUserId)) return _403();
         var status = dto.ToModel();
@@ -81,7 +81,7 @@ public class ParcelStatusesController(
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
-    public async Task<IActionResult> UpdateStatus(int id, OrderStatusDto dto)
+    public async Task<IActionResult> UpdateStatus(int id, ParcelStatusDto dto)
     {
         if (!await _userService.CheckAdmin(_curUserId)) return _403();
         if (id != dto.Id) return BadRequest();

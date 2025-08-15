@@ -1,4 +1,4 @@
-﻿// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
+// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
 // All rights reserved.
 // This file is a part of Logibooks Core application
 //
@@ -19,25 +19,32 @@
 // CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
 // SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
 // INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE),
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-using AutoMapper;
+namespace Logibooks.Core.RestModels;
+
 using Logibooks.Core.Models;
-using Logibooks.Core.RestModels;
 
-namespace Logibooks.Core.Extensions;
-
-public static class ParcelExtensions
+public class ParcelStatusDto
 {
-    public static void UpdateFrom(this WbrOrder order, ParcelUpdateItem updateItem, IMapper mapper)
+    public int Id { get; set; }
+    public string Title { get; set; } = string.Empty;
+
+    public ParcelStatusDto() {}
+    public ParcelStatusDto(ParcelStatus status)
     {
-        mapper.Map(updateItem, order);
+        Id = status.Id;
+        Title = status.Title;
     }
 
-    public static void UpdateFrom(this OzonOrder order, ParcelUpdateItem updateItem, IMapper mapper)
+    public ParcelStatus ToModel()
     {
-        mapper.Map(updateItem, order);
+        return new ParcelStatus
+        {
+            Id = Id,
+            Title = Title
+        };
     }
 }

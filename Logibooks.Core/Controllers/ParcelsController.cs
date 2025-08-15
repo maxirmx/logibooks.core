@@ -63,10 +63,10 @@ public class ParcelsController(
     private readonly IOrderIndPostGenerator _indPostGenerator = indPostGenerator;
 
     [HttpGet("{id}")]
-    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(OrderViewItem))]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ParcelViewItem))]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
-    public async Task<ActionResult<OrderViewItem>> GetOrder(int id)
+    public async Task<ActionResult<ParcelViewItem>> GetOrder(int id)
     {
         _logger.LogDebug("GetOrder for id={id}", id);
 
@@ -130,7 +130,7 @@ public class ParcelsController(
             .Where(v => v.UserId == _curUserId && v.BaseOrderId == order.Id)
             .OrderByDescending(v => v.DTime)
             .FirstOrDefaultAsync();
-        var viewItem = new OrderViewItem(order);
+        var viewItem = new ParcelViewItem(order);
         viewItem.DTime = lastView?.DTime;
         _logger.LogDebug("GetOrder returning {orderType} order for companyId={cid}",
             order.GetType().Name, companyId);
@@ -142,7 +142,7 @@ public class ParcelsController(
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
-    public async Task<IActionResult> UpdateOrder(int id, OrderUpdateItem update)
+    public async Task<IActionResult> UpdateOrder(int id, ParcelUpdateItem update)
     {
         _logger.LogDebug("UpdateOrder for id={id}", id);
 
@@ -250,10 +250,10 @@ public class ParcelsController(
     }
 
     [HttpGet]
-    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(PagedResult<OrderViewItem>))]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(PagedResult<ParcelViewItem>))]
     [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
-    public async Task<ActionResult<PagedResult<OrderViewItem>>> GetOrders(
+    public async Task<ActionResult<PagedResult<ParcelViewItem>>> GetOrders(
         int registerId,
         int? statusId = null,
         string? tnVed = null,
@@ -419,9 +419,9 @@ public class ParcelsController(
             return _400CompanyId(register.CompanyId);
         }
 
-        var viewItems = items.Select(o => new OrderViewItem(o)).ToList();
+        var viewItems = items.Select(o => new ParcelViewItem(o)).ToList();
 
-        var result = new PagedResult<OrderViewItem>
+        var result = new PagedResult<ParcelViewItem>
         {
             Items = viewItems,
             Pagination = new PaginationInfo
@@ -464,9 +464,9 @@ public class ParcelsController(
 
         var stopWords = await _db.StopWords.AsNoTracking().ToListAsync();
         var morphologyContext = _morphologyService.InitializeContext(
-            stopWords.Where(sw => sw.MatchTypeId >= (int)StopWordMatchTypeCode.MorphologyMatchTypes));
+            stopWords.Where(sw => sw.MatchTypeId >= (int)WordMatchTypeCode.MorphologyMatchTypes));
         var stopWordsContext = _validationService.InitializeStopWordsContext(
-            stopWords.Where(sw => sw.MatchTypeId == (int)StopWordMatchTypeCode.ExactSymbols));
+            stopWords.Where(sw => sw.MatchTypeId == (int)WordMatchTypeCode.ExactSymbols));
 
         await _validationService.ValidateAsync(order, morphologyContext, stopWordsContext, null);
 

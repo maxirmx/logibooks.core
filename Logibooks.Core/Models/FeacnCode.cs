@@ -1,4 +1,4 @@
-// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
+﻿// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
 // All rights reserved.
 // This file is a part of Logibooks Core application
 //
@@ -24,19 +24,19 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Text.Json.Serialization;
 
-namespace Logibooks.Core.Models;
-
-[Table("stop_word_match_types")]
-public class StopWordMatchType
+namespace Logibooks.Core.Models
 {
-    [Column("id")]
-    public int Id { get; set; }
+    [Table("feacn_codes")]
+    public class FeacnCode
+    {
+        [Column("id")]
+        public int Id { get; set; }
 
-    [Column("name")]
-    public required string Name { get; set; }
+        [Column("code")]
+        public string Code { get; set; } = string.Empty;
 
-    [JsonIgnore]
-    public ICollection<StopWord> StopWords { get; set; } = [];
+        // Navigation property for one-to-many relationship with KeyWord
+        public ICollection<KeyWord> KeyWords { get; set; } = new List<KeyWord>();
+    }
 }

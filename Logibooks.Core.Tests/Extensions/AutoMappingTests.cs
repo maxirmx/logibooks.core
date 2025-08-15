@@ -48,7 +48,7 @@ public class AutoMapperIntegrationTests
     public void DependencyInjection_Mapping_WorksAsExpected()
     {
         // Arrange  
-        var updateItem = new OrderUpdateItem
+        var updateItem = new ParcelUpdateItem
         {
             StatusId = 5,
             OrderNumber = "DI_TEST_123"
@@ -73,7 +73,7 @@ public class AutoMapperIntegrationTests
     [Test]
     public void AutoMapper_MapsWeightKgDecimal()
     {
-        var updateItem = new OrderUpdateItem { WeightKg = 1.234m };
+        var updateItem = new ParcelUpdateItem { WeightKg = 1.234m };
         var order = new WbrOrder();
 
         _mapper.Map(updateItem, order);
@@ -84,7 +84,7 @@ public class AutoMapperIntegrationTests
     [Test]
     public void AutoMapper_MapsQuantityDecimal()
     {
-        var updateItem = new OrderUpdateItem { Quantity = 2.5m };
+        var updateItem = new ParcelUpdateItem { Quantity = 2.5m };
         var order = new WbrOrder();
 
         _mapper.Map(updateItem, order);
@@ -95,7 +95,7 @@ public class AutoMapperIntegrationTests
     [Test]
     public void AutoMapper_MapsUnitPriceDecimal()
     {
-        var updateItem = new OrderUpdateItem { UnitPrice = 3.5m };
+        var updateItem = new ParcelUpdateItem { UnitPrice = 3.5m };
         var order = new WbrOrder();
 
         _mapper.Map(updateItem, order);

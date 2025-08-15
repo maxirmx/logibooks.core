@@ -23,16 +23,18 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace Logibooks.Core.Models;
 
-public enum StopWordMatchTypeCode
+[Table("base_order_key_words")]
+public class BaseOrderKeyWord
 {
-    ExactSymbols = 1,
-    ExactWord = 11,
-    Phrase = 21,
-    MorphologyMatchTypes = 41,
-#pragma warning disable CA1069 // Enums values should not be duplicated
-    WeakMorphology = 41,
-#pragma warning restore CA1069 // Enums values should not be duplicated
-    StrongMorphology = 51
+    [Column("base_order_id")]
+    public int BaseOrderId { get; set; }
+    public BaseOrder BaseOrder { get; set; } = null!;
+
+    [Column("key_word_id")]
+    public int KeyWordId { get; set; }
+    public KeyWord KeyWord { get; set; } = null!;
 }
