@@ -52,8 +52,6 @@ namespace Logibooks.Core.Data
         public DbSet<TransportationType> TransportationTypes => Set<TransportationType>();
         public DbSet<ParcelView> ParcelViews => Set<ParcelView>();
         public DbSet<KeyWord> KeyWords => Set<KeyWord>();
-        public DbSet<FeacnCode> FeacnCodes => Set<FeacnCode>();
-
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -374,12 +372,6 @@ namespace Logibooks.Core.Data
                 new WordMatchType { Id = (int)WordMatchTypeCode.WeakMorphology, Name = "Слово и его формы (Золото -> c золотом, о золоте, ...)" },
                 new WordMatchType { Id = (int)WordMatchTypeCode.StrongMorphology, Name = "Слово и однокоренные (Золото -> золотой, золотистый, ...)" }
             );
-
-            modelBuilder.Entity<KeyWord>()
-                .HasOne(k => k.FeacnCode)
-                .WithMany(f => f.KeyWords)
-                .HasForeignKey(k => k.FeacnCodeId)
-                .OnDelete(DeleteBehavior.SetNull);
 
             modelBuilder.Entity<KeyWord>()
                 .HasOne(k => k.MatchType)

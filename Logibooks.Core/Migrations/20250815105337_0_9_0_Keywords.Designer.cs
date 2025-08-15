@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Logibooks.Core.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250815102506_0_9_0_Keywords")]
+    [Migration("20250815105337_0_9_0_Keywords")]
     partial class _0_9_0_Keywords
     {
         /// <inheritdoc />
@@ -331,25 +331,6 @@ namespace Logibooks.Core.Migrations
                         });
                 });
 
-            modelBuilder.Entity("Logibooks.Core.Models.FeacnCode", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Code")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("code");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("feacn_codes");
-                });
-
             modelBuilder.Entity("Logibooks.Core.Models.FeacnOrder", b =>
                 {
                     b.Property<int>("Id")
@@ -493,9 +474,10 @@ namespace Logibooks.Core.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<int?>("FeacnCodeId")
-                        .HasColumnType("integer")
-                        .HasColumnName("feacn_code_id");
+                    b.Property<string>("FeacnCode")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("feacn_code");
 
                     b.Property<int>("MatchTypeId")
                         .HasColumnType("integer")
@@ -507,8 +489,6 @@ namespace Logibooks.Core.Migrations
                         .HasColumnName("word");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("FeacnCodeId");
 
                     b.HasIndex("MatchTypeId");
 
@@ -1405,18 +1385,11 @@ namespace Logibooks.Core.Migrations
 
             modelBuilder.Entity("Logibooks.Core.Models.KeyWord", b =>
                 {
-                    b.HasOne("Logibooks.Core.Models.FeacnCode", "FeacnCode")
-                        .WithMany("KeyWords")
-                        .HasForeignKey("FeacnCodeId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.HasOne("Logibooks.Core.Models.WordMatchType", "MatchType")
                         .WithMany("KeyWords")
                         .HasForeignKey("MatchTypeId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("FeacnCode");
 
                     b.Navigation("MatchType");
                 });
@@ -1548,11 +1521,6 @@ namespace Logibooks.Core.Migrations
             modelBuilder.Entity("Logibooks.Core.Models.Country", b =>
                 {
                     b.Navigation("Companies");
-                });
-
-            modelBuilder.Entity("Logibooks.Core.Models.FeacnCode", b =>
-                {
-                    b.Navigation("KeyWords");
                 });
 
             modelBuilder.Entity("Logibooks.Core.Models.FeacnOrder", b =>

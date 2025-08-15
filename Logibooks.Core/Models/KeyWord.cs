@@ -43,8 +43,7 @@ public class KeyWord
     public int MatchTypeId { get; set; } = 1;
     public WordMatchType MatchType { get; set; } = null!;
 
-    [Column("feacn_code_id")]
-    public int? FeacnCodeId { get; set; }
-    public FeacnCode? FeacnCode { get; set; }
+    [Column("feacn_code")]
+    public string FeacnCode { get; set; } = string.Empty;
     public ICollection<BaseOrderKeyWord> BaseOrderKeyWords { get; set; } = [];
 }

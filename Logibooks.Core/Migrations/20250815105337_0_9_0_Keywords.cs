@@ -22,26 +22,13 @@ namespace Logibooks.Core.Migrations
                 name: "stop_word_match_types",
                 newName: "word_match_types");
 
-            // Update the data with the typo fix
+            // Update the data to fix the typo: "проблелов" -> "пробелов"
             migrationBuilder.UpdateData(
                 table: "word_match_types",
                 keyColumn: "id",
                 keyValue: 1,
                 column: "name",
                 value: "Точная последовательность букв, цифр и пробелов");
-
-            migrationBuilder.CreateTable(
-                name: "feacn_codes",
-                columns: table => new
-                {
-                    id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    code = table.Column<string>(type: "text", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_feacn_codes", x => x.id);
-                });
 
             migrationBuilder.CreateTable(
                 name: "key_words",
@@ -51,17 +38,11 @@ namespace Logibooks.Core.Migrations
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     word = table.Column<string>(type: "text", nullable: false),
                     match_type_id = table.Column<int>(type: "integer", nullable: false),
-                    feacn_code_id = table.Column<int>(type: "integer", nullable: true)
+                    feacn_code = table.Column<string>(type: "text", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_key_words", x => x.id);
-                    table.ForeignKey(
-                        name: "FK_key_words_feacn_codes_feacn_code_id",
-                        column: x => x.feacn_code_id,
-                        principalTable: "feacn_codes",
-                        principalColumn: "id",
-                        onDelete: ReferentialAction.SetNull);
                     table.ForeignKey(
                         name: "FK_key_words_word_match_types_match_type_id",
                         column: x => x.match_type_id,
@@ -100,11 +81,6 @@ namespace Logibooks.Core.Migrations
                 column: "key_word_id");
 
             migrationBuilder.CreateIndex(
-                name: "IX_key_words_feacn_code_id",
-                table: "key_words",
-                column: "feacn_code_id");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_key_words_match_type_id",
                 table: "key_words",
                 column: "match_type_id");
@@ -137,14 +113,10 @@ namespace Logibooks.Core.Migrations
             migrationBuilder.DropTable(
                 name: "key_words");
 
-            migrationBuilder.DropTable(
-                name: "feacn_codes");
-
-            // Rename the table back to original name
+            // Rename back to the original table name
             migrationBuilder.RenameTable(
                 name: "word_match_types",
                 newName: "stop_word_match_types");
-
 
             migrationBuilder.AddForeignKey(
                 name: "FK_stop_words_stop_word_match_types_match_type_id",
