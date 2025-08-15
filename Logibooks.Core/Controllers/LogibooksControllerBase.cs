@@ -71,6 +71,12 @@ public class LogibooksControllerPreBase(AppDbContext db, ILogger logger) : Contr
                           new ErrMessage() { Msg = $"Файлы формата {ext} не поддерживаются. Можно загрузить .xlsx, .xls, .zip, .rar" });
     }
 
+    protected ObjectResult _400KeyWordFile(string msg)
+    {
+        return StatusCode(StatusCodes.Status400BadRequest,
+                          new ErrMessage() { Msg = msg });
+    }
+
     protected ObjectResult _401()
     {
         return StatusCode(StatusCodes.Status401Unauthorized,
