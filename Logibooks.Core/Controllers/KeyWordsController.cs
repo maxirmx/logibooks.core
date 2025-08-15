@@ -24,6 +24,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 
 using Logibooks.Core.Authorization;
@@ -42,9 +43,11 @@ public class KeyWordsController(
     IHttpContextAccessor httpContextAccessor,
     AppDbContext db,
     IUserInformationService userService,
+    IKeywordsProcessingService processingService,
     ILogger<KeyWordsController> logger) : LogibooksControllerBase(httpContextAccessor, db, logger)
 {
     private readonly IUserInformationService _userService = userService;
+    private readonly IKeywordsProcessingService _processingService = processingService;
 
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<KeyWordDto>))]
@@ -141,5 +144,26 @@ public class KeyWordsController(
         _db.KeyWords.Remove(kw);
         await _db.SaveChangesAsync();
         return NoContent();
+    }
+
+    [HttpPost("download")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(ErrMessage))]
+    [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
+    public async Task<IActionResult> Download(IFormFile file)
+    {
+        if (!await _userService.CheckAdmin(_curUserId)) return _403();
+
+        using var ms = new MemoryStream();
+        await file.CopyToAsync(ms);
+        try
+        {
+            await _processingService.UploadKeywordsFromExcelAsync(ms.ToArray(), file.FileName);
+            return NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return _400KeyWordFile(ex.Message);
+        }
     }
 }

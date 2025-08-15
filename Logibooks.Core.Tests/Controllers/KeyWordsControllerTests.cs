@@ -30,9 +30,11 @@ using Microsoft.Extensions.Logging;
 
 using System.Linq;
 using System.Threading.Tasks;
+using System.IO;
 
 using Moq;
 using NUnit.Framework;
+using ClosedXML.Excel;
 
 using Logibooks.Core.Controllers;
 using Logibooks.Core.Data;
@@ -52,6 +54,7 @@ public class KeyWordsControllerTests
     private ILogger<KeyWordsController> _logger;
     private IUserInformationService _userService;
     private KeyWordsController _controller;
+    private IKeywordsProcessingService _keywordsProcessingService;
     private Role _adminRole;
     private Role _logistRole;
     private User _adminUser;
@@ -91,7 +94,9 @@ public class KeyWordsControllerTests
         _mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
         _logger = new LoggerFactory().CreateLogger<KeyWordsController>();
         _userService = new UserInformationService(_dbContext);
-        _controller = new KeyWordsController(_mockHttpContextAccessor.Object, _dbContext, _userService, _logger);
+        var kwLogger = new LoggerFactory().CreateLogger<KeywordsProcessingService>();
+        _keywordsProcessingService = new KeywordsProcessingService(_dbContext, kwLogger);
+        _controller = new KeyWordsController(_mockHttpContextAccessor.Object, _dbContext, _userService, _keywordsProcessingService, _logger);
     }
 
     [TearDown]
@@ -106,7 +111,7 @@ public class KeyWordsControllerTests
         var ctx = new DefaultHttpContext();
         ctx.Items["UserId"] = id;
         _mockHttpContextAccessor.Setup(x => x.HttpContext).Returns(ctx);
-        _controller = new KeyWordsController(_mockHttpContextAccessor.Object, _dbContext, _userService, _logger);
+        _controller = new KeyWordsController(_mockHttpContextAccessor.Object, _dbContext, _userService, _keywordsProcessingService, _logger);
     }
 
     [Test]
@@ -250,5 +255,72 @@ public class KeyWordsControllerTests
         Assert.That(result, Is.TypeOf<ObjectResult>());
         var obj = result as ObjectResult;
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+    }
+
+    [Test]
+    public async Task Download_UpdatesKeywords_ForAdmin()
+    {
+        SetCurrentUserId(1);
+        using var wb = new XLWorkbook();
+        var ws = wb.Worksheets.Add("Лист1");
+        ws.Cell(1, 1).Value = "код";
+        ws.Cell(1, 2).Value = "наименование";
+        ws.Cell(2, 1).Value = "1234567890";
+        ws.Cell(2, 2).Value = "товар";
+        using var ms = new MemoryStream();
+        wb.SaveAs(ms);
+        ms.Position = 0;
+        IFormFile file = new FormFile(ms, 0, ms.Length, "file", "kw.xlsx");
+
+        var result = await _controller.Download(file);
+
+        Assert.That(result, Is.TypeOf<NoContentResult>());
+        Assert.That(_dbContext.KeyWords.Count(), Is.EqualTo(1));
+    }
+
+    [Test]
+    public async Task Download_ReturnsForbidden_ForNonAdmin()
+    {
+        SetCurrentUserId(2);
+        using var wb = new XLWorkbook();
+        var ws = wb.Worksheets.Add("Лист1");
+        ws.Cell(1, 1).Value = "код";
+        ws.Cell(1, 2).Value = "наименование";
+        ws.Cell(2, 1).Value = "1234567890";
+        ws.Cell(2, 2).Value = "товар";
+        using var ms = new MemoryStream();
+        wb.SaveAs(ms);
+        ms.Position = 0;
+        IFormFile file = new FormFile(ms, 0, ms.Length, "file", "kw.xlsx");
+
+        var result = await _controller.Download(file);
+
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
+    }
+
+    [Test]
+    public async Task Download_ReturnsBadRequest_WhenServiceThrows()
+    {
+        SetCurrentUserId(1);
+        using var wb = new XLWorkbook();
+        var ws = wb.Worksheets.Add("Лист1");
+        ws.Cell(1, 1).Value = "код";
+        ws.Cell(1, 2).Value = "наименование";
+        ws.Cell(2, 1).Value = "123"; // invalid code
+        ws.Cell(2, 2).Value = "товар";
+        using var ms = new MemoryStream();
+        wb.SaveAs(ms);
+        ms.Position = 0;
+        IFormFile file = new FormFile(ms, 0, ms.Length, "file", "bad.xlsx");
+
+        var result = await _controller.Download(file);
+
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
+        var msg = (obj.Value as ErrMessage)!.Msg;
+        Assert.That(msg, Does.Contain("должен содержать ровно 10 цифр"));
     }
 }
