@@ -126,7 +126,7 @@ public class KeyWordsControllerTests
     {
         SetCurrentUserId(1);
         var dto = new KeyWordDto { Word = "test", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols, FeacnCode = "1234" };
-        var created = await _controller.PostKeyWord(dto);
+        var created = await _controller.CreateKeyWord(dto);
         Assert.That(created.Result, Is.TypeOf<CreatedAtActionResult>());
         var createdDto = (created.Result as CreatedAtActionResult)!.Value as KeyWordDto;
         Assert.That(createdDto!.Id, Is.GreaterThan(0));
@@ -134,7 +134,7 @@ public class KeyWordsControllerTests
         var id = createdDto.Id;
         createdDto.Word = "upd";
         createdDto.FeacnCode = "5678";
-        var upd = await _controller.PutKeyWord(id, createdDto);
+        var upd = await _controller.UpdateKeyWord(id, createdDto);
         Assert.That(upd, Is.TypeOf<NoContentResult>());
 
         var del = await _controller.DeleteKeyWord(id);
@@ -146,7 +146,7 @@ public class KeyWordsControllerTests
     {
         SetCurrentUserId(2);
         var dto = new KeyWordDto { Word = "w" };
-        var result = await _controller.PostKeyWord(dto);
+        var result = await _controller.CreateKeyWord(dto);
         Assert.That(result.Result, Is.TypeOf<ObjectResult>());
         var obj = result.Result as ObjectResult;
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
@@ -172,9 +172,82 @@ public class KeyWordsControllerTests
         _dbContext.KeyWords.Add(new KeyWord { Id = 10, Word = "dup" });
         await _dbContext.SaveChangesAsync();
         var dto = new KeyWordDto { Word = "dup", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols };
-        var result = await _controller.PostKeyWord(dto);
+        var result = await _controller.CreateKeyWord(dto);
         Assert.That(result.Result, Is.TypeOf<ObjectResult>());
         var obj = result.Result as ObjectResult;
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status409Conflict));
+    }
+
+    [Test]
+    public async Task GetKeyWord_ReturnsKeywordOrNotFound()
+    {
+        SetCurrentUserId(1);
+        var kw = new KeyWord { Id = 100, Word = "findme", MatchTypeId = 1, FeacnCode = "123" };
+        _dbContext.KeyWords.Add(kw);
+        await _dbContext.SaveChangesAsync();
+
+        var found = await _controller.GetKeyWord(100);
+        Assert.That(found.Value, Is.Not.Null);
+        Assert.That(found.Value!.Word, Is.EqualTo("findme"));
+
+        var notFound = await _controller.GetKeyWord(999);
+        Assert.That(notFound.Result, Is.TypeOf<ObjectResult>());
+        var obj = notFound.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+    }
+
+    [Test]
+    public async Task UpdateKeyWord_ReturnsForbidden_ForNonAdmin()
+    {
+        SetCurrentUserId(2);
+        var dto = new KeyWordDto { Id = 1, Word = "w", MatchTypeId = 1, FeacnCode = "123" };
+        var result = await _controller.UpdateKeyWord(1, dto);
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
+    }
+
+    [Test]
+    public async Task UpdateKeyWord_ReturnsBadRequest_WhenIdMismatch()
+    {
+        SetCurrentUserId(1);
+        var dto = new KeyWordDto { Id = 2, Word = "w", MatchTypeId = 1, FeacnCode = "123" };
+        var result = await _controller.UpdateKeyWord(1, dto);
+        Assert.That(result, Is.TypeOf<BadRequestResult>());
+    }
+
+    [Test]
+    public async Task UpdateKeyWord_ReturnsNotFound_WhenKeywordMissing()
+    {
+        SetCurrentUserId(1);
+        var dto = new KeyWordDto { Id = 999, Word = "w", MatchTypeId = 1, FeacnCode = "123" };
+        var result = await _controller.UpdateKeyWord(999, dto);
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+    }
+
+    [Test]
+    public async Task UpdateKeyWord_ReturnsConflict_WhenDuplicateWord()
+    {
+        SetCurrentUserId(1);
+        _dbContext.KeyWords.Add(new KeyWord { Id = 1, Word = "dup", MatchTypeId = 1, FeacnCode = "123" });
+        _dbContext.KeyWords.Add(new KeyWord { Id = 2, Word = "other", MatchTypeId = 1, FeacnCode = "456" });
+        await _dbContext.SaveChangesAsync();
+        var dto = new KeyWordDto { Id = 2, Word = "dup", MatchTypeId = 1, FeacnCode = "456" };
+        var result = await _controller.UpdateKeyWord(2, dto);
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status409Conflict));
+    }
+
+    [Test]
+    public async Task DeleteKeyWord_ReturnsNotFound_WhenKeywordMissing()
+    {
+        SetCurrentUserId(1);
+        var result = await _controller.DeleteKeyWord(999);
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
     }
 }
