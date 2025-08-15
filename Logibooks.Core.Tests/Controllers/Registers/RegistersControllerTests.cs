@@ -1096,7 +1096,7 @@ public class RegistersControllerTests : RegistersControllerTestsBase
     }
 
     [Test]
-    public async Task SetOrderStatuses_DoesNotUpdateMarkedByPartnerOrders()
+    public async Task SetParcelStatuses_DoesNotUpdateMarkedByPartnerOrders()
     {
         SetCurrentUserId(1);
         _dbContext.CheckStatuses.AddRange(
@@ -1112,7 +1112,7 @@ public class RegistersControllerTests : RegistersControllerTestsBase
         );
         await _dbContext.SaveChangesAsync();
 
-        await _controller.SetOrderStatuses(2, 99);
+        await _controller.SetParcelStatuses(2, 99);
         var order1 = await _dbContext.Orders.FindAsync(1);
         var order2 = await _dbContext.Orders.FindAsync(2);
         Assert.That(order1!.StatusId, Is.EqualTo(99)); // Updated

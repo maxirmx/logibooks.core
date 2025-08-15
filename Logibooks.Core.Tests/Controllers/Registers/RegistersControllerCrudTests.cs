@@ -184,7 +184,7 @@ public class RegistersControllerCrudTests : RegistersControllerTestsBase
 
     // --- PUT REGISTER ---
     [Test]
-    public async Task PutRegister_UpdatesData_WhenUserIsLogist()
+    public async Task UpdateRegister_UpdatesData_WhenUserIsLogist()
     {
         SetCurrentUserId(1);
         _dbContext.Countries.Add(new Country { IsoNumeric = 100, IsoAlpha2 = "XX", NameRuShort = "XX" });
@@ -201,7 +201,7 @@ public class RegistersControllerCrudTests : RegistersControllerTestsBase
             CustomsProcedureId = 1
         };
 
-        var result = await _controller.PutRegister(1, update);
+        var result = await _controller.UpdateRegister(1, update);
 
         Assert.That(result, Is.TypeOf<NoContentResult>());
         var saved = await _dbContext.Registers.FindAsync(1);
@@ -213,7 +213,7 @@ public class RegistersControllerCrudTests : RegistersControllerTestsBase
     }
 
     [Test]
-    public async Task PutRegister_UpdatesAllFields_IncludingNullable()
+    public async Task UpdateRegister_UpdatesAllFields_IncludingNullable()
     {
         SetCurrentUserId(1);
         var register = new Register
@@ -242,7 +242,7 @@ public class RegistersControllerCrudTests : RegistersControllerTestsBase
             CustomsProcedureId = 2 
         };
 
-        var result = await _controller.PutRegister(1, update);
+        var result = await _controller.UpdateRegister(1, update);
 
         Assert.That(result, Is.TypeOf<NoContentResult>());
         var saved = await _dbContext.Registers.FindAsync(1);
@@ -256,7 +256,7 @@ public class RegistersControllerCrudTests : RegistersControllerTestsBase
     }
 
     [Test]
-    public async Task PutRegister_UpdatesNullableFieldsToNull()
+    public async Task UpdateRegister_UpdatesNullableFieldsToNull()
     {
         SetCurrentUserId(1);
         var register = new Register
@@ -285,7 +285,7 @@ public class RegistersControllerCrudTests : RegistersControllerTestsBase
             CustomsProcedureId = 1
         };
 
-        var result = await _controller.PutRegister(1, update);
+        var result = await _controller.UpdateRegister(1, update);
 
         Assert.That(result, Is.TypeOf<NoContentResult>());
         var saved = await _dbContext.Registers.FindAsync(1);
@@ -297,14 +297,14 @@ public class RegistersControllerCrudTests : RegistersControllerTestsBase
     }
 
     [Test]
-    public async Task PutRegister_ReturnsForbidden_ForNonLogist()
+    public async Task UpdateRegister_ReturnsForbidden_ForNonLogist()
     {
         SetCurrentUserId(2);
         var register = new Register { Id = 1, FileName = "r.xlsx", TheOtherCompanyId = 3 };
         _dbContext.Registers.Add(register);
         await _dbContext.SaveChangesAsync();
 
-        var result = await _controller.PutRegister(1, new RegisterUpdateItem());
+        var result = await _controller.UpdateRegister(1, new RegisterUpdateItem());
 
         Assert.That(result, Is.TypeOf<ObjectResult>());
         var obj = result as ObjectResult;
@@ -312,11 +312,11 @@ public class RegistersControllerCrudTests : RegistersControllerTestsBase
     }
 
     [Test]
-    public async Task PutRegister_ReturnsNotFound_WhenRegisterMissing()
+    public async Task UpdateRegister_ReturnsNotFound_WhenRegisterMissing()
     {
         SetCurrentUserId(1);
 
-        var result = await _controller.PutRegister(99, new RegisterUpdateItem());
+        var result = await _controller.UpdateRegister(99, new RegisterUpdateItem());
 
         Assert.That(result, Is.TypeOf<ObjectResult>());
         var obj = result as ObjectResult;
@@ -324,7 +324,7 @@ public class RegistersControllerCrudTests : RegistersControllerTestsBase
     }
 
     [Test]
-    public async Task PutRegister_ReturnsNotFound_WhenInvalidTheOtherCountryCode()
+    public async Task UpdateRegister_ReturnsNotFound_WhenInvalidTheOtherCountryCode()
     {
         SetCurrentUserId(1);
         var register = new Register { Id = 1, FileName = "r.xlsx", TheOtherCompanyId = 3 };
@@ -333,7 +333,7 @@ public class RegistersControllerCrudTests : RegistersControllerTestsBase
 
         var update = new RegisterUpdateItem { TheOtherCountryCode = 9999 }; // Invalid country code
 
-        var result = await _controller.PutRegister(1, update);
+        var result = await _controller.UpdateRegister(1, update);
 
         Assert.That(result, Is.TypeOf<ObjectResult>());
         var obj = result as ObjectResult;
@@ -341,7 +341,7 @@ public class RegistersControllerCrudTests : RegistersControllerTestsBase
     }
 
     [Test]
-    public async Task PutRegister_ReturnsNotFound_WhenInvalidTransportationTypeId()
+    public async Task UpdateRegister_ReturnsNotFound_WhenInvalidTransportationTypeId()
     {
         SetCurrentUserId(1);
         var register = new Register { Id = 1, FileName = "r.xlsx", TheOtherCompanyId = 3 };
@@ -350,7 +350,7 @@ public class RegistersControllerCrudTests : RegistersControllerTestsBase
 
         var update = new RegisterUpdateItem { TransportationTypeId = 9999 }; // Invalid transportation type ID
 
-        var result = await _controller.PutRegister(1, update);
+        var result = await _controller.UpdateRegister(1, update);
 
         Assert.That(result, Is.TypeOf<ObjectResult>());
         var obj = result as ObjectResult;
@@ -358,7 +358,7 @@ public class RegistersControllerCrudTests : RegistersControllerTestsBase
     }
 
     [Test]
-    public async Task PutRegister_ReturnsNotFound_WhenInvalidCustomsProcedureId()
+    public async Task UpdateRegister_ReturnsNotFound_WhenInvalidCustomsProcedureId()
     {
         SetCurrentUserId(1);
         var register = new Register { Id = 1, FileName = "r.xlsx", TheOtherCompanyId = 3 };
@@ -367,7 +367,7 @@ public class RegistersControllerCrudTests : RegistersControllerTestsBase
 
         var update = new RegisterUpdateItem { CustomsProcedureId = 9999 }; // Invalid customs procedure ID
 
-        var result = await _controller.PutRegister(1, update);
+        var result = await _controller.UpdateRegister(1, update);
 
         Assert.That(result, Is.TypeOf<ObjectResult>());
         var obj = result as ObjectResult;
@@ -375,7 +375,7 @@ public class RegistersControllerCrudTests : RegistersControllerTestsBase
     }
 
     [Test]
-    public async Task PutRegister_ReturnsNotFound_WhenInvalidTheOtherCompanyId()
+    public async Task UpdateRegister_ReturnsNotFound_WhenInvalidTheOtherCompanyId()
     {
         SetCurrentUserId(1);
         var register = new Register { Id = 1, FileName = "r.xlsx", TheOtherCompanyId = 3 };
@@ -384,7 +384,7 @@ public class RegistersControllerCrudTests : RegistersControllerTestsBase
 
         var update = new RegisterUpdateItem { TheOtherCompanyId = 9999 }; // Invalid company ID
 
-        var result = await _controller.PutRegister(1, update);
+        var result = await _controller.UpdateRegister(1, update);
 
         Assert.That(result, Is.TypeOf<ObjectResult>());
         var obj = result as ObjectResult;
@@ -466,7 +466,7 @@ public class RegistersControllerCrudTests : RegistersControllerTestsBase
         var status = new ParcelStatus { Id = 1, Title = "TestStatus" };
         _dbContext.Statuses.Add(status);
         _dbContext.SaveChanges();
-        var result = await _controller.SetOrderStatuses(1, 1);
+        var result = await _controller.SetParcelStatuses(1, 1);
         Assert.That(result, Is.TypeOf<ObjectResult>());
         var obj = result as ObjectResult;
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
@@ -479,7 +479,7 @@ public class RegistersControllerCrudTests : RegistersControllerTestsBase
         var status = new ParcelStatus { Id = 1, Title = "TestStatus" };
         _dbContext.Statuses.Add(status);
         _dbContext.SaveChanges();
-        var result = await _controller.SetOrderStatuses(999, 1); // Register does not exist
+        var result = await _controller.SetParcelStatuses(999, 1); // Register does not exist
         Assert.That(result, Is.TypeOf<ObjectResult>());
         var obj = result as ObjectResult;
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
@@ -492,7 +492,7 @@ public class RegistersControllerCrudTests : RegistersControllerTestsBase
         var register = new Register { Id = 1, FileName = "r.xlsx", CompanyId = 2 };
         _dbContext.Registers.Add(register);
         _dbContext.SaveChanges();
-        var result = await _controller.SetOrderStatuses(1, 999); // Status does not exist
+        var result = await _controller.SetParcelStatuses(1, 999); // Status does not exist
         Assert.That(result, Is.TypeOf<ObjectResult>());
         var obj = result as ObjectResult;
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
