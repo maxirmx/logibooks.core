@@ -188,7 +188,7 @@ public class KeywordsProcessingServiceTests
         var ex = Assert.ThrowsAsync<InvalidOperationException>(async () => 
             await _service.UploadKeywordsFromExcelAsync(excelBytes, "test.xlsx"));
         
-        Assert.That(ex!.Message, Does.Contain("должен содержать ровно 9 или 10 цифр"));
+        Assert.That(ex!.Message, Does.Contain("должен содержать ровно 10 цифр"));
     }
 
     [Test]
