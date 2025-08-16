@@ -67,9 +67,9 @@ public class ParcelViewsController(
     }
 
     [HttpPut]
-    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(OrderViewItem))]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ParcelViewItem))]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    public async Task<ActionResult<OrderViewItem>> Back()
+    public async Task<ActionResult<ParcelViewItem>> Back()
     {
         var items = await _db.ParcelViews
             .Where(v => v.UserId == _curUserId)
@@ -96,7 +96,7 @@ public class ParcelViewsController(
             return NoContent();
         }
 
-        var result = new OrderViewItem(order)
+        var result = new ParcelViewItem(order)
         {
             DTime = appliedView.DTime
         };

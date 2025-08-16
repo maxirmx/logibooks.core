@@ -33,8 +33,8 @@ using Logibooks.Core.Constants;
 using Logibooks.Core.Data;
 using Logibooks.Core.Models;
 using Logibooks.Core.RestModels;
-using Logibooks.Core.Services;
 using Logibooks.Core.Extensions;
+using Logibooks.Core.Interfaces;
 
 namespace Logibooks.Core.Controllers;
 
@@ -403,48 +403,48 @@ public class RegistersController(
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
-    public async Task<IActionResult> PutRegister(int id, RegisterUpdateItem update)
+    public async Task<IActionResult> UpdateRegister(int id, RegisterUpdateItem update)
     {
-        _logger.LogDebug("PutRegister for id={id}", id);
+        _logger.LogDebug("UpdateRegister for id={id}", id);
 
         if (!await _userService.CheckLogist(_curUserId))
         {
-            _logger.LogDebug("PutRegister returning '403 Forbidden'");
+            _logger.LogDebug("UpdateRegister returning '403 Forbidden'");
             return _403();
         }
 
         var register = await _db.Registers.FindAsync(id);
         if (register == null)
         {
-            _logger.LogDebug("PutRegister returning '404 Not Found'");
+            _logger.LogDebug("UpdateRegister returning '404 Not Found'");
             return _404Register(id);
         }
 
         if (update.TheOtherCountryCode != null && update.TheOtherCountryCode != 0 &&
             !await _db.Countries.AsNoTracking().AnyAsync(c => c.IsoNumeric == update.TheOtherCountryCode))
         {
-            _logger.LogDebug("PutRegister returning '404 Not Found' - country");
+            _logger.LogDebug("UpdateRegister returning '404 Not Found' - country");
             return _404Object(update.TheOtherCountryCode.Value);
         }
 
         if (update.TransportationTypeId != null && update.TransportationTypeId != 0 &&
             !await _db.TransportationTypes.AsNoTracking().AnyAsync(t => t.Id == update.TransportationTypeId))
         {
-            _logger.LogDebug("PutRegister returning '404 Not Found' - transportation type");
+            _logger.LogDebug("UpdateRegister returning '404 Not Found' - transportation type");
             return _404Object(update.TransportationTypeId.Value);
         }
 
         if (update.CustomsProcedureId != null && update.CustomsProcedureId != 0 &&
             !await _db.CustomsProcedures.AsNoTracking().AnyAsync(c => c.Id == update.CustomsProcedureId))
         {
-            _logger.LogDebug("PutRegister returning '404 Not Found' - customs procedure");
+            _logger.LogDebug("UpdateRegister returning '404 Not Found' - customs procedure");
             return _404Object(update.CustomsProcedureId.Value);
         }
 
         if (update.TheOtherCompanyId != null && update.TheOtherCompanyId != 0 &&
             !await _db.Companies.AsNoTracking().AnyAsync(c => c.Id == update.TheOtherCompanyId))
         {
-            _logger.LogDebug("PutRegister returning '404 Not Found' - company");
+            _logger.LogDebug("UpdateRegister returning '404 Not Found' - company");
             return _404Object(update.TheOtherCompanyId.Value);
         }
 
@@ -453,7 +453,7 @@ public class RegistersController(
         _db.Entry(register).State = EntityState.Modified;
         await _db.SaveChangesAsync();
 
-        _logger.LogDebug("PutRegister updated register {id}", id);
+        _logger.LogDebug("UpdateRegister updated register {id}", id);
         return NoContent();
     }
 
@@ -488,43 +488,43 @@ public class RegistersController(
         return NoContent();
     }
 
-    [HttpPut("{id}/setorderstatuses/{statusId}")]
+    [HttpPut("{id}/setparcelstatuses/{statusId}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
-    public async Task<IActionResult> SetOrderStatuses(int id, int statusId)
+    public async Task<IActionResult> SetParcelStatuses(int id, int statusId)
     {
-        _logger.LogDebug("SetOrderStatuses for registerId={id} statusId={statusId}", id, statusId);
+        _logger.LogDebug("SetParcelStatuses for registerId={id} statusId={statusId}", id, statusId);
 
         if (!await _userService.CheckLogist(_curUserId))
         {
-            _logger.LogDebug("SetOrderStatuses returning '403 Forbidden'");
+            _logger.LogDebug("SetParcelStatuses returning '403 Forbidden'");
             return _403();
         }
 
         if (!await _db.Registers.AnyAsync(r => r.Id == id))
         {
-            _logger.LogDebug("SetOrderStatuses returning '404 Not Found' - register");
+            _logger.LogDebug("SetParcelStatuses returning '404 Not Found' - register");
             return _404Register(id);
         }
 
         if (!await _db.Statuses.AnyAsync(s => s.Id == statusId))
         {
-            _logger.LogDebug("SetOrderStatuses returning '404 Not Found' - status");
+            _logger.LogDebug("SetParcelStatuses returning '404 Not Found' - status");
             return _404Status(statusId);
         }
 
         // Update orders in memory instead of using ExecuteUpdateAsync
-        var ordersToUpdate = await _db.Orders
+        var parcelsToUpdate = await _db.Orders
             .Where(o => o.RegisterId == id && o.CheckStatusId != (int)ParcelCheckStatusCode.MarkedByPartner)
             .ToListAsync();
-        foreach (var order in ordersToUpdate)
+        foreach (var parcel in parcelsToUpdate)
         {
-            order.StatusId = statusId;
+            parcel.StatusId = statusId;
         }
         await _db.SaveChangesAsync();
 
-        _logger.LogDebug("SetOrderStatuses updated register {id}", id);
+        _logger.LogDebug("SetParcelStatuses updated register {id}", id);
         return NoContent();
     }
 
@@ -580,29 +580,29 @@ public class RegistersController(
         return File(archive, "application/zip", fileName);
     }
 
-    [HttpGet("nextorder/{orderId}")]
-    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(OrderViewItem))]
+    [HttpGet("nextparcel/{parcelId}")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ParcelViewItem))]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
-    public async Task<ActionResult<OrderViewItem>> NextOrder(int orderId)
+    public async Task<ActionResult<ParcelViewItem>> NextParcel(int parcelId)
     {
-        _logger.LogDebug("NextOrder for orderId={orderId}", orderId);
+        _logger.LogDebug("NextParcel for parcelId={parcelId}", parcelId);
 
         if (!await _userService.CheckLogist(_curUserId))
         {
-            _logger.LogDebug("NextOrder returning '403 Forbidden'");
+            _logger.LogDebug("NextParcel returning '403 Forbidden'");
             return _403();
         }
 
         var current = await _db.Orders.AsNoTracking()
             .Include(o => o.Register)
-            .FirstOrDefaultAsync(o => o.Id == orderId);
+            .FirstOrDefaultAsync(o => o.Id == parcelId);
 
         if (current == null)
         {
-            _logger.LogDebug("NextOrder returning '404 Not Found' - order");
-            return _404Order(orderId);
+            _logger.LogDebug("NextParcel returning '404 Not Found' - parcel");
+            return _404Order(parcelId);
         }
 
         int registerId = current.RegisterId;
@@ -615,37 +615,37 @@ public class RegistersController(
             .OrderBy(o => o.Id);
 
         var next = await query
-            .OrderBy(o => o.Id > orderId ? 0 : 1) 
+            .OrderBy(o => o.Id > parcelId ? 0 : 1) 
             .ThenBy(o => o.Id)                   
             .FirstOrDefaultAsync();
 
         if (next == null)
         {
-            _logger.LogDebug("NextOrder returning '204 No Content'");
+            _logger.LogDebug("NextParcel returning '204 No Content'");
             return NoContent();
         }
 
-        BaseOrder? order = null;
+        BaseOrder? parcel = null;
 
         if (companyId == IRegisterProcessingService.GetWBRId())
         {
-            order = await ApplyOrderIncludes(_db.WbrOrders.AsNoTracking())
+            parcel = await ApplyOrderIncludes(_db.WbrOrders.AsNoTracking())
                 .FirstOrDefaultAsync(o => o.Id == next.Id);
         }
         else if (companyId == IRegisterProcessingService.GetOzonId())
         {
-            order = await ApplyOrderIncludes(_db.OzonOrders.AsNoTracking())
+            parcel = await ApplyOrderIncludes(_db.OzonOrders.AsNoTracking())
                 .FirstOrDefaultAsync(o => o.Id == next.Id);
         }
 
-        if (order == null)
+        if (parcel == null)
         {
-            _logger.LogDebug("NextOrder returning '204 No Content' - derived order not found");
+            _logger.LogDebug("NextParcel returning '204 No Content' - derived parcel not found");
             return NoContent();
         }
 
-        _logger.LogDebug("NextOrder returning order {id}", order.Id);
-        return new OrderViewItem(order);
+        _logger.LogDebug("NextParcel returning order {id}", parcel.Id);
+        return new ParcelViewItem(parcel);
     }
 
     [HttpPost("{id}/validate")]

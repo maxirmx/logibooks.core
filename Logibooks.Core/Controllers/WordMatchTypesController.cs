@@ -19,16 +19,36 @@
 // CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
 // SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
 // INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE),
+// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-namespace Logibooks.Core.RestModels;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
-using Logibooks.Core.Models;
+using Logibooks.Core.Authorization;
+using Logibooks.Core.Data;
+using Logibooks.Core.RestModels;
 
-public class StopWordMatchTypeDto(StopWordMatchType matchType)
+namespace Logibooks.Core.Controllers;
+
+[ApiController]
+[Authorize]
+[Route("api/[controller]")]
+[ProducesResponseType(StatusCodes.Status401Unauthorized, Type = typeof(ErrMessage))]
+[ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(ErrMessage))]
+
+public class WordMatchTypesController(
+    IHttpContextAccessor httpContextAccessor,
+    AppDbContext db,
+    ILogger<WordMatchTypesController> logger) : LogibooksControllerBase(httpContextAccessor, db, logger)
 {
-    public int Id { get; set; } = matchType.Id;
-    public string Name { get; set; } = matchType.Name;
+    [HttpGet]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<WordMatchTypeDto>))]
+    public async Task<ActionResult<IEnumerable<WordMatchTypeDto>>> GetWordMatchTypes()
+    {
+        var matchTypes = await _db.WordMatchTypes.AsNoTracking().OrderBy(s => s.Id).ToListAsync();
+        _logger.LogDebug("GetWordMatchTypes returning {count} items", matchTypes.Count);
+        return matchTypes.Select(mt => new WordMatchTypeDto(mt)).ToList();
+    }
 }

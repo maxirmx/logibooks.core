@@ -32,9 +32,9 @@ using Logibooks.Core.Authorization;
 using Logibooks.Core.RestModels;
 using Logibooks.Core.Settings;
 using Logibooks.Core.Data;
-using Logibooks.Core.Services;
 using Logibooks.Core.Models;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
+using Logibooks.Core.Interfaces;
 
 namespace Logibooks.Core.Controllers;
 

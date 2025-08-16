@@ -37,4 +37,5 @@ public class BaseOrderStopWord
     [Column("stop_word_id")]
     public int StopWordId { get; set; }
     public StopWord StopWord { get; set; } = null!;
+
 }

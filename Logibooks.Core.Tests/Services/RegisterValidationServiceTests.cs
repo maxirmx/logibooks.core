@@ -24,6 +24,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 using Logibooks.Core.Data;
+using Logibooks.Core.Interfaces;
 using Logibooks.Core.Models;
 using Logibooks.Core.RestModels;
 using Logibooks.Core.Services;
@@ -209,9 +210,9 @@ public class RegisterValidationServiceTests
         );
         // Add stop words: one that should match, one that should not
         ctx.StopWords.AddRange(
-            new StopWord { Id = 201, Word = "spam", MatchTypeId = (int)StopWordMatchTypeCode.ExactSymbols },
-            new StopWord { Id = 202, Word = "malware", MatchTypeId = (int)StopWordMatchTypeCode.ExactSymbols },
-            new StopWord { Id = 203, Word = "virus", MatchTypeId = (int)StopWordMatchTypeCode.StrongMorphology } // not used for exact match
+            new StopWord { Id = 201, Word = "spam", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols },
+            new StopWord { Id = 202, Word = "malware", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols },
+            new StopWord { Id = 203, Word = "virus", MatchTypeId = (int)WordMatchTypeCode.StrongMorphology } // not used for exact match
         );
         await ctx.SaveChangesAsync();
 

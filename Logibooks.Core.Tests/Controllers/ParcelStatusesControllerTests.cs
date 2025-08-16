@@ -1,5 +1,6 @@
 using Logibooks.Core.Controllers;
 using Logibooks.Core.Data;
+using Logibooks.Core.Interfaces;
 using Logibooks.Core.Models;
 using Logibooks.Core.RestModels;
 using Logibooks.Core.Services;
@@ -100,10 +101,10 @@ public class ParcelStatusesControllerTests
     public async Task CreateUpdateDelete_Work_ForAdmin()
     {
         SetCurrentUserId(1);
-        var dto = new OrderStatusDto { Title = "New" };
+        var dto = new ParcelStatusDto { Title = "New" };
         var created = await _controller.CreateStatus(dto);
         Assert.That(created.Result, Is.TypeOf<CreatedAtActionResult>());
-        var createdDto = (created.Result as CreatedAtActionResult)!.Value as OrderStatusDto;
+        var createdDto = (created.Result as CreatedAtActionResult)!.Value as ParcelStatusDto;
         Assert.That(createdDto!.Id, Is.GreaterThan(0));
 
         var id = createdDto.Id;
@@ -119,7 +120,7 @@ public class ParcelStatusesControllerTests
     public async Task Create_ReturnsForbidden_ForNonAdmin()
     {
         SetCurrentUserId(2);
-        var dto = new OrderStatusDto { Title = "t" };
+        var dto = new ParcelStatusDto { Title = "t" };
         var result = await _controller.CreateStatus(dto);
         Assert.That(result.Result, Is.TypeOf<ObjectResult>());
         var obj = result.Result as ObjectResult;

@@ -24,6 +24,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 using Logibooks.Core.Data;
+using Logibooks.Core.Interfaces;
 using Logibooks.Core.Models;
 using System.Text.RegularExpressions;
 
@@ -175,18 +176,18 @@ public class OrderValidationService(
         List<StopWord> phraseMatchItems = [];
 
         var filtered = exactMatchStopWords
-            .Where(sw => sw.MatchTypeId < (int)StopWordMatchTypeCode.MorphologyMatchTypes);
+            .Where(sw => sw.MatchTypeId < (int)WordMatchTypeCode.MorphologyMatchTypes);
 
         var grouped = filtered
-            .GroupBy(sw => (StopWordMatchTypeCode)sw.MatchTypeId)
+            .GroupBy(sw => (WordMatchTypeCode)sw.MatchTypeId)
             .ToDictionary(g => g.Key, g => g.ToList());
 
         context.ExactSymbolsMatchItems.AddRange(
-            grouped.TryGetValue(StopWordMatchTypeCode.ExactSymbols, out var symbols) ? symbols : []);
+            grouped.TryGetValue(WordMatchTypeCode.ExactSymbols, out var symbols) ? symbols : []);
         exactWordMatchItems.AddRange(
-            grouped.TryGetValue(StopWordMatchTypeCode.ExactWord, out var words) ? words : []);
+            grouped.TryGetValue(WordMatchTypeCode.ExactWord, out var words) ? words : []);
         phraseMatchItems.AddRange(
-            grouped.TryGetValue(StopWordMatchTypeCode.Phrase, out var phrases) ? phrases : []);
+            grouped.TryGetValue(WordMatchTypeCode.Phrase, out var phrases) ? phrases : []);
 
         // Precompile regexes for ExactWordMatchItems
         foreach (var sw in exactWordMatchItems)

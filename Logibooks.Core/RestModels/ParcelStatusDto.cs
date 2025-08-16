@@ -19,13 +19,32 @@
 // CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
 // SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
 // INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE),
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-namespace Logibooks.Core;
+namespace Logibooks.Core.RestModels;
 
-public static class VersionInfo
+using Logibooks.Core.Models;
+
+public class ParcelStatusDto
 {
-    public const string AppVersion = "0.9.0";
+    public int Id { get; set; }
+    public string Title { get; set; } = string.Empty;
+
+    public ParcelStatusDto() {}
+    public ParcelStatusDto(ParcelStatus status)
+    {
+        Id = status.Id;
+        Title = status.Title;
+    }
+
+    public ParcelStatus ToModel()
+    {
+        return new ParcelStatus
+        {
+            Id = Id,
+            Title = Title
+        };
+    }
 }

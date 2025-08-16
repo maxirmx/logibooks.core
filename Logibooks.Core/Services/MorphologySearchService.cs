@@ -31,6 +31,7 @@ using System.Linq;
 using Pullenti.Morph;
 using Pullenti.Semantic.Utils;
 using Logibooks.Core.Models;
+using Logibooks.Core.Interfaces;
 
 public class MorphologySearchService : IMorphologySearchService
 {
@@ -83,7 +84,7 @@ public class MorphologySearchService : IMorphologySearchService
 
             var normalForm = GetNormalForm(sw.Word);
 
-            if (sw.MatchTypeId == (int)StopWordMatchTypeCode.WeakMorphology)
+            if (sw.MatchTypeId == (int)WordMatchTypeCode.WeakMorphology)
             {
                 if (!context.NormalForms.TryGetValue(normalForm, out var ids))
                 {
@@ -92,7 +93,7 @@ public class MorphologySearchService : IMorphologySearchService
                 }
                 ids.Add(sw.Id);
             }
-            else if (sw.MatchTypeId == (int)StopWordMatchTypeCode.StrongMorphology)
+            else if (sw.MatchTypeId == (int)WordMatchTypeCode.StrongMorphology)
             {
                 var groups = DerivateService.FindDerivates(normalForm, true, Pullenti.Morph.MorphLang.RU);
                 if (groups == null || !groups.Any())

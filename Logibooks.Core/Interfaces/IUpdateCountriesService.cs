@@ -23,24 +23,9 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-using Logibooks.Core.RestModels;
+namespace Logibooks.Core.Interfaces;
 
-namespace Logibooks.Core.Services;
-
-public interface IRegisterProcessingService
+public interface IUpdateCountriesService
 {
-    protected const int OzonId = 1;
-    protected const int WBRId = 2;
-
-    static public int GetOzonId() => OzonId;
-    static public int GetWBRId() => WBRId;
-    Task<Reference> UploadRegisterFromExcelAsync(
-        int companyId,
-        byte[] content,
-        string fileName,
-        CancellationToken cancellationToken = default);
-
-    Task<byte[]> DownloadRegisterToExcelAsync(
-        int registerId,
-        CancellationToken cancellationToken = default);
+    Task RunAsync(CancellationToken cancellationToken = default);
 }

@@ -24,6 +24,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 using Logibooks.Core.Data;
+using Logibooks.Core.Interfaces;
 using Logibooks.Core.Models;
 using Microsoft.EntityFrameworkCore;
 

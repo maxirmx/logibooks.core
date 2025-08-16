@@ -12,7 +12,7 @@
 // documentation and/or other materials provided with the distribution.
 //
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-// 'AS IS' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+//'AS IS' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
 // TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
 // PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR CONTRIBUTORS
 // BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -24,27 +24,26 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 using Logibooks.Core.Models;
+using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
+[assembly: InternalsVisibleTo("Logibooks.Core.Tests")]
 
-namespace Logibooks.Core.Services;
+namespace Logibooks.Core.Interfaces;
 
-public enum MorphologySupportLevel
+public interface IOrderValidationService
 {
-    NoSupport,
-    FormsSupport,
-    FullSupport
+    Task ValidateAsync(BaseOrder order,
+        MorphologyContext morphologyContext,
+        StopWordsContext stopWordsContext,
+        FeacnPrefixCheckContext? feacnContext = null,
+        CancellationToken cancellationToken = default);
+
+    StopWordsContext InitializeStopWordsContext(IEnumerable<StopWord> exactMatchStopWords);
 }
 
-
-
-public interface IMorphologySearchService
+public class StopWordsContext
 {
-    MorphologyContext InitializeContext(IEnumerable<StopWord> stopWords);
-    IEnumerable<int> CheckText(MorphologyContext context, string text);
-    MorphologySupportLevel CheckWord(string word);
-}
-
-public class MorphologyContext
-{
-    internal Dictionary<string, HashSet<int>> NormalForms { get; } = new();
-    internal Dictionary<Pullenti.Semantic.Utils.DerivateGroup, HashSet<int>> Groups { get; } = new();
+    internal List<StopWord> ExactSymbolsMatchItems { get; } = [];
+    internal List<(StopWord sw, Regex regex)> ExactWordRegexes { get; } = [];
+    internal List<(StopWord sw, Regex regex)> PhraseRegexes { get; } = [];
 }

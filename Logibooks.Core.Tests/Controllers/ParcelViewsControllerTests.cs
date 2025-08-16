@@ -107,7 +107,7 @@ public class ParcelViewsControllerTests
         var result = await _controller.Back();
         Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
         var okResult = result.Result as OkObjectResult;
-        var item = okResult!.Value as OrderViewItem;
+        var item = okResult!.Value as ParcelViewItem;
         Assert.That(item, Is.Not.Null);
         Assert.That(item!.Id, Is.EqualTo(2));
         Assert.That(item.DTime, Is.Not.Null);

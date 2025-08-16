@@ -31,12 +31,12 @@ namespace Logibooks.Core.Extensions;
 
 public static class ParcelExtensions
 {
-    public static void UpdateFrom(this WbrOrder order, OrderUpdateItem updateItem, IMapper mapper)
+    public static void UpdateFrom(this WbrOrder order, ParcelUpdateItem updateItem, IMapper mapper)
     {
         mapper.Map(updateItem, order);
     }
 
-    public static void UpdateFrom(this OzonOrder order, OrderUpdateItem updateItem, IMapper mapper)
+    public static void UpdateFrom(this OzonOrder order, ParcelUpdateItem updateItem, IMapper mapper)
     {
         mapper.Map(updateItem, order);
     }

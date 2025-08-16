@@ -19,32 +19,32 @@
 // CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
 // SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
 // INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE),
+// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-namespace Logibooks.Core.RestModels;
-
 using Logibooks.Core.Models;
 
-public class OrderStatusDto
+namespace Logibooks.Core.Interfaces;
+
+public enum MorphologySupportLevel
 {
-    public int Id { get; set; }
-    public string Title { get; set; } = string.Empty;
+    NoSupport,
+    FormsSupport,
+    FullSupport
+}
 
-    public OrderStatusDto() {}
-    public OrderStatusDto(ParcelStatus status)
-    {
-        Id = status.Id;
-        Title = status.Title;
-    }
 
-    public ParcelStatus ToModel()
-    {
-        return new ParcelStatus
-        {
-            Id = Id,
-            Title = Title
-        };
-    }
+
+public interface IMorphologySearchService
+{
+    MorphologyContext InitializeContext(IEnumerable<StopWord> stopWords);
+    IEnumerable<int> CheckText(MorphologyContext context, string text);
+    MorphologySupportLevel CheckWord(string word);
+}
+
+public class MorphologyContext
+{
+    internal Dictionary<string, HashSet<int>> NormalForms { get; } = new();
+    internal Dictionary<Pullenti.Semantic.Utils.DerivateGroup, HashSet<int>> Groups { get; } = new();
 }

@@ -19,41 +19,13 @@
 // CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
 // SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
 // INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE),
+// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-using System.Text.Json;
-using Logibooks.Core.Settings;
+namespace Logibooks.Core.Interfaces;
 
-namespace Logibooks.Core.RestModels;
-
-public class OrderUpdateItem
+public interface IUpdateFeacnCodesService
 {
-    public int? StatusId { get; set; }
-    public string? OrderNumber { get; set; }
-    public string? Shk { get; set; }
-    public string? TnVed { get; set; }
-    public string? ProductName { get; set; }
-    public short? CountryCode { get; set; }
-    public decimal? WeightKg { get; set; }
-    public decimal? Quantity { get; set; }
-    public decimal? UnitPrice { get; set; }
-    public string? Currency { get; set; }
-    public string? ProductLink { get; set; }
-    public string? RecipientName { get; set; }
-    public string? PassportNumber { get; set; }
-
-    // Ozon specific fields
-    public string? PostingNumber { get; set; }
-    public int? PlacesCount { get; set; }
-    public string? Article { get; set; }
-    public string? LastName { get; set; }
-    public string? FirstName { get; set; }
-    public string? Patronymic { get; set; }
-
-    public override string ToString()
-    {
-        return JsonSerializer.Serialize(this, JOptions.DefaultOptions);
-    }
+    Task RunAsync(CancellationToken cancellationToken = default);
 }

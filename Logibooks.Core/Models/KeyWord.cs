@@ -23,9 +23,26 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-namespace Logibooks.Core;
+using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations.Schema;
 
-public static class VersionInfo
+namespace Logibooks.Core.Models;
+
+[Table("key_words")]
+[Index(nameof(Word), IsUnique = true, Name = "IX_key_words_word")]
+public class KeyWord
 {
-    public const string AppVersion = "0.9.0";
+    [Column("id")]
+    public int Id { get; set; }
+
+    [Column("word")]
+    public required string Word { get; set; } = string.Empty;
+
+    [Column("match_type_id")]
+    public int MatchTypeId { get; set; } = 1;
+    public WordMatchType MatchType { get; set; } = null!;
+
+    [Column("feacn_code")]
+    public string FeacnCode { get; set; } = string.Empty;
+    public ICollection<BaseOrderKeyWord> BaseOrderKeyWords { get; set; } = [];
 }

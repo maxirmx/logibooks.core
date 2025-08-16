@@ -23,9 +23,18 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-namespace Logibooks.Core;
+using Logibooks.Core.Models;
 
-public static class VersionInfo
+namespace Logibooks.Core.Interfaces;
+
+public interface IFeacnPrefixCheckService
 {
-    public const string AppVersion = "0.9.0";
+    Task<IEnumerable<BaseOrderFeacnPrefix>> CheckOrderAsync(BaseOrder order, CancellationToken cancellationToken = default);
+    IEnumerable<BaseOrderFeacnPrefix> CheckOrder(BaseOrder order, FeacnPrefixCheckContext context);
+    Task<FeacnPrefixCheckContext> CreateContext(CancellationToken cancellationToken = default);
+}
+
+public class FeacnPrefixCheckContext
+{
+    internal Dictionary<string, List<FeacnPrefix>> Prefixes { get; } = new();
 }

@@ -12,7 +12,7 @@
 // documentation and/or other materials provided with the distribution.
 //
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-//'AS IS' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+// 'AS IS' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
 // TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
 // PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR CONTRIBUTORS
 // BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -23,9 +23,24 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-namespace Logibooks.Core.Services;
+using Logibooks.Core.RestModels;
 
-public interface IIndPostXmlService
+namespace Logibooks.Core.Interfaces;
+
+public interface IRegisterProcessingService
 {
-    string CreateXml(IDictionary<string, string?> fields, IEnumerable<IDictionary<string, string?>> goodsItems);
+    protected const int OzonId = 1;
+    protected const int WBRId = 2;
+
+    static public int GetOzonId() => OzonId;
+    static public int GetWBRId() => WBRId;
+    Task<Reference> UploadRegisterFromExcelAsync(
+        int companyId,
+        byte[] content,
+        string fileName,
+        CancellationToken cancellationToken = default);
+
+    Task<byte[]> DownloadRegisterToExcelAsync(
+        int registerId,
+        CancellationToken cancellationToken = default);
 }

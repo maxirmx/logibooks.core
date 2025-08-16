@@ -23,9 +23,15 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-namespace Logibooks.Core.Services;
+using Logibooks.Core.Models;
 
-public interface IUpdateFeacnCodesService
+namespace Logibooks.Core.Interfaces;
+
+public interface IKeywordsProcessingService
 {
-    Task RunAsync(CancellationToken cancellationToken = default);
+    Task<List<KeyWord>> UploadKeywordsFromExcelAsync(
+        byte[] content,
+        string fileName,
+        CancellationToken cancellationToken = default);
 }
+

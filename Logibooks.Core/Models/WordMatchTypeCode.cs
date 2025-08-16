@@ -23,18 +23,16 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-using Logibooks.Core.Models;
+namespace Logibooks.Core.Models;
 
-namespace Logibooks.Core.Services;
-
-public interface IFeacnPrefixCheckService
+public enum WordMatchTypeCode
 {
-    Task<IEnumerable<BaseOrderFeacnPrefix>> CheckOrderAsync(BaseOrder order, CancellationToken cancellationToken = default);
-    IEnumerable<BaseOrderFeacnPrefix> CheckOrder(BaseOrder order, FeacnPrefixCheckContext context);
-    Task<FeacnPrefixCheckContext> CreateContext(CancellationToken cancellationToken = default);
-}
-
-public class FeacnPrefixCheckContext
-{
-    internal Dictionary<string, List<FeacnPrefix>> Prefixes { get; } = new();
+    ExactSymbols = 1,
+    ExactWord = 11,
+    Phrase = 21,
+    MorphologyMatchTypes = 41,
+#pragma warning disable CA1069 // Enums values should not be duplicated
+    WeakMorphology = 41,
+#pragma warning restore CA1069 // Enums values should not be duplicated
+    StrongMorphology = 51
 }

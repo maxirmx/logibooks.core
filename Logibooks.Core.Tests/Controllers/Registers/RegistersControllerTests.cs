@@ -43,6 +43,7 @@ using Logibooks.Core.Data;
 using Logibooks.Core.Models;
 using Logibooks.Core.RestModels;
 using Logibooks.Core.Services;
+using Logibooks.Core.Interfaces;
 
 namespace Logibooks.Core.Tests.Controllers.Registers;
 
@@ -895,7 +896,7 @@ public class RegistersControllerTests : RegistersControllerTestsBase
     }
 
     [Test]
-    public async Task NextOrder_ReturnsNextOrder_AfterGiven()
+    public async Task NextParcel_ReturnsNextParcel_AfterGiven()
     {
         SetCurrentUserId(1);
         _dbContext.CheckStatuses.AddRange(
@@ -910,14 +911,14 @@ public class RegistersControllerTests : RegistersControllerTestsBase
         );
         await _dbContext.SaveChangesAsync();
 
-        var result = await _controller.NextOrder(10);
+        var result = await _controller.NextParcel(10);
 
         Assert.That(result.Value, Is.Not.Null);
         Assert.That(result.Value!.Id, Is.EqualTo(20));
     }
 
     [Test]
-    public async Task NextOrder_PerformsCircularSearch()
+    public async Task NextParcel_PerformsCircularSearch()
     {
         SetCurrentUserId(1);
         _dbContext.CheckStatuses.Add(new ParcelCheckStatus { Id = 101, Title = "Has" });
@@ -930,14 +931,14 @@ public class RegistersControllerTests : RegistersControllerTestsBase
         _dbContext.OzonOrders.AddRange(ozonOrder1, ozonOrder2, ozonOrder3);
         await _dbContext.SaveChangesAsync();
 
-        var result = await _controller.NextOrder(3);
+        var result = await _controller.NextParcel(3);
 
         Assert.That(result.Value, Is.Not.Null);
         Assert.That(result.Value!.Id, Is.EqualTo(1));
     }
 
     [Test]
-    public async Task NextOrder_ReturnsNoContent_WhenNoMatches()
+    public async Task NextParcel_ReturnsNoContent_WhenNoMatches()
     {
         SetCurrentUserId(1);
         _dbContext.CheckStatuses.Add(new ParcelCheckStatus { Id = 201, Title = "Ok" });
@@ -946,16 +947,16 @@ public class RegistersControllerTests : RegistersControllerTestsBase
         _dbContext.Orders.Add(new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1, CheckStatusId = 201 });
         await _dbContext.SaveChangesAsync();
 
-        var result = await _controller.NextOrder(1);
+        var result = await _controller.NextParcel(1);
 
         Assert.That(result.Result, Is.TypeOf<NoContentResult>());
     }
 
     [Test]
-    public async Task NextOrder_ReturnsNotFound_WhenOrderMissing()
+    public async Task NextParcel_ReturnsNotFound_WhenOrderMissing()
     {
         SetCurrentUserId(1);
-        var result = await _controller.NextOrder(99);
+        var result = await _controller.NextParcel(99);
 
         Assert.That(result.Result, Is.TypeOf<ObjectResult>());
         var obj = result.Result as ObjectResult;
@@ -963,10 +964,10 @@ public class RegistersControllerTests : RegistersControllerTestsBase
     }
 
     [Test]
-    public async Task NextOrder_ReturnsForbidden_ForNonLogist()
+    public async Task NextParcel_ReturnsForbidden_ForNonLogist()
     {
         SetCurrentUserId(2);
-        var result = await _controller.NextOrder(1);
+        var result = await _controller.NextParcel(1);
 
         Assert.That(result.Result, Is.TypeOf<ObjectResult>());
         var obj = result.Result as ObjectResult;
@@ -1072,7 +1073,7 @@ public class RegistersControllerTests : RegistersControllerTestsBase
     }
 
     [Test]
-    public async Task NextOrder_SkipsMarkedByPartnerOrders()
+    public async Task NextParcel_SkipsMarkedByPartnerOrders()
     {
         SetCurrentUserId(1);
         _dbContext.CheckStatuses.AddRange(
@@ -1089,13 +1090,13 @@ public class RegistersControllerTests : RegistersControllerTestsBase
         );
         await _dbContext.SaveChangesAsync();
 
-        var result = await _controller.NextOrder(10);
+        var result = await _controller.NextParcel(10);
         Assert.That(result.Value, Is.Not.Null);
         Assert.That(result.Value!.Id, Is.EqualTo(30)); // Should skip 20
     }
 
     [Test]
-    public async Task SetOrderStatuses_DoesNotUpdateMarkedByPartnerOrders()
+    public async Task SetParcelStatuses_DoesNotUpdateMarkedByPartnerOrders()
     {
         SetCurrentUserId(1);
         _dbContext.CheckStatuses.AddRange(
@@ -1111,7 +1112,7 @@ public class RegistersControllerTests : RegistersControllerTestsBase
         );
         await _dbContext.SaveChangesAsync();
 
-        await _controller.SetOrderStatuses(2, 99);
+        await _controller.SetParcelStatuses(2, 99);
         var order1 = await _dbContext.Orders.FindAsync(1);
         var order2 = await _dbContext.Orders.FindAsync(2);
         Assert.That(order1!.StatusId, Is.EqualTo(99)); // Updated

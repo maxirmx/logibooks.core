@@ -12,7 +12,7 @@
 // documentation and/or other materials provided with the distribution.
 //
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-//'AS IS' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+// 'AS IS' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
 // TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
 // PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR CONTRIBUTORS
 // BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -23,11 +23,23 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
-namespace Logibooks.Core.Services;
+namespace Logibooks.Core.Models;
 
-public interface IOrderIndPostGenerator
+[Table("word_match_types")]
+public class WordMatchType
 {
-    Task<(string, string)> GenerateXML(int orderId);
-    Task<(string, byte[])> GenerateXML4R(int registerId);
+    [Column("id")]
+    public int Id { get; set; }
+
+    [Column("name")]
+    public required string Name { get; set; }
+
+    [JsonIgnore]
+    public ICollection<StopWord> StopWords { get; set; } = [];
+
+    [JsonIgnore]
+    public ICollection<KeyWord> KeyWords { get; set; } = [];
 }

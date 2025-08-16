@@ -24,19 +24,17 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Text.Json.Serialization;
 
 namespace Logibooks.Core.Models;
 
-[Table("stop_word_match_types")]
-public class StopWordMatchType
+[Table("base_order_key_words")]
+public class BaseOrderKeyWord
 {
-    [Column("id")]
-    public int Id { get; set; }
+    [Column("base_order_id")]
+    public int BaseOrderId { get; set; }
+    public BaseOrder BaseOrder { get; set; } = null!;
 
-    [Column("name")]
-    public required string Name { get; set; }
-
-    [JsonIgnore]
-    public ICollection<StopWord> StopWords { get; set; } = [];
+    [Column("key_word_id")]
+    public int KeyWordId { get; set; }
+    public KeyWord KeyWord { get; set; } = null!;
 }

@@ -23,9 +23,13 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-namespace Logibooks.Core;
+using Logibooks.Core.RestModels;
 
-public static class VersionInfo
+namespace Logibooks.Core.Interfaces;
+
+public interface IRegisterValidationService
 {
-    public const string AppVersion = "0.9.0";
+    Task<Guid> StartValidationAsync(int registerId, CancellationToken cancellationToken = default);
+    ValidationProgress? GetProgress(Guid handleId);
+    bool CancelValidation(Guid handleId);
 }

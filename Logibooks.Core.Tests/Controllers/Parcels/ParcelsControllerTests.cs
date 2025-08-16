@@ -43,6 +43,7 @@ using Logibooks.Core.RestModels;
 using AutoMapper;
 using System.Collections.Generic;
 using Logibooks.Core.Services;
+using Logibooks.Core.Interfaces;
 
 namespace Logibooks.Core.Tests.Controllers.Parcels;
 
@@ -149,7 +150,7 @@ public class ParcelsControllerTests
         var result = await _controller.GetOrder(1);
 
         Assert.That(result.Value, Is.Not.Null);
-        Assert.That(result.Value, Is.InstanceOf<OrderViewItem>());
+        Assert.That(result.Value, Is.InstanceOf<ParcelViewItem>());
         Assert.That(result.Value!.Id, Is.EqualTo(1));
         Assert.That(result.Value.StopWordIds.Count, Is.EqualTo(1));
         Assert.That(result.Value.StopWordIds.First(), Is.EqualTo(5));
@@ -165,12 +166,12 @@ public class ParcelsControllerTests
         _dbContext.Orders.Add(order);
         await _dbContext.SaveChangesAsync();
 
-        var updated = new OrderUpdateItem { StatusId = 2, TnVed = "B" };
+        var updated = new ParcelUpdateItem { StatusId = 2, TnVed = "B" };
 
         // Configure the mock to perform the actual mapping
         var mockMapper = new Mock<IMapper>();
-        mockMapper.Setup(m => m.Map(It.IsAny<OrderUpdateItem>(), It.IsAny<WbrOrder>()))
-            .Callback<OrderUpdateItem, WbrOrder>((src, dest) =>
+        mockMapper.Setup(m => m.Map(It.IsAny<ParcelUpdateItem>(), It.IsAny<WbrOrder>()))
+            .Callback<ParcelUpdateItem, WbrOrder>((src, dest) =>
             {
                 // Simulate the AutoMapper behavior - only update non-null values
                 if (src.StatusId.HasValue) dest.StatusId = src.StatusId.Value;
@@ -203,7 +204,7 @@ public class ParcelsControllerTests
     public async Task UpdateOrder_ReturnsForbidden_ForNonLogist()
     {
         SetCurrentUserId(99); // unknown user
-        var updated = new OrderUpdateItem();
+        var updated = new ParcelUpdateItem();
 
         var result = await _controller.UpdateOrder(1, updated);
 
@@ -220,7 +221,7 @@ public class ParcelsControllerTests
         _dbContext.Registers.Add(register);
         await _dbContext.SaveChangesAsync();
 
-        var updated = new OrderUpdateItem { StatusId = 2, TnVed = "B" };
+        var updated = new ParcelUpdateItem { StatusId = 2, TnVed = "B" };
 
         var result = await _controller.UpdateOrder(1, updated);
 
@@ -240,7 +241,7 @@ public class ParcelsControllerTests
         _dbContext.Orders.Add(order);
         await _dbContext.SaveChangesAsync();
 
-        var updated = new OrderUpdateItem { StatusId = 2, TnVed = "B" };
+        var updated = new ParcelUpdateItem { StatusId = 2, TnVed = "B" };
 
         var result = await _controller.UpdateOrder(1, updated);
 
@@ -260,7 +261,7 @@ public class ParcelsControllerTests
         _dbContext.Orders.Add(ozonOrder);
         await _dbContext.SaveChangesAsync();
 
-        var updated = new OrderUpdateItem { StatusId = 2, TnVed = "B" };
+        var updated = new ParcelUpdateItem { StatusId = 2, TnVed = "B" };
 
         var result = await _controller.UpdateOrder(1, updated);
 
@@ -281,8 +282,8 @@ public class ParcelsControllerTests
         await _dbContext.SaveChangesAsync();
 
         var mockMapper = new Mock<IMapper>();
-        mockMapper.Setup(m => m.Map(It.IsAny<OrderUpdateItem>(), It.IsAny<WbrOrder>()))
-            .Callback<OrderUpdateItem, WbrOrder>((src, dest) =>
+        mockMapper.Setup(m => m.Map(It.IsAny<ParcelUpdateItem>(), It.IsAny<WbrOrder>()))
+            .Callback<ParcelUpdateItem, WbrOrder>((src, dest) =>
             {
                 if (src.StatusId.HasValue) dest.StatusId = src.StatusId.Value;
                 if (src.OrderNumber != null) dest.OrderNumber = src.OrderNumber;
@@ -300,7 +301,7 @@ public class ParcelsControllerTests
             _mockIndPostGenerator.Object
         );
 
-        var updated = new OrderUpdateItem { StatusId = 3, OrderNumber = "WBR456" };
+        var updated = new ParcelUpdateItem { StatusId = 3, OrderNumber = "WBR456" };
         var result = await _controller.UpdateOrder(1, updated);
 
         Assert.That(result, Is.TypeOf<NoContentResult>());
@@ -320,8 +321,8 @@ public class ParcelsControllerTests
         await _dbContext.SaveChangesAsync();
 
         var mockMapper = new Mock<IMapper>();
-        mockMapper.Setup(m => m.Map(It.IsAny<OrderUpdateItem>(), It.IsAny<OzonOrder>()))
-            .Callback<OrderUpdateItem, OzonOrder>((src, dest) =>
+        mockMapper.Setup(m => m.Map(It.IsAny<ParcelUpdateItem>(), It.IsAny<OzonOrder>()))
+            .Callback<ParcelUpdateItem, OzonOrder>((src, dest) =>
             {
                 if (src.StatusId.HasValue) dest.StatusId = src.StatusId.Value;
                 if (src.PostingNumber != null) dest.PostingNumber = src.PostingNumber;
@@ -339,7 +340,7 @@ public class ParcelsControllerTests
             _mockIndPostGenerator.Object
         );
 
-        var updated = new OrderUpdateItem { StatusId = 3, PostingNumber = "POST123" };
+        var updated = new ParcelUpdateItem { StatusId = 3, PostingNumber = "POST123" };
         var result = await _controller.UpdateOrder(2, updated);
 
         Assert.That(result, Is.TypeOf<NoContentResult>());
@@ -363,7 +364,7 @@ public class ParcelsControllerTests
 
         var result = await _controller.GetOrders(registerId: 1, statusId: 2, tnVed: "B", sortBy: "tnVed", sortOrder: "desc");
         var ok = result.Result as OkObjectResult;
-        var pr = ok!.Value as PagedResult<OrderViewItem>;
+        var pr = ok!.Value as PagedResult<ParcelViewItem>;
 
         Assert.That(pr!.Items.Count(), Is.EqualTo(1));
         Assert.That(pr.Items.First().Id, Is.EqualTo(3));
@@ -385,7 +386,7 @@ public class ParcelsControllerTests
 
         var result = await _controller.GetOrders(registerId: 1);
         var ok = result.Result as OkObjectResult;
-        var pr = ok!.Value as PagedResult<OrderViewItem>;
+        var pr = ok!.Value as PagedResult<ParcelViewItem>;
 
         Assert.That(pr!.Items.First().StopWordIds.Count, Is.EqualTo(1));
         Assert.That(pr.Items.First().StopWordIds.First(), Is.EqualTo(7));
@@ -405,7 +406,7 @@ public class ParcelsControllerTests
 
         var result = await _controller.GetOrders(registerId: 1);
         var ok = result.Result as OkObjectResult;
-        var pr = ok!.Value as PagedResult<OrderViewItem>;
+        var pr = ok!.Value as PagedResult<ParcelViewItem>;
 
         Assert.That(pr!.Items.Count(), Is.EqualTo(1));
         Assert.That(pr.Items.First().Id, Is.EqualTo(1));
@@ -532,7 +533,7 @@ public class ParcelsControllerTests
         // Should return OK since sortOrder validation was removed in the controller
         Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
         var okResult = result.Result as OkObjectResult;
-        var pagedResult = okResult!.Value as PagedResult<OrderViewItem>;
+        var pagedResult = okResult!.Value as PagedResult<ParcelViewItem>;
         // Verify that the result contains the normalized sort order
         Assert.That(pagedResult!.Sorting.SortOrder, Is.EqualTo("bad"));
     }
@@ -552,7 +553,7 @@ public class ParcelsControllerTests
         var result = await _controller.GetOrders(registerId: 1, pageSize: -1);
         Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
         var ok = result.Result as OkObjectResult;
-        var pr = ok!.Value as PagedResult<OrderViewItem>;
+        var pr = ok!.Value as PagedResult<ParcelViewItem>;
         Assert.That(pr!.Items.Count(), Is.EqualTo(2));
         Assert.That(pr.Pagination.TotalCount, Is.EqualTo(2));
         Assert.That(pr.Pagination.TotalPages, Is.EqualTo(1));
@@ -573,7 +574,7 @@ public class ParcelsControllerTests
         var result = await _controller.GetOrders(registerId: 1, page: 3, pageSize: 5);
         Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
         var ok = result.Result as OkObjectResult;
-        var pr = ok!.Value as PagedResult<OrderViewItem>;
+        var pr = ok!.Value as PagedResult<ParcelViewItem>;
         Assert.That(pr!.Pagination.CurrentPage, Is.EqualTo(1));
         Assert.That(pr.Items.First().Id, Is.EqualTo(1));
     }
@@ -961,7 +962,7 @@ public class ParcelsControllerTests
 
         var result = await _controller.GetOrders(registerId: 1);
         var ok = result.Result as OkObjectResult;
-        var pr = ok!.Value as PagedResult<OrderViewItem>;
+        var pr = ok!.Value as PagedResult<ParcelViewItem>;
 
         Assert.That(pr!.Items.First().FeacnOrderIds.Count, Is.EqualTo(1));
         Assert.That(pr.Items.First().FeacnOrderIds.First(), Is.EqualTo(25));
@@ -1044,7 +1045,7 @@ public class ParcelsControllerTests
         var result = await _controller.GetOrder(1);
 
         Assert.That(result.Value, Is.Not.Null);
-        Assert.That(result.Value, Is.InstanceOf<OrderViewItem>());
+        Assert.That(result.Value, Is.InstanceOf<ParcelViewItem>());
         Assert.That(result.Value!.Id, Is.EqualTo(1));
         Assert.That(result.Value.OrderNumber, Is.EqualTo("WBR123")); // WbrOrder specific field
         Assert.That(result.Value.OzonId, Is.Null); // Should not have Ozon-specific fields
@@ -1063,7 +1064,7 @@ public class ParcelsControllerTests
         var result = await _controller.GetOrder(2);
 
         Assert.That(result.Value, Is.Not.Null);
-        Assert.That(result.Value, Is.InstanceOf<OrderViewItem>());
+        Assert.That(result.Value, Is.InstanceOf<ParcelViewItem>());
         Assert.That(result.Value!.Id, Is.EqualTo(2));
         Assert.That(result.Value.OzonId, Is.EqualTo("OZON456")); // OzonOrder specific field
         Assert.That(result.Value.PostingNumber, Is.EqualTo("POST789")); // OzonOrder specific field

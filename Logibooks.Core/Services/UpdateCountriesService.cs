@@ -27,6 +27,7 @@ using System.Globalization;
 using CsvHelper;
 using CsvHelper.Configuration;
 using Logibooks.Core.Data;
+using Logibooks.Core.Interfaces;
 using Logibooks.Core.Models;
 
 namespace Logibooks.Core.Services;

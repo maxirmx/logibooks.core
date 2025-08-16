@@ -29,6 +29,7 @@ using Microsoft.EntityFrameworkCore;
 using Logibooks.Core.Data;
 using Logibooks.Core.Models;
 using Logibooks.Core.RestModels;
+using Logibooks.Core.Interfaces;
 
 namespace Logibooks.Core.Services;
 
@@ -71,7 +72,7 @@ public class RegisterValidationService(
 
         var allStopWords = await _db.StopWords.AsNoTracking().ToListAsync(cancellationToken);
         var morphologyContext = _morphologyService.InitializeContext(
-            allStopWords.Where(sw => sw.MatchTypeId >= (int)StopWordMatchTypeCode.MorphologyMatchTypes));
+            allStopWords.Where(sw => sw.MatchTypeId >= (int)WordMatchTypeCode.MorphologyMatchTypes));
 
         var tcs = new TaskCompletionSource();
 

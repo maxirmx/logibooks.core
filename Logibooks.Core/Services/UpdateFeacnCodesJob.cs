@@ -1,3 +1,4 @@
+using Logibooks.Core.Interfaces;
 using Quartz;
 
 namespace Logibooks.Core.Services;

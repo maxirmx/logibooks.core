@@ -1,4 +1,4 @@
-﻿// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
+// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
 // All rights reserved.
 // This file is a part of Logibooks Core application
 //
@@ -24,13 +24,14 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 
 using Logibooks.Core.Authorization;
 using Logibooks.Core.Data;
+using Logibooks.Core.Interfaces;
 using Logibooks.Core.RestModels;
 using Logibooks.Core.Models;
-using Logibooks.Core.Interfaces;
 
 namespace Logibooks.Core.Controllers;
 
@@ -39,40 +40,41 @@ namespace Logibooks.Core.Controllers;
 [Route("api/[controller]")]
 [ProducesResponseType(StatusCodes.Status401Unauthorized, Type = typeof(ErrMessage))]
 [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(ErrMessage))]
-
-public class StopWordsController(
+public class KeyWordsController(
     IHttpContextAccessor httpContextAccessor,
     AppDbContext db,
     IUserInformationService userService,
-    ILogger<StopWordsController> logger,
-    IMorphologySearchService morphologySearchService) : LogibooksControllerBase(httpContextAccessor, db, logger)
+    IKeywordsProcessingService processingService,
+    IMorphologySearchService morphologySearchService,
+    ILogger<KeyWordsController> logger) : LogibooksControllerBase(httpContextAccessor, db, logger)
 {
     private readonly IUserInformationService _userService = userService;
+    private readonly IKeywordsProcessingService _processingService = processingService;
     private readonly IMorphologySearchService _morphologySearchService = morphologySearchService;
 
     [HttpGet]
-    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<StopWordDto>))]
-    public async Task<ActionResult<IEnumerable<StopWordDto>>> GetStopWords()
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<KeyWordDto>))]
+    public async Task<ActionResult<IEnumerable<KeyWordDto>>> GetKeyWords()
     {
-        var words = await _db.StopWords.AsNoTracking().OrderBy(w => w.Id).ToListAsync();
-        return words.Select(w => new StopWordDto(w)).ToList();
+        var words = await _db.KeyWords.AsNoTracking().OrderBy(w => w.Id).ToListAsync();
+        return words.Select(w => new KeyWordDto(w)).ToList();
     }
 
     [HttpGet("{id}")]
-    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(StopWordDto))]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(KeyWordDto))]
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
-    public async Task<ActionResult<StopWordDto>> GetStopWord(int id)
+    public async Task<ActionResult<KeyWordDto>> GetKeyWord(int id)
     {
-        var word = await _db.StopWords.AsNoTracking().FirstOrDefaultAsync(w => w.Id == id);
-        return word == null ? _404Object(id) : new StopWordDto(word);
+        var word = await _db.KeyWords.AsNoTracking().FirstOrDefaultAsync(w => w.Id == id);
+        return word == null ? _404Object(id) : new KeyWordDto(word);
     }
 
     [HttpPost]
-    [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(StopWordDto))]
+    [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(KeyWordDto))]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status409Conflict, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status418ImATeapot, Type = typeof(MorphologySupportLevelDto))]
-    public async Task<ActionResult<StopWordDto>> CreateStopWord(StopWordDto dto)
+    public async Task<ActionResult<KeyWordDto>> CreateKeyWord(KeyWordDto dto)
     {
         if (!await _userService.CheckAdmin(_curUserId)) return _403();
 
@@ -91,23 +93,23 @@ public class StopWordsController(
             }
         }
 
-        if (await _db.StopWords.AnyAsync(sw => sw.Word.ToLower() == dto.Word.ToLower()))
+        if (await _db.KeyWords.AnyAsync(sw => sw.Word.ToLower() == dto.Word.ToLower()))
         {
-            return _409StopWord(dto.Word);
+            return _409KeyWord(dto.Word);
         }
-        var sw = dto.ToModel();
 
-        _db.StopWords.Add(sw);
+        var kw = dto.ToModel();
+        _db.KeyWords.Add(kw);
         try
         {
             await _db.SaveChangesAsync();
-            dto.Id = sw.Id;
-            return CreatedAtAction(nameof(GetStopWord), new { id = sw.Id }, dto);
+            dto.Id = kw.Id;
+            return CreatedAtAction(nameof(GetKeyWord), new { id = kw.Id }, dto);
         }
-        catch (DbUpdateException ex) when (ex.InnerException?.Message?.Contains("IX_stop_words_word") == true)
+        catch (DbUpdateException ex) when (ex.InnerException?.Message?.Contains("IX_key_words_word") == true)
         {
-            _logger.LogDebug("CreateStopWord returning '409 Conflict' due to database constraint");
-            return _409StopWord(dto.Word);
+            _logger.LogDebug("CreateKeyWord returning '409 Conflict' due to database constraint");
+            return _409KeyWord(dto.Word);
         }
     }
 
@@ -117,12 +119,13 @@ public class StopWordsController(
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status409Conflict, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status418ImATeapot, Type = typeof(MorphologySupportLevelDto))]
-    public async Task<IActionResult> UpdateStopWord(int id, StopWordDto dto)
+    public async Task<IActionResult> UpdateKeyWord(int id, KeyWordDto dto)
     {
         if (!await _userService.CheckAdmin(_curUserId)) return _403();
         if (id != dto.Id) return BadRequest();
-        var sw = await _db.StopWords.FindAsync(id);
-        if (sw == null) return _404Object(id);
+
+        var kw = await _db.KeyWords.FindAsync(id);
+        if (kw == null) return _404Object(id);
 
         if (dto.MatchTypeId >= (int)WordMatchTypeCode.MorphologyMatchTypes)
         {
@@ -139,23 +142,26 @@ public class StopWordsController(
             }
         }
 
-        if (!sw.Word.Equals(dto.Word, StringComparison.OrdinalIgnoreCase) &&
-            await _db.StopWords.AnyAsync(w => w.Word.ToLower() == dto.Word.ToLower()))
+        if (!kw.Word.Equals(dto.Word, StringComparison.OrdinalIgnoreCase) &&
+            await _db.KeyWords.AnyAsync(w => w.Word.ToLower() == dto.Word.ToLower()))
         {
-            return _409StopWord(dto.Word);
+            return _409KeyWord(dto.Word);
         }
-        sw.Word = dto.Word;
-        sw.MatchTypeId = dto.MatchTypeId;
+
+        kw.Word = dto.Word;
+        kw.MatchTypeId = dto.MatchTypeId;
+        kw.FeacnCode = dto.FeacnCode;
+
         try
         {
-            _db.Entry(sw).State = EntityState.Modified;
+            _db.Entry(kw).State = EntityState.Modified;
             await _db.SaveChangesAsync();
             return NoContent();
         }
-        catch (DbUpdateException ex) when (ex.InnerException?.Message?.Contains("IX_stop_words_word") == true)
+        catch (DbUpdateException ex) when (ex.InnerException?.Message?.Contains("IX_key_words_word") == true)
         {
-            _logger.LogDebug("UpdateStopWord returning '409 Conflict' due to database constraint");
-            return _409StopWord(dto.Word);
+            _logger.LogDebug("UpdateKeyWord returning '409 Conflict' due to database constraint");
+            return _409KeyWord(dto.Word);
         }
     }
 
@@ -164,14 +170,35 @@ public class StopWordsController(
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status409Conflict, Type = typeof(ErrMessage))]
-    public async Task<IActionResult> DeleteStopWord(int id)
+    public async Task<IActionResult> DeleteKeyWord(int id)
     {
         if (!await _userService.CheckAdmin(_curUserId)) return _403();
-        var sw = await _db.StopWords.FindAsync(id);
-        if (sw == null) return _404Object(id);
+        var kw = await _db.KeyWords.FindAsync(id);
+        if (kw == null) return _404Object(id);
 
-        _db.StopWords.Remove(sw);
+        _db.KeyWords.Remove(kw);
         await _db.SaveChangesAsync();
         return NoContent();
+    }
+
+    [HttpPost("upload")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(ErrMessage))]
+    [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
+    public async Task<IActionResult> Upload(IFormFile file)
+    {
+        if (!await _userService.CheckAdmin(_curUserId)) return _403();
+
+        using var ms = new MemoryStream();
+        await file.CopyToAsync(ms);
+        try
+        {
+            await _processingService.UploadKeywordsFromExcelAsync(ms.ToArray(), file.FileName);
+            return NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return _400KeyWordFile(ex.Message);
+        }
     }
 }

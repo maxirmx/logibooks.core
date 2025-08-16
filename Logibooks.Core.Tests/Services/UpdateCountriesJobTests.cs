@@ -32,6 +32,7 @@ using Moq;
 using NUnit.Framework;
 using Quartz;
 using Logibooks.Core.Services;
+using Logibooks.Core.Interfaces;
 
 namespace Logibooks.Core.Tests.Services;
 

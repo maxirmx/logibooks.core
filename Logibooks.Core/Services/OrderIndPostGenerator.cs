@@ -32,6 +32,7 @@ using System.Text;
 using Logibooks.Core.Constants;
 using Logibooks.Core.Data;
 using Logibooks.Core.Models;
+using Logibooks.Core.Interfaces;
 
 namespace Logibooks.Core.Services;
 

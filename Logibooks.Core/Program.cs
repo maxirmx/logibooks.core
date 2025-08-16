@@ -33,6 +33,7 @@ using Logibooks.Core.Settings;
 using Logibooks.Core.Services;
 using Logibooks.Core.Filters;
 using Quartz;
+using Logibooks.Core.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 var config = builder.Configuration;
@@ -59,6 +60,7 @@ builder.Services
     .AddScoped<IOrderValidationService, OrderValidationService>()
     .AddScoped<IRegisterValidationService, RegisterValidationService>()
     .AddScoped<IRegisterProcessingService, RegisterProcessingService>()
+    .AddScoped<IKeywordsProcessingService, KeywordsProcessingService>()
     .AddScoped<IIndPostXmlService, IndPostXmlService>()
     .AddScoped<IOrderIndPostGenerator, OrderIndPostGenerator>()
     .AddScoped<IUserInformationService, UserInformationService>()
