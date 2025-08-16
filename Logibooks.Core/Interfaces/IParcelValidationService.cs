@@ -25,25 +25,15 @@
 
 using Logibooks.Core.Models;
 using System.Runtime.CompilerServices;
-using System.Text.RegularExpressions;
 [assembly: InternalsVisibleTo("Logibooks.Core.Tests")]
 
 namespace Logibooks.Core.Interfaces;
 
-public interface IOrderValidationService
+public interface IParcelValidationService
 {
     Task ValidateAsync(BaseOrder order,
         MorphologyContext morphologyContext,
-        StopWordsContext stopWordsContext,
+        WordsLookupContext<StopWord> wordsLookupContext,
         FeacnPrefixCheckContext? feacnContext = null,
         CancellationToken cancellationToken = default);
-
-    StopWordsContext InitializeStopWordsContext(IEnumerable<StopWord> exactMatchStopWords);
-}
-
-public class StopWordsContext
-{
-    internal List<StopWord> ExactSymbolsMatchItems { get; } = [];
-    internal List<(StopWord sw, Regex regex)> ExactWordRegexes { get; } = [];
-    internal List<(StopWord sw, Regex regex)> PhraseRegexes { get; } = [];
 }

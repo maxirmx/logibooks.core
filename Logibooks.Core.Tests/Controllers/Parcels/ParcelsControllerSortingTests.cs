@@ -50,10 +50,11 @@ public class ParcelsControllerSortingTests
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
     private AppDbContext _dbContext;
     private Mock<IHttpContextAccessor> _mockHttpContextAccessor;
-    private Mock<IOrderValidationService> _mockValidationService;
+    private Mock<IParcelValidationService> _mockValidationService;
+    private Mock<IParcelFeacnCodeLookupService> _mockFeacnLookupService;
     private IMorphologySearchService _morphologyService;
     private Mock<IRegisterProcessingService> _mockProcessingService;
-    private Mock<IOrderIndPostGenerator> _mockIndPostGenerator;
+    private Mock<IParcelIndPostGenerator> _mockIndPostGenerator;
     private ILogger<ParcelsController> _logger;
     private IUserInformationService _userService;
     private ParcelsController _controller;
@@ -69,7 +70,7 @@ public class ParcelsControllerSortingTests
         _dbContext = new AppDbContext(options);
 
         // Add roles and users
-        var logistRole = new Role { Id = 1, Name = "logist", Title = "Ëîãèñò" };
+        var logistRole = new Role { Id = 1, Name = "logist", Title = "Ã‹Ã®Ã£Ã¨Ã±Ã²" };
         _dbContext.Roles.Add(logistRole);
 
         string hpw = BCrypt.Net.BCrypt.HashPassword("pwd");
@@ -94,9 +95,10 @@ public class ParcelsControllerSortingTests
         // Create mocks
         _mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
         _logger = new LoggerFactory().CreateLogger<ParcelsController>();
-        _mockValidationService = new Mock<IOrderValidationService>();
+        _mockValidationService = new Mock<IParcelValidationService>();
+        _mockFeacnLookupService = new Mock<IParcelFeacnCodeLookupService>();
         _mockProcessingService = new Mock<IRegisterProcessingService>();
-        _mockIndPostGenerator = new Mock<IOrderIndPostGenerator>();
+        _mockIndPostGenerator = new Mock<IParcelIndPostGenerator>();
         _morphologyService = new MorphologySearchService();
         _userService = new UserInformationService(_dbContext);
         _controller = CreateController();
@@ -119,6 +121,7 @@ public class ParcelsControllerSortingTests
             _logger,
             mockMapper.Object,
             _mockValidationService.Object,
+            _mockFeacnLookupService.Object,
             _morphologyService,
             _mockProcessingService.Object,
             _mockIndPostGenerator.Object);

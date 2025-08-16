@@ -50,7 +50,7 @@ public class RegistersController(
     ILogger<RegistersController> logger,
     IRegisterValidationService validationService,
     IRegisterProcessingService processingService,
-    IOrderIndPostGenerator indPostGenerator) : LogibooksControllerBase(httpContextAccessor, db, logger)
+    IParcelIndPostGenerator indPostGenerator) : LogibooksControllerBase(httpContextAccessor, db, logger)
 {
     private readonly IUserInformationService _userService = userService;
 
@@ -73,7 +73,7 @@ public class RegistersController(
     private readonly int maxPageSize = 100;
     private readonly IRegisterValidationService _validationService = validationService;
     private readonly IRegisterProcessingService _processingService = processingService;
-    private readonly IOrderIndPostGenerator _indPostGenerator = indPostGenerator;
+    private readonly IParcelIndPostGenerator _indPostGenerator = indPostGenerator;
 
     private static Expression<Func<Register, string>> PartySortSelector(bool byRecipient)
     {

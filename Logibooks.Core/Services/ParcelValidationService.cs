@@ -30,10 +30,10 @@ using System.Text.RegularExpressions;
 
 namespace Logibooks.Core.Services;
 
-public class OrderValidationService(
+public class ParcelValidationService(
     AppDbContext db, 
     IMorphologySearchService morphService, 
-    IFeacnPrefixCheckService feacnPrefixCheckService) : IOrderValidationService
+    IFeacnPrefixCheckService feacnPrefixCheckService) : IParcelValidationService
 {
     private readonly AppDbContext _db = db;
     private readonly IMorphologySearchService _morphService = morphService;
@@ -43,7 +43,7 @@ public class OrderValidationService(
     public async Task ValidateAsync(
         BaseOrder order,
         MorphologyContext morphologyContext,
-        StopWordsContext stopWordsContext,
+        WordsLookupContext<StopWord> wordsLookupContext,
         FeacnPrefixCheckContext? feacnContext = null,
         CancellationToken cancellationToken = default)
     {
@@ -71,11 +71,11 @@ public class OrderValidationService(
         await _db.SaveChangesAsync(cancellationToken);
 
         var productName = order.ProductName ?? string.Empty;
-        var links1 = SelectStopWordLinks(order.Id, productName, stopWordsContext, morphologyContext);
+        var links1 = SelectStopWordLinks(order.Id, productName, wordsLookupContext, morphologyContext);
 
         if (order is WbrOrder wbr && !string.IsNullOrWhiteSpace(wbr.Description))
         {
-            var linksDesc = SelectStopWordLinks(order.Id, wbr.Description, stopWordsContext, morphologyContext);
+            var linksDesc = SelectStopWordLinks(order.Id, wbr.Description, wordsLookupContext, morphologyContext);
             // Add linksDesc to links1, keeping uniqueness by StopWordId
             var existingIds = new HashSet<int>(links1.Select(l => l.StopWordId));
             foreach (var link in linksDesc)
@@ -114,13 +114,13 @@ public class OrderValidationService(
     private List<BaseOrderStopWord> SelectStopWordLinks(
         int orderId,
         string productName,
-        StopWordsContext stopWordsContext,
+        WordsLookupContext<StopWord> wordsLookupContext,
         MorphologyContext morphologyContext)
     {
         var links = new List<BaseOrderStopWord>();
         var existingStopWordIds = new HashSet<int>();
 
-        List<StopWord> matchingWords = GetMatchingStopWordsFromContext(productName, stopWordsContext); 
+        var matchingWords = wordsLookupContext.GetMatchingWords(productName);
 
         // Add stop words to links
         foreach (var sw in matchingWords)
@@ -137,87 +137,5 @@ public class OrderValidationService(
         }
 
         return links;
-    }
-
-    private static List<StopWord> GetMatchingStopWordsFromContext(string productName, StopWordsContext context)
-    {
-        if (string.IsNullOrEmpty(productName))
-            return [];
-
-        var result = new List<StopWord>();
-
-        // ExactSymbolsMatchItems: substring match
-        result.AddRange(context.ExactSymbolsMatchItems
-            .Where(sw => !string.IsNullOrEmpty(sw.Word) && 
-                         productName.Contains(sw.Word, StringComparison.OrdinalIgnoreCase)));
-
-        // ExactWordMatchItems: word match (delimited by non-alphanumeric or '-')
-        foreach (var (sw, regex) in context.ExactWordRegexes)
-        {
-            if (regex.IsMatch(productName))
-                result.Add(sw);
-        }
-
-        // PhraseMatchItems: phrase match (sequence of words in exact order, separated by non-word chars)
-        foreach (var (sw, regex) in context.PhraseRegexes)
-        {
-            if (regex.IsMatch(productName))
-                result.Add(sw);
-        }
-
-        return result;
-    }
-
-    public StopWordsContext InitializeStopWordsContext(IEnumerable<StopWord> exactMatchStopWords)
-    {
-        var context = new StopWordsContext();
-        List<StopWord> exactWordMatchItems  = [];
-        List<StopWord> allWordsMatchItems = [];
-        List<StopWord> phraseMatchItems = [];
-
-        var filtered = exactMatchStopWords
-            .Where(sw => sw.MatchTypeId < (int)WordMatchTypeCode.MorphologyMatchTypes);
-
-        var grouped = filtered
-            .GroupBy(sw => (WordMatchTypeCode)sw.MatchTypeId)
-            .ToDictionary(g => g.Key, g => g.ToList());
-
-        context.ExactSymbolsMatchItems.AddRange(
-            grouped.TryGetValue(WordMatchTypeCode.ExactSymbols, out var symbols) ? symbols : []);
-        exactWordMatchItems.AddRange(
-            grouped.TryGetValue(WordMatchTypeCode.ExactWord, out var words) ? words : []);
-        phraseMatchItems.AddRange(
-            grouped.TryGetValue(WordMatchTypeCode.Phrase, out var phrases) ? phrases : []);
-
-        // Precompile regexes for ExactWordMatchItems
-        foreach (var sw in exactWordMatchItems)
-        {
-            if (!string.IsNullOrEmpty(sw.Word))
-            {
-                var regex = new Regex($@"(?<=^|[^\w-]){Regex.Escape(sw.Word.Trim())}(?=[^\w-]|$)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
-                context.ExactWordRegexes.Add((sw, regex));
-            }
-        }
-
-        // Precompile regexes for PhraseMatchItems
-        foreach (var sw in phraseMatchItems)
-        {
-            if (!string.IsNullOrWhiteSpace(sw.Word))
-            {
-                // Split phrase into words (alphanumeric or '-') using regex
-                var phraseWords = Regex.Split(sw.Word.Trim(), "[^\\w-]+", RegexOptions.Compiled)
-                    .Where(w => !string.IsNullOrWhiteSpace(w)).ToArray();
-                if (phraseWords.Length > 0)
-                {
-                    // Build regex for exact sequence of words, separated by non-word chars
-                    var pattern = string.Join("[^\\w-]+", phraseWords.Select(w => $"{Regex.Escape(w)}"));
-                    // Match phrase at word boundaries (start/end or non-word char)
-                    var phraseRegex = new Regex(@$"(?<=^|[^\w-]){pattern}(?=[^\w-]|$)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
-                    context.PhraseRegexes.Add((sw, phraseRegex));
-                }
-            }
-        }
-
-        return context;
     }
 }

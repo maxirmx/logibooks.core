@@ -36,7 +36,7 @@ using Logibooks.Core.Interfaces;
 
 namespace Logibooks.Core.Services;
 
-public class OrderIndPostGenerator(AppDbContext db, IIndPostXmlService xmlService) : IOrderIndPostGenerator
+public class ParcelIndPostGenerator(AppDbContext db, IIndPostXmlService xmlService) : IParcelIndPostGenerator
 {
     private readonly AppDbContext _db = db;
     private readonly IIndPostXmlService _xmlService = xmlService;

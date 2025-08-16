@@ -51,14 +51,14 @@ public class RegisterValidationServiceTests
         return new AppDbContext(options);
     }
 
-    private static IServiceScopeFactory CreateMockScopeFactory(AppDbContext dbContext, IOrderValidationService orderValidationService, IFeacnPrefixCheckService feacnPrefixCheckService)
+    private static IServiceScopeFactory CreateMockScopeFactory(AppDbContext dbContext, IParcelValidationService orderValidationService, IFeacnPrefixCheckService feacnPrefixCheckService)
     {
         var mockServiceProvider = new Mock<IServiceProvider>();
         var mockScope = new Mock<IServiceScope>();
         var mockScopeFactory = new Mock<IServiceScopeFactory>();
 
         mockScope.Setup(s => s.ServiceProvider.GetService(typeof(AppDbContext))).Returns(dbContext);
-        mockScope.Setup(s => s.ServiceProvider.GetService(typeof(IOrderValidationService))).Returns(orderValidationService);
+        mockScope.Setup(s => s.ServiceProvider.GetService(typeof(IParcelValidationService))).Returns(orderValidationService);
         mockScope.Setup(s => s.ServiceProvider.GetService(typeof(IFeacnPrefixCheckService))).Returns(feacnPrefixCheckService);
 
         mockScopeFactory.Setup(f => f.CreateScope()).Returns(mockScope.Object);
@@ -76,11 +76,11 @@ public class RegisterValidationServiceTests
             new WbrOrder { Id = 2, RegisterId = 1, StatusId = 1 });
         await ctx.SaveChangesAsync();
 
-        var mock = new Mock<IOrderValidationService>();
+        var mock = new Mock<IParcelValidationService>();
         mock.Setup(m => m.ValidateAsync(
             It.IsAny<BaseOrder>(),
             It.IsAny<MorphologyContext>(), 
-            It.IsAny<StopWordsContext>(),
+            It.IsAny<WordsLookupContext<StopWord>>(),
             It.IsAny<FeacnPrefixCheckContext?>(),
             It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
@@ -99,7 +99,7 @@ public class RegisterValidationServiceTests
         mock.Verify(m => m.ValidateAsync(
             It.IsAny<BaseOrder>(),
             It.IsAny<MorphologyContext>(), 
-            It.IsAny<StopWordsContext>(),
+            It.IsAny<WordsLookupContext<StopWord>>(),
             It.IsAny<FeacnPrefixCheckContext?>(),
             It.IsAny<CancellationToken>()),
             Times.Exactly(2));
@@ -116,11 +116,11 @@ public class RegisterValidationServiceTests
         await ctx.SaveChangesAsync();
 
         var tcs = new TaskCompletionSource();
-        var mock = new Mock<IOrderValidationService>();
+        var mock = new Mock<IParcelValidationService>();
         mock.Setup(m => m.ValidateAsync(
             It.IsAny<BaseOrder>(),
             It.IsAny<MorphologyContext>(),
-            It.IsAny<StopWordsContext>(),
+            It.IsAny<WordsLookupContext<StopWord>>(),
             It.IsAny<FeacnPrefixCheckContext?>(),
             It.IsAny<CancellationToken>()))
             .Returns(async () => { await Task.Delay(20); tcs.TrySetResult(); });
@@ -146,7 +146,7 @@ public class RegisterValidationServiceTests
         ctx.Registers.Add(new Register { Id = 3, FileName = "r.xlsx" });
         await ctx.SaveChangesAsync();
 
-        var mock = new Mock<IOrderValidationService>();
+        var mock = new Mock<IParcelValidationService>();
         var logger = new LoggerFactory().CreateLogger<RegisterValidationService>();
         var feacnSvc = new Mock<IFeacnPrefixCheckService>().Object;
         var scopeFactory = CreateMockScopeFactory(ctx, mock.Object, feacnSvc);
@@ -169,7 +169,7 @@ public class RegisterValidationServiceTests
         var mockScope = new Mock<IServiceScope>();
         var mockServiceProvider = new Mock<IServiceProvider>();
         mockServiceProvider.Setup(sp => sp.GetService(typeof(AppDbContext))).Returns(null!);
-        mockServiceProvider.Setup(sp => sp.GetService(typeof(IOrderValidationService))).Returns(null!);
+        mockServiceProvider.Setup(sp => sp.GetService(typeof(IParcelValidationService))).Returns(null!);
         mockScope.Setup(s => s.ServiceProvider).Returns(mockServiceProvider.Object);
 
         var mockScopeFactory = new Mock<IServiceScopeFactory>();
@@ -219,11 +219,11 @@ public class RegisterValidationServiceTests
         // Use real OrderValidationService and MorphologySearchService
         var logger = new LoggerFactory().CreateLogger<RegisterValidationService>();
         var feacnPrefixCheckService = new FeacnPrefixCheckService(ctx);
-        var orderValidationService = new OrderValidationService(ctx, new MorphologySearchService(), feacnPrefixCheckService);
+        var orderValidationService = new ParcelValidationService(ctx, new MorphologySearchService(), feacnPrefixCheckService);
         // Setup DI scope factory to provide real services
         var mockServiceProvider = new Mock<IServiceProvider>();
         mockServiceProvider.Setup(x => x.GetService(typeof(AppDbContext))).Returns(ctx);
-        mockServiceProvider.Setup(x => x.GetService(typeof(IOrderValidationService))).Returns(orderValidationService);
+        mockServiceProvider.Setup(x => x.GetService(typeof(IParcelValidationService))).Returns(orderValidationService);
         mockServiceProvider.Setup(x => x.GetService(typeof(IFeacnPrefixCheckService))).Returns(feacnPrefixCheckService);
 
         var mockScope = new Mock<IServiceScope>();
@@ -277,11 +277,11 @@ public class RegisterValidationServiceTests
         );
         await ctx.SaveChangesAsync();
 
-        var mock = new Mock<IOrderValidationService>();
+        var mock = new Mock<IParcelValidationService>();
         mock.Setup(m => m.ValidateAsync(
             It.IsAny<BaseOrder>(),
             It.IsAny<MorphologyContext>(),
-            It.IsAny<StopWordsContext>(),
+            It.IsAny<WordsLookupContext<StopWord>>(),
             It.IsAny<FeacnPrefixCheckContext?>(),
             It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
@@ -295,28 +295,28 @@ public class RegisterValidationServiceTests
         mock.Verify(m => m.ValidateAsync(
             It.Is<BaseOrder>(o => o.Id == 201),
             It.IsAny<MorphologyContext>(),
-            It.IsAny<StopWordsContext>(),
+            It.IsAny<WordsLookupContext<StopWord>>(),
             It.IsAny<FeacnPrefixCheckContext?>(),
             It.IsAny<CancellationToken>()),
             Times.Once);
         mock.Verify(m => m.ValidateAsync(
             It.Is<BaseOrder>(o => o.Id == 202),
             It.IsAny<MorphologyContext>(),
-            It.IsAny<StopWordsContext>(),
+            It.IsAny<WordsLookupContext<StopWord>>(),
             It.IsAny<FeacnPrefixCheckContext?>(),
             It.IsAny<CancellationToken>()),
             Times.Never);
         mock.Verify(m => m.ValidateAsync(
             It.Is<BaseOrder>(o => o.Id == 203),
             It.IsAny<MorphologyContext>(),
-            It.IsAny<StopWordsContext>(),
+            It.IsAny<WordsLookupContext<StopWord>>(),
             It.IsAny<FeacnPrefixCheckContext?>(),
             It.IsAny<CancellationToken>()),
             Times.Never);
         mock.Verify(m => m.ValidateAsync(
             It.Is<BaseOrder>(o => o.Id == 204),
             It.IsAny<MorphologyContext>(),
-            It.IsAny<StopWordsContext>(),
+            It.IsAny<WordsLookupContext<StopWord>>(),
             It.IsAny<FeacnPrefixCheckContext?>(),
             It.IsAny<CancellationToken>()),
             Times.Never);

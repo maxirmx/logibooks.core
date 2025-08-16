@@ -41,12 +41,12 @@ using Logibooks.Core.Interfaces;
 namespace Logibooks.Core.Tests.Services
 {
     [TestFixture]
-    public class OrderIndPostGeneratorGenerateXMLTests
+    public class ParcelIndPostGeneratorGenerateXMLTests
     {
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         private Mock<IIndPostXmlService> _xmlServiceMock;
         private AppDbContext _dbContext;
-        private OrderIndPostGenerator _generator;
+        private ParcelIndPostGenerator _generator;
         private TransportationType _transportationType;
         private CustomsProcedure _customsProcedure;
         private CustomsProcedure _customsProcedure60;
@@ -62,7 +62,7 @@ namespace Logibooks.Core.Tests.Services
                 .Options;
             _dbContext = new AppDbContext(options);
             
-            _generator = new OrderIndPostGenerator(_dbContext, _xmlServiceMock.Object);
+            _generator = new ParcelIndPostGenerator(_dbContext, _xmlServiceMock.Object);
 
             _transportationType = new TransportationType { Id = 1, Code = TransportationTypeCode.Avia, Name = "Авиа" };
             _customsProcedure = new CustomsProcedure { Id = 1, Code = 10, Name = "Экспорт" };
