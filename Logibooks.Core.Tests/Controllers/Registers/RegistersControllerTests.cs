@@ -863,7 +863,7 @@ public class RegistersControllerTests : RegistersControllerTestsBase
         _dbContext.Orders.Add(order);
         await _dbContext.SaveChangesAsync();
 
-        var orderValidationService = new OrderValidationService(_dbContext, new MorphologySearchService(), new FeacnPrefixCheckService(_dbContext));
+        var orderValidationService = new ParcelValidationService(_dbContext, new MorphologySearchService(), new FeacnPrefixCheckService(_dbContext));
         var scopeFactoryMock = new Mock<IServiceScopeFactory>();
         var spMock = new Mock<IServiceProvider>();
         spMock.Setup(x => x.GetService(typeof(AppDbContext))).Returns(_dbContext);

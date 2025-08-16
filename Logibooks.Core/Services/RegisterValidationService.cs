@@ -104,7 +104,7 @@ public class RegisterValidationService(
                 process.Total = orders.Count;
                 tcs.TrySetResult();
 
-                var stopWordsContext = scopedOrderSvc.InitializeStopWordsContext(allStopWords);
+                var stopWordsContext = scopedOrderSvc.InitializeWordsLookupContext(allStopWords);
                 var feacnContext = await scopedFeacnSvc.CreateContext(process.Cts.Token);
 
                 foreach (var id in orders)

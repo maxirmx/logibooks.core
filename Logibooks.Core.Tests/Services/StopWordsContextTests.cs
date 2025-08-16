@@ -46,8 +46,8 @@ public class StopWordsContextTests
 
     private static List<StopWord> AllStopWords => new() { swSymbols1, swSymbols2, swWord1, swWord2, swWord3, swPhrase1, swPhrase2 };
 
-    private static StopWordsContext CreateContext() =>
-        new ParcelValidationService(null!, null!, null!).InitializeStopWordsContext(AllStopWords);
+    private static WordsLookupContext CreateContext() =>
+        new ParcelValidationService(null!, null!, null!).InitializeWordsLookupContext(AllStopWords);
 
     private static List<StopWord> Match(string productName)
     {

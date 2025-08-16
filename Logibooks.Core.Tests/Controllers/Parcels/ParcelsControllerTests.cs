@@ -805,7 +805,7 @@ public class ParcelsControllerTests
         _mockValidationService.Verify(s => s.ValidateAsync(
             order,
             It.IsAny<MorphologyContext>(),
-            It.IsAny<StopWordsContext>(),
+            It.IsAny<WordsLookupContext>(),
             It.IsAny<FeacnPrefixCheckContext?>(),
             It.IsAny<CancellationToken>()),
             Times.Once);
@@ -821,7 +821,7 @@ public class ParcelsControllerTests
         _mockValidationService.Verify(s => s.ValidateAsync(
             It.IsAny<BaseOrder>(),
             It.IsAny<MorphologyContext>(),
-            It.IsAny<StopWordsContext>(),
+            It.IsAny<WordsLookupContext>(),
             It.IsAny<FeacnPrefixCheckContext?>(),
             It.IsAny<CancellationToken>()),
             Times.Never);
@@ -842,7 +842,7 @@ public class ParcelsControllerTests
         _mockValidationService.Verify(s => s.ValidateAsync(
             It.IsAny<BaseOrder>(),
             It.IsAny<MorphologyContext>(),
-            It.IsAny<StopWordsContext>(),
+            It.IsAny<WordsLookupContext>(),
             It.IsAny<FeacnPrefixCheckContext?>(),
             It.IsAny<CancellationToken>()),
             Times.Never);
@@ -866,7 +866,7 @@ public class ParcelsControllerTests
         _mockValidationService.Verify(s => s.ValidateAsync(
             It.IsAny<BaseOrder>(),
             It.IsAny<MorphologyContext>(),
-            It.IsAny<StopWordsContext>(),
+            It.IsAny<WordsLookupContext>(),
             It.IsAny<FeacnPrefixCheckContext?>(),
             It.IsAny<CancellationToken>()),
             Times.Never);

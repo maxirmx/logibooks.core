@@ -49,7 +49,7 @@ public class ParcelsController(
     IUserInformationService userService,
     ILogger<ParcelsController> logger,
     IMapper mapper,
-    IOrderValidationService validationService,
+    IParcelValidationService validationService,
     IMorphologySearchService morphologyService,
     IRegisterProcessingService processingService,
     IParcelIndPostGenerator indPostGenerator) : LogibooksControllerBase(httpContextAccessor, db, logger)
@@ -57,7 +57,7 @@ public class ParcelsController(
     private const int MaxPageSize = 1000;
     private readonly IUserInformationService _userService = userService;
     private readonly IMapper _mapper = mapper;
-    private readonly IOrderValidationService _validationService = validationService;
+    private readonly IParcelValidationService _validationService = validationService;
     private readonly IMorphologySearchService _morphologyService = morphologyService;
     private readonly IRegisterProcessingService _processingService = processingService;
     private readonly IParcelIndPostGenerator _indPostGenerator = indPostGenerator;
@@ -465,10 +465,10 @@ public class ParcelsController(
         var stopWords = await _db.StopWords.AsNoTracking().ToListAsync();
         var morphologyContext = _morphologyService.InitializeContext(
             stopWords.Where(sw => sw.MatchTypeId >= (int)WordMatchTypeCode.MorphologyMatchTypes));
-        var stopWordsContext = _validationService.InitializeStopWordsContext(
-            stopWords.Where(sw => sw.MatchTypeId == (int)WordMatchTypeCode.ExactSymbols));
+        var wordsLookupContext = _validationService.InitializeWordsLookupContext(
+            stopWords.Where(sw => sw.MatchTypeId < (int)WordMatchTypeCode.MorphologyMatchTypes));
 
-        await _validationService.ValidateAsync(order, morphologyContext, stopWordsContext, null);
+        await _validationService.ValidateAsync(order, morphologyContext, wordsLookupContext, null);
 
         return NoContent();
     }
@@ -563,6 +563,7 @@ public class ParcelsController(
     }
 
 }
+
 
 
 

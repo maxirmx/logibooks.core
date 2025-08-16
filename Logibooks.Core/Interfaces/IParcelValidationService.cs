@@ -34,14 +34,14 @@ public interface IParcelValidationService
 {
     Task ValidateAsync(BaseOrder order,
         MorphologyContext morphologyContext,
-        StopWordsContext stopWordsContext,
+        WordsLookupContext wordsLookupContext,
         FeacnPrefixCheckContext? feacnContext = null,
         CancellationToken cancellationToken = default);
 
-    StopWordsContext InitializeStopWordsContext(IEnumerable<StopWord> exactMatchStopWords);
+    WordsLookupContext InitializeWordsLookupContext(IEnumerable<StopWord> exactMatchStopWords);
 }
 
-public class StopWordsContext
+public class WordsLookupContext
 {
     internal List<StopWord> ExactSymbolsMatchItems { get; } = [];
     internal List<(StopWord sw, Regex regex)> ExactWordRegexes { get; } = [];
