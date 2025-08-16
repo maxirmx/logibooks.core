@@ -84,7 +84,7 @@ public class KeywordsProcessingService(AppDbContext db, ILogger<KeywordsProcessi
                     continue;
 
                 if (!NineOrTenDigitCodeRegex.IsMatch(code))
-                    throw new InvalidOperationException($"Код '{code}' в строке {r + 1} должен содержать ровно 9 или 10 цифр");
+                    throw new InvalidOperationException($"Код '{code}' в строке {r + 1} должен содержать ровно 10 цифр");
 
                 // Prepend zero if code has 9 digits
                 if (code.Length == 9)
