@@ -59,6 +59,7 @@ builder.Services
     .AddScoped<IFeacnPrefixCheckService, FeacnPrefixCheckService>()
     .AddScoped<IParcelValidationService, ParcelValidationService>()
     .AddScoped<IParcelFeacnCodeLookupService, ParcelFeacnCodeLookupService>()
+    .AddScoped<IRegisterFeacnCodeLookupService, RegisterFeacnCodeLookupService>()
     .AddScoped<IRegisterValidationService, RegisterValidationService>()
     .AddScoped<IRegisterProcessingService, RegisterProcessingService>()
     .AddScoped<IKeywordsProcessingService, KeywordsProcessingService>()
