@@ -51,6 +51,7 @@ public class ParcelsControllerSortingTests
     private AppDbContext _dbContext;
     private Mock<IHttpContextAccessor> _mockHttpContextAccessor;
     private Mock<IParcelValidationService> _mockValidationService;
+    private Mock<IParcelFeacnCodeLookupService> _mockFeacnLookupService;
     private IMorphologySearchService _morphologyService;
     private Mock<IRegisterProcessingService> _mockProcessingService;
     private Mock<IParcelIndPostGenerator> _mockIndPostGenerator;
@@ -69,7 +70,7 @@ public class ParcelsControllerSortingTests
         _dbContext = new AppDbContext(options);
 
         // Add roles and users
-        var logistRole = new Role { Id = 1, Name = "logist", Title = "Ëîãèñò" };
+        var logistRole = new Role { Id = 1, Name = "logist", Title = "Ã‹Ã®Ã£Ã¨Ã±Ã²" };
         _dbContext.Roles.Add(logistRole);
 
         string hpw = BCrypt.Net.BCrypt.HashPassword("pwd");
@@ -95,6 +96,7 @@ public class ParcelsControllerSortingTests
         _mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
         _logger = new LoggerFactory().CreateLogger<ParcelsController>();
         _mockValidationService = new Mock<IParcelValidationService>();
+        _mockFeacnLookupService = new Mock<IParcelFeacnCodeLookupService>();
         _mockProcessingService = new Mock<IRegisterProcessingService>();
         _mockIndPostGenerator = new Mock<IParcelIndPostGenerator>();
         _morphologyService = new MorphologySearchService();
@@ -119,6 +121,7 @@ public class ParcelsControllerSortingTests
             _logger,
             mockMapper.Object,
             _mockValidationService.Object,
+            _mockFeacnLookupService.Object,
             _morphologyService,
             _mockProcessingService.Object,
             _mockIndPostGenerator.Object);

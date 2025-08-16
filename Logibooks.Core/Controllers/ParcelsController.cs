@@ -50,6 +50,7 @@ public class ParcelsController(
     ILogger<ParcelsController> logger,
     IMapper mapper,
     IParcelValidationService validationService,
+    IParcelFeacnCodeLookupService feacnLookupService,
     IMorphologySearchService morphologyService,
     IRegisterProcessingService processingService,
     IParcelIndPostGenerator indPostGenerator) : LogibooksControllerBase(httpContextAccessor, db, logger)
@@ -58,6 +59,7 @@ public class ParcelsController(
     private readonly IUserInformationService _userService = userService;
     private readonly IMapper _mapper = mapper;
     private readonly IParcelValidationService _validationService = validationService;
+    private readonly IParcelFeacnCodeLookupService _feacnLookupService = feacnLookupService;
     private readonly IMorphologySearchService _morphologyService = morphologyService;
     private readonly IRegisterProcessingService _processingService = processingService;
     private readonly IParcelIndPostGenerator _indPostGenerator = indPostGenerator;
@@ -438,6 +440,40 @@ public class ParcelsController(
 
         _logger.LogDebug("GetOrders returning {count} items", items.Count);
         return Ok(result);
+    }
+
+    [HttpPost("{id}/lookup-feacn-code")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
+    [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
+    public async Task<IActionResult> LookupFeacnCode(int id)
+    {
+        _logger.LogDebug("LookupFeacnCode for id={id}", id);
+
+        if (!await _userService.CheckLogist(_curUserId))
+        {
+            _logger.LogDebug("LookupFeacnCode returning '403 Forbidden'");
+            return _403();
+        }
+
+        var order = await _db.Orders
+            .FirstOrDefaultAsync(o => o.Id == id && o.CheckStatusId != (int)ParcelCheckStatusCode.MarkedByPartner);
+        if (order == null)
+        {
+            _logger.LogDebug("LookupFeacnCode returning '404 Not Found'");
+            return _404Order(id);
+        }
+
+        var keyWords = await _db.KeyWords.AsNoTracking().ToListAsync();
+        var morphologyContext = _morphologyService.InitializeContext(
+            keyWords.Where(k => k.MatchTypeId >= (int)WordMatchTypeCode.MorphologyMatchTypes)
+                .Select(k => new StopWord { Id = k.Id, Word = k.Word, MatchTypeId = k.MatchTypeId }));
+        var wordsLookupContext = new WordsLookupContext<KeyWord>(
+            keyWords.Where(k => k.MatchTypeId < (int)WordMatchTypeCode.MorphologyMatchTypes));
+
+        await _feacnLookupService.LookupAsync(order, morphologyContext, wordsLookupContext);
+
+        return NoContent();
     }
 
     [HttpPost("{id}/validate")]

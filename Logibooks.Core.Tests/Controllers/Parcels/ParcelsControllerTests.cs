@@ -54,6 +54,7 @@ public class ParcelsControllerTests
     private AppDbContext _dbContext;
     private Mock<IHttpContextAccessor> _mockHttpContextAccessor;
     private Mock<IParcelValidationService> _mockValidationService;
+    private Mock<IParcelFeacnCodeLookupService> _mockFeacnLookupService;
     private IMorphologySearchService _morphologyService;
     private Mock<IRegisterProcessingService> _mockProcessingService;
     private Mock<IParcelIndPostGenerator> _mockIndPostGenerator;
@@ -95,6 +96,7 @@ public class ParcelsControllerTests
         _mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
         _logger = new LoggerFactory().CreateLogger<ParcelsController>();
         _mockValidationService = new Mock<IParcelValidationService>();
+        _mockFeacnLookupService = new Mock<IParcelFeacnCodeLookupService>();
         _mockProcessingService = new Mock<IRegisterProcessingService>();
         _mockIndPostGenerator = new Mock<IParcelIndPostGenerator>();
         // Note: Cannot mock static methods GetWBRId() and GetOzonId() - they return constants
@@ -120,6 +122,7 @@ public class ParcelsControllerTests
             _logger,
             mockMapper.Object,
             _mockValidationService.Object,
+            _mockFeacnLookupService.Object,
             _morphologyService,
             _mockProcessingService.Object,
             _mockIndPostGenerator.Object);
@@ -186,6 +189,7 @@ public class ParcelsControllerTests
             _logger,
             mockMapper.Object,
             _mockValidationService.Object,
+            _mockFeacnLookupService.Object,
             _morphologyService,
             _mockProcessingService.Object,
             _mockIndPostGenerator.Object
@@ -296,6 +300,7 @@ public class ParcelsControllerTests
             _logger,
             mockMapper.Object,
             _mockValidationService.Object,
+            _mockFeacnLookupService.Object,
             _morphologyService,
             _mockProcessingService.Object,
             _mockIndPostGenerator.Object
@@ -335,6 +340,7 @@ public class ParcelsControllerTests
             _logger,
             mockMapper.Object,
             _mockValidationService.Object,
+            _mockFeacnLookupService.Object,
             _morphologyService,
             _mockProcessingService.Object,
             _mockIndPostGenerator.Object
@@ -899,6 +905,7 @@ public class ParcelsControllerTests
             _logger,
             new Mock<IMapper>().Object,
             validationSvc,
+            new Mock<IParcelFeacnCodeLookupService>().Object,
             _morphologyService,
             _mockProcessingService.Object,
             _mockIndPostGenerator.Object);
@@ -907,6 +914,120 @@ public class ParcelsControllerTests
         var res = await ctrl.GetOrder(20);
 
         Assert.That(res.Value!.FeacnOrderIds, Does.Contain(30));
+    }
+
+    [Test]
+    public async Task LookupFeacnCode_RunsService_ForLogist()
+    {
+        SetCurrentUserId(1);
+        var register = new Register { Id = 10, CompanyId = 2, FileName = "r.xlsx" };
+        var order = new WbrOrder { Id = 10, RegisterId = 10, StatusId = 1 };
+        _dbContext.Registers.Add(register);
+        _dbContext.Orders.Add(order);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.LookupFeacnCode(10);
+
+        _mockFeacnLookupService.Verify(s => s.LookupAsync(
+            order,
+            It.IsAny<MorphologyContext>(),
+            It.IsAny<WordsLookupContext<KeyWord>>(),
+            It.IsAny<CancellationToken>()),
+            Times.Once);
+        Assert.That(result, Is.TypeOf<NoContentResult>());
+    }
+
+    [Test]
+    public async Task LookupFeacnCode_ReturnsForbidden_ForNonLogist()
+    {
+        SetCurrentUserId(99);
+        var result = await _controller.LookupFeacnCode(1);
+
+        _mockFeacnLookupService.Verify(s => s.LookupAsync(
+            It.IsAny<BaseOrder>(),
+            It.IsAny<MorphologyContext>(),
+            It.IsAny<WordsLookupContext<KeyWord>>(),
+            It.IsAny<CancellationToken>()),
+            Times.Never);
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
+    }
+
+    [Test]
+    public async Task LookupFeacnCode_ReturnsNotFound_WhenMissing()
+    {
+        SetCurrentUserId(1);
+        var result = await _controller.LookupFeacnCode(99);
+
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+        _mockFeacnLookupService.Verify(s => s.LookupAsync(
+            It.IsAny<BaseOrder>(),
+            It.IsAny<MorphologyContext>(),
+            It.IsAny<WordsLookupContext<KeyWord>>(),
+            It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Test]
+    public async Task LookupFeacnCode_ReturnsNotFound_ForMarkedByPartner()
+    {
+        SetCurrentUserId(1);
+        var register = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
+        var order = new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1, CheckStatusId = (int)ParcelCheckStatusCode.MarkedByPartner };
+        _dbContext.Registers.Add(register);
+        _dbContext.Orders.Add(order);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.LookupFeacnCode(1);
+
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+        _mockFeacnLookupService.Verify(s => s.LookupAsync(
+            It.IsAny<BaseOrder>(),
+            It.IsAny<MorphologyContext>(),
+            It.IsAny<WordsLookupContext<KeyWord>>(),
+            It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Test]
+    public async Task LookupFeacnCode_WithRealService_CreatesKeyWordLinks()
+    {
+        SetCurrentUserId(1);
+
+        var register = new Register { Id = 20, CompanyId = 2, FileName = "r.xlsx" };
+        var order = new WbrOrder { Id = 20, RegisterId = 20, StatusId = 1, ProductName = "This is SPAM" };
+        _dbContext.Registers.Add(register);
+        _dbContext.Orders.Add(order);
+        _dbContext.KeyWords.Add(new KeyWord { Id = 2, Word = "spam", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols, FeacnCode = "1" });
+        await _dbContext.SaveChangesAsync();
+
+        var lookupSvc = new ParcelFeacnCodeLookupService(_dbContext, new MorphologySearchService());
+        var ctx = new DefaultHttpContext();
+        ctx.Items["UserId"] = 1;
+        _mockHttpContextAccessor.Setup(x => x.HttpContext).Returns(ctx);
+
+        var ctrl = new ParcelsController(
+            _mockHttpContextAccessor.Object,
+            _dbContext,
+            _userService,
+            _logger,
+            new Mock<IMapper>().Object,
+            _mockValidationService.Object,
+            lookupSvc,
+            _morphologyService,
+            _mockProcessingService.Object,
+            _mockIndPostGenerator.Object);
+
+        await ctrl.LookupFeacnCode(20);
+        var links = _dbContext.Set<BaseOrderKeyWord>().Where(l => l.BaseOrderId == 20).ToList();
+
+        Assert.That(links.Count, Is.EqualTo(1));
+        Assert.That(links[0].KeyWordId, Is.EqualTo(2));
     }
 
     [Test]
