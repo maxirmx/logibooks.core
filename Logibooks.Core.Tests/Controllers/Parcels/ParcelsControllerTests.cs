@@ -143,11 +143,15 @@ public class ParcelsControllerTests
         var register = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
         var order = new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "A" };
         var sw = new StopWord { Id = 5, Word = "bad" };
-        var link = new BaseOrderStopWord { BaseOrderId = 1, StopWordId = 5, BaseOrder = order, StopWord = sw };
+        var kw = new KeyWord { Id = 6, Word = "test" };
+        var stopWordLink = new BaseOrderStopWord { BaseOrderId = 1, StopWordId = 5, BaseOrder = order, StopWord = sw };
+        var keyWordLink = new BaseOrderKeyWord { BaseOrderId = 1, KeyWordId = 6, BaseOrder = order, KeyWord = kw };
         _dbContext.Registers.Add(register);
         _dbContext.Orders.Add(order);
         _dbContext.StopWords.Add(sw);
-        _dbContext.Add(link);
+        _dbContext.KeyWords.Add(kw);
+        _dbContext.Add(stopWordLink);
+        _dbContext.Add(keyWordLink);
         await _dbContext.SaveChangesAsync();
 
         var result = await _controller.GetOrder(1);
@@ -157,6 +161,8 @@ public class ParcelsControllerTests
         Assert.That(result.Value!.Id, Is.EqualTo(1));
         Assert.That(result.Value.StopWordIds.Count, Is.EqualTo(1));
         Assert.That(result.Value.StopWordIds.First(), Is.EqualTo(5));
+        Assert.That(result.Value.KeyWordIds.Count, Is.EqualTo(1));
+        Assert.That(result.Value.KeyWordIds.First(), Is.EqualTo(6));
     }
 
     [Test]
@@ -1252,7 +1258,7 @@ public class ParcelsControllerTests
     }
 
     [Test]
-    public async Task ApproveOrder_SetsCheckStatusToApproved_ForLogist()
+    public async Task ApproveParcel_SetsCheckStatusToApproved_ForLogist()
     {
         SetCurrentUserId(1);
         var register = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
@@ -1260,14 +1266,14 @@ public class ParcelsControllerTests
         _dbContext.Registers.Add(register);
         _dbContext.Orders.Add(order);
         await _dbContext.SaveChangesAsync();
-        var result = await _controller.ApproveOrder(100);
+        var result = await _controller.ApproveParcel(100);
         Assert.That(result, Is.TypeOf<NoContentResult>());
         var saved = await _dbContext.Orders.FindAsync(100);
         Assert.That(saved!.CheckStatusId, Is.EqualTo((int)ParcelCheckStatusCode.Approved));
     }
 
     [Test]
-    public async Task ApproveOrder_ReturnsForbidden_ForNonLogist()
+    public async Task ApproveParcel_ReturnsForbidden_ForNonLogist()
     {
         SetCurrentUserId(99); // unknown user
         var register = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
@@ -1276,7 +1282,7 @@ public class ParcelsControllerTests
         _dbContext.Orders.Add(order);
         await _dbContext.SaveChangesAsync();
 
-        var result = await _controller.ApproveOrder(101);
+        var result = await _controller.ApproveParcel(101);
         Assert.That(result, Is.TypeOf<ObjectResult>());
         var obj = result as ObjectResult;
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
@@ -1285,10 +1291,10 @@ public class ParcelsControllerTests
     }
 
     [Test]
-    public async Task ApproveOrder_ReturnsNotFound_WhenOrderMissing()
+    public async Task ApproveParcel_ReturnsNotFound_WhenOrderMissing()
     {
         SetCurrentUserId(1);
-        var result = await _controller.ApproveOrder(999);
+        var result = await _controller.ApproveParcel(999);
         Assert.That(result, Is.TypeOf<ObjectResult>());
         var obj = result as ObjectResult;
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));

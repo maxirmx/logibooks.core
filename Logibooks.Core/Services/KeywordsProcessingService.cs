@@ -36,10 +36,11 @@ using Logibooks.Core.Models;
 
 namespace Logibooks.Core.Services;
 
-public class KeywordsProcessingService(AppDbContext db, ILogger<KeywordsProcessingService> logger) : IKeywordsProcessingService
+public class KeywordsProcessingService(AppDbContext db, ILogger<KeywordsProcessingService> logger, IMorphologySearchService morphologySearchService) : IKeywordsProcessingService
 {
     private readonly AppDbContext _db = db;
     private readonly ILogger<KeywordsProcessingService> _logger = logger;
+    private readonly IMorphologySearchService _morphologySearchService = morphologySearchService;
     private static readonly CultureInfo RussianCulture = new("ru-RU");
     private static readonly Regex NineOrTenDigitCodeRegex = new("^[\\d]{9,10}$", RegexOptions.Compiled);
 
@@ -100,9 +101,19 @@ public class KeywordsProcessingService(AppDbContext db, ILogger<KeywordsProcessi
 
                 foreach (var word in words)
                 {
-                    int matchType = word.Any(char.IsWhiteSpace)
-                        ? (int)WordMatchTypeCode.Phrase
-                        : (int)WordMatchTypeCode.WeakMorphology;
+                    int matchType;
+                    if (word.Any(char.IsWhiteSpace))
+                    {
+                        matchType = (int)WordMatchTypeCode.Phrase;
+                    }
+                    else
+                    {
+                        // Single word - check morphology support
+                        var morphologySupport = _morphologySearchService.CheckWord(word);
+                        matchType = morphologySupport == MorphologySupportLevel.NoSupport
+                            ? (int)WordMatchTypeCode.ExactSymbols
+                            : (int)WordMatchTypeCode.WeakMorphology;
+                    }
 
                     parsed.Add(new KeyWord
                     {

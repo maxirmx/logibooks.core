@@ -954,7 +954,7 @@ public class RegistersControllerTests : RegistersControllerTestsBase
     public async Task GetLookupFeacnCodesProgress_ReturnsNotFound()
     {
         SetCurrentUserId(1);
-        _mockRegFeacnLookupService.Setup(s => s.GetProgress(It.IsAny<Guid>())).Returns((ValidationProgress)null);
+        _mockRegFeacnLookupService.Setup(s => s.GetProgress(It.IsAny<Guid>())).Returns((ValidationProgress?)null);
 
         var result = await _controller.GetLookupFeacnCodesProgress(Guid.NewGuid());
 

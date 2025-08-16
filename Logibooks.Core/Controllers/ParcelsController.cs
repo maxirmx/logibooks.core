@@ -106,6 +106,7 @@ public class ParcelsController(
             order = await _db.WbrOrders.AsNoTracking()
                 .Include(o => o.Register)
                 .Include(o => o.BaseOrderStopWords)
+                .Include(o => o.BaseOrderKeyWords)
                 .Include(o => o.BaseOrderFeacnPrefixes)
                     .ThenInclude(bofp => bofp.FeacnPrefix)
                         .ThenInclude(fp => fp.FeacnOrder)
@@ -116,6 +117,7 @@ public class ParcelsController(
             order = await _db.OzonOrders.AsNoTracking()
                 .Include(o => o.Register)
                 .Include(o => o.BaseOrderStopWords)
+                .Include(o => o.BaseOrderKeyWords)
                 .Include(o => o.BaseOrderFeacnPrefixes)
                     .ThenInclude(bofp => bofp.FeacnPrefix)
                         .ThenInclude(fp => fp.FeacnOrder)
@@ -312,6 +314,7 @@ public class ParcelsController(
 
             var query = _db.WbrOrders.AsNoTracking()
                 .Include(o => o.BaseOrderStopWords)
+                .Include(o => o.BaseOrderKeyWords)
                 .Include(o => o.BaseOrderFeacnPrefixes)
                     .ThenInclude(bofp => bofp.FeacnPrefix)
                         .ThenInclude(fp => fp.FeacnOrder)
@@ -369,6 +372,7 @@ public class ParcelsController(
 
             var query = _db.OzonOrders.AsNoTracking()
                 .Include(o => o.BaseOrderStopWords)
+                .Include(o => o.BaseOrderKeyWords)
                 .Include(o => o.BaseOrderFeacnPrefixes)
                     .ThenInclude(bofp => bofp.FeacnPrefix)
                         .ThenInclude(fp => fp.FeacnOrder)
@@ -540,14 +544,14 @@ public class ParcelsController(
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
-    public async Task<IActionResult> ApproveOrder(int id)
+    public async Task<IActionResult> ApproveParcel(int id)
     {
-        _logger.LogDebug("ApproveOrder for id={id}", id);
+        _logger.LogDebug("ApproveParcel for id={id}", id);
 
         var ok = await _userService.CheckLogist(_curUserId);
         if (!ok)
         {
-            _logger.LogDebug("ApproveOrder returning '403 Forbidden'");
+            _logger.LogDebug("ApproveParcel returning '403 Forbidden'");
             return _403();
         }
 
@@ -555,7 +559,7 @@ public class ParcelsController(
             .FirstOrDefaultAsync(o => o.Id == id && o.CheckStatusId != (int)ParcelCheckStatusCode.MarkedByPartner);
         if (order == null)
         {
-            _logger.LogDebug("ApproveOrder returning '404 Not Found'");
+            _logger.LogDebug("ApproveParcel returning '404 Not Found'");
             return _404Order(id);
         }
 
@@ -563,7 +567,7 @@ public class ParcelsController(
         _db.Entry(order).State = EntityState.Modified;
         await _db.SaveChangesAsync();
 
-        _logger.LogDebug("ApproveOrder returning '204 No content' for id={id}", id);
+        _logger.LogDebug("ApproveParcel returning '204 No content' for id={id}", id);
         return NoContent();
     }
 
@@ -599,8 +603,4 @@ public class ParcelsController(
     }
 
 }
-
-
-
-
 
