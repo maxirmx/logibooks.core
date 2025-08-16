@@ -49,6 +49,7 @@ public class RegistersController(
     IUserInformationService userService,
     ILogger<RegistersController> logger,
     IRegisterValidationService validationService,
+    IRegisterFeacnCodeLookupService feacnLookupService,
     IRegisterProcessingService processingService,
     IParcelIndPostGenerator indPostGenerator) : LogibooksControllerBase(httpContextAccessor, db, logger)
 {
@@ -72,6 +73,7 @@ public class RegistersController(
 
     private readonly int maxPageSize = 100;
     private readonly IRegisterValidationService _validationService = validationService;
+    private readonly IRegisterFeacnCodeLookupService _feacnLookupService = feacnLookupService;
     private readonly IRegisterProcessingService _processingService = processingService;
     private readonly IParcelIndPostGenerator _indPostGenerator = indPostGenerator;
 
@@ -646,6 +648,78 @@ public class RegistersController(
 
         _logger.LogDebug("NextParcel returning order {id}", parcel.Id);
         return new ParcelViewItem(parcel);
+    }
+
+    [HttpPost("{id}/lookup-feacn-codes")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(GuidReference))]
+    [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
+    [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
+    public async Task<ActionResult<GuidReference>> LookupFeacnCodes(int id)
+    {
+        _logger.LogDebug("LookupFeacnCodes for id={id}", id);
+
+        if (!await _userService.CheckLogist(_curUserId))
+        {
+            _logger.LogDebug("LookupFeacnCodes returning '403 Forbidden'");
+            return _403();
+        }
+
+        if (!await _db.Registers.AnyAsync(r => r.Id == id))
+        {
+            _logger.LogDebug("LookupFeacnCodes returning '404 Not Found'");
+            return _404Register(id);
+        }
+
+        var handle = await _feacnLookupService.StartLookupAsync(id);
+        return Ok(new GuidReference { Id = handle });
+    }
+
+    [HttpGet("lookup-feacn-codes/{handleId}")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ValidationProgress))]
+    [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
+    [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
+    public async Task<ActionResult<ValidationProgress>> GetLookupFeacnCodesProgress(Guid handleId)
+    {
+        _logger.LogDebug("GetLookupFeacnCodesProgress for handle={handle}", handleId);
+
+        if (!await _userService.CheckLogist(_curUserId))
+        {
+            _logger.LogDebug("GetLookupFeacnCodesProgress returning '403 Forbidden'");
+            return _403();
+        }
+
+        var progress = _feacnLookupService.GetProgress(handleId);
+        if (progress == null)
+        {
+            _logger.LogDebug("GetLookupFeacnCodesProgress returning '404 Not Found'");
+            return _404Handle(handleId);
+        }
+
+        return Ok(progress);
+    }
+
+    [HttpDelete("lookup-feacn-codes/{handleId}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
+    [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
+    public async Task<IActionResult> CancelLookupFeacnCodes(Guid handleId)
+    {
+        _logger.LogDebug("CancelLookupFeacnCodes for handle={handle}", handleId);
+
+        if (!await _userService.CheckLogist(_curUserId))
+        {
+            _logger.LogDebug("CancelLookupFeacnCodes returning '403 Forbidden'");
+            return _403();
+        }
+
+        var ok = _feacnLookupService.CancelLookup(handleId);
+        if (!ok)
+        {
+            _logger.LogDebug("CancelLookupFeacnCodes returning '404 Not Found'");
+            return _404Handle(handleId);
+        }
+
+        return NoContent();
     }
 
     [HttpPost("{id}/validate")]

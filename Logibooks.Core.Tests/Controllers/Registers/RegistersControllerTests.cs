@@ -875,7 +875,7 @@ public class RegistersControllerTests : RegistersControllerTestsBase
 
         // Update the logger type to match the expected type for RegisterValidationService
         var realRegSvc = new RegisterValidationService(_dbContext, scopeFactoryMock.Object, new LoggerFactory().CreateLogger<RegisterValidationService>(), new MorphologySearchService(), new FeacnPrefixCheckService(_dbContext));
-        _controller = new RegistersController(_mockHttpContextAccessor.Object, _dbContext, _userService, _logger, realRegSvc, _mockProcessingService.Object, _mockIndPostGenerator.Object);
+        _controller = new RegistersController(_mockHttpContextAccessor.Object, _dbContext, _userService, _logger, realRegSvc, _mockRegFeacnLookupService.Object, _mockProcessingService.Object, _mockIndPostGenerator.Object);
 
         var result = await _controller.ValidateRegister(200);
         var handle = ((GuidReference)((OkObjectResult)result.Result!).Value!).Id;
@@ -893,6 +893,161 @@ public class RegistersControllerTests : RegistersControllerTestsBase
 
         var orderReloaded = await _dbContext.Orders.Include(o => o.BaseOrderFeacnPrefixes).FirstAsync(o => o.Id == 201);
         Assert.That(orderReloaded.BaseOrderFeacnPrefixes.Any(l => l.FeacnPrefixId == 400), Is.True);
+    }
+
+    [Test]
+    public async Task LookupFeacnCodes_RunsService_ForLogist()
+    {
+        SetCurrentUserId(1);
+        _dbContext.Registers.Add(new Register { Id = 5, FileName = "r.xlsx", TheOtherCompanyId = 3 });
+        await _dbContext.SaveChangesAsync();
+
+        var handle = Guid.NewGuid();
+        _mockRegFeacnLookupService.Setup(s => s.StartLookupAsync(5, It.IsAny<CancellationToken>())).ReturnsAsync(handle);
+
+        var result = await _controller.LookupFeacnCodes(5);
+
+        _mockRegFeacnLookupService.Verify(s => s.StartLookupAsync(5, It.IsAny<CancellationToken>()), Times.Once);
+        Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
+        var ok = result.Result as OkObjectResult;
+        Assert.That(((GuidReference)ok!.Value!).Id, Is.EqualTo(handle));
+    }
+
+    [Test]
+    public async Task LookupFeacnCodes_ReturnsForbidden_ForNonLogist()
+    {
+        SetCurrentUserId(2);
+        var result = await _controller.LookupFeacnCodes(1);
+
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
+        _mockRegFeacnLookupService.Verify(s => s.StartLookupAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Test]
+    public async Task LookupFeacnCodes_ReturnsNotFound_WhenMissing()
+    {
+        SetCurrentUserId(1);
+        var result = await _controller.LookupFeacnCodes(99);
+
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+    }
+
+    [Test]
+    public async Task GetLookupFeacnCodesProgress_ReturnsData()
+    {
+        SetCurrentUserId(1);
+        var progress = new ValidationProgress { HandleId = Guid.NewGuid(), Total = 10, Processed = 5 };
+        _mockRegFeacnLookupService.Setup(s => s.GetProgress(progress.HandleId)).Returns(progress);
+
+        var result = await _controller.GetLookupFeacnCodesProgress(progress.HandleId);
+
+        Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
+        var ok = result.Result as OkObjectResult;
+        Assert.That(ok!.Value, Is.EqualTo(progress));
+    }
+
+    [Test]
+    public async Task GetLookupFeacnCodesProgress_ReturnsNotFound()
+    {
+        SetCurrentUserId(1);
+        _mockRegFeacnLookupService.Setup(s => s.GetProgress(It.IsAny<Guid>())).Returns((ValidationProgress)null);
+
+        var result = await _controller.GetLookupFeacnCodesProgress(Guid.NewGuid());
+
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+    }
+
+    [Test]
+    public async Task CancelLookupFeacnCodes_ReturnsNoContent()
+    {
+        SetCurrentUserId(1);
+        var handle = Guid.NewGuid();
+        _mockRegFeacnLookupService.Setup(s => s.CancelLookup(handle)).Returns(true);
+
+        var result = await _controller.CancelLookupFeacnCodes(handle);
+
+        Assert.That(result, Is.TypeOf<NoContentResult>());
+    }
+
+    [Test]
+    public async Task CancelLookupFeacnCodes_ReturnsNotFound()
+    {
+        SetCurrentUserId(1);
+        var result = await _controller.CancelLookupFeacnCodes(Guid.NewGuid());
+
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+    }
+
+    [Test]
+    public async Task GetLookupFeacnCodesProgress_ReturnsForbidden_ForNonLogist()
+    {
+        SetCurrentUserId(2);
+        var result = await _controller.GetLookupFeacnCodesProgress(Guid.NewGuid());
+
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
+        _mockRegFeacnLookupService.Verify(s => s.GetProgress(It.IsAny<Guid>()), Times.Never);
+    }
+
+    [Test]
+    public async Task CancelLookupFeacnCodes_ReturnsForbidden_ForNonLogist()
+    {
+        SetCurrentUserId(2);
+        var result = await _controller.CancelLookupFeacnCodes(Guid.NewGuid());
+
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
+        _mockRegFeacnLookupService.Verify(s => s.CancelLookup(It.IsAny<Guid>()), Times.Never);
+    }
+
+    [Test]
+    public async Task LookupFeacnCodes_WithRealService_CreatesKeyWordLinks()
+    {
+        SetCurrentUserId(1);
+        var register = new Register { Id = 300, FileName = "r.xlsx", TheOtherCompanyId = 3 };
+        var order = new WbrOrder { Id = 301, RegisterId = 300, StatusId = 1, ProductName = "malware item" };
+        _dbContext.Registers.Add(register);
+        _dbContext.Orders.Add(order);
+        _dbContext.KeyWords.Add(new KeyWord { Id = 401, Word = "malware", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols });
+        await _dbContext.SaveChangesAsync();
+
+        var orderLookupService = new ParcelFeacnCodeLookupService(_dbContext, new MorphologySearchService());
+        var scopeFactoryMock = new Mock<IServiceScopeFactory>();
+        var spMock = new Mock<IServiceProvider>();
+        spMock.Setup(x => x.GetService(typeof(AppDbContext))).Returns(_dbContext);
+        spMock.Setup(x => x.GetService(typeof(IParcelFeacnCodeLookupService))).Returns(orderLookupService);
+        var scopeMock = new Mock<IServiceScope>();
+        scopeMock.Setup(s => s.ServiceProvider).Returns(spMock.Object);
+        scopeFactoryMock.Setup(f => f.CreateScope()).Returns(scopeMock.Object);
+
+        var realLookupSvc = new RegisterFeacnCodeLookupService(_dbContext, scopeFactoryMock.Object, new LoggerFactory().CreateLogger<RegisterFeacnCodeLookupService>(), new MorphologySearchService());
+        _controller = new RegistersController(_mockHttpContextAccessor.Object, _dbContext, _userService, _logger, _mockRegValidationService.Object, realLookupSvc, _mockProcessingService.Object, _mockIndPostGenerator.Object);
+
+        var result = await _controller.LookupFeacnCodes(300);
+        var handle = ((GuidReference)((OkObjectResult)result.Result!).Value!).Id;
+
+        ValidationProgress? progress = null;
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        while (sw.Elapsed < TimeSpan.FromSeconds(2))
+        {
+            progress = realLookupSvc.GetProgress(handle);
+            if (progress != null && progress.Finished)
+                break;
+            await Task.Delay(50);
+        }
+
+        var orderReloaded = await _dbContext.Orders.Include(o => o.BaseOrderKeyWords).FirstAsync(o => o.Id == 301);
+        Assert.That(orderReloaded.BaseOrderKeyWords.Any(l => l.KeyWordId == 401), Is.True);
     }
 
     [Test]
