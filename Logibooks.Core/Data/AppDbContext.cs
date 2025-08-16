@@ -56,6 +56,9 @@ namespace Logibooks.Core.Data
         {
             base.OnModelCreating(modelBuilder);
 
+            modelBuilder.Entity<WordBase>()
+                .UseTpcMappingStrategy();
+
             modelBuilder.Entity<UserRole>()
                 .HasKey(ur => new { ur.UserId, ur.RoleId });
 
