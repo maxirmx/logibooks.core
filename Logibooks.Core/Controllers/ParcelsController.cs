@@ -465,7 +465,7 @@ public class ParcelsController(
         var stopWords = await _db.StopWords.AsNoTracking().ToListAsync();
         var morphologyContext = _morphologyService.InitializeContext(
             stopWords.Where(sw => sw.MatchTypeId >= (int)WordMatchTypeCode.MorphologyMatchTypes));
-        var wordsLookupContext = _validationService.InitializeWordsLookupContext(
+        var wordsLookupContext = new WordsLookupContext<StopWord>(
             stopWords.Where(sw => sw.MatchTypeId < (int)WordMatchTypeCode.MorphologyMatchTypes));
 
         await _validationService.ValidateAsync(order, morphologyContext, wordsLookupContext, null);

@@ -25,7 +25,6 @@
 
 using Logibooks.Core.Models;
 using System.Runtime.CompilerServices;
-using System.Text.RegularExpressions;
 [assembly: InternalsVisibleTo("Logibooks.Core.Tests")]
 
 namespace Logibooks.Core.Interfaces;
@@ -34,16 +33,7 @@ public interface IParcelValidationService
 {
     Task ValidateAsync(BaseOrder order,
         MorphologyContext morphologyContext,
-        WordsLookupContext wordsLookupContext,
+        WordsLookupContext<StopWord> wordsLookupContext,
         FeacnPrefixCheckContext? feacnContext = null,
         CancellationToken cancellationToken = default);
-
-    WordsLookupContext InitializeWordsLookupContext(IEnumerable<StopWord> exactMatchStopWords);
-}
-
-public class WordsLookupContext
-{
-    internal List<StopWord> ExactSymbolsMatchItems { get; } = [];
-    internal List<(StopWord sw, Regex regex)> ExactWordRegexes { get; } = [];
-    internal List<(StopWord sw, Regex regex)> PhraseRegexes { get; } = [];
 }

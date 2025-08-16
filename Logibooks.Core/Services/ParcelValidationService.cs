@@ -43,7 +43,7 @@ public class ParcelValidationService(
     public async Task ValidateAsync(
         BaseOrder order,
         MorphologyContext morphologyContext,
-        WordsLookupContext wordsLookupContext,
+        WordsLookupContext<StopWord> wordsLookupContext,
         FeacnPrefixCheckContext? feacnContext = null,
         CancellationToken cancellationToken = default)
     {
@@ -114,13 +114,13 @@ public class ParcelValidationService(
     private List<BaseOrderStopWord> SelectStopWordLinks(
         int orderId,
         string productName,
-        WordsLookupContext wordsLookupContext,
+        WordsLookupContext<StopWord> wordsLookupContext,
         MorphologyContext morphologyContext)
     {
         var links = new List<BaseOrderStopWord>();
         var existingStopWordIds = new HashSet<int>();
 
-        List<StopWord> matchingWords = GetMatchingStopWordsFromContext(productName, wordsLookupContext); 
+        var matchingWords = wordsLookupContext.GetMatchingWords(productName);
 
         // Add stop words to links
         foreach (var sw in matchingWords)
@@ -137,87 +137,5 @@ public class ParcelValidationService(
         }
 
         return links;
-    }
-
-    private static List<StopWord> GetMatchingStopWordsFromContext(string productName, WordsLookupContext context)
-    {
-        var result = new List<StopWord>();
-        // ExactSymbolsMatchItems: substring match
-        result.AddRange(context.ExactSymbolsMatchItems
-            .Where(sw => !string.IsNullOrEmpty(sw.Word) && 
-                         productName.Contains(sw.Word, StringComparison.OrdinalIgnoreCase)));
-
-        // ExactWordMatchItems: word match (delimited by non-alphanumeric or '-')
-        foreach (var pair in context.ExactWordRegexes)
-        {
-            var sw = pair.sw;
-            var regex = pair.regex;
-            if (regex.IsMatch(productName))
-                result.Add(sw);
-        }
-
-        // PhraseMatchItems: phrase match (sequence of words in exact order, separated by non-word chars)
-        foreach (var pair in context.PhraseRegexes)
-        {
-            var sw = pair.sw;
-            var regex = pair.regex;
-            if (regex.IsMatch(productName))
-                result.Add(sw);
-        }
-
-        return result;
-    }
-
-    public WordsLookupContext InitializeWordsLookupContext(IEnumerable<StopWord> exactMatchStopWords)
-    {
-        var context = new WordsLookupContext();
-        List<StopWord> exactWordMatchItems  = [];
-        List<StopWord> allWordsMatchItems = [];
-        List<StopWord> phraseMatchItems = [];
-
-        var filtered = exactMatchStopWords
-            .Where(sw => sw.MatchTypeId < (int)WordMatchTypeCode.MorphologyMatchTypes);
-
-        var grouped = filtered
-            .GroupBy(sw => (WordMatchTypeCode)sw.MatchTypeId)
-            .ToDictionary(g => g.Key, g => g.ToList());
-
-        context.ExactSymbolsMatchItems.AddRange(
-            grouped.TryGetValue(WordMatchTypeCode.ExactSymbols, out var symbols) ? symbols : []);
-        exactWordMatchItems.AddRange(
-            grouped.TryGetValue(WordMatchTypeCode.ExactWord, out var words) ? words : []);
-        phraseMatchItems.AddRange(
-            grouped.TryGetValue(WordMatchTypeCode.Phrase, out var phrases) ? phrases : []);
-
-        // Precompile regexes for ExactWordMatchItems
-        foreach (var sw in exactWordMatchItems)
-        {
-            if (!string.IsNullOrEmpty(sw.Word))
-            {
-                var regex = new Regex($@"(?<=^|[^\w-]){Regex.Escape(sw.Word.Trim())}(?=[^\w-]|$)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
-                context.ExactWordRegexes.Add((sw, regex));
-            }
-        }
-
-        // Precompile regexes for PhraseMatchItems
-        foreach (var sw in phraseMatchItems)
-        {
-            if (!string.IsNullOrWhiteSpace(sw.Word))
-            {
-                // Split phrase into words (alphanumeric or '-') using regex
-                var phraseWords = Regex.Split(sw.Word.Trim(), "[^\\w-]+", RegexOptions.Compiled)
-                    .Where(w => !string.IsNullOrWhiteSpace(w)).ToArray();
-                if (phraseWords.Length > 0)
-                {
-                    // Build regex for exact sequence of words, separated by non-word chars
-                    var pattern = string.Join("[^\\w-]+", phraseWords.Select(w => $"{Regex.Escape(w)}"));
-                    // Match phrase at word boundaries (start/end or non-word char)
-                    var phraseRegex = new Regex(@$"(?<=^|[^\w-]){pattern}(?=[^\w-]|$)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
-                    context.PhraseRegexes.Add((sw, phraseRegex));
-                }
-            }
-        }
-
-        return context;
     }
 }

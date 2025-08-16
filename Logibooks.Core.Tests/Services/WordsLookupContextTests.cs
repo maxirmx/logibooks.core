@@ -28,8 +28,6 @@ using System.Collections.Generic;
 using System.Linq;
 
 using Logibooks.Core.Models;
-using Logibooks.Core.Services;
-using Logibooks.Core.Interfaces;
 
 namespace Logibooks.Core.Tests.Services;
 
@@ -46,16 +44,13 @@ public class WordsLookupContextTests
 
     private static List<StopWord> AllStopWords => new() { swSymbols1, swSymbols2, swWord1, swWord2, swWord3, swPhrase1, swPhrase2 };
 
-    private static WordsLookupContext CreateContext() =>
-        new ParcelValidationService(null!, null!, null!).InitializeWordsLookupContext(AllStopWords);
+    private static WordsLookupContext<StopWord> CreateContext() =>
+        new WordsLookupContext<StopWord>(AllStopWords);
 
     private static List<StopWord> Match(string productName)
     {
         var context = CreateContext();
-        var method = typeof(ParcelValidationService)
-            .GetMethod("GetMatchingStopWordsFromContext", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
-        var temp = method?.Invoke(null, [productName, context]);
-        return temp is not null ? (List<StopWord>)temp : [];
+        return context.GetMatchingWords(productName).ToList();
     }
 
     [Test]

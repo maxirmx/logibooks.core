@@ -80,7 +80,7 @@ public class RegisterValidationServiceTests
         mock.Setup(m => m.ValidateAsync(
             It.IsAny<BaseOrder>(),
             It.IsAny<MorphologyContext>(), 
-            It.IsAny<WordsLookupContext>(),
+            It.IsAny<WordsLookupContext<StopWord>>(),
             It.IsAny<FeacnPrefixCheckContext?>(),
             It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
@@ -99,7 +99,7 @@ public class RegisterValidationServiceTests
         mock.Verify(m => m.ValidateAsync(
             It.IsAny<BaseOrder>(),
             It.IsAny<MorphologyContext>(), 
-            It.IsAny<WordsLookupContext>(),
+            It.IsAny<WordsLookupContext<StopWord>>(),
             It.IsAny<FeacnPrefixCheckContext?>(),
             It.IsAny<CancellationToken>()),
             Times.Exactly(2));
@@ -120,7 +120,7 @@ public class RegisterValidationServiceTests
         mock.Setup(m => m.ValidateAsync(
             It.IsAny<BaseOrder>(),
             It.IsAny<MorphologyContext>(),
-            It.IsAny<WordsLookupContext>(),
+            It.IsAny<WordsLookupContext<StopWord>>(),
             It.IsAny<FeacnPrefixCheckContext?>(),
             It.IsAny<CancellationToken>()))
             .Returns(async () => { await Task.Delay(20); tcs.TrySetResult(); });
@@ -281,7 +281,7 @@ public class RegisterValidationServiceTests
         mock.Setup(m => m.ValidateAsync(
             It.IsAny<BaseOrder>(),
             It.IsAny<MorphologyContext>(),
-            It.IsAny<WordsLookupContext>(),
+            It.IsAny<WordsLookupContext<StopWord>>(),
             It.IsAny<FeacnPrefixCheckContext?>(),
             It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
@@ -295,28 +295,28 @@ public class RegisterValidationServiceTests
         mock.Verify(m => m.ValidateAsync(
             It.Is<BaseOrder>(o => o.Id == 201),
             It.IsAny<MorphologyContext>(),
-            It.IsAny<WordsLookupContext>(),
+            It.IsAny<WordsLookupContext<StopWord>>(),
             It.IsAny<FeacnPrefixCheckContext?>(),
             It.IsAny<CancellationToken>()),
             Times.Once);
         mock.Verify(m => m.ValidateAsync(
             It.Is<BaseOrder>(o => o.Id == 202),
             It.IsAny<MorphologyContext>(),
-            It.IsAny<WordsLookupContext>(),
+            It.IsAny<WordsLookupContext<StopWord>>(),
             It.IsAny<FeacnPrefixCheckContext?>(),
             It.IsAny<CancellationToken>()),
             Times.Never);
         mock.Verify(m => m.ValidateAsync(
             It.Is<BaseOrder>(o => o.Id == 203),
             It.IsAny<MorphologyContext>(),
-            It.IsAny<WordsLookupContext>(),
+            It.IsAny<WordsLookupContext<StopWord>>(),
             It.IsAny<FeacnPrefixCheckContext?>(),
             It.IsAny<CancellationToken>()),
             Times.Never);
         mock.Verify(m => m.ValidateAsync(
             It.Is<BaseOrder>(o => o.Id == 204),
             It.IsAny<MorphologyContext>(),
-            It.IsAny<WordsLookupContext>(),
+            It.IsAny<WordsLookupContext<StopWord>>(),
             It.IsAny<FeacnPrefixCheckContext?>(),
             It.IsAny<CancellationToken>()),
             Times.Never);

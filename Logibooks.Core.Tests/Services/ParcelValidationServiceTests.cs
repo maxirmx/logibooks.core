@@ -84,7 +84,7 @@ public class ParcelValidationServiceTests
         await ctx.SaveChangesAsync();
 
         var svc = CreateService(ctx);
-        var wordsLookupContext = svc.InitializeWordsLookupContext(ctx.StopWords.ToList());
+        var wordsLookupContext = new WordsLookupContext<StopWord>(ctx.StopWords.ToList());
         var morphologyContext = new MorphologyContext(); // Assuming you have a way to create this context
         await svc.ValidateAsync(order, morphologyContext, wordsLookupContext);
 
@@ -104,7 +104,7 @@ public class ParcelValidationServiceTests
         await ctx.SaveChangesAsync();
 
         var svc = CreateService(ctx);
-        var wordsLookupContext = svc.InitializeWordsLookupContext(ctx.StopWords.ToList());
+        var wordsLookupContext = new WordsLookupContext<StopWord>(ctx.StopWords.ToList());
         var morphologyContext = new MorphologyContext(); // Assuming you have a way to create this context
         await svc.ValidateAsync(order, morphologyContext, wordsLookupContext);
 
@@ -122,7 +122,7 @@ public class ParcelValidationServiceTests
         await ctx.SaveChangesAsync();
 
         var svc = CreateService(ctx);
-        var wordsLookupContext = svc.InitializeWordsLookupContext(ctx.StopWords.ToList());
+        var wordsLookupContext = new WordsLookupContext<StopWord>(ctx.StopWords.ToList());
         var morphologyContext = new MorphologyContext(); // Assuming you have a way to create this context
         await svc.ValidateAsync(order, morphologyContext, wordsLookupContext);
 
@@ -142,7 +142,7 @@ public class ParcelValidationServiceTests
 
         var morph = new MorphologySearchService();
         var morphologyContext = morph.InitializeContext(new[] { sw });
-        var wordsLookupContext = new WordsLookupContext();
+        var wordsLookupContext = new WordsLookupContext<StopWord>(Enumerable.Empty<StopWord>());
         var svc = CreateServiceWithMorphology(ctx, morph);
         await svc.ValidateAsync(order, morphologyContext, wordsLookupContext);
 
@@ -170,7 +170,7 @@ public class ParcelValidationServiceTests
         var morph = new MorphologySearchService();
         var morphologyContext = morph.InitializeContext(stopWords.Where(sw => sw.MatchTypeId >= (int)WordMatchTypeCode.MorphologyMatchTypes));
         var svc = CreateServiceWithMorphology(ctx, morph);
-        var wordsLookupContext = svc.InitializeWordsLookupContext(stopWords.Where(sw => sw.MatchTypeId == (int)WordMatchTypeCode.ExactSymbols));
+        var wordsLookupContext = new WordsLookupContext<StopWord>(stopWords.Where(sw => sw.MatchTypeId == (int)WordMatchTypeCode.ExactSymbols));
         await svc.ValidateAsync(order, morphologyContext, wordsLookupContext);
 
         var links = ctx.Set<BaseOrderStopWord>().ToList();
@@ -202,7 +202,7 @@ public class ParcelValidationServiceTests
         await ctx.SaveChangesAsync();
 
         var svc = CreateService(ctx);
-        var wordsLookupContext = svc.InitializeWordsLookupContext(stopWords);
+        var wordsLookupContext = new WordsLookupContext<StopWord>(stopWords);
         var morphologyContext = new MorphologyContext();
         await svc.ValidateAsync(order, morphologyContext, wordsLookupContext);
 
@@ -231,7 +231,7 @@ public class ParcelValidationServiceTests
         await ctx.SaveChangesAsync();
 
         var svc = CreateService(ctx);
-        var wordsLookupContext = svc.InitializeWordsLookupContext(ctx.StopWords.ToList());
+        var wordsLookupContext = new WordsLookupContext<StopWord>(ctx.StopWords.ToList());
         var morphologyContext = new MorphologyContext();
         await svc.ValidateAsync(order, morphologyContext, wordsLookupContext);
 
@@ -242,21 +242,17 @@ public class ParcelValidationServiceTests
     }
 
     [Test]
-    public void GetMatchingStopWordsFromContext_IgnoresEmptyStopWord()
+    public void GetMatchingWords_IgnoresEmptyStopWord()
     {
         // Arrange
-        var context = new WordsLookupContext();
         var emptyStopWord = new StopWord { Id = 1, Word = string.Empty, MatchTypeId = (int)WordMatchTypeCode.ExactSymbols };
-        context.ExactSymbolsMatchItems.Add(emptyStopWord);
+        var context = new WordsLookupContext<StopWord>(new[] { emptyStopWord });
         var productName = "Some product name";
 
         // Act
-        var result = typeof(ParcelValidationService)
-            .GetMethod("GetMatchingStopWordsFromContext", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
-            !.Invoke(null, new object[] { productName, context }) as List<StopWord>;
+        var result = context.GetMatchingWords(productName).ToList();
 
         // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result!.Count, Is.EqualTo(0), "Should not match empty stopword");
+        Assert.That(result.Count, Is.EqualTo(0), "Should not match empty stopword");
     }
 }
