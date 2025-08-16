@@ -53,10 +53,10 @@ public class ParcelsControllerTests
 #pragma warning disable CS8618
     private AppDbContext _dbContext;
     private Mock<IHttpContextAccessor> _mockHttpContextAccessor;
-    private Mock<IOrderValidationService> _mockValidationService;
+    private Mock<IParcelValidationService> _mockValidationService;
     private IMorphologySearchService _morphologyService;
     private Mock<IRegisterProcessingService> _mockProcessingService;
-    private Mock<IOrderIndPostGenerator> _mockIndPostGenerator;
+    private Mock<IParcelIndPostGenerator> _mockIndPostGenerator;
     private ILogger<ParcelsController> _logger;
     private IUserInformationService _userService;
     private ParcelsController _controller;
@@ -94,9 +94,9 @@ public class ParcelsControllerTests
 
         _mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
         _logger = new LoggerFactory().CreateLogger<ParcelsController>();
-        _mockValidationService = new Mock<IOrderValidationService>();
+        _mockValidationService = new Mock<IParcelValidationService>();
         _mockProcessingService = new Mock<IRegisterProcessingService>();
-        _mockIndPostGenerator = new Mock<IOrderIndPostGenerator>();
+        _mockIndPostGenerator = new Mock<IParcelIndPostGenerator>();
         // Note: Cannot mock static methods GetWBRId() and GetOzonId() - they return constants
         _morphologyService = new MorphologySearchService();
         _userService = new UserInformationService(_dbContext);
@@ -887,7 +887,7 @@ public class ParcelsControllerTests
         _dbContext.Orders.Add(order);
         await _dbContext.SaveChangesAsync();
 
-        var validationSvc = new OrderValidationService(_dbContext, new MorphologySearchService(), new FeacnPrefixCheckService(_dbContext));
+        var validationSvc = new ParcelValidationService(_dbContext, new MorphologySearchService(), new FeacnPrefixCheckService(_dbContext));
         var ctx = new DefaultHttpContext();
         ctx.Items["UserId"] = 1;
         _mockHttpContextAccessor.Setup(x => x.HttpContext).Returns(ctx);

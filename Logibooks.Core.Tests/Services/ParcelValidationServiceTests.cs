@@ -39,7 +39,7 @@ using System.Threading.Tasks;
 namespace Logibooks.Core.Tests.Services;
 
 [TestFixture]
-public class OrderValidationServiceTests
+public class ParcelValidationServiceTests
 {
     private static AppDbContext CreateContext()
     {
@@ -50,24 +50,24 @@ public class OrderValidationServiceTests
     }
 
     // Add a helper method to create the service with mocked dependencies
-    private static OrderValidationService CreateService(AppDbContext context)
+    private static ParcelValidationService CreateService(AppDbContext context)
     {
         var mockFeacnService = new Mock<IFeacnPrefixCheckService>();
         // Setup mock to return empty list by default
         mockFeacnService.Setup(x => x.CheckOrderAsync(It.IsAny<BaseOrder>(), It.IsAny<CancellationToken>()))
                    .ReturnsAsync(new List<BaseOrderFeacnPrefix>());
 
-        return new OrderValidationService(context, new MorphologySearchService(), mockFeacnService.Object);
+        return new ParcelValidationService(context, new MorphologySearchService(), mockFeacnService.Object);
     }
 
-    private static OrderValidationService CreateServiceWithMorphology(AppDbContext context, MorphologySearchService morphService)
+    private static ParcelValidationService CreateServiceWithMorphology(AppDbContext context, MorphologySearchService morphService)
     {
         var mockFeacnService = new Mock<IFeacnPrefixCheckService>();
         // Setup mock to return empty list by default
         mockFeacnService.Setup(x => x.CheckOrderAsync(It.IsAny<BaseOrder>(), It.IsAny<CancellationToken>()))
                    .ReturnsAsync(new List<BaseOrderFeacnPrefix>());
 
-        return new OrderValidationService(context, morphService, mockFeacnService.Object);
+        return new ParcelValidationService(context, morphService, mockFeacnService.Object);
     }
 
     [Test]
@@ -251,7 +251,7 @@ public class OrderValidationServiceTests
         var productName = "Some product name";
 
         // Act
-        var result = typeof(OrderValidationService)
+        var result = typeof(ParcelValidationService)
             .GetMethod("GetMatchingStopWordsFromContext", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
             !.Invoke(null, new object[] { productName, context }) as List<StopWord>;
 

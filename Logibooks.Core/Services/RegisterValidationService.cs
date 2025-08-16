@@ -80,7 +80,7 @@ public class RegisterValidationService(
         {
             using var scope = _scopeFactory.CreateScope();
             var scopedDb = scope.ServiceProvider.GetService(typeof(AppDbContext)) as AppDbContext;
-            var scopedOrderSvc = scope.ServiceProvider.GetService(typeof(IOrderValidationService)) as IOrderValidationService;
+            var scopedOrderSvc = scope.ServiceProvider.GetService(typeof(IParcelValidationService)) as IParcelValidationService;
             var scopedFeacnSvc = scope.ServiceProvider.GetService(typeof(IFeacnPrefixCheckService)) as IFeacnPrefixCheckService;
 
             if (scopedDb == null || scopedOrderSvc == null || scopedFeacnSvc == null)

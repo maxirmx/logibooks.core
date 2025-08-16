@@ -47,12 +47,12 @@ public class StopWordsContextTests
     private static List<StopWord> AllStopWords => new() { swSymbols1, swSymbols2, swWord1, swWord2, swWord3, swPhrase1, swPhrase2 };
 
     private static StopWordsContext CreateContext() =>
-        new OrderValidationService(null!, null!, null!).InitializeStopWordsContext(AllStopWords);
+        new ParcelValidationService(null!, null!, null!).InitializeStopWordsContext(AllStopWords);
 
     private static List<StopWord> Match(string productName)
     {
         var context = CreateContext();
-        var method = typeof(OrderValidationService)
+        var method = typeof(ParcelValidationService)
             .GetMethod("GetMatchingStopWordsFromContext", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
         var temp = method?.Invoke(null, [productName, context]);
         return temp is not null ? (List<StopWord>)temp : [];

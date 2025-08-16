@@ -867,7 +867,7 @@ public class RegistersControllerTests : RegistersControllerTestsBase
         var scopeFactoryMock = new Mock<IServiceScopeFactory>();
         var spMock = new Mock<IServiceProvider>();
         spMock.Setup(x => x.GetService(typeof(AppDbContext))).Returns(_dbContext);
-        spMock.Setup(x => x.GetService(typeof(IOrderValidationService))).Returns(orderValidationService);
+        spMock.Setup(x => x.GetService(typeof(IParcelValidationService))).Returns(orderValidationService);
         spMock.Setup(x => x.GetService(typeof(IFeacnPrefixCheckService))).Returns(new FeacnPrefixCheckService(_dbContext));
         var scopeMock = new Mock<IServiceScope>();
         scopeMock.Setup(s => s.ServiceProvider).Returns(spMock.Object);

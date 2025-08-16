@@ -12,7 +12,7 @@ using System.Xml.Linq;
 namespace Logibooks.Core.Tests.Services;
 
 [TestFixture]
-public class OrderIndPostGeneratorTests
+public class ParcelIndPostGeneratorTests
 {
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
     private AppDbContext _dbContext;
@@ -124,7 +124,7 @@ public class OrderIndPostGeneratorTests
         _dbContext.Orders.Add(order);
         _dbContext.SaveChanges();
 
-        var svc = new OrderIndPostGenerator(_dbContext, new IndPostXmlService());
+        var svc = new ParcelIndPostGenerator(_dbContext, new IndPostXmlService());
         var (filename, xml) = await svc.GenerateXML(3);
         var doc = XDocument.Parse(xml);
         Assert.That(doc.Root?.Name.LocalName, Is.EqualTo("AltaIndPost"));
@@ -159,7 +159,7 @@ public class OrderIndPostGeneratorTests
         };
         _dbContext.WbrOrders.Add(order);
         _dbContext.SaveChanges();
-        var svc = new OrderIndPostGenerator(_dbContext, new IndPostXmlService());
+        var svc = new ParcelIndPostGenerator(_dbContext, new IndPostXmlService());
         var (filename, xml) = await svc.GenerateXML(101);
         var doc = XDocument.Parse(xml);
         Assert.That(doc.Root?.Name.LocalName, Is.EqualTo("AltaIndPost"));
@@ -196,7 +196,7 @@ public class OrderIndPostGeneratorTests
         };
         _dbContext.OzonOrders.Add(order);
         _dbContext.SaveChanges();
-        var svc = new OrderIndPostGenerator(_dbContext, new IndPostXmlService());
+        var svc = new ParcelIndPostGenerator(_dbContext, new IndPostXmlService());
         var (filename, xml) = await svc.GenerateXML(201);
         var doc = XDocument.Parse(xml);
         Assert.That(doc.Root?.Name.LocalName, Is.EqualTo("AltaIndPost"));
@@ -276,7 +276,7 @@ public class OrderIndPostGeneratorTests
         );
         await _dbContext.SaveChangesAsync();
 
-        var svc = new OrderIndPostGenerator(_dbContext, new IndPostXmlService());
+        var svc = new ParcelIndPostGenerator(_dbContext, new IndPostXmlService());
         var (fileName, zipData) = await svc.GenerateXML4R(300);
         using var ms = new MemoryStream(zipData);
         using var archive = new ZipArchive(ms, ZipArchiveMode.Read);
@@ -361,7 +361,7 @@ public class OrderIndPostGeneratorTests
         );
         await _dbContext.SaveChangesAsync();
 
-        var svc = new OrderIndPostGenerator(_dbContext, new IndPostXmlService());
+        var svc = new ParcelIndPostGenerator(_dbContext, new IndPostXmlService());
         var (fileName, zipData) = await svc.GenerateXML4R(400);
         using var ms = new MemoryStream(zipData);
         using var archive = new ZipArchive(ms, ZipArchiveMode.Read);
@@ -401,7 +401,7 @@ public class OrderIndPostGeneratorTests
         _dbContext.Orders.Add(dummyOrder);
         await _dbContext.SaveChangesAsync();
 
-        var svc = new OrderIndPostGenerator(_dbContext, new IndPostXmlService());
+        var svc = new ParcelIndPostGenerator(_dbContext, new IndPostXmlService());
         var (fileName, zipData) = await svc.GenerateXML4R(700);
 
         // Verify the file is named correctly based on the register's invoice number
@@ -416,7 +416,7 @@ public class OrderIndPostGeneratorTests
     [Test]
     public void GenerateXML_ThrowsException_WhenOrderNotFound()
     {
-        var svc = new OrderIndPostGenerator(_dbContext, new IndPostXmlService());
+        var svc = new ParcelIndPostGenerator(_dbContext, new IndPostXmlService());
         var ex = Assert.ThrowsAsync<InvalidOperationException>(async () => await svc.GenerateXML(-999));
         Assert.That(ex!.Message, Does.Contain("Order not found"));
     }
@@ -451,7 +451,7 @@ public class OrderIndPostGeneratorTests
         _dbContext.Orders.Add(order);
         _dbContext.SaveChanges();
 
-        var svc = new OrderIndPostGenerator(_dbContext, new IndPostXmlService());
+        var svc = new ParcelIndPostGenerator(_dbContext, new IndPostXmlService());
         var ex = Assert.ThrowsAsync<InvalidOperationException>(async () => await svc.GenerateXML(21));
         Assert.That(ex!.Message, Does.Contain("Order is not eligible for IndPost XML"));
     }
@@ -467,7 +467,7 @@ public class OrderIndPostGeneratorTests
         };
         _dbContext.Registers.Add(register);
         await _dbContext.SaveChangesAsync();
-        var svc = new OrderIndPostGenerator(_dbContext, new IndPostXmlService());
+        var svc = new ParcelIndPostGenerator(_dbContext, new IndPostXmlService());
         var (fileName, zipData) = await svc.GenerateXML4R(500);
         using var ms = new MemoryStream(zipData);
         using var archive = new ZipArchive(ms, ZipArchiveMode.Read);
@@ -516,7 +516,7 @@ public class OrderIndPostGeneratorTests
             }
         );
         await _dbContext.SaveChangesAsync();
-        var svc = new OrderIndPostGenerator(_dbContext, new IndPostXmlService());
+        var svc = new ParcelIndPostGenerator(_dbContext, new IndPostXmlService());
         var (fileName, zipData) = await svc.GenerateXML4R(600);
         using var ms = new MemoryStream(zipData);
         using var archive = new ZipArchive(ms, ZipArchiveMode.Read);
@@ -568,7 +568,7 @@ public class OrderIndPostGeneratorTests
         );
         await _dbContext.SaveChangesAsync();
 
-        var svc = new OrderIndPostGenerator(_dbContext, new IndPostXmlService());
+        var svc = new ParcelIndPostGenerator(_dbContext, new IndPostXmlService());
         var (fileName, zipData) = await svc.GenerateXML4R(800);
 
         using var ms = new MemoryStream(zipData);
@@ -603,7 +603,7 @@ public class OrderIndPostGeneratorTests
         };
         _dbContext.Orders.Add(order);
         await _dbContext.SaveChangesAsync();
-        var svc = new OrderIndPostGenerator(_dbContext, new IndPostXmlService());
+        var svc = new ParcelIndPostGenerator(_dbContext, new IndPostXmlService());
         var ex = Assert.ThrowsAsync<InvalidOperationException>(async () => await svc.GenerateXML(31));
         Assert.That(ex!.Message, Does.Contain("not eligible for IndPost XML"));
     }
@@ -644,7 +644,7 @@ public class OrderIndPostGeneratorTests
         };
         _dbContext.WbrOrders.AddRange(order1, order2);
         _dbContext.SaveChanges();
-        var svc = new OrderIndPostGenerator(_dbContext, new IndPostXmlService());
+        var svc = new ParcelIndPostGenerator(_dbContext, new IndPostXmlService());
         var (fileName, zipData) = await svc.GenerateXML4R(32);
         using var ms = new MemoryStream(zipData);
         using var archive = new ZipArchive(ms, ZipArchiveMode.Read);
@@ -678,7 +678,7 @@ public class OrderIndPostGeneratorTests
         };
         _dbContext.Orders.Add(order);
         await _dbContext.SaveChangesAsync();
-        var svc = new OrderIndPostGenerator(_dbContext, new IndPostXmlService());
+        var svc = new ParcelIndPostGenerator(_dbContext, new IndPostXmlService());
         var ex = Assert.ThrowsAsync<InvalidOperationException>(async () => await svc.GenerateXML(36));
         Assert.That(ex!.Message, Does.Contain("not eligible for IndPost XML"));
     }
@@ -719,7 +719,7 @@ public class OrderIndPostGeneratorTests
         };
         _dbContext.WbrOrders.AddRange(order1, order2);
         await _dbContext.SaveChangesAsync();
-        var svc = new OrderIndPostGenerator(_dbContext, new IndPostXmlService());
+        var svc = new ParcelIndPostGenerator(_dbContext, new IndPostXmlService());
         var (fileName, zipData) = await svc.GenerateXML4R(37);
         using var ms = new MemoryStream(zipData);
         using var archive = new ZipArchive(ms, ZipArchiveMode.Read);

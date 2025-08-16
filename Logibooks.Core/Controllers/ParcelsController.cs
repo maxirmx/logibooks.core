@@ -52,7 +52,7 @@ public class ParcelsController(
     IOrderValidationService validationService,
     IMorphologySearchService morphologyService,
     IRegisterProcessingService processingService,
-    IOrderIndPostGenerator indPostGenerator) : LogibooksControllerBase(httpContextAccessor, db, logger)
+    IParcelIndPostGenerator indPostGenerator) : LogibooksControllerBase(httpContextAccessor, db, logger)
 {
     private const int MaxPageSize = 1000;
     private readonly IUserInformationService _userService = userService;
@@ -60,7 +60,7 @@ public class ParcelsController(
     private readonly IOrderValidationService _validationService = validationService;
     private readonly IMorphologySearchService _morphologyService = morphologyService;
     private readonly IRegisterProcessingService _processingService = processingService;
-    private readonly IOrderIndPostGenerator _indPostGenerator = indPostGenerator;
+    private readonly IParcelIndPostGenerator _indPostGenerator = indPostGenerator;
 
     [HttpGet("{id}")]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ParcelViewItem))]
