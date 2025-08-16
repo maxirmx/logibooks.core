@@ -34,7 +34,7 @@ using Logibooks.Core.Interfaces;
 namespace Logibooks.Core.Tests.Services;
 
 [TestFixture]
-public class StopWordsContextTests
+public class WordsLookupContextTests
 {
     private static StopWord swSymbols1 = new() { Id = 575, Word = "575", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols };
     private static StopWord swSymbols2 = new() { Id = 900, Word = "900", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols };
@@ -46,8 +46,8 @@ public class StopWordsContextTests
 
     private static List<StopWord> AllStopWords => new() { swSymbols1, swSymbols2, swWord1, swWord2, swWord3, swPhrase1, swPhrase2 };
 
-    private static StopWordsContext CreateContext() =>
-        new ParcelValidationService(null!, null!, null!).InitializeStopWordsContext(AllStopWords);
+    private static WordsLookupContext CreateContext() =>
+        new ParcelValidationService(null!, null!, null!).InitializeWordsLookupContext(AllStopWords);
 
     private static List<StopWord> Match(string productName)
     {

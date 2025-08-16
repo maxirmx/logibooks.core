@@ -12,38 +12,32 @@
 // documentation and/or other materials provided with the distribution.
 //
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-//'AS IS' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
 // TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
 // PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR CONTRIBUTORS
 // BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
 // CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
 // SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
 // INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE),
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-using Logibooks.Core.Models;
-using System.Runtime.CompilerServices;
-using System.Text.RegularExpressions;
-[assembly: InternalsVisibleTo("Logibooks.Core.Tests")]
+using System.ComponentModel.DataAnnotations.Schema;
 
-namespace Logibooks.Core.Interfaces;
+namespace Logibooks.Core.Models;
 
-public interface IParcelValidationService
+[NotMapped]
+public abstract class WordBase
 {
-    Task ValidateAsync(BaseOrder order,
-        MorphologyContext morphologyContext,
-        WordsLookupContext wordsLookupContext,
-        FeacnPrefixCheckContext? feacnContext = null,
-        CancellationToken cancellationToken = default);
+    [Column("id")]
+    public int Id { get; set; }
 
-    WordsLookupContext InitializeWordsLookupContext(IEnumerable<StopWord> exactMatchStopWords);
+    [Column("word")]
+    public required string Word { get; set; } = string.Empty;
+
+    [Column("match_type_id")]
+    public int MatchTypeId { get; set; } = 1;
+    public WordMatchType MatchType { get; set; } = null!;
 }
 
-public class WordsLookupContext
-{
-    internal List<StopWord> ExactSymbolsMatchItems { get; } = [];
-    internal List<(StopWord sw, Regex regex)> ExactWordRegexes { get; } = [];
-    internal List<(StopWord sw, Regex regex)> PhraseRegexes { get; } = [];
-}

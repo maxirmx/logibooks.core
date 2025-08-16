@@ -30,10 +30,10 @@ using System.Text.RegularExpressions;
 
 namespace Logibooks.Core.Services;
 
-public class OrderValidationService(
+public class ParcelValidationService(
     AppDbContext db, 
     IMorphologySearchService morphService, 
-    IFeacnPrefixCheckService feacnPrefixCheckService) : IOrderValidationService
+    IFeacnPrefixCheckService feacnPrefixCheckService) : IParcelValidationService
 {
     private readonly AppDbContext _db = db;
     private readonly IMorphologySearchService _morphService = morphService;
@@ -43,7 +43,7 @@ public class OrderValidationService(
     public async Task ValidateAsync(
         BaseOrder order,
         MorphologyContext morphologyContext,
-        StopWordsContext stopWordsContext,
+        WordsLookupContext wordsLookupContext,
         FeacnPrefixCheckContext? feacnContext = null,
         CancellationToken cancellationToken = default)
     {
@@ -71,11 +71,11 @@ public class OrderValidationService(
         await _db.SaveChangesAsync(cancellationToken);
 
         var productName = order.ProductName ?? string.Empty;
-        var links1 = SelectStopWordLinks(order.Id, productName, stopWordsContext, morphologyContext);
+        var links1 = SelectStopWordLinks(order.Id, productName, wordsLookupContext, morphologyContext);
 
         if (order is WbrOrder wbr && !string.IsNullOrWhiteSpace(wbr.Description))
         {
-            var linksDesc = SelectStopWordLinks(order.Id, wbr.Description, stopWordsContext, morphologyContext);
+            var linksDesc = SelectStopWordLinks(order.Id, wbr.Description, wordsLookupContext, morphologyContext);
             // Add linksDesc to links1, keeping uniqueness by StopWordId
             var existingIds = new HashSet<int>(links1.Select(l => l.StopWordId));
             foreach (var link in linksDesc)
@@ -114,13 +114,13 @@ public class OrderValidationService(
     private List<BaseOrderStopWord> SelectStopWordLinks(
         int orderId,
         string productName,
-        StopWordsContext stopWordsContext,
+        WordsLookupContext wordsLookupContext,
         MorphologyContext morphologyContext)
     {
         var links = new List<BaseOrderStopWord>();
         var existingStopWordIds = new HashSet<int>();
 
-        List<StopWord> matchingWords = GetMatchingStopWordsFromContext(productName, stopWordsContext); 
+        List<StopWord> matchingWords = GetMatchingStopWordsFromContext(productName, wordsLookupContext); 
 
         // Add stop words to links
         foreach (var sw in matchingWords)
@@ -139,28 +139,28 @@ public class OrderValidationService(
         return links;
     }
 
-    private static List<StopWord> GetMatchingStopWordsFromContext(string productName, StopWordsContext context)
+    private static List<StopWord> GetMatchingStopWordsFromContext(string productName, WordsLookupContext context)
     {
-        if (string.IsNullOrEmpty(productName))
-            return [];
-
         var result = new List<StopWord>();
-
         // ExactSymbolsMatchItems: substring match
         result.AddRange(context.ExactSymbolsMatchItems
             .Where(sw => !string.IsNullOrEmpty(sw.Word) && 
                          productName.Contains(sw.Word, StringComparison.OrdinalIgnoreCase)));
 
         // ExactWordMatchItems: word match (delimited by non-alphanumeric or '-')
-        foreach (var (sw, regex) in context.ExactWordRegexes)
+        foreach (var pair in context.ExactWordRegexes)
         {
+            var sw = pair.sw;
+            var regex = pair.regex;
             if (regex.IsMatch(productName))
                 result.Add(sw);
         }
 
         // PhraseMatchItems: phrase match (sequence of words in exact order, separated by non-word chars)
-        foreach (var (sw, regex) in context.PhraseRegexes)
+        foreach (var pair in context.PhraseRegexes)
         {
+            var sw = pair.sw;
+            var regex = pair.regex;
             if (regex.IsMatch(productName))
                 result.Add(sw);
         }
@@ -168,9 +168,9 @@ public class OrderValidationService(
         return result;
     }
 
-    public StopWordsContext InitializeStopWordsContext(IEnumerable<StopWord> exactMatchStopWords)
+    public WordsLookupContext InitializeWordsLookupContext(IEnumerable<StopWord> exactMatchStopWords)
     {
-        var context = new StopWordsContext();
+        var context = new WordsLookupContext();
         List<StopWord> exactWordMatchItems  = [];
         List<StopWord> allWordsMatchItems = [];
         List<StopWord> phraseMatchItems = [];
