@@ -125,7 +125,7 @@ public class KeywordsProcessingService(AppDbContext db, ILogger<KeywordsProcessi
                 .Select(g => g.Key)
                 .ToList();
 
-            if ( duplicateWords.Count > 0)
+            if (duplicateWords.Count > 0)
             {
                 string dupWordsString = string.Join(", ", duplicateWords);
                 _logger.LogError("Ключевые слова и фразы заданы более одного раза: {d}", dupWordsString);

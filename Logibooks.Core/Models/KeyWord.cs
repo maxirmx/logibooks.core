@@ -25,7 +25,6 @@
 
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations.Schema;
-using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace Logibooks.Core.Models;
 
