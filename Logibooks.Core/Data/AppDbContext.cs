@@ -52,6 +52,7 @@ namespace Logibooks.Core.Data
         public DbSet<TransportationType> TransportationTypes => Set<TransportationType>();
         public DbSet<ParcelView> ParcelViews => Set<ParcelView>();
         public DbSet<KeyWord> KeyWords => Set<KeyWord>();
+        public DbSet<KeyWordFeacnCode> KeyWordFeacnCodes => Set<KeyWordFeacnCode>();
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -391,6 +392,15 @@ namespace Logibooks.Core.Data
                 .HasOne(bokw => bokw.KeyWord)
                 .WithMany(kw => kw.BaseOrderKeyWords)
                 .HasForeignKey(bokw => bokw.KeyWordId);
+
+            modelBuilder.Entity<KeyWordFeacnCode>()
+                .HasKey(kwfc => new { kwfc.KeyWordId, kwfc.FeacnCode });
+
+            modelBuilder.Entity<KeyWordFeacnCode>()
+                .HasOne(kwfc => kwfc.KeyWord)
+                .WithMany(kw => kw.KeyWordFeacnCodes)
+                .HasForeignKey(kwfc => kwfc.KeyWordId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

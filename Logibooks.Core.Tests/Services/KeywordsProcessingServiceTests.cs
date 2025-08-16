@@ -129,25 +129,27 @@ public class KeywordsProcessingServiceTests
         Assert.That(result, Is.Not.Null);
         Assert.That(result.Count, Is.EqualTo(3)); // 3 keywords total (1 from first row, 2 from second row)
 
-        var savedKeywords = await _dbContext.KeyWords.ToListAsync();
+        var savedKeywords = await _dbContext.KeyWords
+            .Include(k => k.KeyWordFeacnCodes)
+            .ToListAsync();
         Assert.That(savedKeywords.Count, Is.EqualTo(3));
 
         // Verify first keyword
         var keyword1 = savedKeywords.FirstOrDefault(k => k.Word == "слово");
         Assert.That(keyword1, Is.Not.Null);
-        Assert.That(keyword1!.FeacnCode, Is.EqualTo("1234567890"));
+        Assert.That(keyword1!.KeyWordFeacnCodes.First().FeacnCode, Is.EqualTo("1234567890"));
         Assert.That(keyword1.MatchTypeId, Is.EqualTo((int)WordMatchTypeCode.WeakMorphology));
 
         // Verify second keyword (single word)
         var keyword2 = savedKeywords.FirstOrDefault(k => k.Word == "другое");
         Assert.That(keyword2, Is.Not.Null);
-        Assert.That(keyword2!.FeacnCode, Is.EqualTo("0987654321"));
+        Assert.That(keyword2!.KeyWordFeacnCodes.First().FeacnCode, Is.EqualTo("0987654321"));
         Assert.That(keyword2.MatchTypeId, Is.EqualTo((int)WordMatchTypeCode.WeakMorphology));
 
         // Verify third keyword (phrase)
         var keyword3 = savedKeywords.FirstOrDefault(k => k.Word == "фраза с пробелами");
         Assert.That(keyword3, Is.Not.Null);
-        Assert.That(keyword3!.FeacnCode, Is.EqualTo("0987654321"));
+        Assert.That(keyword3!.KeyWordFeacnCodes.First().FeacnCode, Is.EqualTo("0987654321"));
         Assert.That(keyword3.MatchTypeId, Is.EqualTo((int)WordMatchTypeCode.Phrase));
     }
 
@@ -167,11 +169,11 @@ public class KeywordsProcessingServiceTests
         // Assert
         Assert.That(result, Is.Not.Null);
         Assert.That(result.Count, Is.EqualTo(1));
-        Assert.That(result[0].FeacnCode, Is.EqualTo("0123456789")); // Zero prepended
+        Assert.That(result[0].KeyWordFeacnCodes.First().FeacnCode, Is.EqualTo("0123456789")); // Zero prepended
 
-        var savedKeyword = await _dbContext.KeyWords.FirstOrDefaultAsync();
+        var savedKeyword = await _dbContext.KeyWords.Include(k => k.KeyWordFeacnCodes).FirstOrDefaultAsync();
         Assert.That(savedKeyword, Is.Not.Null);
-        Assert.That(savedKeyword!.FeacnCode, Is.EqualTo("0123456789"));
+        Assert.That(savedKeyword!.KeyWordFeacnCodes.First().FeacnCode, Is.EqualTo("0123456789"));
     }
 
     [Test]
@@ -250,8 +252,11 @@ public class KeywordsProcessingServiceTests
         var existingKeyword = new KeyWord
         {
             Word = "тестовое слово",
-            FeacnCode = "1111111111",
-            MatchTypeId = (int)WordMatchTypeCode.ExactSymbols
+            MatchTypeId = (int)WordMatchTypeCode.ExactSymbols,
+            KeyWordFeacnCodes = new List<KeyWordFeacnCode>
+            {
+                new KeyWordFeacnCode { FeacnCode = "1111111111" }
+            }
         };
         _dbContext.KeyWords.Add(existingKeyword);
         await _dbContext.SaveChangesAsync();
@@ -270,10 +275,12 @@ public class KeywordsProcessingServiceTests
         Assert.That(result, Is.Not.Null);
         Assert.That(result.Count, Is.EqualTo(1));
 
-        var updatedKeyword = await _dbContext.KeyWords.FirstOrDefaultAsync(k => k.Word == "тестовое слово");
+        var updatedKeyword = await _dbContext.KeyWords
+            .Include(k => k.KeyWordFeacnCodes)
+            .FirstOrDefaultAsync(k => k.Word == "тестовое слово");
         Assert.That(updatedKeyword, Is.Not.Null);
-        Assert.That(updatedKeyword!.FeacnCode, Is.EqualTo("2222222222")); // Code updated
-        Assert.That(updatedKeyword.MatchTypeId, Is.EqualTo((int)WordMatchTypeCode.Phrase)); 
+        Assert.That(updatedKeyword!.KeyWordFeacnCodes.First().FeacnCode, Is.EqualTo("2222222222")); // Code updated
+        Assert.That(updatedKeyword.MatchTypeId, Is.EqualTo((int)WordMatchTypeCode.Phrase)); // Match type updated
     }
 
     [Test]
@@ -282,9 +289,30 @@ public class KeywordsProcessingServiceTests
         // Arrange - Add existing keywords
         var existingKeywords = new List<KeyWord>
         {
-            new() { Word = "слово1", FeacnCode = "1111111111", MatchTypeId = (int)WordMatchTypeCode.ExactWord },
-            new() { Word = "слово2", FeacnCode = "2222222222", MatchTypeId = (int)WordMatchTypeCode.ExactWord },
-            new() { Word = "слово3", FeacnCode = "3333333333", MatchTypeId = (int)WordMatchTypeCode.ExactWord }
+            new() { 
+                Word = "слово1", 
+                MatchTypeId = (int)WordMatchTypeCode.ExactWord,
+                KeyWordFeacnCodes = new List<KeyWordFeacnCode>
+                {
+                    new KeyWordFeacnCode { FeacnCode = "1111111111" }
+                }
+            },
+            new() { 
+                Word = "слово2", 
+                MatchTypeId = (int)WordMatchTypeCode.ExactWord,
+                KeyWordFeacnCodes = new List<KeyWordFeacnCode>
+                {
+                    new KeyWordFeacnCode { FeacnCode = "2222222222" }
+                }
+            },
+            new() { 
+                Word = "слово3", 
+                MatchTypeId = (int)WordMatchTypeCode.ExactWord,
+                KeyWordFeacnCodes = new List<KeyWordFeacnCode>
+                {
+                    new KeyWordFeacnCode { FeacnCode = "3333333333" }
+                }
+            }
         };
         _dbContext.KeyWords.AddRange(existingKeywords);
         await _dbContext.SaveChangesAsync();
@@ -480,6 +508,39 @@ public class KeywordsProcessingServiceTests
         // Act & Assert
         Assert.ThrowsAsync<InvalidOperationException>(async () => 
             await _service.UploadKeywordsFromExcelAsync(invalidBytes, "invalid.xlsx"));
+    }
+
+    [Test]
+    public async Task UploadKeywordsFromExcelAsync_AllowsDuplicateWords_WithDifferentCodes()
+    {
+        // Arrange
+        var testData = new List<(string, string)>
+        {
+            ("1234567890", "тестовое слово"),
+            ("0987654321", "тестовое слово") // Same word with different code - now allowed
+        };
+        var excelBytes = CreateTestExcelFile(testData);
+
+        // Act
+        var result = await _service.UploadKeywordsFromExcelAsync(excelBytes, "test.xlsx");
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.Count, Is.EqualTo(2)); // Both entries should be created
+        
+        var savedKeywords = await _dbContext.KeyWords
+            .Include(k => k.KeyWordFeacnCodes)
+            .Where(k => k.Word == "тестовое слово")
+            .ToListAsync();
+        Assert.That(savedKeywords.Count, Is.EqualTo(2));
+        
+        // Verify both FeacnCodes are associated
+        var feacnCodes = savedKeywords
+            .SelectMany(k => k.KeyWordFeacnCodes)
+            .Select(fc => fc.FeacnCode)
+            .OrderBy(fc => fc)
+            .ToList();
+        Assert.That(feacnCodes, Is.EqualTo(new[] { "0987654321", "1234567890" }));
     }
 }
 

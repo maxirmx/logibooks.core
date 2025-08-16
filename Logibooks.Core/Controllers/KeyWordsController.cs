@@ -56,7 +56,11 @@ public class KeyWordsController(
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<KeyWordDto>))]
     public async Task<ActionResult<IEnumerable<KeyWordDto>>> GetKeyWords()
     {
-        var words = await _db.KeyWords.AsNoTracking().OrderBy(w => w.Id).ToListAsync();
+        var words = await _db.KeyWords
+            .Include(k => k.KeyWordFeacnCodes)
+            .AsNoTracking()
+            .OrderBy(w => w.Id)
+            .ToListAsync();
         return words.Select(w => new KeyWordDto(w)).ToList();
     }
 
@@ -65,14 +69,16 @@ public class KeyWordsController(
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
     public async Task<ActionResult<KeyWordDto>> GetKeyWord(int id)
     {
-        var word = await _db.KeyWords.AsNoTracking().FirstOrDefaultAsync(w => w.Id == id);
+        var word = await _db.KeyWords
+            .Include(k => k.KeyWordFeacnCodes)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(w => w.Id == id);
         return word == null ? _404Object(id) : new KeyWordDto(word);
     }
 
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(KeyWordDto))]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
-    [ProducesResponseType(StatusCodes.Status409Conflict, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status418ImATeapot, Type = typeof(MorphologySupportLevelDto))]
     public async Task<ActionResult<KeyWordDto>> CreateKeyWord(KeyWordDto dto)
     {
@@ -93,10 +99,8 @@ public class KeyWordsController(
             }
         }
 
-        if (await _db.KeyWords.AnyAsync(sw => sw.Word.ToLower() == dto.Word.ToLower()))
-        {
-            return _409KeyWord(dto.Word);
-        }
+        // Duplicate words are now allowed with many-to-many relationship
+        // Remove the duplicate check
 
         var kw = dto.ToModel();
         _db.KeyWords.Add(kw);
@@ -106,10 +110,10 @@ public class KeyWordsController(
             dto.Id = kw.Id;
             return CreatedAtAction(nameof(GetKeyWord), new { id = kw.Id }, dto);
         }
-        catch (DbUpdateException ex) when (ex.InnerException?.Message?.Contains("IX_key_words_word") == true)
+        catch (DbUpdateException ex)
         {
-            _logger.LogDebug("CreateKeyWord returning '409 Conflict' due to database constraint");
-            return _409KeyWord(dto.Word);
+            _logger.LogError(ex, "Error creating KeyWord");
+            throw;
         }
     }
 
@@ -117,14 +121,15 @@ public class KeyWordsController(
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
-    [ProducesResponseType(StatusCodes.Status409Conflict, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status418ImATeapot, Type = typeof(MorphologySupportLevelDto))]
     public async Task<IActionResult> UpdateKeyWord(int id, KeyWordDto dto)
     {
         if (!await _userService.CheckAdmin(_curUserId)) return _403();
         if (id != dto.Id) return BadRequest();
 
-        var kw = await _db.KeyWords.FindAsync(id);
+        var kw = await _db.KeyWords
+            .Include(k => k.KeyWordFeacnCodes)
+            .FirstOrDefaultAsync(k => k.Id == id);
         if (kw == null) return _404Object(id);
 
         if (dto.MatchTypeId >= (int)WordMatchTypeCode.MorphologyMatchTypes)
@@ -142,15 +147,24 @@ public class KeyWordsController(
             }
         }
 
-        if (!kw.Word.Equals(dto.Word, StringComparison.OrdinalIgnoreCase) &&
-            await _db.KeyWords.AnyAsync(w => w.Word.ToLower() == dto.Word.ToLower()))
-        {
-            return _409KeyWord(dto.Word);
-        }
+        // Duplicate words are now allowed with many-to-many relationship
+        // Remove the duplicate check
 
         kw.Word = dto.Word;
         kw.MatchTypeId = dto.MatchTypeId;
-        kw.FeacnCode = dto.FeacnCode;
+        
+        // Update FeacnCode relationships
+        _db.KeyWordFeacnCodes.RemoveRange(kw.KeyWordFeacnCodes);
+        kw.KeyWordFeacnCodes.Clear();
+        
+        foreach (var feacnCode in dto.FeacnCodes)
+        {
+            kw.KeyWordFeacnCodes.Add(new KeyWordFeacnCode
+            {
+                KeyWordId = kw.Id,
+                FeacnCode = feacnCode
+            });
+        }
 
         try
         {
@@ -158,10 +172,10 @@ public class KeyWordsController(
             await _db.SaveChangesAsync();
             return NoContent();
         }
-        catch (DbUpdateException ex) when (ex.InnerException?.Message?.Contains("IX_key_words_word") == true)
+        catch (DbUpdateException ex)
         {
-            _logger.LogDebug("UpdateKeyWord returning '409 Conflict' due to database constraint");
-            return _409KeyWord(dto.Word);
+            _logger.LogError(ex, "Error updating KeyWord");
+            throw;
         }
     }
 

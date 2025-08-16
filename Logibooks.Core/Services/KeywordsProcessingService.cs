@@ -84,7 +84,7 @@ public class KeywordsProcessingService(AppDbContext db, ILogger<KeywordsProcessi
                     continue;
 
                 if (!NineOrTenDigitCodeRegex.IsMatch(code))
-                    throw new InvalidOperationException($"Код '{code}' в строке {r + 1} должен содержать ровно 10 цифр");
+                    throw new InvalidOperationException($"Код '{code}' в строке {r + 1} должен содержать ровно 9 или 10 цифр");
 
                 // Prepend zero if code has 9 digits
                 if (code.Length == 9)
@@ -104,34 +104,30 @@ public class KeywordsProcessingService(AppDbContext db, ILogger<KeywordsProcessi
                         ? (int)WordMatchTypeCode.Phrase
                         : (int)WordMatchTypeCode.WeakMorphology;
 
-                    parsed.Add(new KeyWord
+                    var keyWord = new KeyWord
                     {
                         Word = word,
-                        FeacnCode = code,
                         MatchTypeId = matchType
+                    };
+                    
+                    // Add the FeacnCode relationship
+                    keyWord.KeyWordFeacnCodes.Add(new KeyWordFeacnCode
+                    {
+                        FeacnCode = code
                     });
+                    
+                    parsed.Add(keyWord);
                 }
             }
 
             // Squash duplicate entries in parsed if all fields are equal
             parsed = parsed
-                .GroupBy(k => new { k.Word, k.FeacnCode, k.MatchTypeId })
+                .GroupBy(k => new { k.Word, k.MatchTypeId, FeacnCode = k.KeyWordFeacnCodes.FirstOrDefault()?.FeacnCode })
                 .Select(g => g.First())
                 .ToList();
 
-            var duplicateWords = parsed
-                .GroupBy(k => k.Word.ToLower(RussianCulture))
-                .Where(g => g.Count() > 1)
-                .Select(g => g.Key)
-                .ToList();
-
-            if (duplicateWords.Count > 0)
-            {
-                string dupWordsString = string.Join(", ", duplicateWords);
-                _logger.LogError("Ключевые слова и фразы заданы более одного раза: {d}", dupWordsString);
-                throw new InvalidOperationException("Ключевые слова и фразы заданы более одного раза: " + dupWordsString);
-
-            }
+            // Since we now have many-to-many relationship, duplicate words with different FeacnCodes are allowed
+            // Remove the duplicate word check
 
             if (_db.Database.ProviderName != "Microsoft.EntityFrameworkCore.InMemory")
             {
@@ -158,7 +154,9 @@ public class KeywordsProcessingService(AppDbContext db, ILogger<KeywordsProcessi
 
     private async Task ProcessKeywords(List<KeyWord> parsed, CancellationToken cancellationToken)
     {
-        var existing = await _db.KeyWords.ToListAsync(cancellationToken);
+        var existing = await _db.KeyWords
+            .Include(k => k.KeyWordFeacnCodes)
+            .ToListAsync(cancellationToken);
         var existingDict = existing.ToDictionary(k => k.Word.ToLower(RussianCulture), k => k);
         var incomingWords = new HashSet<string>(parsed.Select(p => p.Word), StringComparer.OrdinalIgnoreCase);
 
@@ -166,8 +164,22 @@ public class KeywordsProcessingService(AppDbContext db, ILogger<KeywordsProcessi
         {
             if (existingDict.TryGetValue(kw.Word, out var existingKw))
             {
-                existingKw.FeacnCode = kw.FeacnCode;
+                // Clear existing FeacnCode relationships
+                _db.KeyWordFeacnCodes.RemoveRange(existingKw.KeyWordFeacnCodes);
+                
+                // Update properties
                 existingKw.MatchTypeId = kw.MatchTypeId;
+                
+                // Add new FeacnCode relationships
+                foreach (var newFeacnCode in kw.KeyWordFeacnCodes)
+                {
+                    existingKw.KeyWordFeacnCodes.Add(new KeyWordFeacnCode
+                    {
+                        KeyWordId = existingKw.Id,
+                        FeacnCode = newFeacnCode.FeacnCode
+                    });
+                }
+                
                 _db.KeyWords.Update(existingKw);
             }
             else
@@ -176,6 +188,7 @@ public class KeywordsProcessingService(AppDbContext db, ILogger<KeywordsProcessi
             }
         }
 
+        // Remove keywords that are not in the incoming list
         foreach (var kw in existing)
         {
             if (!incomingWords.Contains(kw.Word))

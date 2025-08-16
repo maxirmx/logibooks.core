@@ -26,13 +26,15 @@
 namespace Logibooks.Core.RestModels;
 
 using Logibooks.Core.Models;
+using System.Collections.Generic;
+using System.Linq;
 
 public class KeyWordDto
 {
     public int Id { get; set; }
     public string Word { get; set; } = string.Empty;
     public int MatchTypeId { get; set; }
-    public string FeacnCode { get; set; } = string.Empty;
+    public List<string> FeacnCodes { get; set; } = new();
 
     public KeyWordDto() { }
 
@@ -41,7 +43,7 @@ public class KeyWordDto
         Id = kw.Id;
         Word = kw.Word;
         MatchTypeId = kw.MatchTypeId;
-        FeacnCode = kw.FeacnCode;
+        FeacnCodes = kw.KeyWordFeacnCodes?.Select(kwfc => kwfc.FeacnCode).ToList() ?? new();
     }
 
     public KeyWord ToModel()
@@ -51,7 +53,11 @@ public class KeyWordDto
             Id = Id,
             Word = Word,
             MatchTypeId = MatchTypeId,
-            FeacnCode = FeacnCode
+            KeyWordFeacnCodes = FeacnCodes.Select(code => new KeyWordFeacnCode
+            {
+                KeyWordId = Id,
+                FeacnCode = code
+            }).ToList()
         };
     }
 }
