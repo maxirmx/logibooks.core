@@ -42,6 +42,7 @@ using Logibooks.Core.Interfaces;
 using Logibooks.Core.Models;
 using Logibooks.Core.RestModels;
 using Logibooks.Core.Services;
+using MorphologySupportLevel = Logibooks.Core.Interfaces.MorphologySupportLevel;
 
 namespace Logibooks.Core.Tests.Controllers;
 
@@ -51,6 +52,7 @@ public class KeyWordsControllerTests
 #pragma warning disable CS8618
     private AppDbContext _dbContext;
     private Mock<IHttpContextAccessor> _mockHttpContextAccessor;
+    private Mock<IMorphologySearchService> _mockMorphologySearchService;
     private ILogger<KeyWordsController> _logger;
     private IUserInformationService _userService;
     private KeyWordsController _controller;
@@ -92,11 +94,17 @@ public class KeyWordsControllerTests
         _dbContext.SaveChanges();
 
         _mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
+        _mockMorphologySearchService = new Mock<IMorphologySearchService>();
+        
+        // Setup default behavior: return FullSupport for all words unless specifically overridden
+        _mockMorphologySearchService.Setup(x => x.CheckWord(It.IsAny<string>()))
+            .Returns(MorphologySupportLevel.FullSupport);
+
         _logger = new LoggerFactory().CreateLogger<KeyWordsController>();
         _userService = new UserInformationService(_dbContext);
         var kwLogger = new LoggerFactory().CreateLogger<KeywordsProcessingService>();
         _keywordsProcessingService = new KeywordsProcessingService(_dbContext, kwLogger);
-        _controller = new KeyWordsController(_mockHttpContextAccessor.Object, _dbContext, _userService, _keywordsProcessingService, _logger);
+        _controller = new KeyWordsController(_mockHttpContextAccessor.Object, _dbContext, _userService, _keywordsProcessingService, _mockMorphologySearchService.Object, _logger);
     }
 
     [TearDown]
@@ -111,7 +119,7 @@ public class KeyWordsControllerTests
         var ctx = new DefaultHttpContext();
         ctx.Items["UserId"] = id;
         _mockHttpContextAccessor.Setup(x => x.HttpContext).Returns(ctx);
-        _controller = new KeyWordsController(_mockHttpContextAccessor.Object, _dbContext, _userService, _keywordsProcessingService, _logger);
+        _controller = new KeyWordsController(_mockHttpContextAccessor.Object, _dbContext, _userService, _keywordsProcessingService, _mockMorphologySearchService.Object, _logger);
     }
 
     [Test]
@@ -131,6 +139,11 @@ public class KeyWordsControllerTests
     public async Task CreateUpdateDelete_Work_ForAdmin()
     {
         SetCurrentUserId(1);
+        
+        // Setup mock to allow test words to pass morphology validation
+        _mockMorphologySearchService.Setup(x => x.CheckWord("test")).Returns(MorphologySupportLevel.FullSupport);
+        _mockMorphologySearchService.Setup(x => x.CheckWord("upd")).Returns(MorphologySupportLevel.FullSupport);
+
         var dto = new KeyWordDto { Word = "test", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols, FeacnCode = "1234" };
         var created = await _controller.CreateKeyWord(dto);
         Assert.That(created.Result, Is.TypeOf<CreatedAtActionResult>());
@@ -258,7 +271,7 @@ public class KeyWordsControllerTests
     }
 
     [Test]
-    public async Task Download_UpdatesKeywords_ForAdmin()
+    public async Task Upload_UpdatesKeywords_ForAdmin()
     {
         SetCurrentUserId(1);
         using var wb = new XLWorkbook();
@@ -272,14 +285,14 @@ public class KeyWordsControllerTests
         ms.Position = 0;
         IFormFile file = new FormFile(ms, 0, ms.Length, "file", "kw.xlsx");
 
-        var result = await _controller.Download(file);
+        var result = await _controller.Upload(file);
 
         Assert.That(result, Is.TypeOf<NoContentResult>());
         Assert.That(_dbContext.KeyWords.Count(), Is.EqualTo(1));
     }
 
     [Test]
-    public async Task Download_ReturnsForbidden_ForNonAdmin()
+    public async Task Upload_ReturnsForbidden_ForNonAdmin()
     {
         SetCurrentUserId(2);
         using var wb = new XLWorkbook();
@@ -293,7 +306,7 @@ public class KeyWordsControllerTests
         ms.Position = 0;
         IFormFile file = new FormFile(ms, 0, ms.Length, "file", "kw.xlsx");
 
-        var result = await _controller.Download(file);
+        var result = await _controller.Upload(file);
 
         Assert.That(result, Is.TypeOf<ObjectResult>());
         var obj = result as ObjectResult;
@@ -301,7 +314,7 @@ public class KeyWordsControllerTests
     }
 
     [Test]
-    public async Task Download_ReturnsBadRequest_WhenServiceThrows()
+    public async Task Upload_ReturnsBadRequest_WhenServiceThrows()
     {
         SetCurrentUserId(1);
         using var wb = new XLWorkbook();
@@ -315,12 +328,241 @@ public class KeyWordsControllerTests
         ms.Position = 0;
         IFormFile file = new FormFile(ms, 0, ms.Length, "file", "bad.xlsx");
 
-        var result = await _controller.Download(file);
+        var result = await _controller.Upload(file);
 
         Assert.That(result, Is.TypeOf<ObjectResult>());
         var obj = result as ObjectResult;
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
         var msg = (obj.Value as ErrMessage)!.Msg;
         Assert.That(msg, Does.Contain("должен содержать ровно 10 цифр"));
+    }
+
+
+    [Test]
+    public async Task CreateKeyWord_Returns418_WhenMorphologyValidationFails_NoSupport()
+    {
+        SetCurrentUserId(1); // Admin user
+        
+        // Setup mock to return NoSupport for morphology validation
+        _mockMorphologySearchService.Setup(x => x.CheckWord("unsupported"))
+            .Returns(MorphologySupportLevel.NoSupport);
+        
+        var dto = new KeyWordDto { Word = "unsupported", MatchTypeId = (int)WordMatchTypeCode.MorphologyMatchTypes, FeacnCode = "1234567890" };
+        var result = await _controller.CreateKeyWord(dto);
+
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status418ImATeapot));
+        Assert.That(obj.Value, Is.InstanceOf<MorphologySupportLevelDto>());
+        var mslDto = obj.Value as MorphologySupportLevelDto;
+        Assert.That(mslDto!.Word, Is.EqualTo("unsupported"));
+        Assert.That(mslDto.Level, Is.EqualTo((int)MorphologySupportLevel.NoSupport));
+        Assert.That(mslDto.Msg, Does.Contain("отсутствует в словаре"));
+    }
+
+    [Test]
+    public async Task CreateKeyWord_Returns418_WhenMorphologyValidationFails_FormsSupport()
+    {
+        SetCurrentUserId(1); // Admin user
+        
+        // Setup mock to return FormsSupport for morphology validation with StrongMorphology
+        _mockMorphologySearchService.Setup(x => x.CheckWord("onlyforms"))
+            .Returns(MorphologySupportLevel.FormsSupport);
+        
+        var dto = new KeyWordDto { Word = "onlyforms", MatchTypeId = (int)WordMatchTypeCode.StrongMorphology, FeacnCode = "1234567890" };
+        var result = await _controller.CreateKeyWord(dto);
+
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status418ImATeapot));
+        Assert.That(obj.Value, Is.InstanceOf<MorphologySupportLevelDto>());
+        var mslDto = obj.Value as MorphologySupportLevelDto;
+        Assert.That(mslDto!.Word, Is.EqualTo("onlyforms"));
+        Assert.That(mslDto.Level, Is.EqualTo((int)MorphologySupportLevel.FormsSupport));
+        Assert.That(mslDto.Msg, Does.Contain("не поддерживается словарём"));
+    }
+
+    [Test]
+    public async Task CreateKeyWord_SucceedsWithMorphologyValidation_WhenValidationPasses()
+    {
+        SetCurrentUserId(1); // Admin user
+        
+        // Setup mock to return FullSupport for morphology validation
+        _mockMorphologySearchService.Setup(x => x.CheckWord("тест"))
+            .Returns(MorphologySupportLevel.FullSupport);
+        
+        var dto = new KeyWordDto { Word = "тест", MatchTypeId = (int)WordMatchTypeCode.StrongMorphology, FeacnCode = "1234567890" };
+        var result = await _controller.CreateKeyWord(dto);
+
+        Assert.That(result.Result, Is.TypeOf<CreatedAtActionResult>());
+        var created = result.Result as CreatedAtActionResult;
+        Assert.That(created!.Value, Is.InstanceOf<KeyWordDto>());
+        var createdDto = created.Value as KeyWordDto;
+        Assert.That(createdDto!.Word, Is.EqualTo("тест"));
+        Assert.That(createdDto.MatchTypeId, Is.EqualTo((int)WordMatchTypeCode.StrongMorphology));
+    }
+
+    [Test]
+    public async Task CreateKeyWord_SkipsMorphologyValidation_WhenExactMatch()
+    {
+        SetCurrentUserId(1); // Admin user
+        
+        // Even though this would fail morphology validation, it should succeed because MatchTypeId = ExactSymbols
+        var dto = new KeyWordDto { Word = "hello", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols, FeacnCode = "1234567890" };
+        var result = await _controller.CreateKeyWord(dto);
+
+        Assert.That(result.Result, Is.TypeOf<CreatedAtActionResult>());
+        var created = result.Result as CreatedAtActionResult;
+        Assert.That(created!.Value, Is.InstanceOf<KeyWordDto>());
+        var createdDto = created.Value as KeyWordDto;
+        Assert.That(createdDto!.Word, Is.EqualTo("hello"));
+        Assert.That(createdDto.MatchTypeId, Is.EqualTo((int)WordMatchTypeCode.ExactSymbols));
+
+        // Verify that CheckWord was never called for exact match
+        _mockMorphologySearchService.Verify(x => x.CheckWord("hello"), Times.Never);
+    }
+
+    [Test]
+    public async Task CreateKeyWord_AllowsFormsSupport_WhenWeakMorphology()
+    {
+        SetCurrentUserId(1); // Admin user
+        
+        // Setup mock to return FormsSupport - this should be allowed for WeakMorphology
+        _mockMorphologySearchService.Setup(x => x.CheckWord("формы"))
+            .Returns(MorphologySupportLevel.FormsSupport);
+        
+        var dto = new KeyWordDto { Word = "формы", MatchTypeId = (int)WordMatchTypeCode.WeakMorphology, FeacnCode = "1234567890" };
+        var result = await _controller.CreateKeyWord(dto);
+
+        Assert.That(result.Result, Is.TypeOf<CreatedAtActionResult>());
+        var created = result.Result as CreatedAtActionResult;
+        Assert.That(created!.Value, Is.InstanceOf<KeyWordDto>());
+        var createdDto = created.Value as KeyWordDto;
+        Assert.That(createdDto!.Word, Is.EqualTo("формы"));
+        Assert.That(createdDto.MatchTypeId, Is.EqualTo((int)WordMatchTypeCode.WeakMorphology));
+    }
+
+    [Test]
+    public async Task UpdateKeyWord_Returns418_WhenMorphologyValidationFails_NoSupport()
+    {
+        SetCurrentUserId(1); // Admin user
+        
+        // Create an existing keyword
+        var existingKeyword = new KeyWord { Id = 300, Word = "old", MatchTypeId = (int)WordMatchTypeCode.StrongMorphology, FeacnCode = "1234567890" };
+        _dbContext.KeyWords.Add(existingKeyword);
+        await _dbContext.SaveChangesAsync();
+        
+        // Setup mock to return NoSupport for morphology validation
+        _mockMorphologySearchService.Setup(x => x.CheckWord("unsupported"))
+            .Returns(MorphologySupportLevel.NoSupport);
+        
+        var dto = new KeyWordDto { Id = 300, Word = "unsupported", MatchTypeId = (int)WordMatchTypeCode.MorphologyMatchTypes, FeacnCode = "1234567890" };
+        var result = await _controller.UpdateKeyWord(300, dto);
+
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status418ImATeapot));
+        Assert.That(obj.Value, Is.InstanceOf<MorphologySupportLevelDto>());
+        var mslDto = obj.Value as MorphologySupportLevelDto;
+        Assert.That(mslDto!.Word, Is.EqualTo("unsupported"));
+        Assert.That(mslDto.Level, Is.EqualTo((int)MorphologySupportLevel.NoSupport));
+        Assert.That(mslDto.Msg, Does.Contain("отсутствует в словаре"));
+    }
+
+    [Test]
+    public async Task UpdateKeyWord_Returns418_WhenMorphologyValidationFails_FormsSupport()
+    {
+        SetCurrentUserId(1); // Admin user
+        
+        // Create an existing keyword
+        var existingKeyword = new KeyWord { Id = 301, Word = "old", MatchTypeId = (int)WordMatchTypeCode.StrongMorphology, FeacnCode = "1234567890" };
+        _dbContext.KeyWords.Add(existingKeyword);
+        await _dbContext.SaveChangesAsync();
+        
+        // Setup mock to return FormsSupport for morphology validation with StrongMorphology
+        _mockMorphologySearchService.Setup(x => x.CheckWord("onlyforms"))
+            .Returns(MorphologySupportLevel.FormsSupport);
+        
+        var dto = new KeyWordDto { Id = 301, Word = "onlyforms", MatchTypeId = (int)WordMatchTypeCode.StrongMorphology, FeacnCode = "1234567890" };
+        var result = await _controller.UpdateKeyWord(301, dto);
+
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status418ImATeapot));
+        Assert.That(obj.Value, Is.InstanceOf<MorphologySupportLevelDto>());
+        var mslDto = obj.Value as MorphologySupportLevelDto;
+        Assert.That(mslDto!.Word, Is.EqualTo("onlyforms"));
+        Assert.That(mslDto.Level, Is.EqualTo((int)MorphologySupportLevel.FormsSupport));
+        Assert.That(mslDto.Msg, Does.Contain("не поддерживается словарём"));
+    }
+
+    [Test]
+    public async Task UpdateKeyWord_SucceedsWithMorphologyValidation_WhenValidationPasses()
+    {
+        SetCurrentUserId(1); // Admin user
+        
+        // Create an existing keyword
+        var existingKeyword = new KeyWord { Id = 302, Word = "старый", MatchTypeId = (int)WordMatchTypeCode.StrongMorphology, FeacnCode = "1234567890" };
+        _dbContext.KeyWords.Add(existingKeyword);
+        await _dbContext.SaveChangesAsync();
+        
+        // Setup mock to return FullSupport for morphology validation
+        _mockMorphologySearchService.Setup(x => x.CheckWord("новый"))
+            .Returns(MorphologySupportLevel.FullSupport);
+        
+        var dto = new KeyWordDto { Id = 302, Word = "новый", MatchTypeId = (int)WordMatchTypeCode.StrongMorphology, FeacnCode = "1234567890" };
+        var result = await _controller.UpdateKeyWord(302, dto);
+
+        Assert.That(result, Is.TypeOf<NoContentResult>());
+        
+        // Verify the keyword was updated
+        var updatedKeyword = await _dbContext.KeyWords.FindAsync(302);
+        Assert.That(updatedKeyword!.Word, Is.EqualTo("новый"));
+        Assert.That(updatedKeyword.MatchTypeId, Is.EqualTo((int)WordMatchTypeCode.StrongMorphology));
+    }
+
+    [Test]
+    public async Task UpdateKeyWord_SkipsMorphologyValidation_WhenExactMatch()
+    {
+        SetCurrentUserId(1); // Admin user
+        
+        // Create an existing keyword
+        var existingKeyword = new KeyWord { Id = 303, Word = "старое", MatchTypeId = (int)WordMatchTypeCode.StrongMorphology, FeacnCode = "1234567890" };
+        _dbContext.KeyWords.Add(existingKeyword);
+        await _dbContext.SaveChangesAsync();
+        
+        // Even though this would fail morphology validation, it should succeed because MatchTypeId = ExactSymbols
+        var dto = new KeyWordDto { Id = 303, Word = "badword", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols, FeacnCode = "1234567890" };
+        var result = await _controller.UpdateKeyWord(303, dto);
+
+        Assert.That(result, Is.TypeOf<NoContentResult>());
+        
+        // Verify the keyword was updated
+        var updatedKeyword = await _dbContext.KeyWords.FindAsync(303);
+        Assert.That(updatedKeyword!.Word, Is.EqualTo("badword"));
+        Assert.That(updatedKeyword.MatchTypeId, Is.EqualTo((int)WordMatchTypeCode.ExactSymbols));
+
+        // Verify that CheckWord was never called for exact match
+        _mockMorphologySearchService.Verify(x => x.CheckWord("badword"), Times.Never);
+    }
+
+    [Test]
+    public async Task CreateKeyWord_SkipsMorphologyValidation_ForNonMorphologyMatchTypes()
+    {
+        SetCurrentUserId(1); // Admin user
+        
+        // Test with ExactWord - should skip morphology validation
+        var dto1 = new KeyWordDto { Word = "exact", MatchTypeId = (int)WordMatchTypeCode.ExactWord, FeacnCode = "1234567890" };
+        var result1 = await _controller.CreateKeyWord(dto1);
+        Assert.That(result1.Result, Is.TypeOf<CreatedAtActionResult>());
+
+        // Test with Phrase - should skip morphology validation
+        var dto2 = new KeyWordDto { Word = "phrase test", MatchTypeId = (int)WordMatchTypeCode.Phrase, FeacnCode = "0987654321" };
+        var result2 = await _controller.CreateKeyWord(dto2);
+        Assert.That(result2.Result, Is.TypeOf<CreatedAtActionResult>());
+
+        // Verify that CheckWord was never called for non-morphology match types
+        _mockMorphologySearchService.Verify(x => x.CheckWord("exact"), Times.Never);
+        _mockMorphologySearchService.Verify(x => x.CheckWord("phrase test"), Times.Never);
     }
 }

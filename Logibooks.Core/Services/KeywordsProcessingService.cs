@@ -41,11 +41,11 @@ public class KeywordsProcessingService(AppDbContext db, ILogger<KeywordsProcessi
     private readonly AppDbContext _db = db;
     private readonly ILogger<KeywordsProcessingService> _logger = logger;
     private static readonly CultureInfo RussianCulture = new("ru-RU");
-    private static readonly Regex TenDigitCodeRegex = new("^[\\d]{10}$", RegexOptions.Compiled);
+    private static readonly Regex NineOrTenDigitCodeRegex = new("^[\\d]{9,10}$", RegexOptions.Compiled);
 
     public async Task<List<KeyWord>> UploadKeywordsFromExcelAsync(
         byte[] content,
-        string fileName,
+        string fileName,    
         CancellationToken cancellationToken = default)
     {
         try
@@ -76,25 +76,34 @@ public class KeywordsProcessingService(AppDbContext db, ILogger<KeywordsProcessi
             var parsed = new List<KeyWord>();
             for (int r = 1; r < table.Rows.Count; r++)
             {
-                var code = table.Rows[r][codeCol]?.ToString()?.Trim() ?? string.Empty;
+                var codeValue = table.Rows[r][codeCol];
+                var code = codeValue?.ToString()?.Trim() ?? string.Empty;
+                
                 var name = table.Rows[r][nameCol]?.ToString() ?? string.Empty;
                 if (string.IsNullOrWhiteSpace(code) || string.IsNullOrWhiteSpace(name))
                     continue;
 
-                if (!TenDigitCodeRegex.IsMatch(code))
-                    throw new InvalidOperationException($"Код '{code}' в строке {r + 1} должен содержать ровно 10 цифр");
+                if (!NineOrTenDigitCodeRegex.IsMatch(code))
+                    throw new InvalidOperationException($"Код '{code}' в строке {r + 1} должен содержать ровно 9 или 10 цифр");
 
+                // Prepend zero if code has 9 digits
+                if (code.Length == 9)
+                    code = "0" + code;
+
+                // Squash duplicate words in a line
                 var words = name
                     .Split(',', StringSplitOptions.RemoveEmptyEntries)
                     .Select(w => w.Trim())
                     .Where(w => !string.IsNullOrWhiteSpace(w))
-                    .Select(w => w.ToLower(RussianCulture));
+                    .Select(w => w.ToLower(RussianCulture))
+                    .Distinct();
 
                 foreach (var word in words)
                 {
                     int matchType = word.Any(char.IsWhiteSpace)
                         ? (int)WordMatchTypeCode.Phrase
                         : (int)WordMatchTypeCode.WeakMorphology;
+
                     parsed.Add(new KeyWord
                     {
                         Word = word,
@@ -102,6 +111,26 @@ public class KeywordsProcessingService(AppDbContext db, ILogger<KeywordsProcessi
                         MatchTypeId = matchType
                     });
                 }
+            }
+
+            // Squash duplicate entries in parsed if all fields are equal
+            parsed = parsed
+                .GroupBy(k => new { k.Word, k.FeacnCode, k.MatchTypeId })
+                .Select(g => g.First())
+                .ToList();
+
+            var duplicateWords = parsed
+                .GroupBy(k => k.Word.ToLower(RussianCulture))
+                .Where(g => g.Count() > 1)
+                .Select(g => g.Key)
+                .ToList();
+
+            if ( duplicateWords.Count > 0)
+            {
+                string dupWordsString = string.Join(", ", duplicateWords);
+                _logger.LogError("Ключевые слова и фразы заданы более одного раза: {d}", dupWordsString);
+                throw new InvalidOperationException("Ключевые слова и фразы заданы более одного раза: " + dupWordsString);
+
             }
 
             if (_db.Database.ProviderName != "Microsoft.EntityFrameworkCore.InMemory")

@@ -72,7 +72,7 @@ public class StopWordsController(
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status409Conflict, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status418ImATeapot, Type = typeof(MorphologySupportLevelDto))]
-    public async Task<ActionResult<StopWordDto>> PostStopWord(StopWordDto dto)
+    public async Task<ActionResult<StopWordDto>> CreateStopWord(StopWordDto dto)
     {
         if (!await _userService.CheckAdmin(_curUserId)) return _403();
 
@@ -106,7 +106,7 @@ public class StopWordsController(
         }
         catch (DbUpdateException ex) when (ex.InnerException?.Message?.Contains("IX_stop_words_word") == true)
         {
-            _logger.LogDebug("PostStopWord returning '409 Conflict' due to database constraint");
+            _logger.LogDebug("CreateStopWord returning '409 Conflict' due to database constraint");
             return _409StopWord(dto.Word);
         }
     }
@@ -117,7 +117,7 @@ public class StopWordsController(
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status409Conflict, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status418ImATeapot, Type = typeof(MorphologySupportLevelDto))]
-    public async Task<IActionResult> PutStopWord(int id, StopWordDto dto)
+    public async Task<IActionResult> UpdateStopWord(int id, StopWordDto dto)
     {
         if (!await _userService.CheckAdmin(_curUserId)) return _403();
         if (id != dto.Id) return BadRequest();
@@ -154,7 +154,7 @@ public class StopWordsController(
         }
         catch (DbUpdateException ex) when (ex.InnerException?.Message?.Contains("IX_stop_words_word") == true)
         {
-            _logger.LogDebug("PutStopWord returning '409 Conflict' due to database constraint");
+            _logger.LogDebug("UpdateStopWord returning '409 Conflict' due to database constraint");
             return _409StopWord(dto.Word);
         }
     }

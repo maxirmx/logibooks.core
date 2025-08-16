@@ -31,6 +31,7 @@ using Logibooks.Core.Authorization;
 using Logibooks.Core.Data;
 using Logibooks.Core.Interfaces;
 using Logibooks.Core.RestModels;
+using Logibooks.Core.Models;
 
 namespace Logibooks.Core.Controllers;
 
@@ -44,10 +45,12 @@ public class KeyWordsController(
     AppDbContext db,
     IUserInformationService userService,
     IKeywordsProcessingService processingService,
+    IMorphologySearchService morphologySearchService,
     ILogger<KeyWordsController> logger) : LogibooksControllerBase(httpContextAccessor, db, logger)
 {
     private readonly IUserInformationService _userService = userService;
     private readonly IKeywordsProcessingService _processingService = processingService;
+    private readonly IMorphologySearchService _morphologySearchService = morphologySearchService;
 
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<KeyWordDto>))]
@@ -70,9 +73,25 @@ public class KeyWordsController(
     [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(KeyWordDto))]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status409Conflict, Type = typeof(ErrMessage))]
+    [ProducesResponseType(StatusCodes.Status418ImATeapot, Type = typeof(MorphologySupportLevelDto))]
     public async Task<ActionResult<KeyWordDto>> CreateKeyWord(KeyWordDto dto)
     {
         if (!await _userService.CheckAdmin(_curUserId)) return _403();
+
+        if (dto.MatchTypeId >= (int)WordMatchTypeCode.MorphologyMatchTypes)
+        {
+            var checkResult = _morphologySearchService.CheckWord(dto.Word);
+            if (
+                checkResult == MorphologySupportLevel.NoSupport ||
+                (dto.MatchTypeId >= (int)WordMatchTypeCode.StrongMorphology && checkResult == MorphologySupportLevel.FormsSupport)
+            )
+            {
+                return StatusCode(StatusCodes.Status418ImATeapot, new MorphologySupportLevelDto {
+                    Word = dto.Word,
+                    Level = (int)checkResult
+                });
+            }
+        }
 
         if (await _db.KeyWords.AnyAsync(sw => sw.Word.ToLower() == dto.Word.ToLower()))
         {
@@ -99,6 +118,7 @@ public class KeyWordsController(
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status409Conflict, Type = typeof(ErrMessage))]
+    [ProducesResponseType(StatusCodes.Status418ImATeapot, Type = typeof(MorphologySupportLevelDto))]
     public async Task<IActionResult> UpdateKeyWord(int id, KeyWordDto dto)
     {
         if (!await _userService.CheckAdmin(_curUserId)) return _403();
@@ -106,6 +126,21 @@ public class KeyWordsController(
 
         var kw = await _db.KeyWords.FindAsync(id);
         if (kw == null) return _404Object(id);
+
+        if (dto.MatchTypeId >= (int)WordMatchTypeCode.MorphologyMatchTypes)
+        {
+            var checkResult = _morphologySearchService.CheckWord(dto.Word);
+            if (
+                checkResult == MorphologySupportLevel.NoSupport ||
+                (dto.MatchTypeId >= (int)WordMatchTypeCode.StrongMorphology && checkResult == MorphologySupportLevel.FormsSupport)
+            )
+            {
+                return StatusCode(StatusCodes.Status418ImATeapot, new MorphologySupportLevelDto {
+                    Word = dto.Word,
+                    Level = (int)checkResult
+                });
+            }
+        }
 
         if (!kw.Word.Equals(dto.Word, StringComparison.OrdinalIgnoreCase) &&
             await _db.KeyWords.AnyAsync(w => w.Word.ToLower() == dto.Word.ToLower()))
@@ -146,11 +181,11 @@ public class KeyWordsController(
         return NoContent();
     }
 
-    [HttpPost("download")]
+    [HttpPost("upload")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
-    public async Task<IActionResult> Download(IFormFile file)
+    public async Task<IActionResult> Upload(IFormFile file)
     {
         if (!await _userService.CheckAdmin(_curUserId)) return _403();
 
