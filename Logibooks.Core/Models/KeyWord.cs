@@ -29,6 +29,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace Logibooks.Core.Models;
 
 [Table("key_words")]
+[Index(nameof(Word), IsUnique = true, Name = "IX_key_words_word")]
 public class KeyWord : WordBase
 {
     public ICollection<BaseOrderKeyWord> BaseOrderKeyWords { get; set; } = [];

@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Logibooks.Core.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250817115115_ConvertKeyWordFeacnCodeToManyToMany")]
-    partial class ConvertKeyWordFeacnCodeToManyToMany
+    [Migration("20250817170727_0_9_2_Keywords_NxN")]
+    partial class _0_9_2_Keywords_NxN
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -486,6 +486,9 @@ namespace Logibooks.Core.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("MatchTypeId");
+
+                    b.HasIndex(new[] { "Word" }, "IX_key_words_word")
+                        .IsUnique();
 
                     b.ToTable("key_words");
                 });

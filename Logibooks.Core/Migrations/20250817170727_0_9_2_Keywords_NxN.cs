@@ -5,32 +5,28 @@
 namespace Logibooks.Core.Migrations
 {
     /// <inheritdoc />
-    public partial class ConvertKeyWordFeacnCodeToManyToMany : Migration
+    public partial class _0_9_2_Keywords_NxN : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropIndex(
-                name: "IX_key_words_word",
-                table: "key_words");
-
             migrationBuilder.CreateTable(
-                name: "key_word_feacn_codes",
-                columns: table => new
-                {
-                    key_word_id = table.Column<int>(type: "integer", nullable: false),
-                    feacn_code = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_key_word_feacn_codes", x => new { x.key_word_id, x.feacn_code });
-                    table.ForeignKey(
-                        name: "FK_key_word_feacn_codes_key_words_key_word_id",
-                        column: x => x.key_word_id,
-                        principalTable: "key_words",
-                        principalColumn: "id",
-                        onDelete: ReferentialAction.Cascade);
-                });
+                      name: "key_word_feacn_codes",
+                      columns: table => new
+                      {
+                          key_word_id = table.Column<int>(type: "integer", nullable: false),
+                          feacn_code = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: false)
+                      },
+                      constraints: table =>
+                      {
+                          table.PrimaryKey("PK_key_word_feacn_codes", x => new { x.key_word_id, x.feacn_code });
+                          table.ForeignKey(
+                              name: "FK_key_word_feacn_codes_key_words_key_word_id",
+                              column: x => x.key_word_id,
+                              principalTable: "key_words",
+                              principalColumn: "id",
+                              onDelete: ReferentialAction.Cascade);
+                      });
 
             // Migrate existing data from key_words.feacn_code to the junction table
             migrationBuilder.Sql(@"
@@ -43,18 +39,17 @@ namespace Logibooks.Core.Migrations
             migrationBuilder.DropColumn(
                 name: "feacn_code",
                 table: "key_words");
-
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AddColumn<string>(
-                name: "feacn_code",
-                table: "key_words",
-                type: "text",
-                nullable: false,
-                defaultValue: "");
+                    name: "feacn_code",
+                    table: "key_words",
+                    type: "text",
+                    nullable: false,
+                    defaultValue: "");
 
             // Migrate data back (taking only the first FeacnCode for each KeyWord)
             migrationBuilder.Sql(@"
@@ -70,12 +65,6 @@ namespace Logibooks.Core.Migrations
 
             migrationBuilder.DropTable(
                 name: "key_word_feacn_codes");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_key_words_word",
-                table: "key_words",
-                column: "word",
-                unique: true);
         }
     }
 }

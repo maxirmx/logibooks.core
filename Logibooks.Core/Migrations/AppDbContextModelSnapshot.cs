@@ -484,6 +484,9 @@ namespace Logibooks.Core.Migrations
 
                     b.HasIndex("MatchTypeId");
 
+                    b.HasIndex(new[] { "Word" }, "IX_key_words_word")
+                        .IsUnique();
+
                     b.ToTable("key_words");
                 });
 
