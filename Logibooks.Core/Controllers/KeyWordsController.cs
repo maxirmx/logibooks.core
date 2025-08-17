@@ -56,7 +56,11 @@ public class KeyWordsController(
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<KeyWordDto>))]
     public async Task<ActionResult<IEnumerable<KeyWordDto>>> GetKeyWords()
     {
-        var words = await _db.KeyWords.AsNoTracking().OrderBy(w => w.Id).ToListAsync();
+        var words = await _db.KeyWords
+            .Include(w => w.KeyWordFeacnCodes)
+            .AsNoTracking()
+            .OrderBy(w => w.Id)
+            .ToListAsync();
         return words.Select(w => new KeyWordDto(w)).ToList();
     }
 
@@ -65,18 +69,34 @@ public class KeyWordsController(
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
     public async Task<ActionResult<KeyWordDto>> GetKeyWord(int id)
     {
-        var word = await _db.KeyWords.AsNoTracking().FirstOrDefaultAsync(w => w.Id == id);
+        var word = await _db.KeyWords
+            .Include(w => w.KeyWordFeacnCodes)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(w => w.Id == id);
         return word == null ? _404Object(id) : new KeyWordDto(word);
     }
 
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(KeyWordDto))]
+    [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status409Conflict, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status418ImATeapot, Type = typeof(MorphologySupportLevelDto))]
     public async Task<ActionResult<KeyWordDto>> CreateKeyWord(KeyWordDto dto)
     {
         if (!await _userService.CheckAdmin(_curUserId)) return _403();
+
+        // Validate FeacnCodes: empty list is OK, but if provided, each must be exactly 10 digits
+        if (dto.FeacnCodes != null && dto.FeacnCodes.Count > 0)
+        {
+            foreach (var feacnCode in dto.FeacnCodes)
+            {
+                if (string.IsNullOrWhiteSpace(feacnCode) || feacnCode.Length != 10 || !feacnCode.All(char.IsDigit))
+                {
+                    return _400MustBe10Digits(feacnCode);
+                }
+            }
+        }
 
         if (dto.MatchTypeId >= (int)WordMatchTypeCode.MorphologyMatchTypes)
         {
@@ -93,7 +113,10 @@ public class KeyWordsController(
             }
         }
 
-        if (await _db.KeyWords.AnyAsync(sw => sw.Word.ToLower() == dto.Word.ToLower()))
+        // Check for conflicts: only conflict if (word, FeacnCode) pair already exists
+        if (dto.FeacnCodes?.Count > 0 && 
+            await _db.KeyWords.AnyAsync(sw => sw.Word.ToLower() == dto.Word.ToLower() && 
+                sw.KeyWordFeacnCodes.Any(kwfc => dto.FeacnCodes.Contains(kwfc.FeacnCode))))
         {
             return _409KeyWord(dto.Word);
         }
@@ -115,6 +138,7 @@ public class KeyWordsController(
 
     [HttpPut("{id}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status409Conflict, Type = typeof(ErrMessage))]
@@ -124,7 +148,21 @@ public class KeyWordsController(
         if (!await _userService.CheckAdmin(_curUserId)) return _403();
         if (id != dto.Id) return BadRequest();
 
-        var kw = await _db.KeyWords.FindAsync(id);
+        // Validate FeacnCodes: empty list is OK, but if provided, each must be exactly 10 digits
+        if (dto.FeacnCodes != null && dto.FeacnCodes.Count > 0)
+        {
+            foreach (var feacnCode in dto.FeacnCodes)
+            {
+                if (string.IsNullOrWhiteSpace(feacnCode) || feacnCode.Length != 10 || !feacnCode.All(char.IsDigit))
+                {
+                    return _400MustBe10Digits(feacnCode);
+                }
+            }
+        }
+
+        var kw = await _db.KeyWords
+            .Include(w => w.KeyWordFeacnCodes)
+            .FirstOrDefaultAsync(w => w.Id == id);
         if (kw == null) return _404Object(id);
 
         if (dto.MatchTypeId >= (int)WordMatchTypeCode.MorphologyMatchTypes)
@@ -143,15 +181,27 @@ public class KeyWordsController(
         }
 
         if (!kw.Word.Equals(dto.Word, StringComparison.OrdinalIgnoreCase) &&
-            await _db.KeyWords.AnyAsync(w => w.Word.ToLower() == dto.Word.ToLower()))
+            dto.FeacnCodes?.Count > 0 &&
+            await _db.KeyWords.AnyAsync(w => w.Word.ToLower() == dto.Word.ToLower() &&
+                w.KeyWordFeacnCodes.Any(kwfc => dto.FeacnCodes.Contains(kwfc.FeacnCode))))
         {
             return _409KeyWord(dto.Word);
         }
 
         kw.Word = dto.Word;
         kw.MatchTypeId = dto.MatchTypeId;
-        kw.FeacnCode = dto.FeacnCode;
-
+        
+        // Update FeacnCodes - remove existing and add new ones
+        _db.KeyWordFeacnCodes.RemoveRange(kw.KeyWordFeacnCodes);
+        if (dto.FeacnCodes != null )
+        { 
+            kw.KeyWordFeacnCodes = [.. dto.FeacnCodes.Select(fc => new KeyWordFeacnCode
+            {
+                KeyWordId = kw.Id,
+                FeacnCode = fc,
+                KeyWord = kw
+            })];
+        }
         try
         {
             _db.Entry(kw).State = EntityState.Modified;

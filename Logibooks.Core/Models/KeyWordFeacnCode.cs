@@ -23,14 +23,20 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Logibooks.Core.Models;
 
-[Table("key_words")]
-public class KeyWord : WordBase
+[Table("key_word_feacn_codes")]
+public class KeyWordFeacnCode
 {
-    public ICollection<BaseOrderKeyWord> BaseOrderKeyWords { get; set; } = [];
-    public ICollection<KeyWordFeacnCode> KeyWordFeacnCodes { get; set; } = [];
+    [Column("key_word_id")]
+    public int KeyWordId { get; set; }
+    public KeyWord KeyWord { get; set; } = null!;
+
+    [Column("feacn_code")]
+    [StringLength(10, MinimumLength = 10, ErrorMessage = "FeacnCode must be exactly 10 digits")]
+    [RegularExpression(@"^\d{10}$", ErrorMessage = "FeacnCode must be exactly 10 digits")]
+    public string FeacnCode { get; set; } = string.Empty;
 }

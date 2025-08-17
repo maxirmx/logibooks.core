@@ -198,9 +198,9 @@ public class RegisterFeacnCodeLookupServiceTests
             new WbrOrder { Id = 102, RegisterId = 100, ProductName = "Clean product" }
         );
         ctx.KeyWords.AddRange(
-            new KeyWord { Id = 201, Word = "spam", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols, FeacnCode = "1" },
-            new KeyWord { Id = 202, Word = "malware", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols, FeacnCode = "2" },
-            new KeyWord { Id = 203, Word = "virus", MatchTypeId = (int)WordMatchTypeCode.StrongMorphology, FeacnCode = "3" }
+            new KeyWord { Id = 201, Word = "spam", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols, KeyWordFeacnCodes = [new KeyWordFeacnCode { KeyWordId = 201, FeacnCode = "1" }] },
+            new KeyWord { Id = 202, Word = "malware", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols, KeyWordFeacnCodes = [new KeyWordFeacnCode { KeyWordId = 202, FeacnCode = "2" }] },
+            new KeyWord { Id = 203, Word = "virus", MatchTypeId = (int)WordMatchTypeCode.StrongMorphology, KeyWordFeacnCodes = [new KeyWordFeacnCode { KeyWordId = 203, FeacnCode = "3" }] }
         );
         await ctx.SaveChangesAsync();
 

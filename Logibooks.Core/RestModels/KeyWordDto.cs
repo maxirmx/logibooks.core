@@ -23,6 +23,8 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+using System.ComponentModel.DataAnnotations;
+
 namespace Logibooks.Core.RestModels;
 
 using Logibooks.Core.Models;
@@ -30,9 +32,12 @@ using Logibooks.Core.Models;
 public class KeyWordDto
 {
     public int Id { get; set; }
+    
     public string Word { get; set; } = string.Empty;
+    
     public int MatchTypeId { get; set; }
-    public string FeacnCode { get; set; } = string.Empty;
+    
+    public List<string> FeacnCodes { get; set; } = [];
 
     public KeyWordDto() { }
 
@@ -41,17 +46,25 @@ public class KeyWordDto
         Id = kw.Id;
         Word = kw.Word;
         MatchTypeId = kw.MatchTypeId;
-        FeacnCode = kw.FeacnCode;
+        FeacnCodes = kw.KeyWordFeacnCodes?.Select(kwfc => kwfc.FeacnCode).ToList() ?? [];
     }
 
     public KeyWord ToModel()
     {
-        return new KeyWord
+        var keyWord = new KeyWord
         {
             Id = Id,
             Word = Word,
-            MatchTypeId = MatchTypeId,
-            FeacnCode = FeacnCode
+            MatchTypeId = MatchTypeId
         };
+
+        keyWord.KeyWordFeacnCodes = [.. FeacnCodes.Select(fc => new KeyWordFeacnCode
+        {
+            KeyWordId = Id,
+            FeacnCode = fc,
+            KeyWord = keyWord
+        })];
+
+        return keyWord;
     }
 }

@@ -14,7 +14,7 @@
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 // 'AS IS' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
 // TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
-// PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR CONTRIBUTORS
+// PURPOSE ARE IMPLIED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR CONTRIBUTORS
 // BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
 // CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
 // SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
@@ -52,6 +52,7 @@ namespace Logibooks.Core.Data
         public DbSet<TransportationType> TransportationTypes => Set<TransportationType>();
         public DbSet<ParcelView> ParcelViews => Set<ParcelView>();
         public DbSet<KeyWord> KeyWords => Set<KeyWord>();
+        public DbSet<KeyWordFeacnCode> KeyWordFeacnCodes => Set<KeyWordFeacnCode>();
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -377,6 +378,15 @@ namespace Logibooks.Core.Data
                 .HasOne(k => k.MatchType)
                 .WithMany(mt => mt.KeyWords)
                 .HasForeignKey(k => k.MatchTypeId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<KeyWordFeacnCode>()
+                .HasKey(kwfc => new { kwfc.KeyWordId, kwfc.FeacnCode });
+
+            modelBuilder.Entity<KeyWordFeacnCode>()
+                .HasOne(kwfc => kwfc.KeyWord)
+                .WithMany(kw => kw.KeyWordFeacnCodes)
+                .HasForeignKey(kwfc => kwfc.KeyWordId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<BaseOrderKeyWord>()

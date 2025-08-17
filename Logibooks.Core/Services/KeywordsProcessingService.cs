@@ -115,18 +115,25 @@ public class KeywordsProcessingService(AppDbContext db, ILogger<KeywordsProcessi
                             : (int)WordMatchTypeCode.WeakMorphology;
                     }
 
-                    parsed.Add(new KeyWord
+                    var keyWord = new KeyWord
                     {
                         Word = word,
-                        FeacnCode = code,
                         MatchTypeId = matchType
-                    });
+                    };
+
+                    keyWord.KeyWordFeacnCodes = [new KeyWordFeacnCode
+                    {
+                        FeacnCode = code,
+                        KeyWord = keyWord
+                    }];
+
+                    parsed.Add(keyWord);
                 }
             }
 
             // Squash duplicate entries in parsed if all fields are equal
             parsed = parsed
-                .GroupBy(k => new { k.Word, k.FeacnCode, k.MatchTypeId })
+                .GroupBy(k => new { k.Word, FeacnCode = k.KeyWordFeacnCodes.First().FeacnCode, k.MatchTypeId })
                 .Select(g => g.First())
                 .ToList();
 
@@ -169,7 +176,9 @@ public class KeywordsProcessingService(AppDbContext db, ILogger<KeywordsProcessi
 
     private async Task ProcessKeywords(List<KeyWord> parsed, CancellationToken cancellationToken)
     {
-        var existing = await _db.KeyWords.ToListAsync(cancellationToken);
+        var existing = await _db.KeyWords
+            .Include(k => k.KeyWordFeacnCodes)
+            .ToListAsync(cancellationToken);
         var existingDict = existing.ToDictionary(k => k.Word.ToLower(RussianCulture), k => k);
         var incomingWords = new HashSet<string>(parsed.Select(p => p.Word), StringComparer.OrdinalIgnoreCase);
 
@@ -177,7 +186,14 @@ public class KeywordsProcessingService(AppDbContext db, ILogger<KeywordsProcessi
         {
             if (existingDict.TryGetValue(kw.Word, out var existingKw))
             {
-                existingKw.FeacnCode = kw.FeacnCode;
+                // Remove existing FeacnCodes and add new ones
+                _db.KeyWordFeacnCodes.RemoveRange(existingKw.KeyWordFeacnCodes);
+                existingKw.KeyWordFeacnCodes = kw.KeyWordFeacnCodes.Select(kwfc => new KeyWordFeacnCode
+                {
+                    KeyWordId = existingKw.Id,
+                    FeacnCode = kwfc.FeacnCode,
+                    KeyWord = existingKw
+                }).ToList();
                 existingKw.MatchTypeId = kw.MatchTypeId;
                 _db.KeyWords.Update(existingKw);
             }

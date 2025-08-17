@@ -144,7 +144,7 @@ public class KeyWordsControllerTests
         _mockMorphologySearchService.Setup(x => x.CheckWord("test")).Returns(MorphologySupportLevel.FullSupport);
         _mockMorphologySearchService.Setup(x => x.CheckWord("upd")).Returns(MorphologySupportLevel.FullSupport);
 
-        var dto = new KeyWordDto { Word = "test", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols, FeacnCode = "1234" };
+        var dto = new KeyWordDto { Word = "test", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols, FeacnCodes = ["1234567890"] };
         var created = await _controller.CreateKeyWord(dto);
         Assert.That(created.Result, Is.TypeOf<CreatedAtActionResult>());
         var createdDto = (created.Result as CreatedAtActionResult)!.Value as KeyWordDto;
@@ -152,7 +152,7 @@ public class KeyWordsControllerTests
 
         var id = createdDto.Id;
         createdDto.Word = "upd";
-        createdDto.FeacnCode = "5678";
+        createdDto.FeacnCodes = ["5678901234"];
         var upd = await _controller.UpdateKeyWord(id, createdDto);
         Assert.That(upd, Is.TypeOf<NoContentResult>());
 
@@ -164,7 +164,7 @@ public class KeyWordsControllerTests
     public async Task Create_ReturnsForbidden_ForNonAdmin()
     {
         SetCurrentUserId(2);
-        var dto = new KeyWordDto { Word = "w" };
+        var dto = new KeyWordDto { Word = "w", FeacnCodes = [] }; // Empty FeacnCodes are now allowed
         var result = await _controller.CreateKeyWord(dto);
         Assert.That(result.Result, Is.TypeOf<ObjectResult>());
         var obj = result.Result as ObjectResult;
@@ -175,7 +175,9 @@ public class KeyWordsControllerTests
     public async Task Delete_ReturnsForbidden_ForNonAdmin()
     {
         SetCurrentUserId(1);
-        _dbContext.KeyWords.Add(new KeyWord { Id = 5, Word = "del" });
+        var kw = new KeyWord { Id = 5, Word = "del" };
+        kw.KeyWordFeacnCodes = []; // Empty collection is now allowed
+        _dbContext.KeyWords.Add(kw);
         await _dbContext.SaveChangesAsync();
         SetCurrentUserId(2);
         var result = await _controller.DeleteKeyWord(5);
@@ -188,9 +190,11 @@ public class KeyWordsControllerTests
     public async Task Create_ReturnsConflict_WhenWordExists()
     {
         SetCurrentUserId(1);
-        _dbContext.KeyWords.Add(new KeyWord { Id = 10, Word = "dup" });
+        var existingKeyword = new KeyWord { Id = 10, Word = "dup", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols };
+        existingKeyword.KeyWordFeacnCodes = [new KeyWordFeacnCode { KeyWordId = 10, FeacnCode = "1234567890", KeyWord = existingKeyword }];
+        _dbContext.KeyWords.Add(existingKeyword);
         await _dbContext.SaveChangesAsync();
-        var dto = new KeyWordDto { Word = "dup", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols };
+        var dto = new KeyWordDto { Word = "dup", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols, FeacnCodes = ["1234567890"] };
         var result = await _controller.CreateKeyWord(dto);
         Assert.That(result.Result, Is.TypeOf<ObjectResult>());
         var obj = result.Result as ObjectResult;
@@ -198,10 +202,82 @@ public class KeyWordsControllerTests
     }
 
     [Test]
+    public async Task Create_ReturnsConflict_WhenWordAndFeacnCodePairExists()
+    {
+        SetCurrentUserId(1);
+        // Create a keyword with specific word and FeacnCode
+        var existingKeyword = new KeyWord { Id = 10, Word = "dup", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols };
+        existingKeyword.KeyWordFeacnCodes = [new KeyWordFeacnCode { KeyWordId = 10, FeacnCode = "1234567890", KeyWord = existingKeyword }];
+        _dbContext.KeyWords.Add(existingKeyword);
+        await _dbContext.SaveChangesAsync();
+        
+        // Try to create the same (word, FeacnCode) pair - should conflict
+        var dto = new KeyWordDto { Word = "dup", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols, FeacnCodes = ["1234567890"] };
+        var result = await _controller.CreateKeyWord(dto);
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status409Conflict));
+    }
+
+    [Test]
+    public async Task Create_SucceedsWhenSameWordButDifferentFeacnCode()
+    {
+        SetCurrentUserId(1);
+        // Create a keyword with specific word and FeacnCode
+        var existingKeyword = new KeyWord { Id = 10, Word = "dup", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols };
+        existingKeyword.KeyWordFeacnCodes = [new KeyWordFeacnCode { KeyWordId = 10, FeacnCode = "1234567890", KeyWord = existingKeyword }];
+        _dbContext.KeyWords.Add(existingKeyword);
+        await _dbContext.SaveChangesAsync();
+        
+        // Try to create the same word with different FeacnCode - should succeed
+        var dto = new KeyWordDto { Word = "dup", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols, FeacnCodes = ["0987654321"] };
+        var result = await _controller.CreateKeyWord(dto);
+        Assert.That(result.Result, Is.TypeOf<CreatedAtActionResult>());
+        
+        // Verify both keywords exist in database
+        var allKeywords = await _dbContext.KeyWords.Include(k => k.KeyWordFeacnCodes).ToListAsync();
+        var dupKeywords = allKeywords.Where(k => k.Word == "dup").ToList();
+        Assert.That(dupKeywords.Count, Is.EqualTo(2));
+        
+        var feacnCodes = dupKeywords.SelectMany(k => k.KeyWordFeacnCodes.Select(fc => fc.FeacnCode)).ToList();
+        Assert.That(feacnCodes, Contains.Item("1234567890"));
+        Assert.That(feacnCodes, Contains.Item("0987654321"));
+    }
+
+    [Test]
+    public async Task Create_SucceedsWhenSameWordWithEmptyFeacnCodes()
+    {
+        SetCurrentUserId(1);
+        // Create a keyword with specific word and FeacnCode
+        var existingKeyword = new KeyWord { Id = 10, Word = "dup", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols };
+        existingKeyword.KeyWordFeacnCodes = [new KeyWordFeacnCode { KeyWordId = 10, FeacnCode = "1234567890", KeyWord = existingKeyword }];
+        _dbContext.KeyWords.Add(existingKeyword);
+        await _dbContext.SaveChangesAsync();
+        
+        // Try to create the same word with empty FeacnCodes - should succeed (no conflict since no overlapping FeacnCodes)
+        var dto = new KeyWordDto { Word = "dup", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols, FeacnCodes = [] };
+        var result = await _controller.CreateKeyWord(dto);
+        Assert.That(result.Result, Is.TypeOf<CreatedAtActionResult>());
+        
+        // Verify both keywords exist in database
+        var allKeywords = await _dbContext.KeyWords.Include(k => k.KeyWordFeacnCodes).ToListAsync();
+        var dupKeywords = allKeywords.Where(k => k.Word == "dup").ToList();
+        Assert.That(dupKeywords.Count, Is.EqualTo(2));
+        
+        // One should have FeacnCode, other should have no FeacnCodes
+        var keywordWithCode = dupKeywords.FirstOrDefault(k => k.KeyWordFeacnCodes.Any());
+        var keywordWithoutCode = dupKeywords.FirstOrDefault(k => !k.KeyWordFeacnCodes.Any());
+        Assert.That(keywordWithCode, Is.Not.Null);
+        Assert.That(keywordWithoutCode, Is.Not.Null);
+        Assert.That(keywordWithCode!.KeyWordFeacnCodes.First().FeacnCode, Is.EqualTo("1234567890"));
+    }
+
+    [Test]
     public async Task GetKeyWord_ReturnsKeywordOrNotFound()
     {
         SetCurrentUserId(1);
-        var kw = new KeyWord { Id = 100, Word = "findme", MatchTypeId = 1, FeacnCode = "123" };
+        var kw = new KeyWord { Id = 100, Word = "findme", MatchTypeId = 1 };
+        kw.KeyWordFeacnCodes = []; // Empty collection is allowed
         _dbContext.KeyWords.Add(kw);
         await _dbContext.SaveChangesAsync();
 
@@ -219,7 +295,7 @@ public class KeyWordsControllerTests
     public async Task UpdateKeyWord_ReturnsForbidden_ForNonAdmin()
     {
         SetCurrentUserId(2);
-        var dto = new KeyWordDto { Id = 1, Word = "w", MatchTypeId = 1, FeacnCode = "123" };
+        var dto = new KeyWordDto { Id = 1, Word = "w", MatchTypeId = 1, FeacnCodes = [] }; // Empty FeacnCodes are allowed
         var result = await _controller.UpdateKeyWord(1, dto);
         Assert.That(result, Is.TypeOf<ObjectResult>());
         var obj = result as ObjectResult;
@@ -230,7 +306,7 @@ public class KeyWordsControllerTests
     public async Task UpdateKeyWord_ReturnsBadRequest_WhenIdMismatch()
     {
         SetCurrentUserId(1);
-        var dto = new KeyWordDto { Id = 2, Word = "w", MatchTypeId = 1, FeacnCode = "123" };
+        var dto = new KeyWordDto { Id = 2, Word = "w", MatchTypeId = 1, FeacnCodes = [] }; // Empty FeacnCodes are allowed
         var result = await _controller.UpdateKeyWord(1, dto);
         Assert.That(result, Is.TypeOf<BadRequestResult>());
     }
@@ -239,7 +315,7 @@ public class KeyWordsControllerTests
     public async Task UpdateKeyWord_ReturnsNotFound_WhenKeywordMissing()
     {
         SetCurrentUserId(1);
-        var dto = new KeyWordDto { Id = 999, Word = "w", MatchTypeId = 1, FeacnCode = "123" };
+        var dto = new KeyWordDto { Id = 999, Word = "w", MatchTypeId = 1, FeacnCodes = [] }; // Empty FeacnCodes are allowed
         var result = await _controller.UpdateKeyWord(999, dto);
         Assert.That(result, Is.TypeOf<ObjectResult>());
         var obj = result as ObjectResult;
@@ -250,10 +326,13 @@ public class KeyWordsControllerTests
     public async Task UpdateKeyWord_ReturnsConflict_WhenDuplicateWord()
     {
         SetCurrentUserId(1);
-        _dbContext.KeyWords.Add(new KeyWord { Id = 1, Word = "dup", MatchTypeId = 1, FeacnCode = "123" });
-        _dbContext.KeyWords.Add(new KeyWord { Id = 2, Word = "other", MatchTypeId = 1, FeacnCode = "456" });
+        var kw1 = new KeyWord { Id = 1, Word = "dup", MatchTypeId = 1 };
+        kw1.KeyWordFeacnCodes = [new KeyWordFeacnCode { KeyWordId = 1, FeacnCode = "1234567890", KeyWord = kw1 }];
+        var kw2 = new KeyWord { Id = 2, Word = "other", MatchTypeId = 1 };
+        kw2.KeyWordFeacnCodes = []; // Empty collection for the second keyword
+        _dbContext.KeyWords.AddRange(kw1, kw2);
         await _dbContext.SaveChangesAsync();
-        var dto = new KeyWordDto { Id = 2, Word = "dup", MatchTypeId = 1, FeacnCode = "456" };
+        var dto = new KeyWordDto { Id = 2, Word = "dup", MatchTypeId = 1, FeacnCodes = ["1234567890"] };
         var result = await _controller.UpdateKeyWord(2, dto);
         Assert.That(result, Is.TypeOf<ObjectResult>());
         var obj = result as ObjectResult;
@@ -347,7 +426,7 @@ public class KeyWordsControllerTests
         _mockMorphologySearchService.Setup(x => x.CheckWord("unsupported"))
             .Returns(MorphologySupportLevel.NoSupport);
         
-        var dto = new KeyWordDto { Word = "unsupported", MatchTypeId = (int)WordMatchTypeCode.MorphologyMatchTypes, FeacnCode = "1234567890" };
+        var dto = new KeyWordDto { Word = "unsupported", MatchTypeId = (int)WordMatchTypeCode.MorphologyMatchTypes, FeacnCodes = ["1234567890"] };
         var result = await _controller.CreateKeyWord(dto);
 
         Assert.That(result.Result, Is.TypeOf<ObjectResult>());
@@ -369,7 +448,7 @@ public class KeyWordsControllerTests
         _mockMorphologySearchService.Setup(x => x.CheckWord("onlyforms"))
             .Returns(MorphologySupportLevel.FormsSupport);
         
-        var dto = new KeyWordDto { Word = "onlyforms", MatchTypeId = (int)WordMatchTypeCode.StrongMorphology, FeacnCode = "1234567890" };
+        var dto = new KeyWordDto { Word = "onlyforms", MatchTypeId = (int)WordMatchTypeCode.StrongMorphology, FeacnCodes = ["1234567890"] };
         var result = await _controller.CreateKeyWord(dto);
 
         Assert.That(result.Result, Is.TypeOf<ObjectResult>());
@@ -391,7 +470,7 @@ public class KeyWordsControllerTests
         _mockMorphologySearchService.Setup(x => x.CheckWord("тест"))
             .Returns(MorphologySupportLevel.FullSupport);
         
-        var dto = new KeyWordDto { Word = "тест", MatchTypeId = (int)WordMatchTypeCode.StrongMorphology, FeacnCode = "1234567890" };
+        var dto = new KeyWordDto { Word = "тест", MatchTypeId = (int)WordMatchTypeCode.StrongMorphology, FeacnCodes = ["1234567890"] };
         var result = await _controller.CreateKeyWord(dto);
 
         Assert.That(result.Result, Is.TypeOf<CreatedAtActionResult>());
@@ -408,7 +487,7 @@ public class KeyWordsControllerTests
         SetCurrentUserId(1); // Admin user
         
         // Even though this would fail morphology validation, it should succeed because MatchTypeId = ExactSymbols
-        var dto = new KeyWordDto { Word = "hello", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols, FeacnCode = "1234567890" };
+        var dto = new KeyWordDto { Word = "hello", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols, FeacnCodes = ["1234567890"] };
         var result = await _controller.CreateKeyWord(dto);
 
         Assert.That(result.Result, Is.TypeOf<CreatedAtActionResult>());
@@ -431,7 +510,7 @@ public class KeyWordsControllerTests
         _mockMorphologySearchService.Setup(x => x.CheckWord("формы"))
             .Returns(MorphologySupportLevel.FormsSupport);
         
-        var dto = new KeyWordDto { Word = "формы", MatchTypeId = (int)WordMatchTypeCode.WeakMorphology, FeacnCode = "1234567890" };
+        var dto = new KeyWordDto { Word = "формы", MatchTypeId = (int)WordMatchTypeCode.WeakMorphology, FeacnCodes = ["1234567890"] };
         var result = await _controller.CreateKeyWord(dto);
 
         Assert.That(result.Result, Is.TypeOf<CreatedAtActionResult>());
@@ -448,7 +527,8 @@ public class KeyWordsControllerTests
         SetCurrentUserId(1); // Admin user
         
         // Create an existing keyword
-        var existingKeyword = new KeyWord { Id = 300, Word = "old", MatchTypeId = (int)WordMatchTypeCode.StrongMorphology, FeacnCode = "1234567890" };
+        var existingKeyword = new KeyWord { Id = 300, Word = "old", MatchTypeId = (int)WordMatchTypeCode.StrongMorphology };
+        existingKeyword.KeyWordFeacnCodes = [new KeyWordFeacnCode { KeyWordId = 300, FeacnCode = "1234567890", KeyWord = existingKeyword }];
         _dbContext.KeyWords.Add(existingKeyword);
         await _dbContext.SaveChangesAsync();
         
@@ -456,7 +536,7 @@ public class KeyWordsControllerTests
         _mockMorphologySearchService.Setup(x => x.CheckWord("unsupported"))
             .Returns(MorphologySupportLevel.NoSupport);
         
-        var dto = new KeyWordDto { Id = 300, Word = "unsupported", MatchTypeId = (int)WordMatchTypeCode.MorphologyMatchTypes, FeacnCode = "1234567890" };
+        var dto = new KeyWordDto { Id = 300, Word = "unsupported", MatchTypeId = (int)WordMatchTypeCode.MorphologyMatchTypes, FeacnCodes = ["1234567890"] };
         var result = await _controller.UpdateKeyWord(300, dto);
 
         Assert.That(result, Is.TypeOf<ObjectResult>());
@@ -475,7 +555,8 @@ public class KeyWordsControllerTests
         SetCurrentUserId(1); // Admin user
         
         // Create an existing keyword
-        var existingKeyword = new KeyWord { Id = 301, Word = "old", MatchTypeId = (int)WordMatchTypeCode.StrongMorphology, FeacnCode = "1234567890" };
+        var existingKeyword = new KeyWord { Id = 301, Word = "old", MatchTypeId = (int)WordMatchTypeCode.StrongMorphology };
+        existingKeyword.KeyWordFeacnCodes = [new KeyWordFeacnCode { KeyWordId = 301, FeacnCode = "1234567890", KeyWord = existingKeyword }];
         _dbContext.KeyWords.Add(existingKeyword);
         await _dbContext.SaveChangesAsync();
         
@@ -483,7 +564,7 @@ public class KeyWordsControllerTests
         _mockMorphologySearchService.Setup(x => x.CheckWord("onlyforms"))
             .Returns(MorphologySupportLevel.FormsSupport);
         
-        var dto = new KeyWordDto { Id = 301, Word = "onlyforms", MatchTypeId = (int)WordMatchTypeCode.StrongMorphology, FeacnCode = "1234567890" };
+        var dto = new KeyWordDto { Id = 301, Word = "onlyforms", MatchTypeId = (int)WordMatchTypeCode.StrongMorphology, FeacnCodes = ["1234567890"] };
         var result = await _controller.UpdateKeyWord(301, dto);
 
         Assert.That(result, Is.TypeOf<ObjectResult>());
@@ -502,7 +583,8 @@ public class KeyWordsControllerTests
         SetCurrentUserId(1); // Admin user
         
         // Create an existing keyword
-        var existingKeyword = new KeyWord { Id = 302, Word = "старый", MatchTypeId = (int)WordMatchTypeCode.StrongMorphology, FeacnCode = "1234567890" };
+        var existingKeyword = new KeyWord { Id = 302, Word = "старый", MatchTypeId = (int)WordMatchTypeCode.StrongMorphology };
+        existingKeyword.KeyWordFeacnCodes = [new KeyWordFeacnCode { KeyWordId = 302, FeacnCode = "1234567890", KeyWord = existingKeyword }];
         _dbContext.KeyWords.Add(existingKeyword);
         await _dbContext.SaveChangesAsync();
         
@@ -510,7 +592,7 @@ public class KeyWordsControllerTests
         _mockMorphologySearchService.Setup(x => x.CheckWord("новый"))
             .Returns(MorphologySupportLevel.FullSupport);
         
-        var dto = new KeyWordDto { Id = 302, Word = "новый", MatchTypeId = (int)WordMatchTypeCode.StrongMorphology, FeacnCode = "1234567890" };
+        var dto = new KeyWordDto { Id = 302, Word = "новый", MatchTypeId = (int)WordMatchTypeCode.StrongMorphology, FeacnCodes = ["1234567890"] };
         var result = await _controller.UpdateKeyWord(302, dto);
 
         Assert.That(result, Is.TypeOf<NoContentResult>());
@@ -527,12 +609,13 @@ public class KeyWordsControllerTests
         SetCurrentUserId(1); // Admin user
         
         // Create an existing keyword
-        var existingKeyword = new KeyWord { Id = 303, Word = "старое", MatchTypeId = (int)WordMatchTypeCode.StrongMorphology, FeacnCode = "1234567890" };
+        var existingKeyword = new KeyWord { Id = 303, Word = "старое", MatchTypeId = (int)WordMatchTypeCode.StrongMorphology };
+        existingKeyword.KeyWordFeacnCodes = [new KeyWordFeacnCode { KeyWordId = 303, FeacnCode = "1234567890", KeyWord = existingKeyword }];
         _dbContext.KeyWords.Add(existingKeyword);
         await _dbContext.SaveChangesAsync();
         
         // Even though this would fail morphology validation, it should succeed because MatchTypeId = ExactSymbols
-        var dto = new KeyWordDto { Id = 303, Word = "badword", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols, FeacnCode = "1234567890" };
+        var dto = new KeyWordDto { Id = 303, Word = "badword", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols, FeacnCodes = ["1234567890"] };
         var result = await _controller.UpdateKeyWord(303, dto);
 
         Assert.That(result, Is.TypeOf<NoContentResult>());
@@ -552,17 +635,54 @@ public class KeyWordsControllerTests
         SetCurrentUserId(1); // Admin user
         
         // Test with ExactWord - should skip morphology validation
-        var dto1 = new KeyWordDto { Word = "exact", MatchTypeId = (int)WordMatchTypeCode.ExactWord, FeacnCode = "1234567890" };
+        var dto1 = new KeyWordDto { Word = "exact", MatchTypeId = (int)WordMatchTypeCode.ExactWord, FeacnCodes = ["1234567890"] };
         var result1 = await _controller.CreateKeyWord(dto1);
         Assert.That(result1.Result, Is.TypeOf<CreatedAtActionResult>());
 
         // Test with Phrase - should skip morphology validation
-        var dto2 = new KeyWordDto { Word = "phrase test", MatchTypeId = (int)WordMatchTypeCode.Phrase, FeacnCode = "0987654321" };
+        var dto2 = new KeyWordDto { Word = "phrase test", MatchTypeId = (int)WordMatchTypeCode.Phrase, FeacnCodes = ["0987654321"] };
         var result2 = await _controller.CreateKeyWord(dto2);
         Assert.That(result2.Result, Is.TypeOf<CreatedAtActionResult>());
 
         // Verify that CheckWord was never called for non-morphology match types
         _mockMorphologySearchService.Verify(x => x.CheckWord("exact"), Times.Never);
         _mockMorphologySearchService.Verify(x => x.CheckWord("phrase test"), Times.Never);
+    }
+
+    [Test]
+    public async Task Create_AllowsEmptyFeacnCodes()
+    {
+        SetCurrentUserId(1);
+        var dto = new KeyWordDto { Word = "test", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols, FeacnCodes = [] };
+        var result = await _controller.CreateKeyWord(dto);
+        Assert.That(result.Result, Is.TypeOf<CreatedAtActionResult>());
+        var createdResult = result.Result as CreatedAtActionResult;
+        var createdDto = createdResult!.Value as KeyWordDto;
+        Assert.That(createdDto!.Word, Is.EqualTo("test"));
+        Assert.That(createdDto.FeacnCodes.Count, Is.EqualTo(0));
+    }
+
+    [Test]
+    public async Task Create_ReturnsBadRequest_WhenInvalidFeacnCode()
+    {
+        SetCurrentUserId(1);
+        var dto = new KeyWordDto { Word = "test", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols, FeacnCodes = ["123"] }; // Invalid: only 3 digits
+        var result = await _controller.CreateKeyWord(dto);
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
+        Assert.That((obj.Value as ErrMessage)!.Msg, Does.Contain("Код ТН ВЭД должен состоять из 10 цифр"));
+    }
+
+    [Test]
+    public async Task Create_ReturnsBadRequest_WhenFeacnCodeContainsNonDigits()
+    {
+        SetCurrentUserId(1);
+        var dto = new KeyWordDto { Word = "test", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols, FeacnCodes = ["12345ABCDE"] }; // Invalid: contains letters
+        var result = await _controller.CreateKeyWord(dto);
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
+        Assert.That((obj.Value as ErrMessage)!.Msg, Does.Contain("Код ТН ВЭД должен состоять из 10 цифр"));
     }
 }
