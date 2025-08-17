@@ -133,7 +133,7 @@ public class KeywordsProcessingService(AppDbContext db, ILogger<KeywordsProcessi
 
             // Squash duplicate entries in parsed if all fields are equal
             parsed = parsed
-                .GroupBy(k => new { k.Word, FeacnCode = k.KeyWordFeacnCodes.First().FeacnCode, k.MatchTypeId })
+                .GroupBy(k => new { k.Word, FeacnCode = k.KeyWordFeacnCodes.FirstOrDefault()?.FeacnCode ?? string.Empty, k.MatchTypeId })
                 .Select(g => g.First())
                 .ToList();
 
