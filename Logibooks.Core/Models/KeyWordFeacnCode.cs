@@ -37,6 +37,7 @@ public class KeyWordFeacnCode
 
     [Column("feacn_code")]
     [StringLength(10, MinimumLength = 10, ErrorMessage = "FeacnCode must be exactly 10 digits")]
-    [RegularExpression(@"^\d{10}$", ErrorMessage = "FeacnCode must be exactly 10 digits")]
+    [StringLength(10, MinimumLength = 10, ErrorMessage = "Код ТН ВЭД должен состоять из 10 цифр")]
+    [RegularExpression(@"^\d{10}$", ErrorMessage = "Код ТН ВЭД должен состоять из 10 цифр")]
     public string FeacnCode { get; set; } = string.Empty;
 }
