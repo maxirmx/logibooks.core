@@ -38,6 +38,12 @@ public class LogibooksControllerPreBase(AppDbContext db, ILogger logger) : Contr
         return StatusCode(StatusCodes.Status400BadRequest,
                           new ErrMessage() { Msg = "Нарушена целостность запроса" });
     }
+    protected ObjectResult _400MustBe10Digits(string code)
+    {
+        return StatusCode(StatusCodes.Status400BadRequest,
+                          new ErrMessage() { Msg = $"Код ТН ВЭД должен состоять из 10 цифр [код={code}]" });
+    }
+
     protected ObjectResult _400CompanyId(int companyId)
     {
                return StatusCode(StatusCodes.Status400BadRequest,

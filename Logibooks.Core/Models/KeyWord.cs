@@ -32,7 +32,6 @@ namespace Logibooks.Core.Models;
 [Index(nameof(Word), IsUnique = true, Name = "IX_key_words_word")]
 public class KeyWord : WordBase
 {
-    [Column("feacn_code")]
-    public string FeacnCode { get; set; } = string.Empty;
     public ICollection<BaseOrderKeyWord> BaseOrderKeyWords { get; set; } = [];
+    public ICollection<KeyWordFeacnCode> KeyWordFeacnCodes { get; set; } = [];
 }

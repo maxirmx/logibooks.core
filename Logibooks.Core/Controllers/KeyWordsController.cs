@@ -1,4 +1,4 @@
-// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
+﻿// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
 // All rights reserved.
 // This file is a part of Logibooks Core application
 //
@@ -24,7 +24,6 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 
 using Logibooks.Core.Authorization;
@@ -56,7 +55,11 @@ public class KeyWordsController(
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<KeyWordDto>))]
     public async Task<ActionResult<IEnumerable<KeyWordDto>>> GetKeyWords()
     {
-        var words = await _db.KeyWords.AsNoTracking().OrderBy(w => w.Id).ToListAsync();
+        var words = await _db.KeyWords
+            .Include(w => w.KeyWordFeacnCodes)
+            .AsNoTracking()
+            .OrderBy(w => w.Id)
+            .ToListAsync();
         return words.Select(w => new KeyWordDto(w)).ToList();
     }
 
@@ -65,18 +68,34 @@ public class KeyWordsController(
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
     public async Task<ActionResult<KeyWordDto>> GetKeyWord(int id)
     {
-        var word = await _db.KeyWords.AsNoTracking().FirstOrDefaultAsync(w => w.Id == id);
+        var word = await _db.KeyWords
+            .Include(w => w.KeyWordFeacnCodes)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(w => w.Id == id);
         return word == null ? _404Object(id) : new KeyWordDto(word);
     }
 
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(KeyWordDto))]
+    [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status409Conflict, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status418ImATeapot, Type = typeof(MorphologySupportLevelDto))]
     public async Task<ActionResult<KeyWordDto>> CreateKeyWord(KeyWordDto dto)
     {
         if (!await _userService.CheckAdmin(_curUserId)) return _403();
+
+        // Validate FeacnCodes: empty list is OK, but if provided, each must be exactly 10 digits
+        if (dto.FeacnCodes != null && dto.FeacnCodes.Count > 0)
+        {
+            foreach (var feacnCode in dto.FeacnCodes)
+            {
+                if (string.IsNullOrWhiteSpace(feacnCode) || feacnCode.Length != 10 || !feacnCode.All(char.IsDigit))
+                {
+                    return _400MustBe10Digits(feacnCode);
+                }
+            }
+        }
 
         if (dto.MatchTypeId >= (int)WordMatchTypeCode.MorphologyMatchTypes)
         {
@@ -93,6 +112,7 @@ public class KeyWordsController(
             }
         }
 
+        // Check for conflicts: prevent duplicate words (regardless of FeacnCodes)
         if (await _db.KeyWords.AnyAsync(sw => sw.Word.ToLower() == dto.Word.ToLower()))
         {
             return _409KeyWord(dto.Word);
@@ -115,6 +135,7 @@ public class KeyWordsController(
 
     [HttpPut("{id}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status409Conflict, Type = typeof(ErrMessage))]
@@ -124,7 +145,21 @@ public class KeyWordsController(
         if (!await _userService.CheckAdmin(_curUserId)) return _403();
         if (id != dto.Id) return BadRequest();
 
-        var kw = await _db.KeyWords.FindAsync(id);
+        // Validate FeacnCodes: empty list is OK, but if provided, each must be exactly 10 digits
+        if (dto.FeacnCodes != null && dto.FeacnCodes.Count > 0)
+        {
+            foreach (var feacnCode in dto.FeacnCodes)
+            {
+                if (string.IsNullOrWhiteSpace(feacnCode) || feacnCode.Length != 10 || !feacnCode.All(char.IsDigit))
+                {
+                    return _400MustBe10Digits(feacnCode);
+                }
+            }
+        }
+
+        var kw = await _db.KeyWords
+            .Include(w => w.KeyWordFeacnCodes)
+            .FirstOrDefaultAsync(w => w.Id == id);
         if (kw == null) return _404Object(id);
 
         if (dto.MatchTypeId >= (int)WordMatchTypeCode.MorphologyMatchTypes)
@@ -142,19 +177,43 @@ public class KeyWordsController(
             }
         }
 
+        // Check for conflicts: prevent duplicate words (regardless of FeacnCodes)
         if (!kw.Word.Equals(dto.Word, StringComparison.OrdinalIgnoreCase) &&
             await _db.KeyWords.AnyAsync(w => w.Word.ToLower() == dto.Word.ToLower()))
         {
             return _409KeyWord(dto.Word);
         }
 
-        kw.Word = dto.Word;
-        kw.MatchTypeId = dto.MatchTypeId;
-        kw.FeacnCode = dto.FeacnCode;
-
         try
         {
-            _db.Entry(kw).State = EntityState.Modified;
+            // Update the KeyWord properties
+            kw.Word = dto.Word;
+            kw.MatchTypeId = dto.MatchTypeId;
+       
+            // Get current FeacnCodes
+            var currentCodes = kw.KeyWordFeacnCodes.ToList();
+            var newCodes = dto.FeacnCodes ?? [];
+            
+            // Find codes to remove
+            var codesToRemove = currentCodes.Where(c => !newCodes.Contains(c.FeacnCode)).ToList();
+            foreach (var codeToRemove in codesToRemove)
+            {
+                kw.KeyWordFeacnCodes.Remove(codeToRemove);
+            }
+            
+            // Find codes to add
+            var existingCodes = currentCodes.Select(c => c.FeacnCode).ToHashSet();
+            var codesToAdd = newCodes.Where(nc => !existingCodes.Contains(nc)).ToList();
+            foreach (var codeToAdd in codesToAdd)
+            {
+                kw.KeyWordFeacnCodes.Add(new KeyWordFeacnCode
+                {
+                    KeyWordId = kw.Id,
+                    FeacnCode = codeToAdd,
+                    KeyWord = kw
+                });
+            }
+
             await _db.SaveChangesAsync();
             return NoContent();
         }

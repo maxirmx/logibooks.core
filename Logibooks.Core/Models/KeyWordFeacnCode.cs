@@ -23,9 +23,19 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-namespace Logibooks.Core;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
-public static class VersionInfo
+namespace Logibooks.Core.Models;
+
+[Table("key_word_feacn_codes")]
+public class KeyWordFeacnCode
 {
-    public const string AppVersion = "0.9.2";
+    [Column("key_word_id")]
+    public int KeyWordId { get; set; }
+    public KeyWord KeyWord { get; set; } = null!;
+
+    [Column("feacn_code")]
+    [StringLength(10, MinimumLength = 10, ErrorMessage = "Код ТН ВЭД должен состоять из 10 цифр")]
+    public string FeacnCode { get; set; } = string.Empty;
 }

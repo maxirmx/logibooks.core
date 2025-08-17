@@ -74,7 +74,8 @@ public class KeywordsProcessingService(AppDbContext db, ILogger<KeywordsProcessi
             if (codeCol < 0 || nameCol < 0)
                 throw new InvalidOperationException("Не найдены столбцы 'код' и 'наименование'");
 
-            var parsed = new List<KeyWord>();
+            var wordFeacnMap = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
+            
             for (int r = 1; r < table.Rows.Count; r++)
             {
                 var codeValue = table.Rows[r][codeCol];
@@ -91,7 +92,7 @@ public class KeywordsProcessingService(AppDbContext db, ILogger<KeywordsProcessi
                 if (code.Length == 9)
                     code = "0" + code;
 
-                // Squash duplicate words in a line
+                // Extract words from the name column
                 var words = name
                     .Split(',', StringSplitOptions.RemoveEmptyEntries)
                     .Select(w => w.Trim())
@@ -101,47 +102,45 @@ public class KeywordsProcessingService(AppDbContext db, ILogger<KeywordsProcessi
 
                 foreach (var word in words)
                 {
-                    int matchType;
-                    if (word.Any(char.IsWhiteSpace))
+                    if (!wordFeacnMap.TryGetValue(word, out var codes))
                     {
-                        matchType = (int)WordMatchTypeCode.Phrase;
+                        codes = new HashSet<string>();
+                        wordFeacnMap[word] = codes;
                     }
-                    else
-                    {
-                        // Single word - check morphology support
-                        var morphologySupport = _morphologySearchService.CheckWord(word);
-                        matchType = morphologySupport == MorphologySupportLevel.NoSupport
-                            ? (int)WordMatchTypeCode.ExactSymbols
-                            : (int)WordMatchTypeCode.WeakMorphology;
-                    }
-
-                    parsed.Add(new KeyWord
-                    {
-                        Word = word,
-                        FeacnCode = code,
-                        MatchTypeId = matchType
-                    });
+                    codes.Add(code);
                 }
             }
 
-            // Squash duplicate entries in parsed if all fields are equal
-            parsed = parsed
-                .GroupBy(k => new { k.Word, k.FeacnCode, k.MatchTypeId })
-                .Select(g => g.First())
-                .ToList();
-
-            var duplicateWords = parsed
-                .GroupBy(k => k.Word.ToLower(RussianCulture))
-                .Where(g => g.Count() > 1)
-                .Select(g => g.Key)
-                .ToList();
-
-            if (duplicateWords.Count > 0)
+            var parsed = new List<KeyWord>();
+            foreach (var (word, codes) in wordFeacnMap)
             {
-                string dupWordsString = string.Join(", ", duplicateWords);
-                _logger.LogError("Ключевые слова и фразы заданы более одного раза: {d}", dupWordsString);
-                throw new InvalidOperationException("Ключевые слова и фразы заданы более одного раза: " + dupWordsString);
+                int matchType;
+                if (word.Any(char.IsWhiteSpace))
+                {
+                    matchType = (int)WordMatchTypeCode.Phrase;
+                }
+                else
+                {
+                    // Single word - check morphology support
+                    var morphologySupport = _morphologySearchService.CheckWord(word);
+                    matchType = morphologySupport == MorphologySupportLevel.NoSupport
+                        ? (int)WordMatchTypeCode.ExactSymbols
+                        : (int)WordMatchTypeCode.WeakMorphology;
+                }
 
+                var keyWord = new KeyWord
+                {
+                    Word = word,
+                    MatchTypeId = matchType
+                };
+
+                keyWord.KeyWordFeacnCodes = codes.Select(code => new KeyWordFeacnCode
+                {
+                    FeacnCode = code,
+                    KeyWord = keyWord
+                }).ToList();
+
+                parsed.Add(keyWord);
             }
 
             if (_db.Database.ProviderName != "Microsoft.EntityFrameworkCore.InMemory")
@@ -169,28 +168,36 @@ public class KeywordsProcessingService(AppDbContext db, ILogger<KeywordsProcessi
 
     private async Task ProcessKeywords(List<KeyWord> parsed, CancellationToken cancellationToken)
     {
-        var existing = await _db.KeyWords.ToListAsync(cancellationToken);
-        var existingDict = existing.ToDictionary(k => k.Word.ToLower(RussianCulture), k => k);
-        var incomingWords = new HashSet<string>(parsed.Select(p => p.Word), StringComparer.OrdinalIgnoreCase);
+        var existing = await _db.KeyWords
+            .Include(k => k.KeyWordFeacnCodes)
+            .ToListAsync(cancellationToken);
+
+        var existingDict = existing.ToDictionary(k => k.Word.ToLower(RussianCulture), k => k, StringComparer.OrdinalIgnoreCase);
 
         foreach (var kw in parsed)
         {
             if (existingDict.TryGetValue(kw.Word, out var existingKw))
             {
-                existingKw.FeacnCode = kw.FeacnCode;
-                existingKw.MatchTypeId = kw.MatchTypeId;
-                _db.KeyWords.Update(existingKw);
+                existingKw.MatchTypeId = kw.MatchTypeId;            
+                var existingCodes = existingKw.KeyWordFeacnCodes.Select(fc => fc.FeacnCode).ToHashSet();
+                
+                foreach (var newCode in kw.KeyWordFeacnCodes)
+                {
+                    if (!existingCodes.Contains(newCode.FeacnCode))
+                    {
+                        existingKw.KeyWordFeacnCodes.Add(new KeyWordFeacnCode
+                        {
+                            KeyWordId = existingKw.Id,
+                            FeacnCode = newCode.FeacnCode,
+                            KeyWord = existingKw
+                        });
+                    }
+                }
             }
             else
             {
                 _db.KeyWords.Add(kw);
             }
-        }
-
-        foreach (var kw in existing)
-        {
-            if (!incomingWords.Contains(kw.Word))
-                _db.KeyWords.Remove(kw);
         }
 
         await _db.SaveChangesAsync(cancellationToken);

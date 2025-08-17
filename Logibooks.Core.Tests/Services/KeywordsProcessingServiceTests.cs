@@ -138,25 +138,27 @@ public class KeywordsProcessingServiceTests
         Assert.That(result, Is.Not.Null);
         Assert.That(result.Count, Is.EqualTo(3)); // 3 keywords total (1 from first row, 2 from second row)
 
-        var savedKeywords = await _dbContext.KeyWords.ToListAsync();
+        var savedKeywords = await _dbContext.KeyWords
+            .Include(k => k.KeyWordFeacnCodes)
+            .ToListAsync();
         Assert.That(savedKeywords.Count, Is.EqualTo(3));
 
         // Verify first keyword
         var keyword1 = savedKeywords.FirstOrDefault(k => k.Word == "слово");
         Assert.That(keyword1, Is.Not.Null);
-        Assert.That(keyword1!.FeacnCode, Is.EqualTo("1234567890"));
+        Assert.That(keyword1!.KeyWordFeacnCodes.First().FeacnCode, Is.EqualTo("1234567890"));
         Assert.That(keyword1.MatchTypeId, Is.EqualTo((int)WordMatchTypeCode.WeakMorphology));
 
         // Verify second keyword (single word)
         var keyword2 = savedKeywords.FirstOrDefault(k => k.Word == "другое");
         Assert.That(keyword2, Is.Not.Null);
-        Assert.That(keyword2!.FeacnCode, Is.EqualTo("0987654321"));
+        Assert.That(keyword2!.KeyWordFeacnCodes.First().FeacnCode, Is.EqualTo("0987654321"));
         Assert.That(keyword2.MatchTypeId, Is.EqualTo((int)WordMatchTypeCode.WeakMorphology));
 
         // Verify third keyword (phrase)
         var keyword3 = savedKeywords.FirstOrDefault(k => k.Word == "фраза с пробелами");
         Assert.That(keyword3, Is.Not.Null);
-        Assert.That(keyword3!.FeacnCode, Is.EqualTo("0987654321"));
+        Assert.That(keyword3!.KeyWordFeacnCodes.First().FeacnCode, Is.EqualTo("0987654321"));
         Assert.That(keyword3.MatchTypeId, Is.EqualTo((int)WordMatchTypeCode.Phrase));
     }
 
@@ -176,11 +178,13 @@ public class KeywordsProcessingServiceTests
         // Assert
         Assert.That(result, Is.Not.Null);
         Assert.That(result.Count, Is.EqualTo(1));
-        Assert.That(result[0].FeacnCode, Is.EqualTo("0123456789")); // Zero prepended
+        Assert.That(result[0].KeyWordFeacnCodes.First().FeacnCode, Is.EqualTo("0123456789")); // Zero prepended
 
-        var savedKeyword = await _dbContext.KeyWords.FirstOrDefaultAsync();
+        var savedKeyword = await _dbContext.KeyWords
+            .Include(k => k.KeyWordFeacnCodes)
+            .FirstOrDefaultAsync();
         Assert.That(savedKeyword, Is.Not.Null);
-        Assert.That(savedKeyword!.FeacnCode, Is.EqualTo("0123456789"));
+        Assert.That(savedKeyword!.KeyWordFeacnCodes.First().FeacnCode, Is.EqualTo("0123456789"));
     }
 
     [Test]
@@ -234,38 +238,30 @@ public class KeywordsProcessingServiceTests
     }
 
     [Test]
-    public void UploadKeywordsFromExcelAsync_DuplicateWords_ShouldThrowException()
-    {
-        // Arrange
-        var testData = new List<(string, string)>
-        {
-            ("1234567890", "тестовое слово"),
-            ("0987654321", "тестовое слово") // Duplicate word with different code
-        };
-        var excelBytes = CreateTestExcelFile(testData);
-
-        // Act & Assert
-        var ex = Assert.ThrowsAsync<InvalidOperationException>(async () => 
-            await _service.UploadKeywordsFromExcelAsync(excelBytes, "test.xlsx"));
-        
-        Assert.That(ex!.Message, Does.Contain("Ключевые слова и фразы заданы более одного раза"));
-        Assert.That(ex!.Message, Does.Contain("тестовое слово"));
-    }
-
-    [Test]
     public async Task UploadKeywordsFromExcelAsync_UpdatesExistingKeywords()
     {
-        // Arrange - Add existing keyword
+        // Arrange - Add existing keyword with existing FEACN codes
         var existingKeyword = new KeyWord
         {
             Word = "тестовое слово",
-            FeacnCode = "1111111111",
             MatchTypeId = (int)WordMatchTypeCode.ExactSymbols
         };
+        existingKeyword.KeyWordFeacnCodes = [
+            new KeyWordFeacnCode
+            {
+                FeacnCode = "1111111111",
+                KeyWord = existingKeyword
+            },
+            new KeyWordFeacnCode
+            {
+                FeacnCode = "3333333333",
+                KeyWord = existingKeyword
+            }
+        ];
         _dbContext.KeyWords.Add(existingKeyword);
         await _dbContext.SaveChangesAsync();
 
-        // Create Excel with updated code for the same word
+        // Create Excel with new code for the same word
         var testData = new List<(string, string)>
         {
             ("2222222222", "тестовое слово")
@@ -279,29 +275,48 @@ public class KeywordsProcessingServiceTests
         Assert.That(result, Is.Not.Null);
         Assert.That(result.Count, Is.EqualTo(1));
 
-        var updatedKeyword = await _dbContext.KeyWords.FirstOrDefaultAsync(k => k.Word == "тестовое слово");
+        var updatedKeyword = await _dbContext.KeyWords
+            .Include(k => k.KeyWordFeacnCodes)
+            .FirstOrDefaultAsync(k => k.Word == "тестовое слово");
         Assert.That(updatedKeyword, Is.Not.Null);
-        Assert.That(updatedKeyword!.FeacnCode, Is.EqualTo("2222222222")); // Code updated
+        
+        // Verify all FEACN codes are preserved (existing ones + new one)
+        Assert.That(updatedKeyword!.KeyWordFeacnCodes.Count, Is.EqualTo(3));
+        var feacnCodes = updatedKeyword.KeyWordFeacnCodes.Select(fc => fc.FeacnCode).ToList();
+        Assert.That(feacnCodes, Contains.Item("1111111111")); // Original preserved
+        Assert.That(feacnCodes, Contains.Item("2222222222")); // New one added
+        Assert.That(feacnCodes, Contains.Item("3333333333")); // Original preserved
+        
+        // Verify match type is updated based on current word analysis
         Assert.That(updatedKeyword.MatchTypeId, Is.EqualTo((int)WordMatchTypeCode.Phrase)); // Since "тестовое слово" contains a space, it's a phrase
     }
 
     [Test]
-    public async Task UploadKeywordsFromExcelAsync_RemovesUnlistedKeywords()
+    public async Task UploadKeywordsFromExcelAsync_PreservesUnlistedKeywords()
     {
         // Arrange - Add existing keywords
-        var existingKeywords = new List<KeyWord>
-        {
-            new() { Word = "слово1", FeacnCode = "1111111111", MatchTypeId = (int)WordMatchTypeCode.ExactWord },
-            new() { Word = "слово2", FeacnCode = "2222222222", MatchTypeId = (int)WordMatchTypeCode.ExactWord },
-            new() { Word = "слово3", FeacnCode = "3333333333", MatchTypeId = (int)WordMatchTypeCode.ExactWord }
-        };
+        var existingKeywords = new List<KeyWord>();
+        
+        var kw1 = new KeyWord { Word = "слово1", MatchTypeId = (int)WordMatchTypeCode.ExactWord };
+        kw1.KeyWordFeacnCodes = [new KeyWordFeacnCode { FeacnCode = "1111111111", KeyWord = kw1 }];
+        existingKeywords.Add(kw1);
+        
+        var kw2 = new KeyWord { Word = "слово2", MatchTypeId = (int)WordMatchTypeCode.ExactWord };
+        kw2.KeyWordFeacnCodes = [new KeyWordFeacnCode { FeacnCode = "2222222222", KeyWord = kw2 }];
+        existingKeywords.Add(kw2);
+        
+        var kw3 = new KeyWord { Word = "слово3", MatchTypeId = (int)WordMatchTypeCode.ExactWord };
+        kw3.KeyWordFeacnCodes = [new KeyWordFeacnCode { FeacnCode = "3333333333", KeyWord = kw3 }];
+        existingKeywords.Add(kw3);
+        
         _dbContext.KeyWords.AddRange(existingKeywords);
         await _dbContext.SaveChangesAsync();
 
-        // Create Excel with only one of the existing words
+        // Create Excel with only one of the existing words and one new word
         var testData = new List<(string, string)>
         {
-            ("1111111111", "слово1")
+            ("1111111111", "слово1"), // Existing word
+            ("4444444444", "новое слово") // New word
         };
         var excelBytes = CreateTestExcelFile(testData);
 
@@ -310,11 +325,32 @@ public class KeywordsProcessingServiceTests
 
         // Assert
         Assert.That(result, Is.Not.Null);
-        Assert.That(result.Count, Is.EqualTo(1));
+        Assert.That(result.Count, Is.EqualTo(2)); // Only the words from Excel file are returned
 
-        var remainingKeywords = await _dbContext.KeyWords.ToListAsync();
-        Assert.That(remainingKeywords.Count, Is.EqualTo(1));
-        Assert.That(remainingKeywords[0].Word, Is.EqualTo("слово1"));
+        // Verify all keywords are preserved in database (existing unlisted ones + new ones)
+        var allKeywords = await _dbContext.KeyWords
+            .Include(k => k.KeyWordFeacnCodes)
+            .ToListAsync();
+        Assert.That(allKeywords.Count, Is.EqualTo(4)); // 3 original + 1 new
+
+        // Verify existing unlisted keywords are preserved
+        var preservedKeyword2 = allKeywords.FirstOrDefault(k => k.Word == "слово2");
+        Assert.That(preservedKeyword2, Is.Not.Null);
+        Assert.That(preservedKeyword2!.KeyWordFeacnCodes.First().FeacnCode, Is.EqualTo("2222222222"));
+
+        var preservedKeyword3 = allKeywords.FirstOrDefault(k => k.Word == "слово3");
+        Assert.That(preservedKeyword3, Is.Not.Null);
+        Assert.That(preservedKeyword3!.KeyWordFeacnCodes.First().FeacnCode, Is.EqualTo("3333333333"));
+
+        // Verify the uploaded keywords are present
+        var updatedKeyword1 = allKeywords.FirstOrDefault(k => k.Word == "слово1");
+        Assert.That(updatedKeyword1, Is.Not.Null);
+        Assert.That(updatedKeyword1!.KeyWordFeacnCodes.First().FeacnCode, Is.EqualTo("1111111111"));
+
+        var newKeyword = allKeywords.FirstOrDefault(k => k.Word == "новое слово");
+        Assert.That(newKeyword, Is.Not.Null);
+        Assert.That(newKeyword!.KeyWordFeacnCodes.First().FeacnCode, Is.EqualTo("4444444444"));
+        Assert.That(newKeyword.MatchTypeId, Is.EqualTo((int)WordMatchTypeCode.Phrase)); // Contains space, so it's a phrase
     }
 
     [Test]
@@ -400,7 +436,9 @@ public class KeywordsProcessingServiceTests
         Assert.That(result, Is.Not.Null);
         Assert.That(result.Count, Is.EqualTo(4)); // 4 keywords from one cell
 
-        var savedKeywords = await _dbContext.KeyWords.ToListAsync();
+        var savedKeywords = await _dbContext.KeyWords
+            .Include(k => k.KeyWordFeacnCodes)
+            .ToListAsync();
         Assert.That(savedKeywords.Count, Is.EqualTo(4));
         
         // Check each word was processed correctly
@@ -408,6 +446,12 @@ public class KeywordsProcessingServiceTests
         Assert.That(savedKeywords.Any(k => k.Word == "слово2" && k.MatchTypeId == (int)WordMatchTypeCode.WeakMorphology));
         Assert.That(savedKeywords.Any(k => k.Word == "фраза с пробелами" && k.MatchTypeId == (int)WordMatchTypeCode.Phrase));
         Assert.That(savedKeywords.Any(k => k.Word == "ещё одна фраза" && k.MatchTypeId == (int)WordMatchTypeCode.Phrase));
+        
+        // Verify all have the same FeacnCode
+        foreach (var keyword in savedKeywords)
+        {
+            Assert.That(keyword.KeyWordFeacnCodes.First().FeacnCode, Is.EqualTo("1234567890"));
+        }
     }
 
     [Test]
@@ -553,6 +597,52 @@ public class KeywordsProcessingServiceTests
 
         // Verify CheckWord was never called for phrases
         _mockMorphologySearchService.Verify(x => x.CheckWord("фраза с пробелами"), Times.Never);
+    }
+
+    [Test]
+    public async Task UploadKeywordsFromExcelAsync_DuplicateWords_ShouldConsolidateFeacnCodes()
+    {
+        // Arrange
+        var testData = new List<(string, string)>
+        {
+            ("1234567890", "тестовое слово"),
+            ("0987654321", "тестовое слово"), // Duplicate word with different code
+            ("5555555555", "тестовое слово")  // Same word with yet another code
+        };
+        var excelBytes = CreateTestExcelFile(testData);
+
+        // Act
+        var result = await _service.UploadKeywordsFromExcelAsync(excelBytes, "test.xlsx");
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.Count, Is.EqualTo(1)); // Only one keyword entry despite 3 rows in Excel
+
+        // Verify the keyword was consolidated with all FEACN codes
+        var keyword = result.First();
+        Assert.That(keyword.Word, Is.EqualTo("тестовое слово"));
+        Assert.That(keyword.KeyWordFeacnCodes.Count, Is.EqualTo(3)); // All three codes should be present
+        
+        var feacnCodes = keyword.KeyWordFeacnCodes.Select(fc => fc.FeacnCode).ToList();
+        Assert.That(feacnCodes, Contains.Item("1234567890"));
+        Assert.That(feacnCodes, Contains.Item("0987654321")); 
+        Assert.That(feacnCodes, Contains.Item("5555555555"));
+
+        // Verify in database
+        var savedKeywords = await _dbContext.KeyWords
+            .Include(k => k.KeyWordFeacnCodes)
+            .ToListAsync();
+        Assert.That(savedKeywords.Count, Is.EqualTo(1));
+        
+        var savedKeyword = savedKeywords.First();
+        Assert.That(savedKeyword.Word, Is.EqualTo("тестовое слово"));
+        Assert.That(savedKeyword.KeyWordFeacnCodes.Count, Is.EqualTo(3));
+        Assert.That(savedKeyword.MatchTypeId, Is.EqualTo((int)WordMatchTypeCode.Phrase)); // Contains space, so it's a phrase
+        
+        var savedFeacnCodes = savedKeyword.KeyWordFeacnCodes.Select(fc => fc.FeacnCode).ToList();
+        Assert.That(savedFeacnCodes, Contains.Item("1234567890"));
+        Assert.That(savedFeacnCodes, Contains.Item("0987654321"));
+        Assert.That(savedFeacnCodes, Contains.Item("5555555555"));
     }
 }
 

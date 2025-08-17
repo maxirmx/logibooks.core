@@ -51,10 +51,11 @@ public class ParcelFeacnCodeLookupServiceTests
         using var ctx = CreateContext();
         var order = new WbrOrder { Id = 1, RegisterId = 1, CheckStatusId = 1, ProductName = "This is SPAM" };
         ctx.Orders.Add(order);
-        ctx.KeyWords.AddRange(
-            new KeyWord { Id = 2, Word = "spam", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols, FeacnCode = "1" },
-            new KeyWord { Id = 3, Word = "other", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols, FeacnCode = "2" }
-        );
+        var kw1 = new KeyWord { Id = 2, Word = "spam", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols };
+        kw1.KeyWordFeacnCodes = new[] { new KeyWordFeacnCode { KeyWordId = 2, FeacnCode = "1", KeyWord = kw1 } };
+        var kw2 = new KeyWord { Id = 3, Word = "other", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols };
+        kw2.KeyWordFeacnCodes = new[] { new KeyWordFeacnCode { KeyWordId = 3, FeacnCode = "2", KeyWord = kw2 } };
+        ctx.KeyWords.AddRange(kw1, kw2);
         ctx.Set<BaseOrderKeyWord>().Add(new BaseOrderKeyWord { BaseOrderId = 1, KeyWordId = 99 });
         await ctx.SaveChangesAsync();
 
@@ -75,7 +76,9 @@ public class ParcelFeacnCodeLookupServiceTests
         using var ctx = CreateContext();
         var order = new WbrOrder { Id = 1, RegisterId = 1, CheckStatusId = 1, ProductName = "clean" };
         ctx.Orders.Add(order);
-        ctx.KeyWords.Add(new KeyWord { Id = 2, Word = "spam", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols, FeacnCode = "1" });
+        var kw = new KeyWord { Id = 2, Word = "spam", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols };
+        kw.KeyWordFeacnCodes = [new KeyWordFeacnCode { KeyWordId = 2, FeacnCode = "1", KeyWord = kw }];
+        ctx.KeyWords.Add(kw);
         await ctx.SaveChangesAsync();
 
         var svc = new ParcelFeacnCodeLookupService(ctx, new MorphologySearchService());
@@ -94,11 +97,12 @@ public class ParcelFeacnCodeLookupServiceTests
         var order = new WbrOrder { Id = 1, RegisterId = 1, CheckStatusId = 1, ProductName = "This is SPAM with золотой браслет" };
         ctx.Orders.Add(order);
 
-        var keywords = new[]
-        {
-            new KeyWord { Id = 10, Word = "spam", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols, FeacnCode = "1" },
-            new KeyWord { Id = 20, Word = "золото", MatchTypeId = (int)WordMatchTypeCode.StrongMorphology, FeacnCode = "2" }
-        };
+        var kw1 = new KeyWord { Id = 10, Word = "spam", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols };
+        kw1.KeyWordFeacnCodes = [new KeyWordFeacnCode { KeyWordId = 10, FeacnCode = "1", KeyWord = kw1 }];
+        var kw2 = new KeyWord { Id = 20, Word = "золото", MatchTypeId = (int)WordMatchTypeCode.StrongMorphology };
+        kw2.KeyWordFeacnCodes = [new KeyWordFeacnCode { KeyWordId = 20, FeacnCode = "2", KeyWord = kw2 }];
+        
+        var keywords = new[] { kw1, kw2 };
         ctx.KeyWords.AddRange(keywords);
         await ctx.SaveChangesAsync();
 
@@ -129,7 +133,9 @@ public class ParcelFeacnCodeLookupServiceTests
             ProductName = "spam"
         };
         ctx.Orders.Add(order);
-        ctx.KeyWords.Add(new KeyWord { Id = 2, Word = "spam", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols, FeacnCode = "1" });
+        var kw = new KeyWord { Id = 2, Word = "spam", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols };
+        kw.KeyWordFeacnCodes = [new KeyWordFeacnCode { KeyWordId = 2, FeacnCode = "1", KeyWord = kw }];
+        ctx.KeyWords.Add(kw);
         ctx.Set<BaseOrderKeyWord>().Add(new BaseOrderKeyWord { BaseOrderId = 1, KeyWordId = 99 });
         await ctx.SaveChangesAsync();
 

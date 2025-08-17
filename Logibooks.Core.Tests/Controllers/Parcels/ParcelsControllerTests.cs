@@ -144,6 +144,8 @@ public class ParcelsControllerTests
         var order = new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "A" };
         var sw = new StopWord { Id = 5, Word = "bad" };
         var kw = new KeyWord { Id = 6, Word = "test" };
+        // Keywords can exist without FeacnCodes, so this is optional now
+        kw.KeyWordFeacnCodes = []; // Empty collection is allowed
         var stopWordLink = new BaseOrderStopWord { BaseOrderId = 1, StopWordId = 5, BaseOrder = order, StopWord = sw };
         var keyWordLink = new BaseOrderKeyWord { BaseOrderId = 1, KeyWordId = 6, BaseOrder = order, KeyWord = kw };
         _dbContext.Registers.Add(register);
@@ -1009,7 +1011,11 @@ public class ParcelsControllerTests
         var order = new WbrOrder { Id = 20, RegisterId = 20, StatusId = 1, ProductName = "This is SPAM" };
         _dbContext.Registers.Add(register);
         _dbContext.Orders.Add(order);
-        _dbContext.KeyWords.Add(new KeyWord { Id = 2, Word = "spam", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols, FeacnCode = "1" });
+        
+        var kw = new KeyWord { Id = 2, Word = "spam", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols };
+        kw.KeyWordFeacnCodes = [new KeyWordFeacnCode { KeyWordId = 2, FeacnCode = "1234567890", KeyWord = kw }];
+        _dbContext.KeyWords.Add(kw);
+        
         await _dbContext.SaveChangesAsync();
 
         var lookupSvc = new ParcelFeacnCodeLookupService(_dbContext, new MorphologySearchService());
