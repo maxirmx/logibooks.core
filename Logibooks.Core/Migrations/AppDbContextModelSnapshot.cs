@@ -90,7 +90,7 @@ namespace Logibooks.Core.Migrations
 
                     b.HasIndex("FeacnPrefixId");
 
-                    b.ToTable("base_order_feacn_prefixes");
+                    b.ToTable("base_order_feacn_prefixes", (string)null);
                 });
 
             modelBuilder.Entity("Logibooks.Core.Models.BaseOrderKeyWord", b =>
@@ -107,7 +107,7 @@ namespace Logibooks.Core.Migrations
 
                     b.HasIndex("KeyWordId");
 
-                    b.ToTable("base_order_key_words");
+                    b.ToTable("base_order_key_words", (string)null);
                 });
 
             modelBuilder.Entity("Logibooks.Core.Models.BaseOrderStopWord", b =>
@@ -124,7 +124,7 @@ namespace Logibooks.Core.Migrations
 
                     b.HasIndex("StopWordId");
 
-                    b.ToTable("base_order_stop_words");
+                    b.ToTable("base_order_stop_words", (string)null);
                 });
 
             modelBuilder.Entity("Logibooks.Core.Models.Company", b =>
@@ -187,7 +187,7 @@ namespace Logibooks.Core.Migrations
                     b.HasIndex("Inn")
                         .IsUnique();
 
-                    b.ToTable("companies");
+                    b.ToTable("companies", (string)null);
 
                     b.HasData(
                         new
@@ -273,7 +273,7 @@ namespace Logibooks.Core.Migrations
 
                     b.HasKey("IsoNumeric");
 
-                    b.ToTable("countries");
+                    b.ToTable("countries", (string)null);
 
                     b.HasData(
                         new
@@ -311,7 +311,7 @@ namespace Logibooks.Core.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("customs_procedures");
+                    b.ToTable("customs_procedures", (string)null);
 
                     b.HasData(
                         new
@@ -355,7 +355,7 @@ namespace Logibooks.Core.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("feacn_orders");
+                    b.ToTable("feacn_orders", (string)null);
 
                     b.HasData(
                         new
@@ -434,7 +434,7 @@ namespace Logibooks.Core.Migrations
 
                     b.HasIndex("FeacnOrderId");
 
-                    b.ToTable("feacn_prefixes");
+                    b.ToTable("feacn_prefixes", (string)null);
                 });
 
             modelBuilder.Entity("Logibooks.Core.Models.FeacnPrefixException", b =>
@@ -459,7 +459,7 @@ namespace Logibooks.Core.Migrations
 
                     b.HasIndex("FeacnPrefixId");
 
-                    b.ToTable("feacn_prefix_exceptions");
+                    b.ToTable("feacn_prefix_exceptions", (string)null);
                 });
 
             modelBuilder.Entity("Logibooks.Core.Models.KeyWord", b =>
@@ -487,7 +487,7 @@ namespace Logibooks.Core.Migrations
                     b.HasIndex(new[] { "Word" }, "IX_key_words_word")
                         .IsUnique();
 
-                    b.ToTable("key_words");
+                    b.ToTable("key_words", (string)null);
                 });
 
             modelBuilder.Entity("Logibooks.Core.Models.KeyWordFeacnCode", b =>
@@ -503,7 +503,7 @@ namespace Logibooks.Core.Migrations
 
                     b.HasKey("KeyWordId", "FeacnCode");
 
-                    b.ToTable("key_word_feacn_codes");
+                    b.ToTable("key_word_feacn_codes", (string)null);
                 });
 
             modelBuilder.Entity("Logibooks.Core.Models.ParcelCheckStatus", b =>
@@ -522,7 +522,7 @@ namespace Logibooks.Core.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("check_statuses");
+                    b.ToTable("check_statuses", (string)null);
 
                     b.HasData(
                         new
@@ -578,7 +578,7 @@ namespace Logibooks.Core.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("statuses");
+                    b.ToTable("statuses", (string)null);
 
                     b.HasData(
                         new
@@ -615,7 +615,7 @@ namespace Logibooks.Core.Migrations
 
                     b.HasIndex(new[] { "BaseOrderId", "UserId", "DTime" }, "IX_parcel_views_baseorderid_userid_dtime");
 
-                    b.ToTable("parcel_views");
+                    b.ToTable("parcel_views", (string)null);
                 });
 
             modelBuilder.Entity("Logibooks.Core.Models.Register", b =>
@@ -681,7 +681,7 @@ namespace Logibooks.Core.Migrations
 
                     b.HasIndex("TransportationTypeId");
 
-                    b.ToTable("registers");
+                    b.ToTable("registers", (string)null);
                 });
 
             modelBuilder.Entity("Logibooks.Core.Models.Role", b =>
@@ -705,7 +705,7 @@ namespace Logibooks.Core.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("roles");
+                    b.ToTable("roles", (string)null);
 
                     b.HasData(
                         new
@@ -747,7 +747,7 @@ namespace Logibooks.Core.Migrations
                     b.HasIndex(new[] { "Word" }, "IX_stop_words_word")
                         .IsUnique();
 
-                    b.ToTable("stop_words");
+                    b.ToTable("stop_words", (string)null);
                 });
 
             modelBuilder.Entity("Logibooks.Core.Models.TransportationType", b =>
@@ -770,7 +770,7 @@ namespace Logibooks.Core.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("transportation_types");
+                    b.ToTable("transportation_types", (string)null);
 
                     b.HasData(
                         new
@@ -826,7 +826,7 @@ namespace Logibooks.Core.Migrations
                     b.HasIndex("Email")
                         .IsUnique();
 
-                    b.ToTable("users");
+                    b.ToTable("users", (string)null);
 
                     b.HasData(
                         new
@@ -872,7 +872,7 @@ namespace Logibooks.Core.Migrations
 
                     b.HasIndex("RoleId");
 
-                    b.ToTable("user_roles");
+                    b.ToTable("user_roles", (string)null);
 
                     b.HasData(
                         new
@@ -918,7 +918,7 @@ namespace Logibooks.Core.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("word_match_types");
+                    b.ToTable("word_match_types", (string)null);
 
                     b.HasData(
                         new
