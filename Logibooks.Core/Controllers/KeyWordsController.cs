@@ -1,4 +1,4 @@
-// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
+﻿// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
 // All rights reserved.
 // This file is a part of Logibooks Core application
 //
@@ -188,23 +188,36 @@ public class KeyWordsController(
             return _409KeyWord(dto.Word);
         }
 
-        kw.Word = dto.Word;
-        kw.MatchTypeId = dto.MatchTypeId;
-        
-        // Update FeacnCodes - remove existing and add new ones
-        _db.KeyWordFeacnCodes.RemoveRange(kw.KeyWordFeacnCodes);
-        if (dto.FeacnCodes != null )
-        { 
-            kw.KeyWordFeacnCodes = [.. dto.FeacnCodes.Select(fc => new KeyWordFeacnCode
-            {
-                KeyWordId = kw.Id,
-                FeacnCode = fc,
-                KeyWord = kw
-            })];
-        }
         try
         {
-            _db.Entry(kw).State = EntityState.Modified;
+            // Update the KeyWord properties
+            kw.Word = dto.Word;
+            kw.MatchTypeId = dto.MatchTypeId;
+       
+            // Get current FeacnCodes
+            var currentCodes = kw.KeyWordFeacnCodes.ToList();
+            var newCodes = dto.FeacnCodes ?? [];
+            
+            // Find codes to remove
+            var codesToRemove = currentCodes.Where(c => !newCodes.Contains(c.FeacnCode)).ToList();
+            foreach (var codeToRemove in codesToRemove)
+            {
+                kw.KeyWordFeacnCodes.Remove(codeToRemove);
+            }
+            
+            // Find codes to add
+            var existingCodes = currentCodes.Select(c => c.FeacnCode).ToHashSet();
+            var codesToAdd = newCodes.Where(nc => !existingCodes.Contains(nc)).ToList();
+            foreach (var codeToAdd in codesToAdd)
+            {
+                kw.KeyWordFeacnCodes.Add(new KeyWordFeacnCode
+                {
+                    KeyWordId = kw.Id,
+                    FeacnCode = codeToAdd,
+                    KeyWord = kw
+                });
+            }
+
             await _db.SaveChangesAsync();
             return NoContent();
         }
