@@ -23,12 +23,9 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-using System;
 using System.Text.Json;
-using System.Linq;
 using Logibooks.Core.Models;
 using Logibooks.Core.Settings;
-using DocumentFormat.OpenXml.InkML;
 
 namespace Logibooks.Core.RestModels;
 
@@ -60,6 +57,7 @@ public class ParcelViewItem
     public string? PostingNumber { get; set; }
     public string? OzonId { get; set; }
     public List<int> StopWordIds { get; set; } = [];
+    public List<int> KeyWordIds { get; set; } = [];
     public List<int> FeacnOrderIds { get; set; } = [];
     public DateTime? DTime { get; set; }
 
@@ -107,6 +105,9 @@ public class ParcelViewItem
 
         StopWordIds = order.BaseOrderStopWords?
             .Select(bosw => bosw.StopWordId)
+            .ToList() ?? new List<int>();
+        KeyWordIds = order.BaseOrderKeyWords?
+            .Select(bokw => bokw.KeyWordId)
             .ToList() ?? new List<int>();
         FeacnOrderIds = order.BaseOrderFeacnPrefixes?
             .Where(bofp => bofp.FeacnPrefix?.FeacnOrderId != null)

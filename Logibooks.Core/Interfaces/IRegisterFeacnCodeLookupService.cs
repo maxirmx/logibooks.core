@@ -19,13 +19,18 @@
 // CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
 // SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
 // INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE),
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-namespace Logibooks.Core;
+using Logibooks.Core.RestModels;
 
-public static class VersionInfo
+namespace Logibooks.Core.Interfaces;
+
+public interface IRegisterFeacnCodeLookupService
 {
-    public const string AppVersion = "0.9.1";
+    Task<Guid> StartLookupAsync(int registerId, CancellationToken cancellationToken = default);
+    ValidationProgress? GetProgress(Guid handleId);
+    bool CancelLookup(Guid handleId);
 }
+

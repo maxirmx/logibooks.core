@@ -19,7 +19,7 @@
 // CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
 // SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
 // INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE),
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
@@ -33,20 +33,18 @@ using Logibooks.Core.Interfaces;
 
 namespace Logibooks.Core.Services;
 
-public class RegisterValidationService(
+public class RegisterFeacnCodeLookupService(
     AppDbContext db,
     IServiceScopeFactory scopeFactory,
-    ILogger<RegisterValidationService> logger,
-    IMorphologySearchService morphologyService,
-    IFeacnPrefixCheckService feacnPrefixCheckService) : IRegisterValidationService
+    ILogger<RegisterFeacnCodeLookupService> logger,
+    IMorphologySearchService morphologyService) : IRegisterFeacnCodeLookupService
 {
     private readonly AppDbContext _db = db;
     private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
-    private readonly ILogger<RegisterValidationService> _logger = logger;
+    private readonly ILogger<RegisterFeacnCodeLookupService> _logger = logger;
     private readonly IMorphologySearchService _morphologyService = morphologyService;
-    private readonly IFeacnPrefixCheckService _feacnPrefixCheckService = feacnPrefixCheckService;
 
-    private class ValidationProcess
+    private class LookupProcess
     {
         public Guid HandleId { get; } = Guid.NewGuid();
         public int RegisterId { get; }
@@ -55,24 +53,25 @@ public class RegisterValidationService(
         public bool Finished;
         public string? Error;
         public CancellationTokenSource Cts { get; } = new();
-        public ValidationProcess(int regId) { RegisterId = regId; }
+        public LookupProcess(int regId) { RegisterId = regId; }
     }
 
-    private static readonly ConcurrentDictionary<int, ValidationProcess> _byRegister = new();
-    private static readonly ConcurrentDictionary<Guid, ValidationProcess> _byHandle = new();
+    private static readonly ConcurrentDictionary<int, LookupProcess> _byRegister = new();
+    private static readonly ConcurrentDictionary<Guid, LookupProcess> _byHandle = new();
 
-    public async Task<Guid> StartValidationAsync(int registerId, CancellationToken cancellationToken = default)
-    {    
-        var process = new ValidationProcess(registerId);
+    public async Task<Guid> StartLookupAsync(int registerId, CancellationToken cancellationToken = default)
+    {
+        var process = new LookupProcess(registerId);
         if (!_byRegister.TryAdd(registerId, process))
         {
             return _byRegister[registerId].HandleId;
         }
         _byHandle[process.HandleId] = process;
 
-        var allStopWords = await _db.StopWords.AsNoTracking().ToListAsync(cancellationToken);
+        var allKeyWords = await _db.KeyWords.AsNoTracking().ToListAsync(cancellationToken);
         var morphologyContext = _morphologyService.InitializeContext(
-            allStopWords.Where(sw => sw.MatchTypeId >= (int)WordMatchTypeCode.MorphologyMatchTypes));
+            allKeyWords.Where(k => k.MatchTypeId >= (int)WordMatchTypeCode.MorphologyMatchTypes)
+                .Select(k => new StopWord { Id = k.Id, Word = k.Word, MatchTypeId = k.MatchTypeId }));
 
         var tcs = new TaskCompletionSource();
 
@@ -80,10 +79,9 @@ public class RegisterValidationService(
         {
             using var scope = _scopeFactory.CreateScope();
             var scopedDb = scope.ServiceProvider.GetService(typeof(AppDbContext)) as AppDbContext;
-            var scopedOrderSvc = scope.ServiceProvider.GetService(typeof(IParcelValidationService)) as IParcelValidationService;
-            var scopedFeacnSvc = scope.ServiceProvider.GetService(typeof(IFeacnPrefixCheckService)) as IFeacnPrefixCheckService;
+            var scopedLookupSvc = scope.ServiceProvider.GetService(typeof(IParcelFeacnCodeLookupService)) as IParcelFeacnCodeLookupService;
 
-            if (scopedDb == null || scopedOrderSvc == null || scopedFeacnSvc == null)
+            if (scopedDb == null || scopedLookupSvc == null)
             {
                 process.Error = "Failed to resolve required services";
                 process.Finished = true;
@@ -104,8 +102,8 @@ public class RegisterValidationService(
                 process.Total = orders.Count;
                 tcs.TrySetResult();
 
-                var stopWordsContext = new WordsLookupContext<StopWord>(allStopWords);
-                var feacnContext = await scopedFeacnSvc.CreateContext(process.Cts.Token);
+                var wordsLookupContext = new WordsLookupContext<KeyWord>(
+                    allKeyWords.Where(k => k.MatchTypeId < (int)WordMatchTypeCode.MorphologyMatchTypes));
 
                 foreach (var id in orders)
                 {
@@ -117,7 +115,7 @@ public class RegisterValidationService(
                     var order = await scopedDb.Orders.FindAsync([id], cancellationToken: process.Cts.Token);
                     if (order != null)
                     {
-                        await scopedOrderSvc.ValidateAsync(order, morphologyContext, stopWordsContext, feacnContext, process.Cts.Token);
+                        await scopedLookupSvc.LookupAsync(order, morphologyContext, wordsLookupContext, process.Cts.Token);
                     }
                     process.Processed++;
                 }
@@ -126,7 +124,7 @@ public class RegisterValidationService(
             {
                 tcs.TrySetResult();
                 process.Error = ex.Message;
-                _logger.LogError(ex, "Register validation failed");
+                _logger.LogError(ex, "Register feacn code lookup failed");
             }
             finally
             {
@@ -163,7 +161,7 @@ public class RegisterValidationService(
         };
     }
 
-    public bool CancelValidation(Guid handleId)
+    public bool CancelLookup(Guid handleId)
     {
         if (_byHandle.TryGetValue(handleId, out var proc))
         {
@@ -174,3 +172,4 @@ public class RegisterValidationService(
         return false;
     }
 }
+

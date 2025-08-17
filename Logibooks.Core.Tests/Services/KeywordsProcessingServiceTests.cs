@@ -34,10 +34,12 @@ using System.Collections.Generic;
 
 using ClosedXML.Excel;
 using NUnit.Framework;
+using Moq;
 
 using Logibooks.Core.Data;
 using Logibooks.Core.Models;
 using Logibooks.Core.Services;
+using Logibooks.Core.Interfaces;
 
 namespace Logibooks.Core.Tests.Services;
 
@@ -47,6 +49,7 @@ public class KeywordsProcessingServiceTests
     private AppDbContext _dbContext;
     private KeywordsProcessingService _service;
     private ILogger<KeywordsProcessingService> _logger;
+    private Mock<IMorphologySearchService> _mockMorphologySearchService;
 #pragma warning restore CS8618
 
     [SetUp]
@@ -66,7 +69,13 @@ public class KeywordsProcessingServiceTests
         _dbContext.SaveChanges();
 
         _logger = new LoggerFactory().CreateLogger<KeywordsProcessingService>();
-        _service = new KeywordsProcessingService(_dbContext, _logger);
+        _mockMorphologySearchService = new Mock<IMorphologySearchService>();
+        
+        // Setup default behavior: return FullSupport for all words unless specifically overridden
+        _mockMorphologySearchService.Setup(x => x.CheckWord(It.IsAny<string>()))
+            .Returns(MorphologySupportLevel.FullSupport);
+            
+        _service = new KeywordsProcessingService(_dbContext, _logger, _mockMorphologySearchService.Object);
     }
 
     [TearDown]
@@ -273,7 +282,7 @@ public class KeywordsProcessingServiceTests
         var updatedKeyword = await _dbContext.KeyWords.FirstOrDefaultAsync(k => k.Word == "тестовое слово");
         Assert.That(updatedKeyword, Is.Not.Null);
         Assert.That(updatedKeyword!.FeacnCode, Is.EqualTo("2222222222")); // Code updated
-        Assert.That(updatedKeyword.MatchTypeId, Is.EqualTo((int)WordMatchTypeCode.Phrase)); 
+        Assert.That(updatedKeyword.MatchTypeId, Is.EqualTo((int)WordMatchTypeCode.Phrase)); // Since "тестовое слово" contains a space, it's a phrase
     }
 
     [Test]
@@ -480,6 +489,70 @@ public class KeywordsProcessingServiceTests
         // Act & Assert
         Assert.ThrowsAsync<InvalidOperationException>(async () => 
             await _service.UploadKeywordsFromExcelAsync(invalidBytes, "invalid.xlsx"));
+    }
+
+    [Test]
+    public async Task UploadKeywordsFromExcelAsync_UsesMorphologyCheck_ForSingleWords()
+    {
+        // Arrange
+        _mockMorphologySearchService.Setup(x => x.CheckWord("поддерживаемое"))
+            .Returns(MorphologySupportLevel.FullSupport);
+        _mockMorphologySearchService.Setup(x => x.CheckWord("неподдерживаемое"))
+            .Returns(MorphologySupportLevel.NoSupport);
+            
+        var testData = new List<(string, string)>
+        {
+            ("1234567890", "поддерживаемое"),
+            ("0987654321", "неподдерживаемое")
+        };
+        var excelBytes = CreateTestExcelFile(testData);
+
+        // Act
+        var result = await _service.UploadKeywordsFromExcelAsync(excelBytes, "test.xlsx");
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.Count, Is.EqualTo(2));
+
+        // Verify morphology-supported word gets WeakMorphology
+        var supportedWord = result.FirstOrDefault(k => k.Word == "поддерживаемое");
+        Assert.That(supportedWord, Is.Not.Null);
+        Assert.That(supportedWord!.MatchTypeId, Is.EqualTo((int)WordMatchTypeCode.WeakMorphology));
+
+        // Verify non-supported word gets ExactSymbols
+        var unsupportedWord = result.FirstOrDefault(k => k.Word == "неподдерживаемое");
+        Assert.That(unsupportedWord, Is.Not.Null);
+        Assert.That(unsupportedWord!.MatchTypeId, Is.EqualTo((int)WordMatchTypeCode.ExactSymbols));
+
+        // Verify CheckWord was called for both single words
+        _mockMorphologySearchService.Verify(x => x.CheckWord("поддерживаемое"), Times.Once);
+        _mockMorphologySearchService.Verify(x => x.CheckWord("неподдерживаемое"), Times.Once);
+    }
+
+    [Test]
+    public async Task UploadKeywordsFromExcelAsync_SkipsMorphologyCheck_ForPhrases()
+    {
+        // Arrange
+        var testData = new List<(string, string)>
+        {
+            ("1234567890", "фраза с пробелами")
+        };
+        var excelBytes = CreateTestExcelFile(testData);
+
+        // Act
+        var result = await _service.UploadKeywordsFromExcelAsync(excelBytes, "test.xlsx");
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.Count, Is.EqualTo(1));
+
+        // Verify phrase gets Phrase match type
+        var phrase = result.FirstOrDefault(k => k.Word == "фраза с пробелами");
+        Assert.That(phrase, Is.Not.Null);
+        Assert.That(phrase!.MatchTypeId, Is.EqualTo((int)WordMatchTypeCode.Phrase));
+
+        // Verify CheckWord was never called for phrases
+        _mockMorphologySearchService.Verify(x => x.CheckWord("фраза с пробелами"), Times.Never);
     }
 }
 

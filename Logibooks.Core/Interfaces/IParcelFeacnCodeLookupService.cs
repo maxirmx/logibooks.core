@@ -19,13 +19,20 @@
 // CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
 // SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
 // INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE),
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-namespace Logibooks.Core;
+using Logibooks.Core.Models;
+using System.Runtime.CompilerServices;
+[assembly: InternalsVisibleTo("Logibooks.Core.Tests")]
 
-public static class VersionInfo
+namespace Logibooks.Core.Interfaces;
+
+public interface IParcelFeacnCodeLookupService
 {
-    public const string AppVersion = "0.9.1";
+    Task LookupAsync(BaseOrder order,
+        MorphologyContext morphologyContext,
+        WordsLookupContext<KeyWord> wordsLookupContext,
+        CancellationToken cancellationToken = default);
 }

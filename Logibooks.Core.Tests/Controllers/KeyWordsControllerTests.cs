@@ -103,7 +103,7 @@ public class KeyWordsControllerTests
         _logger = new LoggerFactory().CreateLogger<KeyWordsController>();
         _userService = new UserInformationService(_dbContext);
         var kwLogger = new LoggerFactory().CreateLogger<KeywordsProcessingService>();
-        _keywordsProcessingService = new KeywordsProcessingService(_dbContext, kwLogger);
+        _keywordsProcessingService = new KeywordsProcessingService(_dbContext, kwLogger, _mockMorphologySearchService.Object);
         _controller = new KeyWordsController(_mockHttpContextAccessor.Object, _dbContext, _userService, _keywordsProcessingService, _mockMorphologySearchService.Object, _logger);
     }
 

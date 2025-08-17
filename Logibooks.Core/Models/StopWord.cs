@@ -25,23 +25,12 @@
 
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations.Schema;
-using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace Logibooks.Core.Models;
 
 [Table("stop_words")]
 [Index(nameof(Word), IsUnique = true, Name = "IX_stop_words_word")]
-public class StopWord
+public class StopWord : WordBase
 {
-    [Column("id")]
-    public int Id { get; set; }
-
-    [Column("word")]
-    public required string Word { get; set; } = string.Empty;
-
-    [Column("match_type_id")]
-    public int MatchTypeId { get; set; } = 1;
-    public WordMatchType MatchType { get; set; } = null!;
-
-    public ICollection<BaseOrderStopWord> BaseOrderStopWords { get; set; } = new List<BaseOrderStopWord>();
+    public ICollection<BaseOrderStopWord> BaseOrderStopWords { get; set; } = [];
 }

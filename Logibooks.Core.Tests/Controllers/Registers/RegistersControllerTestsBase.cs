@@ -49,6 +49,7 @@ public abstract class RegistersControllerTestsBase
     protected AppDbContext _dbContext;
     protected Mock<IHttpContextAccessor> _mockHttpContextAccessor;
     protected Mock<IRegisterValidationService> _mockRegValidationService;
+    protected Mock<IRegisterFeacnCodeLookupService> _mockRegFeacnLookupService;
     protected ILogger<RegistersController> _logger;
     protected IUserInformationService _userService;
     protected Role _logistRole;
@@ -57,7 +58,7 @@ public abstract class RegistersControllerTestsBase
     protected User _adminUser;
     protected RegistersController _controller;
     protected Mock<IRegisterProcessingService> _mockProcessingService;
-    protected Mock<IOrderIndPostGenerator> _mockIndPostGenerator;
+    protected Mock<IParcelIndPostGenerator> _mockIndPostGenerator;
 #pragma warning restore CS8618
 
     protected readonly string testDataDir = Path.Combine(AppContext.BaseDirectory, "test.data");
@@ -153,11 +154,12 @@ public abstract class RegistersControllerTestsBase
 
         _mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
         _mockRegValidationService = new Mock<IRegisterValidationService>();
+        _mockRegFeacnLookupService = new Mock<IRegisterFeacnCodeLookupService>();
         _mockProcessingService = new Mock<IRegisterProcessingService>();
-        _mockIndPostGenerator = new Mock<IOrderIndPostGenerator>();
+        _mockIndPostGenerator = new Mock<IParcelIndPostGenerator>();
         _logger = new LoggerFactory().CreateLogger<RegistersController>();
         _userService = new UserInformationService(_dbContext);
-        _controller = new RegistersController(_mockHttpContextAccessor.Object, _dbContext, _userService, _logger, _mockRegValidationService.Object, _mockProcessingService.Object, _mockIndPostGenerator.Object);
+        _controller = new RegistersController(_mockHttpContextAccessor.Object, _dbContext, _userService, _logger, _mockRegValidationService.Object, _mockRegFeacnLookupService.Object, _mockProcessingService.Object, _mockIndPostGenerator.Object);
     }
 
     [TearDown]
@@ -172,7 +174,7 @@ public abstract class RegistersControllerTestsBase
         var ctx = new DefaultHttpContext();
         ctx.Items["UserId"] = id;
         _mockHttpContextAccessor.Setup(x => x.HttpContext).Returns(ctx);
-        _controller = new RegistersController(_mockHttpContextAccessor.Object, _dbContext, _userService, _logger, _mockRegValidationService.Object, _mockProcessingService.Object, _mockIndPostGenerator.Object);
+        _controller = new RegistersController(_mockHttpContextAccessor.Object, _dbContext, _userService, _logger, _mockRegValidationService.Object, _mockRegFeacnLookupService.Object, _mockProcessingService.Object, _mockIndPostGenerator.Object);
     }
 
     protected static Mock<IFormFile> CreateMockFile(string fileName, string contentType, byte[] content)

@@ -39,7 +39,7 @@ using System.Threading.Tasks;
 namespace Logibooks.Core.Tests.Services;
 
 [TestFixture]
-public class OrderValidationServiceTests
+public class ParcelValidationServiceTests
 {
     private static AppDbContext CreateContext()
     {
@@ -50,24 +50,24 @@ public class OrderValidationServiceTests
     }
 
     // Add a helper method to create the service with mocked dependencies
-    private static OrderValidationService CreateService(AppDbContext context)
+    private static ParcelValidationService CreateService(AppDbContext context)
     {
         var mockFeacnService = new Mock<IFeacnPrefixCheckService>();
         // Setup mock to return empty list by default
         mockFeacnService.Setup(x => x.CheckOrderAsync(It.IsAny<BaseOrder>(), It.IsAny<CancellationToken>()))
                    .ReturnsAsync(new List<BaseOrderFeacnPrefix>());
 
-        return new OrderValidationService(context, new MorphologySearchService(), mockFeacnService.Object);
+        return new ParcelValidationService(context, new MorphologySearchService(), mockFeacnService.Object);
     }
 
-    private static OrderValidationService CreateServiceWithMorphology(AppDbContext context, MorphologySearchService morphService)
+    private static ParcelValidationService CreateServiceWithMorphology(AppDbContext context, MorphologySearchService morphService)
     {
         var mockFeacnService = new Mock<IFeacnPrefixCheckService>();
         // Setup mock to return empty list by default
         mockFeacnService.Setup(x => x.CheckOrderAsync(It.IsAny<BaseOrder>(), It.IsAny<CancellationToken>()))
                    .ReturnsAsync(new List<BaseOrderFeacnPrefix>());
 
-        return new OrderValidationService(context, morphService, mockFeacnService.Object);
+        return new ParcelValidationService(context, morphService, mockFeacnService.Object);
     }
 
     [Test]
@@ -84,9 +84,9 @@ public class OrderValidationServiceTests
         await ctx.SaveChangesAsync();
 
         var svc = CreateService(ctx);
-        var stopWordsContext = svc.InitializeStopWordsContext(ctx.StopWords.ToList());
+        var wordsLookupContext = new WordsLookupContext<StopWord>(ctx.StopWords.ToList());
         var morphologyContext = new MorphologyContext(); // Assuming you have a way to create this context
-        await svc.ValidateAsync(order, morphologyContext, stopWordsContext);
+        await svc.ValidateAsync(order, morphologyContext, wordsLookupContext);
 
         Assert.That(ctx.Set<BaseOrderStopWord>().Count(), Is.EqualTo(1));
         var link = ctx.Set<BaseOrderStopWord>().Single();
@@ -104,9 +104,9 @@ public class OrderValidationServiceTests
         await ctx.SaveChangesAsync();
 
         var svc = CreateService(ctx);
-        var stopWordsContext = svc.InitializeStopWordsContext(ctx.StopWords.ToList());
+        var wordsLookupContext = new WordsLookupContext<StopWord>(ctx.StopWords.ToList());
         var morphologyContext = new MorphologyContext(); // Assuming you have a way to create this context
-        await svc.ValidateAsync(order, morphologyContext, stopWordsContext);
+        await svc.ValidateAsync(order, morphologyContext, wordsLookupContext);
 
         Assert.That(ctx.Set<BaseOrderStopWord>().Any(), Is.False);
         Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)ParcelCheckStatusCode.NoIssues));
@@ -122,9 +122,9 @@ public class OrderValidationServiceTests
         await ctx.SaveChangesAsync();
 
         var svc = CreateService(ctx);
-        var stopWordsContext = svc.InitializeStopWordsContext(ctx.StopWords.ToList());
+        var wordsLookupContext = new WordsLookupContext<StopWord>(ctx.StopWords.ToList());
         var morphologyContext = new MorphologyContext(); // Assuming you have a way to create this context
-        await svc.ValidateAsync(order, morphologyContext, stopWordsContext);
+        await svc.ValidateAsync(order, morphologyContext, wordsLookupContext);
 
         Assert.That(ctx.Set<BaseOrderStopWord>().Single().StopWordId, Is.EqualTo(5));
         Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)ParcelCheckStatusCode.HasIssues));
@@ -142,9 +142,9 @@ public class OrderValidationServiceTests
 
         var morph = new MorphologySearchService();
         var morphologyContext = morph.InitializeContext(new[] { sw });
-        var stopWordsContext = new StopWordsContext();
+        var wordsLookupContext = new WordsLookupContext<StopWord>(Enumerable.Empty<StopWord>());
         var svc = CreateServiceWithMorphology(ctx, morph);
-        await svc.ValidateAsync(order, morphologyContext, stopWordsContext);
+        await svc.ValidateAsync(order, morphologyContext, wordsLookupContext);
 
         var link = ctx.Set<BaseOrderStopWord>().Single();
         Assert.That(link.StopWordId, Is.EqualTo(7));
@@ -170,8 +170,8 @@ public class OrderValidationServiceTests
         var morph = new MorphologySearchService();
         var morphologyContext = morph.InitializeContext(stopWords.Where(sw => sw.MatchTypeId >= (int)WordMatchTypeCode.MorphologyMatchTypes));
         var svc = CreateServiceWithMorphology(ctx, morph);
-        var stopWordsContext = svc.InitializeStopWordsContext(stopWords.Where(sw => sw.MatchTypeId == (int)WordMatchTypeCode.ExactSymbols));
-        await svc.ValidateAsync(order, morphologyContext, stopWordsContext);
+        var wordsLookupContext = new WordsLookupContext<StopWord>(stopWords.Where(sw => sw.MatchTypeId == (int)WordMatchTypeCode.ExactSymbols));
+        await svc.ValidateAsync(order, morphologyContext, wordsLookupContext);
 
         var links = ctx.Set<BaseOrderStopWord>().ToList();
         var foundIds = links.Select(l => l.StopWordId).OrderBy(id => id).ToList();
@@ -202,9 +202,9 @@ public class OrderValidationServiceTests
         await ctx.SaveChangesAsync();
 
         var svc = CreateService(ctx);
-        var stopWordsContext = svc.InitializeStopWordsContext(stopWords);
+        var wordsLookupContext = new WordsLookupContext<StopWord>(stopWords);
         var morphologyContext = new MorphologyContext();
-        await svc.ValidateAsync(order, morphologyContext, stopWordsContext);
+        await svc.ValidateAsync(order, morphologyContext, wordsLookupContext);
 
         var links = ctx.Set<BaseOrderStopWord>().ToList();
 
@@ -231,9 +231,9 @@ public class OrderValidationServiceTests
         await ctx.SaveChangesAsync();
 
         var svc = CreateService(ctx);
-        var stopWordsContext = svc.InitializeStopWordsContext(ctx.StopWords.ToList());
+        var wordsLookupContext = new WordsLookupContext<StopWord>(ctx.StopWords.ToList());
         var morphologyContext = new MorphologyContext();
-        await svc.ValidateAsync(order, morphologyContext, stopWordsContext);
+        await svc.ValidateAsync(order, morphologyContext, wordsLookupContext);
 
         var links = ctx.Set<BaseOrderStopWord>().ToList();
         Assert.That(links.Count, Is.EqualTo(1));
@@ -242,21 +242,17 @@ public class OrderValidationServiceTests
     }
 
     [Test]
-    public void GetMatchingStopWordsFromContext_IgnoresEmptyStopWord()
+    public void GetMatchingWords_IgnoresEmptyStopWord()
     {
         // Arrange
-        var context = new StopWordsContext();
         var emptyStopWord = new StopWord { Id = 1, Word = string.Empty, MatchTypeId = (int)WordMatchTypeCode.ExactSymbols };
-        context.ExactSymbolsMatchItems.Add(emptyStopWord);
+        var context = new WordsLookupContext<StopWord>(new[] { emptyStopWord });
         var productName = "Some product name";
 
         // Act
-        var result = typeof(OrderValidationService)
-            .GetMethod("GetMatchingStopWordsFromContext", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
-            !.Invoke(null, new object[] { productName, context }) as List<StopWord>;
+        var result = context.GetMatchingWords(productName).ToList();
 
         // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result!.Count, Is.EqualTo(0), "Should not match empty stopword");
+        Assert.That(result.Count, Is.EqualTo(0), "Should not match empty stopword");
     }
 }
