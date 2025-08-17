@@ -220,7 +220,7 @@ public class KeyWordsControllerTests
     }
 
     [Test]
-    public async Task Create_SucceedsWhenSameWordButDifferentFeacnCode()
+    public async Task Create_ReturnsConflict_WhenSameWordButDifferentFeacnCode()
     {
         SetCurrentUserId(1);
         // Create a keyword with specific word and FeacnCode
@@ -229,47 +229,12 @@ public class KeyWordsControllerTests
         _dbContext.KeyWords.Add(existingKeyword);
         await _dbContext.SaveChangesAsync();
         
-        // Try to create the same word with different FeacnCode - should succeed
+        // Try to create the same word with different FeacnCode - should now return conflict (changed behavior)
         var dto = new KeyWordDto { Word = "dup", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols, FeacnCodes = ["0987654321"] };
         var result = await _controller.CreateKeyWord(dto);
-        Assert.That(result.Result, Is.TypeOf<CreatedAtActionResult>());
-        
-        // Verify both keywords exist in database
-        var allKeywords = await _dbContext.KeyWords.Include(k => k.KeyWordFeacnCodes).ToListAsync();
-        var dupKeywords = allKeywords.Where(k => k.Word == "dup").ToList();
-        Assert.That(dupKeywords.Count, Is.EqualTo(2));
-        
-        var feacnCodes = dupKeywords.SelectMany(k => k.KeyWordFeacnCodes.Select(fc => fc.FeacnCode)).ToList();
-        Assert.That(feacnCodes, Contains.Item("1234567890"));
-        Assert.That(feacnCodes, Contains.Item("0987654321"));
-    }
-
-    [Test]
-    public async Task Create_SucceedsWhenSameWordWithEmptyFeacnCodes()
-    {
-        SetCurrentUserId(1);
-        // Create a keyword with specific word and FeacnCode
-        var existingKeyword = new KeyWord { Id = 10, Word = "dup", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols };
-        existingKeyword.KeyWordFeacnCodes = [new KeyWordFeacnCode { KeyWordId = 10, FeacnCode = "1234567890", KeyWord = existingKeyword }];
-        _dbContext.KeyWords.Add(existingKeyword);
-        await _dbContext.SaveChangesAsync();
-        
-        // Try to create the same word with empty FeacnCodes - should succeed (no conflict since no overlapping FeacnCodes)
-        var dto = new KeyWordDto { Word = "dup", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols, FeacnCodes = [] };
-        var result = await _controller.CreateKeyWord(dto);
-        Assert.That(result.Result, Is.TypeOf<CreatedAtActionResult>());
-        
-        // Verify both keywords exist in database
-        var allKeywords = await _dbContext.KeyWords.Include(k => k.KeyWordFeacnCodes).ToListAsync();
-        var dupKeywords = allKeywords.Where(k => k.Word == "dup").ToList();
-        Assert.That(dupKeywords.Count, Is.EqualTo(2));
-        
-        // One should have FeacnCode, other should have no FeacnCodes
-        var keywordWithCode = dupKeywords.FirstOrDefault(k => k.KeyWordFeacnCodes.Any());
-        var keywordWithoutCode = dupKeywords.FirstOrDefault(k => !k.KeyWordFeacnCodes.Any());
-        Assert.That(keywordWithCode, Is.Not.Null);
-        Assert.That(keywordWithoutCode, Is.Not.Null);
-        Assert.That(keywordWithCode!.KeyWordFeacnCodes.First().FeacnCode, Is.EqualTo("1234567890"));
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status409Conflict));
     }
 
     [Test]
@@ -684,5 +649,23 @@ public class KeyWordsControllerTests
         var obj = result.Result as ObjectResult;
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
         Assert.That((obj.Value as ErrMessage)!.Msg, Does.Contain("Код ТН ВЭД должен состоять из 10 цифр"));
+    }
+
+    [Test]
+    public async Task Create_ReturnsConflict_WhenSameWordWithEmptyFeacnCodes()
+    {
+        SetCurrentUserId(1);
+        // Create a keyword with specific word and FeacnCode
+        var existingKeyword = new KeyWord { Id = 10, Word = "dup", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols };
+        existingKeyword.KeyWordFeacnCodes = [new KeyWordFeacnCode { KeyWordId = 10, FeacnCode = "1234567890", KeyWord = existingKeyword }];
+        _dbContext.KeyWords.Add(existingKeyword);
+        await _dbContext.SaveChangesAsync();
+        
+        // Try to create the same word with empty FeacnCodes - should now return conflict (changed behavior)
+        var dto = new KeyWordDto { Word = "dup", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols, FeacnCodes = [] };
+        var result = await _controller.CreateKeyWord(dto);
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status409Conflict));
     }
 }

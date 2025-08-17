@@ -24,7 +24,6 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 
 using Logibooks.Core.Authorization;
@@ -113,10 +112,8 @@ public class KeyWordsController(
             }
         }
 
-        // Check for conflicts: only conflict if (word, FeacnCode) pair already exists
-        if (dto.FeacnCodes?.Count > 0 && 
-            await _db.KeyWords.AnyAsync(sw => sw.Word.ToLower() == dto.Word.ToLower() && 
-                sw.KeyWordFeacnCodes.Any(kwfc => dto.FeacnCodes.Contains(kwfc.FeacnCode))))
+        // Check for conflicts: prevent duplicate words (regardless of FeacnCodes)
+        if (await _db.KeyWords.AnyAsync(sw => sw.Word.ToLower() == dto.Word.ToLower()))
         {
             return _409KeyWord(dto.Word);
         }
@@ -180,10 +177,9 @@ public class KeyWordsController(
             }
         }
 
+        // Check for conflicts: prevent duplicate words (regardless of FeacnCodes)
         if (!kw.Word.Equals(dto.Word, StringComparison.OrdinalIgnoreCase) &&
-            dto.FeacnCodes?.Count > 0 &&
-            await _db.KeyWords.AnyAsync(w => w.Word.ToLower() == dto.Word.ToLower() &&
-                w.KeyWordFeacnCodes.Any(kwfc => dto.FeacnCodes.Contains(kwfc.FeacnCode))))
+            await _db.KeyWords.AnyAsync(w => w.Word.ToLower() == dto.Word.ToLower()))
         {
             return _409KeyWord(dto.Word);
         }
