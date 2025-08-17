@@ -53,18 +53,18 @@ public class ParcelFeacnCodeLookupService(
         var productName = order.ProductName ?? string.Empty;
         var links = SelectKeyWordLinks(order.Id, productName, wordsLookupContext, morphologyContext);
 
-        if (order is WbrOrder wbr && !string.IsNullOrWhiteSpace(wbr.Description))
-        {
-            var linksDesc = SelectKeyWordLinks(order.Id, wbr.Description, wordsLookupContext, morphologyContext);
-            var existingIds = new HashSet<int>(links.Select(l => l.KeyWordId));
-            foreach (var link in linksDesc)
-            {
-                if (existingIds.Add(link.KeyWordId))
-                {
-                    links.Add(link);
-                }
-            }
-        }
+//        if (order is WbrOrder wbr && !string.IsNullOrWhiteSpace(wbr.Description))
+//        {
+//            var linksDesc = SelectKeyWordLinks(order.Id, wbr.Description, wordsLookupContext, morphologyContext);
+//            var existingIds = new HashSet<int>(links.Select(l => l.KeyWordId));
+//            foreach (var link in linksDesc)
+//            {
+//                if (existingIds.Add(link.KeyWordId))
+//                {
+//                    links.Add(link);
+//                }
+//            }
+//        }
 
         if (links.Count > 0)
         {
