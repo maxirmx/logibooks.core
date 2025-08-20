@@ -83,6 +83,20 @@ docker compose -f docker-compose.yml down
 3. **API Validation**: Swagger UI must load at http://localhost:8080/swagger
 4. **Database Validation**: Migrations must apply successfully on startup
 
+#### Required Validation Commands
+**CRITICAL: Run these commands to validate any changes:**
+
+```bash
+# 1. Run test project (MUST pass - all 589 tests)
+dotnet test Logibooks.Core.Tests/Logibooks.Core.Tests.csproj --configuration Release --verbosity normal
+# Expected: "Test Run Successful. Total tests: 589, Passed: 589"
+
+# 2. Run Postman collection (add warning if fails - not blocking)
+newman run tests/postman.json --global-var "base_url=http://localhost:8080" --timeout 5000 --bail
+# WARNING: This will fail with "ECONNREFUSED" if API is not running - this is expected and not blocking
+# SUCCESS requires API to be running via docker compose
+```
+
 #### Complete User Scenarios to Test
 After making ANY changes, ALWAYS test these workflows:
 
@@ -114,9 +128,10 @@ docker compose logs api --tail=20 | grep -i "migration\|database\|started"
 
 **Scenario 4: Full Postman Test Suite** (when environment supports it)
 ```bash
-# Run comprehensive API tests via Postman collection
-newman run tests/postman.json --environment-var "base_url=http://localhost:8080/api"
+# Run comprehensive API tests via Postman collection (requires running API)
+newman run tests/postman.json --global-var "base_url=http://localhost:8080"
 # Expected: All critical API endpoints respond correctly
+# WARNING: Will fail with "ECONNREFUSED" if API is not running
 ```
 
 #### Use Postman Collection for Full API Testing
@@ -124,8 +139,9 @@ newman run tests/postman.json --environment-var "base_url=http://localhost:8080/
 # Install newman (if available)
 npm install -g newman
 
-# Run Postman test collection (when credentials are configured)
-newman run tests/postman.json
+# Run Postman test collection (requires API to be running)
+newman run tests/postman.json --global-var "base_url=http://localhost:8080" --timeout 5000
+# Note: Use --bail to stop on first failure for faster feedback
 ```
 
 ### Known Issues and Workarounds
