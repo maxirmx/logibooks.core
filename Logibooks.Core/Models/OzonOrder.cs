@@ -59,7 +59,7 @@ public class OzonOrder : BaseOrder
     [Column("description_en")]
     public string? DescriptionEn { get; set; }
 
-    [Column("weight_kg", TypeName = "numeric(10,2)")]
+    [Column("weight_kg", TypeName = "numeric(10,3)")]
     public decimal? WeightKg { get; set; }
 
     [Column("currency")]

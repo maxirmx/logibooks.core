@@ -95,7 +95,7 @@ public class WbrOrder : BaseOrder
     [Column("unit")]
     public string? Unit { get; set; }
 
-    [Column("weight_kg", TypeName = "numeric(10,2)")]
+    [Column("weight_kg", TypeName = "numeric(10,3)")]
     public decimal? WeightKg { get; set; }
 
     [Column("quantity", TypeName = "numeric(10)")]

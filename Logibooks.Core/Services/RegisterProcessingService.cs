@@ -42,8 +42,7 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
     private readonly ILogger<RegisterProcessingService> _logger = logger;
     private static readonly CultureInfo RussianCulture = new("ru-RU");
 
-    private Dictionary<string, short>? _wbrCountryLookup;
-    private Dictionary<string, short>? _ozonCountryLookup;
+    private Dictionary<string, short>? _countryLookup;
 
     public int GetOzonId() => IRegisterProcessingService.GetOzonId();
     public int GetWBRId() => IRegisterProcessingService.GetWBRId();
@@ -58,7 +57,7 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
         string methodName = isWbr ? "UploadWbrRegisterFromExcelAsync" : "UploadOzonRegisterFromExcelAsync";
         string mappingFile = isWbr ? "wbr_register_mapping.yaml" : "ozon_register_mapping.yaml";
 
-        await InitializeCountryLookupsAsync(isWbr, cancellationToken);
+        await InitializeCountryLookupAsync(cancellationToken);
 
         _logger.LogDebug("{MethodName} for {file} ({size} bytes)", methodName, fileName, content.Length);
 
@@ -94,15 +93,11 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
             }
         }
 
-        // Use lookup tables to set TheOtherCountryCode to Uzbekistan if present
-        short uzbekistanCode = 0;
-        if (isWbr && _wbrCountryLookup != null && _wbrCountryLookup.TryGetValue("UZ", out var wbrCode) && wbrCode != 0)
+        // Use lookup table to set TheOtherCountryCode to Uzbekistan if present
+        short uzbekistanCode = LookupCountryCode("UZ");
+        if (uzbekistanCode == 0)
         {
-            uzbekistanCode = wbrCode;
-        }
-        else if (!isWbr && _ozonCountryLookup != null && _ozonCountryLookup.TryGetValue("Узбекистан", out var ozonCode) && ozonCode != 0)
-        {
-            uzbekistanCode = ozonCode;
+            uzbekistanCode = LookupCountryCode("Узбекистан");
         }
 
         var register = new Register { FileName = fileName, CompanyId = companyId };
@@ -250,52 +245,52 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
         return ms.ToArray();
     }
 
-    private async Task InitializeCountryLookupsAsync(bool isWbr, CancellationToken cancellationToken = default)
+    private async Task InitializeCountryLookupAsync(CancellationToken cancellationToken = default)
     {
-        var countries = await _db.Countries.AsNoTracking().ToListAsync(cancellationToken);
-        if (isWbr)
+        if (_countryLookup == null)
         {
-            if (_wbrCountryLookup == null)
+            var countries = await _db.Countries.AsNoTracking().ToListAsync(cancellationToken);
+            _countryLookup = new Dictionary<string, short>(StringComparer.InvariantCultureIgnoreCase);
+
+            foreach (var country in countries)
             {
-                var wbrGroups = countries
-                    .Where(c => !string.IsNullOrWhiteSpace(c.IsoAlpha2))
-                    .GroupBy(c => c.IsoAlpha2.ToUpperInvariant())
-                    .ToList();
-                foreach (var group in wbrGroups)
+                // Add IsoAlpha2 lookup (case-insensitive)
+                if (!string.IsNullOrWhiteSpace(country.IsoAlpha2))
                 {
-                    if (group.Count() > 1)
+                    var alpha2Key = country.IsoAlpha2.ToUpperInvariant();
+                    if (!_countryLookup.ContainsKey(alpha2Key))
                     {
-                        _logger.LogWarning("Duplicate WBR country code detected: {Code}. Using first occurrence.", group.Key);
+                        _countryLookup[alpha2Key] = country.IsoNumeric;
+                    }
+                    else
+                    {
+                        _logger.LogWarning("Duplicate IsoAlpha2 country code detected: {Code}. Using first occurrence.", alpha2Key);
                     }
                 }
-                _wbrCountryLookup = wbrGroups
-                    .ToDictionary(g => g.Key, g => g.First().IsoNumeric, StringComparer.OrdinalIgnoreCase);
-            }
-            // Clear Ozon lookup to save memory
-            _ozonCountryLookup = null;
-        }
-        else
-        {
-            if (_ozonCountryLookup == null)
-            {
-                var ozonGroups = countries
-                    .Where(c => !string.IsNullOrWhiteSpace(c.NameRuShort))
-                    .GroupBy(c => c.NameRuShort)
-                    .ToList();
-                foreach (var group in ozonGroups)
+
+                // Add NameRuShort lookup (case-insensitive)
+                if (!string.IsNullOrWhiteSpace(country.NameRuShort))
                 {
-                    if (group.Count() > 1)
+                    if (!_countryLookup.ContainsKey(country.NameRuShort))
                     {
-                        _logger.LogWarning("Duplicate Ozon country name detected: {Name}. Using first occurrence.", group.Key);
+                        _countryLookup[country.NameRuShort] = country.IsoNumeric;
+                    }
+                    else
+                    {
+                        _logger.LogWarning("Duplicate NameRuShort country name detected: {Name}. Using first occurrence.", country.NameRuShort);
                     }
                 }
-                _ozonCountryLookup = ozonGroups
-                    .ToDictionary(g => g.Key, g => g.First().IsoNumeric, StringComparer.InvariantCultureIgnoreCase);
-                // Add special case for Russia if not already present
-                _ozonCountryLookup["Россия"] = 643;
+
+                // Add IsoNumeric lookup (as string)
+                var numericKey = country.IsoNumeric.ToString();
+                if (!_countryLookup.ContainsKey(numericKey))
+                {
+                    _countryLookup[numericKey] = country.IsoNumeric;
+                }
             }
-            // Clear WBR lookup to save memory
-            _wbrCountryLookup = null;
+
+            // Add special case for Russia
+            _countryLookup["Россия"] = 643;
         }
     }
 
@@ -338,7 +333,7 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
                     {
                         if (propInfo.Name == nameof(BaseOrder.CountryCode))
                         {
-                            order.CountryCode = LookupWbrCountryCode(val);
+                            order.CountryCode = LookupCountryCode(val);
                             if (order.CountryCode == 0)
                             { 
                                 _logger.LogInformation("Skipping row [{r}] because country code {'code'} was not recognized", r, val);
@@ -412,7 +407,7 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
                     {
                         if (propInfo.Name == nameof(BaseOrder.CountryCode))
                         {
-                            order.CountryCode = LookupOzonCountryCode(val);
+                            order.CountryCode = LookupCountryCode(val);
                             if (order.CountryCode == 0)
                             {
                                 _logger.LogInformation("Skipping row [{r}] because country code {'code'} was not recognized", r, val);
@@ -511,15 +506,12 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
         }
     }
 
-    private short LookupWbrCountryCode(string value)
+    private short LookupCountryCode(string value)
     {
-        var code = value.Trim().ToUpperInvariant();
-        return _wbrCountryLookup?.GetValueOrDefault(code, (short)0) ?? 0;
-    }
+        if (string.IsNullOrWhiteSpace(value))
+            return 0;
 
-    private short LookupOzonCountryCode(string value)
-    {
-        var name = value.Trim();
-        return _ozonCountryLookup?.GetValueOrDefault(name, (short)0) ?? 0;
+        var trimmedValue = value.Trim();
+        return _countryLookup?.GetValueOrDefault(trimmedValue, (short)0) ?? 0;
     }
 }
