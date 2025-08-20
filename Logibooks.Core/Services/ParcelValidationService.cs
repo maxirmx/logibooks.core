@@ -38,7 +38,7 @@ public class ParcelValidationService(
     private readonly AppDbContext _db = db;
     private readonly IMorphologySearchService _morphService = morphService;
     private readonly IFeacnPrefixCheckService _feacnPrefixCheckService = feacnPrefixCheckService;
-    private static readonly Regex TnVedRegex = new($"^\\d{{{FeacnPrefix.FeacnCodeLength}}}$", RegexOptions.Compiled);
+    private static readonly Regex TnVedRegex = new($"^\\d{{{FeacnCode.FeacnCodeLength}}}$", RegexOptions.Compiled);
 
     public async Task ValidateAsync(
         BaseParcel order,

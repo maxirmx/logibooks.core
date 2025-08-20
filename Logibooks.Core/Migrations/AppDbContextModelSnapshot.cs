@@ -328,6 +328,66 @@ namespace Logibooks.Core.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Logibooks.Core.Models.FeacnCode", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("code");
+
+                    b.Property<string>("CodeEx")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("code_ex");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name");
+
+                    b.Property<string>("DescriptionEx")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("normalized");
+
+                    b.Property<DateOnly?>("FromDate")
+                        .HasColumnType("date")
+                        .HasColumnName("from_date");
+
+                    b.Property<string>("OldName")
+                        .HasColumnType("text")
+                        .HasColumnName("old_name");
+
+                    b.Property<DateOnly?>("OldNameToDate")
+                        .HasColumnType("date")
+                        .HasColumnName("old_name_to_date");
+
+                    b.Property<int?>("ParentId")
+                        .HasColumnType("integer")
+                        .HasColumnName("parent_id");
+
+                    b.Property<DateOnly?>("ToDate")
+                        .HasColumnType("date")
+                        .HasColumnName("to_date");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ParentId");
+
+                    b.HasIndex(new[] { "Code" }, "IX_feacn_codes_code");
+
+                    b.ToTable("feacn_codes");
+                });
+
             modelBuilder.Entity("Logibooks.Core.Models.FeacnOrder", b =>
                 {
                     b.Property<int>("Id")
@@ -411,7 +471,8 @@ namespace Logibooks.Core.Migrations
 
                     b.Property<string>("Code")
                         .IsRequired()
-                        .HasColumnType("text")
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("code");
 
                     b.Property<string>("Comment")
@@ -448,7 +509,8 @@ namespace Logibooks.Core.Migrations
 
                     b.Property<string>("Code")
                         .IsRequired()
-                        .HasColumnType("text")
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("code");
 
                     b.Property<int>("FeacnPrefixId")
@@ -1369,6 +1431,16 @@ namespace Logibooks.Core.Migrations
                     b.Navigation("Country");
                 });
 
+            modelBuilder.Entity("Logibooks.Core.Models.FeacnCode", b =>
+                {
+                    b.HasOne("Logibooks.Core.Models.FeacnCode", "Parent")
+                        .WithMany("Children")
+                        .HasForeignKey("ParentId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Parent");
+                });
+
             modelBuilder.Entity("Logibooks.Core.Models.FeacnPrefix", b =>
                 {
                     b.HasOne("Logibooks.Core.Models.FeacnOrder", "FeacnOrder")
@@ -1540,6 +1612,11 @@ namespace Logibooks.Core.Migrations
             modelBuilder.Entity("Logibooks.Core.Models.Country", b =>
                 {
                     b.Navigation("Companies");
+                });
+
+            modelBuilder.Entity("Logibooks.Core.Models.FeacnCode", b =>
+                {
+                    b.Navigation("Children");
                 });
 
             modelBuilder.Entity("Logibooks.Core.Models.FeacnOrder", b =>

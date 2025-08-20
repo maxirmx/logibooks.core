@@ -23,19 +23,51 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Logibooks.Core.Models;
 
-[Table("key_word_feacn_codes")]
-public class KeyWordFeacnCode
+[Table("feacn_codes")]
+[Index(nameof(Code), Name = "IX_feacn_codes_code")]
+public class FeacnCode
 {
-    [Column("key_word_id")]
-    public int KeyWordId { get; set; }
-    public KeyWord KeyWord { get; set; } = null!;
+    public const int FeacnCodeLength = 10;
 
-    [Column("feacn_code")]
-    [StringLength(Models.FeacnCode.FeacnCodeLength, MinimumLength = Models.FeacnCode.FeacnCodeLength, ErrorMessage = "Код ТН ВЭД должен состоять из 10 цифр")]
-    public string FeacnCode { get; set; } = string.Empty;
+    [Column("id")]
+    public int Id { get; set; }
+
+    [Column("code")]
+    [StringLength(FeacnCodeLength)]
+    public required string Code { get; set; } = string.Empty;
+
+    [Column("code_ex")]
+    [StringLength(FeacnCodeLength)]
+    public required string CodeEx { get; set; } = string.Empty;
+
+    [Column("name")]
+    public required string Description { get; set; } = string.Empty;
+
+    [Column("normalized")]
+    public required string DescriptionEx { get; set; } = string.Empty;
+
+    [Column("from_date")]
+    public DateOnly? FromDate { get; set; } = null;
+
+    [Column("to_date")]
+    public DateOnly? ToDate { get; set; } = null;
+
+    [Column("old_name")]
+    public string? OldName { get; set; } = null;
+
+    [Column("old_name_to_date")]
+    public DateOnly? OldNameToDate { get; set; } = null;
+
+    [ForeignKey("Parent")]
+    [Column("parent_id")]
+    public int? ParentId { get; set; }
+    public FeacnCode? Parent { get; set; }
+
+    public ICollection<FeacnCode>? Children { get; set; }
 }

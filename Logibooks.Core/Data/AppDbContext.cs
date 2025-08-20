@@ -53,6 +53,7 @@ namespace Logibooks.Core.Data
         public DbSet<ParcelView> ParcelViews => Set<ParcelView>();
         public DbSet<KeyWord> KeyWords => Set<KeyWord>();
         public DbSet<KeyWordFeacnCode> KeyWordFeacnCodes => Set<KeyWordFeacnCode>();
+        public DbSet<FeacnCode> FeacnCodes => Set<FeacnCode>();
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -203,6 +204,12 @@ namespace Logibooks.Core.Data
                 .HasOne(e => e.FeacnPrefix)
                 .WithMany(p => p.FeacnPrefixExceptions)
                 .HasForeignKey(e => e.FeacnPrefixId);
+
+            modelBuilder.Entity<FeacnCode>()
+                .HasOne(fc => fc.Parent)
+                .WithMany(fc => fc.Children)
+                .HasForeignKey(fc => fc.ParentId)
+                .OnDelete(DeleteBehavior.SetNull);
 
             modelBuilder.Entity<Role>().HasData(
                 new Role { Id = 1, Name = "logist", Title = "Логист" },
