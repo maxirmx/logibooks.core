@@ -115,9 +115,9 @@ public class ParcelIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServi
             fields["CONSIGNEE_ADDRESS_COUNTRYCODE"] = SetOrDefault(register?.TheOtherCountry?.IsoAlpha2);
             // CONSIGNEE_ADDRESS_COUNRYNAME так в схеме
             fields["CONSIGNEE_ADDRESS_COUNRYNAME"] = SetOrDefault(register?.TheOtherCountry?.NameRuShort);
-            fields["CONSIGNEE_IDENTITYCARD_IDENTITYCARDCODE"] = "10";
-            fields["CONSIGNEE_IDENTITYCARD_IDENTITYCARDSERIES"] = order.GetSeries();
-            fields["CONSIGNEE_IDENTITYCARD_IDENTITYCARDNUMBER"] = order.GetNumber();
+            fields["IDENTITYCARDCODE"] = "10";
+            fields["IDENTITYCARDSERIES"] = order.GetSeries();
+            fields["IDENTITYCARDNUMBER"] = order.GetNumber();
             fields["CONSIGNEE_IDENTITYCARD_COUNTRYCODE"] = SetOrDefault(register?.TheOtherCountry?.IsoAlpha2);
             fields["CITY"] = order.GetCity();
             fields["STREETHOUSE"] = order.GetStreet();
