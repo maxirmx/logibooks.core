@@ -19,12 +19,24 @@ Always reference these instructions first and fallback to search or bash command
 cd /home/runner/work/logibooks.core/logibooks.core
 
 # Restore NuGet packages - takes ~25 seconds
+# Option 1: Solution-level (recommended for local development)
+dotnet restore Logibooks.sln
+
+# Option 2: Project-level (matches CI workflow)  
 dotnet restore Logibooks.Core.Tests/Logibooks.Core.Tests.csproj
 
 # Build the solution - takes ~20 seconds  
+# Option 1: Solution-level (builds all projects)
+dotnet build Logibooks.sln --no-restore --configuration Release
+
+# Option 2: Project-level (matches CI, builds dependencies automatically)
 dotnet build Logibooks.Core.Tests/Logibooks.Core.Tests.csproj --no-restore --configuration Release
 
 # Run tests - takes ~75 seconds, NEVER CANCEL. Set timeout to 30+ minutes.
+# Option 1: Solution-level
+dotnet test Logibooks.sln --configuration Release --verbosity normal
+
+# Option 2: Project-level (matches CI)
 dotnet test Logibooks.Core.Tests/Logibooks.Core.Tests.csproj --configuration Release --verbosity normal
 ```
 
@@ -182,7 +194,7 @@ dotnet test Logibooks.sln --configuration Release --collect:"XPlat Code Coverage
 dotnet watch run --project Logibooks.Core
 
 # Run specific test class
-dotnet test --filter "TestClass=ParcelsControllerTests"
+dotnet test --filter "FullyQualifiedName~ParcelsControllerTests"
 
 # Check EF migrations status (requires database connection)
 dotnet ef migrations list --project Logibooks.Core
