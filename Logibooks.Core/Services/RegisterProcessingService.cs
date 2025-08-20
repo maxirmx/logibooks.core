@@ -152,13 +152,13 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
         var countryAlpha2Lookup = (await _db.Countries.AsNoTracking().ToListAsync(cancellationToken))
             .ToDictionary(c => c.IsoNumeric, c => c.IsoAlpha2 ?? string.Empty);
 
-        List<BaseOrder> orders;
+        List<BaseParcel> orders;
         if (isWbr)
         {
             orders = await _db.WbrOrders.AsNoTracking()
                 .Where(o => o.RegisterId == registerId)
                 .OrderBy(o => o.Id)
-                .Cast<BaseOrder>()
+                .Cast<BaseParcel>()
                 .ToListAsync(cancellationToken);
         }
         else
@@ -166,7 +166,7 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
             orders = await _db.OzonOrders.AsNoTracking()
                 .Where(o => o.RegisterId == registerId)
                 .OrderBy(o => o.Id)
-                .Cast<BaseOrder>()
+                .Cast<BaseParcel>()
                 .ToListAsync(cancellationToken);
         }
 
@@ -197,7 +197,7 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
                 }
                 object? val = prop?.GetValue(baseOrder);
                 string cellValue = string.Empty;
-                if (propName == nameof(BaseOrder.CountryCode) && val is short countryNumeric)
+                if (propName == nameof(BaseParcel.CountryCode) && val is short countryNumeric)
                 {
                     cellValue = countryAlpha2Lookup.TryGetValue(countryNumeric, out var alpha2) ? alpha2 : countryNumeric.ToString();
                 }
@@ -320,7 +320,7 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
                 {
                     try
                     {
-                        if (propInfo.Name == nameof(BaseOrder.CountryCode))
+                        if (propInfo.Name == nameof(BaseParcel.CountryCode))
                         {
                             order.CountryCode = LookupCountryCode(val);
                             if (order.CountryCode == 0)
@@ -394,7 +394,7 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
                 {
                     try
                     {
-                        if (propInfo.Name == nameof(BaseOrder.CountryCode))
+                        if (propInfo.Name == nameof(BaseParcel.CountryCode))
                         {
                             order.CountryCode = LookupCountryCode(val);
                             if (order.CountryCode == 0)

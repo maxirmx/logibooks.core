@@ -31,7 +31,7 @@ namespace Logibooks.Core.Interfaces;
 
 public interface IParcelFeacnCodeLookupService
 {
-    Task LookupAsync(BaseOrder order,
+    Task LookupAsync(BaseParcel order,
         MorphologyContext morphologyContext,
         WordsLookupContext<KeyWord> wordsLookupContext,
         CancellationToken cancellationToken = default);

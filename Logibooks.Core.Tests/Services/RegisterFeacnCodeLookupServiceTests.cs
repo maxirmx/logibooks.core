@@ -78,7 +78,7 @@ public class RegisterFeacnCodeLookupServiceTests
 
         var mock = new Mock<IParcelFeacnCodeLookupService>();
         mock.Setup(m => m.LookupAsync(
-            It.IsAny<BaseOrder>(),
+            It.IsAny<BaseParcel>(),
             It.IsAny<MorphologyContext>(),
             It.IsAny<WordsLookupContext<KeyWord>>(),
             It.IsAny<CancellationToken>()))
@@ -96,7 +96,7 @@ public class RegisterFeacnCodeLookupServiceTests
         Assert.That(progress.Processed, Is.EqualTo(-1));
         Assert.That(progress.Finished, Is.True);
         mock.Verify(m => m.LookupAsync(
-            It.IsAny<BaseOrder>(),
+            It.IsAny<BaseParcel>(),
             It.IsAny<MorphologyContext>(),
             It.IsAny<WordsLookupContext<KeyWord>>(),
             It.IsAny<CancellationToken>()), Times.Exactly(2));
@@ -114,7 +114,7 @@ public class RegisterFeacnCodeLookupServiceTests
 
         var mock = new Mock<IParcelFeacnCodeLookupService>();
         mock.Setup(m => m.LookupAsync(
-            It.IsAny<BaseOrder>(),
+            It.IsAny<BaseParcel>(),
             It.IsAny<MorphologyContext>(),
             It.IsAny<WordsLookupContext<KeyWord>>(),
             It.IsAny<CancellationToken>()))
@@ -257,7 +257,7 @@ public class RegisterFeacnCodeLookupServiceTests
 
         var mock = new Mock<IParcelFeacnCodeLookupService>();
         mock.Setup(m => m.LookupAsync(
-            It.IsAny<BaseOrder>(),
+            It.IsAny<BaseParcel>(),
             It.IsAny<MorphologyContext>(),
             It.IsAny<WordsLookupContext<KeyWord>>(),
             It.IsAny<CancellationToken>()))
@@ -271,22 +271,22 @@ public class RegisterFeacnCodeLookupServiceTests
         await Task.Delay(100);
 
         mock.Verify(m => m.LookupAsync(
-            It.Is<BaseOrder>(o => o.Id == 201),
+            It.Is<BaseParcel>(o => o.Id == 201),
             It.IsAny<MorphologyContext>(),
             It.IsAny<WordsLookupContext<KeyWord>>(),
             It.IsAny<CancellationToken>()), Times.Once);
         mock.Verify(m => m.LookupAsync(
-            It.Is<BaseOrder>(o => o.Id == 202),
+            It.Is<BaseParcel>(o => o.Id == 202),
             It.IsAny<MorphologyContext>(),
             It.IsAny<WordsLookupContext<KeyWord>>(),
             It.IsAny<CancellationToken>()), Times.Never);
         mock.Verify(m => m.LookupAsync(
-            It.Is<BaseOrder>(o => o.Id == 203),
+            It.Is<BaseParcel>(o => o.Id == 203),
             It.IsAny<MorphologyContext>(),
             It.IsAny<WordsLookupContext<KeyWord>>(),
             It.IsAny<CancellationToken>()), Times.Never);
         mock.Verify(m => m.LookupAsync(
-            It.Is<BaseOrder>(o => o.Id == 204),
+            It.Is<BaseParcel>(o => o.Id == 204),
             It.IsAny<MorphologyContext>(),
             It.IsAny<WordsLookupContext<KeyWord>>(),
             It.IsAny<CancellationToken>()), Times.Never);

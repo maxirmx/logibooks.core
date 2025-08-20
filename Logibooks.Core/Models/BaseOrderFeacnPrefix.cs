@@ -32,7 +32,7 @@ public class BaseOrderFeacnPrefix
 {
     [Column("base_order_id")]
     public int BaseOrderId { get; set; }
-    public BaseOrder BaseOrder { get; set; } = null!;
+    public BaseParcel BaseOrder { get; set; } = null!;
 
     [Column("feacn_prefix_id")]
     public int FeacnPrefixId { get; set; }

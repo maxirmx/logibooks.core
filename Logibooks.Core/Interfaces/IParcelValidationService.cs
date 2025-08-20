@@ -31,7 +31,7 @@ namespace Logibooks.Core.Interfaces;
 
 public interface IParcelValidationService
 {
-    Task ValidateAsync(BaseOrder order,
+    Task ValidateAsync(BaseParcel order,
         MorphologyContext morphologyContext,
         WordsLookupContext<StopWord> wordsLookupContext,
         FeacnPrefixCheckContext? feacnContext = null,

@@ -37,7 +37,7 @@ public class ParcelMappingProfile : Profile
         MapOrderUpdate<OzonOrder>();
     }
 
-    private void MapOrderUpdate<TOrder>() where TOrder : BaseOrder
+    private void MapOrderUpdate<TOrder>() where TOrder : BaseParcel
     {
         CreateMap<ParcelUpdateItem, TOrder>()
             .ForMember(dest => dest.Id, opt => opt.Ignore())

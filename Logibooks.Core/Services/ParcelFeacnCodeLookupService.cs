@@ -37,7 +37,7 @@ public class ParcelFeacnCodeLookupService(
     private readonly IMorphologySearchService _morphService = morphService;
 
     public async Task LookupAsync(
-        BaseOrder order,
+        BaseParcel order,
         MorphologyContext morphologyContext,
         WordsLookupContext<KeyWord> wordsLookupContext,
         CancellationToken cancellationToken = default)

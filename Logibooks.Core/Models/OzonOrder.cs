@@ -30,7 +30,7 @@ using System.Globalization;
 namespace Logibooks.Core.Models;
 
 [Table("ozon_orders")]
-public class OzonOrder : BaseOrder
+public class OzonOrder : BaseParcel
 {
     [Column("posting_number")]
     public string? PostingNumber { get; set; }

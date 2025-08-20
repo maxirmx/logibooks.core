@@ -99,5 +99,5 @@ public class Register
     public CustomsProcedure? CustomsProcedure { get; set; }
 
     [JsonIgnore]
-    public ICollection<BaseOrder> Orders { get; set; } = new List<BaseOrder>();
+    public ICollection<BaseParcel> Orders { get; set; } = new List<BaseParcel>();
 }

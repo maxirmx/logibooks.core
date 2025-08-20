@@ -23,6 +23,7 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Logibooks.Core.Models;
@@ -33,7 +34,9 @@ public class FeacnPrefixException
     [Column("id")]
     public int Id { get; set; }
 
-    [Column("code")]
+    
+   [Column("code")]
+   [StringLength(FeacnCode.FeacnCodeLength)]
     public required string Code { get; set; } = string.Empty;
 
     [Column("feacn_prefix_id")]

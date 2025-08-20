@@ -32,10 +32,10 @@ using System.Text.Json.Serialization;
 
 namespace Logibooks.Core.Models;
 
-[Table("base_orders")]
-[Index(nameof(TnVed), Name = "IX_base_orders_tn_ved")]
-[Index(nameof(RegisterId), nameof(CheckStatusId), nameof(Id), Name = "IX_base_orders_registerid_checkstatusid_id")]
-public abstract class BaseOrder
+[Table("base_parcels")]
+[Index(nameof(TnVed), Name = "IX_base_parcels_tn_ved")]
+[Index(nameof(RegisterId), nameof(CheckStatusId), nameof(Id), Name = "IX_base_parcels_registerid_checkstatusid_id")]
+public abstract class BaseParcel
 {
     [Column("id")]
     public int Id { get; set; }
