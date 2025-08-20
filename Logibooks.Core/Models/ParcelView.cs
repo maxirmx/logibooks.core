@@ -51,5 +51,5 @@ public class ParcelView
 
     [ForeignKey("BaseOrderId")]
     [JsonIgnore]
-    public BaseOrder BaseOrder { get; set; } = null!;
+    public BaseParcel BaseOrder { get; set; } = null!;
 }

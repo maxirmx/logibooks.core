@@ -34,7 +34,7 @@ public class FeacnPrefixCheckService(AppDbContext db) : IFeacnPrefixCheckService
 {
     private readonly AppDbContext _db = db;
 
-    public async Task<IEnumerable<BaseOrderFeacnPrefix>> CheckOrderAsync(BaseOrder order, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<BaseOrderFeacnPrefix>> CheckOrderAsync(BaseParcel order, CancellationToken cancellationToken = default)
     {
         if (order.TnVed == null || order.TnVed.Length < 2)
         {
@@ -68,7 +68,7 @@ public class FeacnPrefixCheckService(AppDbContext db) : IFeacnPrefixCheckService
     }
 
     public IEnumerable<BaseOrderFeacnPrefix> CheckOrder(
-        BaseOrder order,
+        BaseParcel order,
         FeacnPrefixCheckContext context)
     {
         if (order.TnVed == null || order.TnVed.Length < 2)

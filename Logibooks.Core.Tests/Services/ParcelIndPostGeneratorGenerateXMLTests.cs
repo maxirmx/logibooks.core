@@ -125,7 +125,7 @@ namespace Logibooks.Core.Tests.Services
                     .ThenInclude(c => c!.Country)
                 .First(r => r.Id == 1);
 
-            BaseOrder order;
+            BaseParcel order;
             if (scenario == "Individual")
             {
                 order = new OzonOrder {

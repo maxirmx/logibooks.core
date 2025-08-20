@@ -32,7 +32,7 @@ public class BaseOrderStopWord
 {
     [Column("base_order_id")]
     public int BaseOrderId { get; set; }
-    public BaseOrder BaseOrder { get; set; } = null!;
+    public BaseParcel BaseOrder { get; set; } = null!;
 
     [Column("stop_word_id")]
     public int StopWordId { get; set; }

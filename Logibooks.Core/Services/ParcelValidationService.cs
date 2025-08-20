@@ -41,7 +41,7 @@ public class ParcelValidationService(
     private static readonly Regex TnVedRegex = new($"^\\d{{{FeacnPrefix.FeacnCodeLength}}}$", RegexOptions.Compiled);
 
     public async Task ValidateAsync(
-        BaseOrder order,
+        BaseParcel order,
         MorphologyContext morphologyContext,
         WordsLookupContext<StopWord> wordsLookupContext,
         FeacnPrefixCheckContext? feacnContext = null,

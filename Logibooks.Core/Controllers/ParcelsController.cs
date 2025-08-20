@@ -98,7 +98,7 @@ public class ParcelsController(
         }
 
         // Now query the specific order type with all required includes
-        BaseOrder? order = null;
+        BaseParcel? order = null;
         int companyId = orderWithRegister.Register.CompanyId;
 
         if (companyId == IRegisterProcessingService.GetWBRId())
@@ -176,7 +176,7 @@ public class ParcelsController(
         }
 
         // Now query the specific order type for update
-        BaseOrder? order = null;
+        BaseParcel? order = null;
         int companyId = orderWithRegister.Register.CompanyId;
 
         if (companyId == IRegisterProcessingService.GetWBRId())
@@ -296,7 +296,7 @@ public class ParcelsController(
             return _404Register(registerId);
         }
 
-        List<BaseOrder> items;
+        List<BaseParcel> items;
         int totalCount;
         int actualPage;
         int actualPageSize;
@@ -358,7 +358,7 @@ public class ParcelsController(
             items = (await query
                 .Skip((actualPage - 1) * actualPageSize)
                 .Take(actualPageSize)
-                .ToListAsync()).Cast<BaseOrder>().ToList();
+                .ToListAsync()).Cast<BaseParcel>().ToList();
         }
         else if (register.CompanyId == IRegisterProcessingService.GetOzonId())
         {
@@ -416,7 +416,7 @@ public class ParcelsController(
             items = (await query
                 .Skip((actualPage - 1) * actualPageSize)
                 .Take(actualPageSize)
-                .ToListAsync()).Cast<BaseOrder>().ToList();
+                .ToListAsync()).Cast<BaseParcel>().ToList();
         }
         else
         {

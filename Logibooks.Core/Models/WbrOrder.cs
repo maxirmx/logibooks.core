@@ -33,7 +33,7 @@ namespace Logibooks.Core.Models;
 
 [Table("wbr_orders")]
 [Index(nameof(Shk), Name = "IX_wbr_orders_shk")]
-public class WbrOrder : BaseOrder
+public class WbrOrder : BaseParcel
 {
     [Column("row_number")]
     public int RowNumber { get; set; }

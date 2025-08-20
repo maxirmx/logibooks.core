@@ -32,7 +32,7 @@ using System.Threading.Tasks;
 using System.Linq;
 using System.Collections.Generic;
 
-namespace Logibooks.Core.Tests.Data;
+namespace Logibooks.Core.Tests.Services;
 
 public class UserInformationServiceTests
 {

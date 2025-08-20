@@ -66,7 +66,7 @@ public class ParcelIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServi
         return (GenerateFilename(order), GenerateXML(order));
     }
 
-    public string GenerateXML(BaseOrder order)
+    public string GenerateXML(BaseParcel order)
     {
         // Skip if in [HasIssues, NoIssues)
         if (order.CheckStatusId >= (int)ParcelCheckStatusCode.HasIssues && order.CheckStatusId < (int)ParcelCheckStatusCode.NoIssues)
@@ -162,7 +162,7 @@ public class ParcelIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServi
 
         var goodsItems = new List<IDictionary<string, string?>>();
 
-        IEnumerable<BaseOrder> ordersForGoods;
+        IEnumerable<BaseParcel> ordersForGoods;
         if (order is OzonOrder ozonOrder)
         {
             ordersForGoods = 
@@ -202,13 +202,13 @@ public class ParcelIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServi
                 totalWeight += weight;
         }
 
-        fields["ALLWEIGHT"] = BaseOrder.FormatWeight(totalWeight);
-        fields["ALLCOST"] = BaseOrder.FormatCost(totalCost);
+        fields["ALLWEIGHT"] = BaseParcel.FormatWeight(totalWeight);
+        fields["ALLCOST"] = BaseParcel.FormatCost(totalCost);
         var xml = _xmlService.CreateXml(fields, goodsItems);
         return xml;
     }
 
-    public string GenerateFilename(BaseOrder order) => $"IndPost_{order.GetParcelNumber()}.xml";
+    public string GenerateFilename(BaseParcel order) => $"IndPost_{order.GetParcelNumber()}.xml";
 
     public async Task<(string, byte[])> GenerateXML4R(int registerId)
     {
@@ -220,7 +220,7 @@ public class ParcelIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServi
             throw new InvalidOperationException($"Register not found [id={registerId}]");
         }
 
-        List<BaseOrder> orders;
+        List<BaseParcel> orders;
         if (register.CompanyId == IRegisterProcessingService.GetWBRId())
         {
             orders = await _db.WbrOrders.AsNoTracking()
@@ -233,7 +233,7 @@ public class ParcelIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServi
                 .Where(o => o.RegisterId == registerId && !(o.CheckStatusId >= (int)ParcelCheckStatusCode.HasIssues && o.CheckStatusId < (int)ParcelCheckStatusCode.NoIssues))
                 .GroupBy(o => o.Shk)
                 .Select(g => g.First())
-                .Cast<BaseOrder>()
+                .Cast<BaseParcel>()
                 .ToListAsync();
         }
         else if (register.CompanyId == IRegisterProcessingService.GetOzonId())
@@ -248,7 +248,7 @@ public class ParcelIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServi
                 .Where(o => o.RegisterId == registerId && !(o.CheckStatusId >= (int)ParcelCheckStatusCode.HasIssues && o.CheckStatusId < (int)ParcelCheckStatusCode.NoIssues))
                 .GroupBy(o => o.PostingNumber)
                 .Select(g => g.First())
-                .Cast<BaseOrder>()
+                .Cast<BaseParcel>()
                 .ToListAsync();
         }
         else

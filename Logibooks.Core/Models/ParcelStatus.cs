@@ -38,5 +38,5 @@ public class ParcelStatus
     public required string Title { get; set; }
 
     [JsonIgnore]
-    public ICollection<BaseOrder> Orders { get; set; } = [];
+    public ICollection<BaseParcel> Orders { get; set; } = [];
 }
