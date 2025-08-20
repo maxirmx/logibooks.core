@@ -258,11 +258,7 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
                 if (!string.IsNullOrWhiteSpace(country.IsoAlpha2))
                 {
                     var alpha2Key = country.IsoAlpha2.ToUpperInvariant();
-                    if (!_countryLookup.ContainsKey(alpha2Key))
-                    {
-                        _countryLookup[alpha2Key] = country.IsoNumeric;
-                    }
-                    else
+                    if (!_countryLookup.TryAdd(alpha2Key, country.IsoNumeric))
                     {
                         _logger.LogWarning("Duplicate IsoAlpha2 country code detected: {Code}. Using first occurrence.", alpha2Key);
                     }
@@ -271,11 +267,7 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
                 // Add NameRuShort lookup (case-insensitive)
                 if (!string.IsNullOrWhiteSpace(country.NameRuShort))
                 {
-                    if (!_countryLookup.ContainsKey(country.NameRuShort))
-                    {
-                        _countryLookup[country.NameRuShort] = country.IsoNumeric;
-                    }
-                    else
+                    if (!_countryLookup.TryAdd(country.NameRuShort, country.IsoNumeric))
                     {
                         _logger.LogWarning("Duplicate NameRuShort country name detected: {Name}. Using first occurrence.", country.NameRuShort);
                     }
@@ -283,13 +275,10 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
 
                 // Add IsoNumeric lookup (as string)
                 var numericKey = country.IsoNumeric.ToString();
-                if (!_countryLookup.ContainsKey(numericKey))
-                {
-                    _countryLookup[numericKey] = country.IsoNumeric;
-                }
+                _countryLookup.TryAdd(numericKey, country.IsoNumeric);
             }
 
-            // Add special case for Russia
+            // Add special case for Russia (may overwrite existing entry, which is intentional)
             _countryLookup["Россия"] = 643;
         }
     }

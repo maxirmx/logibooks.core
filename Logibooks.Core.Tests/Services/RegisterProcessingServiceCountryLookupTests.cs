@@ -1,4 +1,4 @@
-// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
+п»ї// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
 // All rights reserved.
 // This file is a part of Logibooks Core application
 
@@ -37,61 +37,61 @@ public class RegisterProcessingServiceCountryLookupTests
             { 
                 IsoNumeric = 643, 
                 IsoAlpha2 = "RU", 
-                NameRuShort = "Российская Федерация",
+                NameRuShort = "Р РѕСЃСЃРёР№СЃРєР°СЏ Р¤РµРґРµСЂР°С†РёСЏ",
                 NameEnShort = "Russian Federation",
                 NameEnFormal = "Russian Federation",
                 NameEnOfficial = "Russian Federation", 
                 NameEnCldr = "Russia",
-                NameRuFormal = "Российская Федерация",
-                NameRuOfficial = "Российская Федерация"
+                NameRuFormal = "Р РѕСЃСЃРёР№СЃРєР°СЏ Р¤РµРґРµСЂР°С†РёСЏ",
+                NameRuOfficial = "Р РѕСЃСЃРёР№СЃРєР°СЏ Р¤РµРґРµСЂР°С†РёСЏ"
             },
             new Country 
             { 
                 IsoNumeric = 860, 
                 IsoAlpha2 = "UZ", 
-                NameRuShort = "Узбекистан",
+                NameRuShort = "РЈР·Р±РµРєРёСЃС‚Р°РЅ",
                 NameEnShort = "Uzbekistan",
                 NameEnFormal = "Republic of Uzbekistan",
                 NameEnOfficial = "Republic of Uzbekistan",
                 NameEnCldr = "Uzbekistan",
-                NameRuFormal = "Республика Узбекистан",
-                NameRuOfficial = "Республика Узбекистан"
+                NameRuFormal = "Р РµСЃРїСѓР±Р»РёРєР° РЈР·Р±РµРєРёСЃС‚Р°РЅ",
+                NameRuOfficial = "Р РµСЃРїСѓР±Р»РёРєР° РЈР·Р±РµРєРёСЃС‚Р°РЅ"
             },
             new Country 
             { 
                 IsoNumeric = 840, 
                 IsoAlpha2 = "US", 
-                NameRuShort = "США",
+                NameRuShort = "РЎРЁРђ",
                 NameEnShort = "United States",
                 NameEnFormal = "United States of America",
                 NameEnOfficial = "United States of America",
                 NameEnCldr = "United States",
-                NameRuFormal = "Соединенные Штаты Америки",
-                NameRuOfficial = "Соединенные Штаты Америки"
+                NameRuFormal = "РЎРѕРµРґРёРЅРµРЅРЅС‹Рµ РЁС‚Р°С‚С‹ РђРјРµСЂРёРєРё",
+                NameRuOfficial = "РЎРѕРµРґРёРЅРµРЅРЅС‹Рµ РЁС‚Р°С‚С‹ РђРјРµСЂРёРєРё"
             },
             new Country 
             { 
                 IsoNumeric = 156, 
                 IsoAlpha2 = "CN", 
-                NameRuShort = "Китай",
+                NameRuShort = "РљРёС‚Р°Р№",
                 NameEnShort = "China",
                 NameEnFormal = "People's Republic of China",
                 NameEnOfficial = "People's Republic of China",
                 NameEnCldr = "China",
-                NameRuFormal = "Китайская Народная Республика",
-                NameRuOfficial = "Китайская Народная Республика"
+                NameRuFormal = "РљРёС‚Р°Р№СЃРєР°СЏ РќР°СЂРѕРґРЅР°СЏ Р РµСЃРїСѓР±Р»РёРєР°",
+                NameRuOfficial = "РљРёС‚Р°Р№СЃРєР°СЏ РќР°СЂРѕРґРЅР°СЏ Р РµСЃРїСѓР±Р»РёРєР°"
             },
             new Country 
             { 
                 IsoNumeric = 276, 
                 IsoAlpha2 = "DE", 
-                NameRuShort = "Германия",
+                NameRuShort = "Р“РµСЂРјР°РЅРёСЏ",
                 NameEnShort = "Germany",
                 NameEnFormal = "Federal Republic of Germany",
                 NameEnOfficial = "Federal Republic of Germany",
                 NameEnCldr = "Germany",
-                NameRuFormal = "Федеративная Республика Германия",
-                NameRuOfficial = "Федеративная Республика Германия"
+                NameRuFormal = "Р¤РµРґРµСЂР°С‚РёРІРЅР°СЏ Р РµСЃРїСѓР±Р»РёРєР° Р“РµСЂРјР°РЅРёСЏ",
+                NameRuOfficial = "Р¤РµРґРµСЂР°С‚РёРІРЅР°СЏ Р РµСЃРїСѓР±Р»РёРєР° Р“РµСЂРјР°РЅРёСЏ"
             }
         ]);
         _context.SaveChanges();
@@ -144,19 +144,19 @@ public class RegisterProcessingServiceCountryLookupTests
         await (Task)initMethod!.Invoke(_service, [CancellationToken.None])!;
         
         // Test NameRuShort lookup
-        var result = (short)method!.Invoke(_service, ["Российская Федерация"])!;
+        var result = (short)method!.Invoke(_service, ["Р РѕСЃСЃРёР№СЃРєР°СЏ Р¤РµРґРµСЂР°С†РёСЏ"])!;
         Assert.That(result, Is.EqualTo(643));
         
-        result = (short)method.Invoke(_service, ["Узбекистан"])!;
+        result = (short)method.Invoke(_service, ["РЈР·Р±РµРєРёСЃС‚Р°РЅ"])!;
         Assert.That(result, Is.EqualTo(860));
         
-        result = (short)method.Invoke(_service, ["США"])!;
+        result = (short)method.Invoke(_service, ["РЎРЁРђ"])!;
         Assert.That(result, Is.EqualTo(840));
         
-        result = (short)method.Invoke(_service, ["Китай"])!;
+        result = (short)method.Invoke(_service, ["РљРёС‚Р°Р№"])!;
         Assert.That(result, Is.EqualTo(156));
         
-        result = (short)method.Invoke(_service, ["Германия"])!;
+        result = (short)method.Invoke(_service, ["Р“РµСЂРјР°РЅРёСЏ"])!;
         Assert.That(result, Is.EqualTo(276));
     }
 
@@ -199,8 +199,8 @@ public class RegisterProcessingServiceCountryLookupTests
         // Initialize lookup
         await (Task)initMethod!.Invoke(_service, [CancellationToken.None])!;
         
-        // Test special "Россия" value (should map to Russia's ISO numeric code 643)
-        var result = (short)method!.Invoke(_service, ["Россия"])!;
+        // Test special "Р РѕСЃСЃРёСЏ" value (should map to Russia's ISO numeric code 643)
+        var result = (short)method!.Invoke(_service, ["Р РѕСЃСЃРёСЏ"])!;
         Assert.That(result, Is.EqualTo(643));
     }
 
@@ -275,7 +275,7 @@ public class RegisterProcessingServiceCountryLookupTests
         result = (short)method.Invoke(_service, ["ZZ"])!;
         Assert.That(result, Is.EqualTo(0));
         
-        result = (short)method.Invoke(_service, ["Несуществующая страна"])!;
+        result = (short)method.Invoke(_service, ["РќРµСЃСѓС‰РµСЃС‚РІСѓСЋС‰Р°СЏ СЃС‚СЂР°РЅР°"])!;
         Assert.That(result, Is.EqualTo(0));
     }
 
@@ -315,8 +315,8 @@ public class RegisterProcessingServiceCountryLookupTests
         // Test that all input types work for the same country (Russia)
         var resultAlpha2 = (short)method!.Invoke(_service, ["RU"])!;
         var resultNumeric = (short)method.Invoke(_service, ["643"])!;
-        var resultNameRu = (short)method.Invoke(_service, ["Российская Федерация"])!;
-        var resultSpecial = (short)method.Invoke(_service, ["Россия"])!;
+        var resultNameRu = (short)method.Invoke(_service, ["Р РѕСЃСЃРёР№СЃРєР°СЏ Р¤РµРґРµСЂР°С†РёСЏ"])!;
+        var resultSpecial = (short)method.Invoke(_service, ["Р РѕСЃСЃРёСЏ"])!;
         
         // All should return the same value (643 for Russia)
         Assert.That(resultAlpha2, Is.EqualTo(643));
