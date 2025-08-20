@@ -63,6 +63,7 @@ builder.Services
     .AddScoped<IRegisterValidationService, RegisterValidationService>()
     .AddScoped<IRegisterProcessingService, RegisterProcessingService>()
     .AddScoped<IKeywordsProcessingService, KeywordsProcessingService>()
+    .AddScoped<IFeacnListProcessingService, FeacnListProcessingService>()
     .AddScoped<IIndPostXmlService, IndPostXmlService>()
     .AddScoped<IParcelIndPostGenerator, ParcelIndPostGenerator>()
     .AddScoped<IUserInformationService, UserInformationService>()
