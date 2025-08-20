@@ -27,6 +27,7 @@ using System.Data;
 using System.Globalization;
 using ExcelDataReader;
 using Logibooks.Core.Data;
+using Logibooks.Core.Extensions;
 using Logibooks.Core.Interfaces;
 using Logibooks.Core.Models;
 using Microsoft.EntityFrameworkCore;
@@ -103,15 +104,15 @@ public class FeacnListProcessingService(
         if (table.Rows.Count < 2)
             throw new InvalidOperationException("Excel file must contain at least header row and one data row");
         
-        // Validate header row
-        ValidateHeaderRow(table);
+        // Validate header row and get column mapping
+        var columnMap = ValidateHeaderRow(table);
         
         // Parse data rows (skip header row at index 0)
         for (int rowIndex = 1; rowIndex < table.Rows.Count; rowIndex++)
         {
             try
             {
-                var row = ParseSingleRow(table.Rows[rowIndex], rowIndex + 1);
+                var row = ParseSingleRow(table.Rows[rowIndex], columnMap, rowIndex + 1);
                 if (row.HasValue)
                 {
                     rows.Add(row.Value);
@@ -126,84 +127,105 @@ public class FeacnListProcessingService(
         return rows;
     }
 
-    private void ValidateHeaderRow(DataTable table)
+    private Dictionary<string, int> ValidateHeaderRow(DataTable table)
     {
-        var expectedHeaders = new[] { "ID", "Child", "Next", "Level", "Code", "CodeEx", 
-            "Date1", "Date2", "DatePrev", "TextPrev", "Text", "TextEx", "Unit", "UnitCode" };
+        var requiredHeaders = new[] { "ID", "Child", "Next", "Level", "Code", "CodeEx", 
+            "Date1", "Date2", "DatePrev", "TextPrev", "Text", "TextEx" };
         
-        if (table.Columns.Count < expectedHeaders.Length)
-            throw new InvalidOperationException($"Excel file must contain at least {expectedHeaders.Length} columns");
+        var columnMap = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         
-        for (int i = 0; i < expectedHeaders.Length; i++)
+        // Map header names to column indices
+        for (int i = 0; i < table.Columns.Count; i++)
         {
-            var actualHeader = table.Rows[0][i]?.ToString()?.Trim() ?? "";
-            if (!string.Equals(actualHeader, expectedHeaders[i], StringComparison.OrdinalIgnoreCase))
+            var headerName = table.Rows[0][i]?.ToString()?.Trim() ?? "";
+            if (!string.IsNullOrEmpty(headerName))
             {
-                _logger.LogWarning("Header mismatch at column {Column}: expected '{Expected}', got '{Actual}'", 
-                    i + 1, expectedHeaders[i], actualHeader);
+                columnMap[headerName] = i;
             }
         }
+        
+        // Check for required headers
+        var missingHeaders = new List<string>();
+        foreach (var header in requiredHeaders)
+        {
+            if (!columnMap.ContainsKey(header))
+            {
+                missingHeaders.Add(header);
+            }
+        }
+        
+        if (missingHeaders.Any())
+        {
+            throw new InvalidOperationException($"Excel file is missing required columns: {string.Join(", ", missingHeaders)}");
+        }
+        
+        _logger.LogInformation("Successfully mapped {Count} columns from Excel headers", columnMap.Count);
+        return columnMap;
     }
 
-    private FeacnExcelRow? ParseSingleRow(DataRow row, int rowNumber)
+    private FeacnExcelRow? ParseSingleRow(DataRow row, Dictionary<string, int> columnMap, int rowNumber)
     {
         // Parse ID (required)
-        var idValue = row[0]?.ToString()?.Trim() ?? "";
-        if (string.IsNullOrEmpty(idValue) || !int.TryParse(idValue, out var id))
+        var idValue = GetColumnValue(row, columnMap, "ID");
+        var id = (int?)ExcelDataConverter.ConvertValueToPropertyType(idValue, typeof(int), "ID", _logger);
+        if (!id.HasValue || id.Value == 0)
         {
             _logger.LogDebug("Skipping row {RowNumber}: invalid or missing ID", rowNumber);
             return null;
         }
         
         // Parse Child ID (optional)
-        int? childId = null;
-        var childValue = row[1]?.ToString()?.Trim() ?? "";
-        if (!string.IsNullOrEmpty(childValue) && int.TryParse(childValue, out var childParsed))
-        {
-            childId = childParsed;
-        }
+        var childValue = GetColumnValue(row, columnMap, "Child");
+        var childId = (int?)ExcelDataConverter.ConvertValueToPropertyType(childValue, typeof(int?), "Child", _logger);
         
         // Parse Next ID (optional)
-        int? nextId = null;
-        var nextValue = row[2]?.ToString()?.Trim() ?? "";
-        if (!string.IsNullOrEmpty(nextValue) && int.TryParse(nextValue, out var nextParsed))
-        {
-            nextId = nextParsed;
-        }
+        var nextValue = GetColumnValue(row, columnMap, "Next");
+        var nextId = (int?)ExcelDataConverter.ConvertValueToPropertyType(nextValue, typeof(int?), "Next", _logger);
         
         // Parse Level (required)
-        var levelValue = row[3]?.ToString()?.Trim() ?? "";
-        if (!int.TryParse(levelValue, out var level))
-        {
-            _logger.LogWarning("Row {RowNumber}: invalid level value '{Level}', using 0", rowNumber, levelValue);
-            level = 0;
-        }
+        var levelValue = GetColumnValue(row, columnMap, "Level");
+        var level = (int?)ExcelDataConverter.ConvertValueToPropertyType(levelValue, typeof(int), "Level", _logger) ?? 0;
         
         // Parse Code
-        var code = TruncateWithWarning(row[4]?.ToString()?.Trim() ?? "", FeacnCode.FeacnCodeLength, 
-            "Code", rowNumber);
+        var codeValue = GetColumnValue(row, columnMap, "Code");
+        var code = TruncateWithWarning(codeValue ?? "", FeacnCode.FeacnCodeLength, "Code", rowNumber);
         
         // Parse CodeEx
-        var codeEx = TruncateWithWarning(row[5]?.ToString()?.Trim() ?? "", FeacnCode.FeacnCodeLength, 
-            "CodeEx", rowNumber);
+        var codeExValue = GetColumnValue(row, columnMap, "CodeEx");
+        var codeEx = TruncateWithWarning(codeExValue ?? "", FeacnCode.FeacnCodeLength, "CodeEx", rowNumber);
         
-        // Parse dates
-        var date1 = ParseDateOnly(row[6]?.ToString()?.Trim(), "Date1", rowNumber);
-        var date2 = ParseDateOnly(row[7]?.ToString()?.Trim(), "Date2", rowNumber);
-        var datePrev = ParseDateOnly(row[8]?.ToString()?.Trim(), "DatePrev", rowNumber);
+        // Parse dates using the converter helper
+        var date1Value = GetColumnValue(row, columnMap, "Date1");
+        var date1 = (DateOnly?)ExcelDataConverter.ConvertValueToPropertyType(date1Value, typeof(DateOnly?), "Date1", _logger);
+        
+        var date2Value = GetColumnValue(row, columnMap, "Date2");
+        var date2 = (DateOnly?)ExcelDataConverter.ConvertValueToPropertyType(date2Value, typeof(DateOnly?), "Date2", _logger);
+        
+        var datePrevValue = GetColumnValue(row, columnMap, "DatePrev");
+        var datePrev = (DateOnly?)ExcelDataConverter.ConvertValueToPropertyType(datePrevValue, typeof(DateOnly?), "DatePrev", _logger);
         
         // Parse text fields
-        var textPrev = row[9]?.ToString()?.Trim();
+        var textPrev = GetColumnValue(row, columnMap, "TextPrev");
         if (string.IsNullOrEmpty(textPrev)) textPrev = null;
         
-        var text = row[10]?.ToString()?.Trim() ?? "";
-        var textEx = row[11]?.ToString()?.Trim();
+        var text = GetColumnValue(row, columnMap, "Text") ?? "";
+        
+        var textEx = GetColumnValue(row, columnMap, "TextEx");
         if (string.IsNullOrEmpty(textEx)) textEx = null;
         
         // Unit and UnitCode are ignored as per requirements
         
-        return new FeacnExcelRow(id, childId, nextId, level, code, codeEx, 
+        return new FeacnExcelRow(id.Value, childId, nextId, level, code, codeEx, 
             date1, date2, datePrev, textPrev, text, textEx);
+    }
+    
+    private string? GetColumnValue(DataRow row, Dictionary<string, int> columnMap, string columnName)
+    {
+        if (columnMap.TryGetValue(columnName, out int columnIndex) && columnIndex < row.Table.Columns.Count)
+        {
+            return row[columnIndex]?.ToString()?.Trim();
+        }
+        return null;
     }
 
     private string TruncateWithWarning(string value, int maxLength, string fieldName, int rowNumber)
@@ -219,34 +241,6 @@ public class FeacnListProcessingService(
         }
         
         return value;
-    }
-
-    private DateOnly? ParseDateOnly(string? dateValue, string fieldName, int rowNumber)
-    {
-        if (string.IsNullOrWhiteSpace(dateValue))
-            return null;
-        
-        // Try various date formats
-        var formats = new[] { "yyyy-MM-dd", "dd.MM.yyyy", "MM/dd/yyyy", "dd/MM/yyyy" };
-        
-        foreach (var format in formats)
-        {
-            if (DateTime.TryParseExact(dateValue, format, CultureInfo.InvariantCulture, 
-                DateTimeStyles.None, out var parsedDate))
-            {
-                return DateOnly.FromDateTime(parsedDate);
-            }
-        }
-        
-        // Try general parsing
-        if (DateTime.TryParse(dateValue, out var generalParsedDate))
-        {
-            return DateOnly.FromDateTime(generalParsedDate);
-        }
-        
-        _logger.LogWarning("Row {RowNumber}: Could not parse {FieldName} date value '{DateValue}'", 
-            rowNumber, fieldName, dateValue);
-        return null;
     }
 
     private List<FeacnCode> BuildFeacnCodesFromExcelRows(List<FeacnExcelRow> excelRows)
