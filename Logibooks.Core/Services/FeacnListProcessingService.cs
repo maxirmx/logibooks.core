@@ -301,56 +301,69 @@ public class FeacnListProcessingService(
 
     private async Task<int> ReplaceFeacnCodesInDatabaseAsync(List<FeacnCode> feacnCodes, CancellationToken cancellationToken)
     {
-        using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
+        // Check if we're using in-memory database (doesn't support transactions)
+        bool isInMemory = _db.Database.ProviderName == "Microsoft.EntityFrameworkCore.InMemory";
         
-        try
+        if (!isInMemory)
         {
-            _logger.LogInformation("Starting database transaction to replace FEACN codes");
-            
-            // Clear existing data
-            var existingCodes = await _db.FeacnCodes.ToListAsync(cancellationToken);
-            if (existingCodes.Any())
+            using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
+            try
             {
-                _db.FeacnCodes.RemoveRange(existingCodes);
-                await _db.SaveChangesAsync(cancellationToken);
-                _logger.LogInformation("Removed {Count} existing FEACN codes", existingCodes.Count);
+                var result = await ReplaceDataAsync(feacnCodes, cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during database transaction, rolling back");
+                await transaction.RollbackAsync(cancellationToken);
+                throw;
+            }
+        }
+        else
+        {
+            // For in-memory database, just perform the operations without transaction
+            _logger.LogInformation("Using in-memory database, skipping transaction");
+            return await ReplaceDataAsync(feacnCodes, cancellationToken);
+        }
+    }
+
+    private async Task<int> ReplaceDataAsync(List<FeacnCode> feacnCodes, CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Starting FEACN codes replacement");
+        
+        // Clear existing data
+        var existingCodes = await _db.FeacnCodes.ToListAsync(cancellationToken);
+        if (existingCodes.Any())
+        {
+            _db.FeacnCodes.RemoveRange(existingCodes);
+            await _db.SaveChangesAsync(cancellationToken);
+            _logger.LogInformation("Removed {Count} existing FEACN codes", existingCodes.Count);
+        }
+        
+        // Add new data in batches
+        var batchSize = 1000;
+        var insertedCount = 0;
+        
+        for (int i = 0; i < feacnCodes.Count; i += batchSize)
+        {
+            var batch = feacnCodes.Skip(i).Take(batchSize).ToList();
+            
+            // Clear entity tracking to avoid conflicts
+            foreach (var entity in batch)
+            {
+                entity.Id = 0; // Let EF generate new IDs
+                entity.ParentId = null; // Will set parent relationships after first save
             }
             
-            // Add new data in batches
-            var batchSize = 1000;
-            var insertedCount = 0;
+            await _db.FeacnCodes.AddRangeAsync(batch, cancellationToken);
+            await _db.SaveChangesAsync(cancellationToken);
             
-            for (int i = 0; i < feacnCodes.Count; i += batchSize)
-            {
-                var batch = feacnCodes.Skip(i).Take(batchSize).ToList();
-                
-                // Clear entity tracking to avoid conflicts
-                foreach (var entity in batch)
-                {
-                    entity.Id = 0; // Let EF generate new IDs
-                    entity.ParentId = null; // Will set parent relationships after first save
-                }
-                
-                await _db.FeacnCodes.AddRangeAsync(batch, cancellationToken);
-                await _db.SaveChangesAsync(cancellationToken);
-                
-                insertedCount += batch.Count;
-                _logger.LogDebug("Inserted batch {BatchStart}-{BatchEnd}", i + 1, i + batch.Count);
-            }
-            
-            // Now update parent relationships
-            // TODO: Implement parent relationship updates if needed for hierarchical structure
-            
-            await transaction.CommitAsync(cancellationToken);
-            _logger.LogInformation("Successfully replaced FEACN codes table with {Count} records", insertedCount);
-            
-            return insertedCount;
+            insertedCount += batch.Count;
+            _logger.LogDebug("Inserted batch {BatchStart}-{BatchEnd}", i + 1, i + batch.Count);
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error during database transaction, rolling back");
-            await transaction.RollbackAsync(cancellationToken);
-            throw;
-        }
+        
+        _logger.LogInformation("Successfully replaced FEACN codes with {Count} records", insertedCount);
+        return insertedCount;
     }
 }
