@@ -408,6 +408,12 @@ namespace Logibooks.Core.Data
                 .HasOne(bokw => bokw.KeyWord)
                 .WithMany(kw => kw.BaseOrderKeyWords)
                 .HasForeignKey(bokw => bokw.KeyWordId);
+
+            modelBuilder.Entity<FeacnCode>()
+                .HasOne(fc => fc.Parent)
+                .WithMany(p => p.Children)
+                .HasForeignKey(fc => fc.ParentId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }
