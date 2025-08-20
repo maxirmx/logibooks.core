@@ -205,9 +205,37 @@ namespace Logibooks.Core.Data
                 .WithMany(p => p.FeacnPrefixExceptions)
                 .HasForeignKey(e => e.FeacnPrefixId);
 
+            modelBuilder.Entity<KeyWord>()
+                .HasOne(k => k.MatchType)
+                .WithMany(mt => mt.KeyWords)
+                .HasForeignKey(k => k.MatchTypeId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<KeyWordFeacnCode>()
+                .HasKey(kwfc => new { kwfc.KeyWordId, kwfc.FeacnCode });
+
+            modelBuilder.Entity<KeyWordFeacnCode>()
+                .HasOne(kwfc => kwfc.KeyWord)
+                .WithMany(kw => kw.KeyWordFeacnCodes)
+                .HasForeignKey(kwfc => kwfc.KeyWordId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<BaseOrderKeyWord>()
+                .HasKey(bokw => new { bokw.BaseOrderId, bokw.KeyWordId });
+
+            modelBuilder.Entity<BaseOrderKeyWord>()
+                .HasOne(bokw => bokw.BaseOrder)
+                .WithMany(bo => bo.BaseOrderKeyWords)
+                .HasForeignKey(bokw => bokw.BaseOrderId);
+
+            modelBuilder.Entity<BaseOrderKeyWord>()
+                .HasOne(bokw => bokw.KeyWord)
+                .WithMany(kw => kw.BaseOrderKeyWords)
+                .HasForeignKey(bokw => bokw.KeyWordId);
+
             modelBuilder.Entity<FeacnCode>()
                 .HasOne(fc => fc.Parent)
-                .WithMany(fc => fc.Children)
+                .WithMany(p => p.Children)
                 .HasForeignKey(fc => fc.ParentId)
                 .OnDelete(DeleteBehavior.SetNull);
 
@@ -380,40 +408,6 @@ namespace Logibooks.Core.Data
                 new WordMatchType { Id = (int)WordMatchTypeCode.WeakMorphology, Name = "Слово и его формы (Золото -> c золотом, о золоте, ...)" },
                 new WordMatchType { Id = (int)WordMatchTypeCode.StrongMorphology, Name = "Слово и однокоренные (Золото -> золотой, золотистый, ...)" }
             );
-
-            modelBuilder.Entity<KeyWord>()
-                .HasOne(k => k.MatchType)
-                .WithMany(mt => mt.KeyWords)
-                .HasForeignKey(k => k.MatchTypeId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            modelBuilder.Entity<KeyWordFeacnCode>()
-                .HasKey(kwfc => new { kwfc.KeyWordId, kwfc.FeacnCode });
-
-            modelBuilder.Entity<KeyWordFeacnCode>()
-                .HasOne(kwfc => kwfc.KeyWord)
-                .WithMany(kw => kw.KeyWordFeacnCodes)
-                .HasForeignKey(kwfc => kwfc.KeyWordId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            modelBuilder.Entity<BaseOrderKeyWord>()
-                .HasKey(bokw => new { bokw.BaseOrderId, bokw.KeyWordId });
-
-            modelBuilder.Entity<BaseOrderKeyWord>()
-                .HasOne(bokw => bokw.BaseOrder)
-                .WithMany(bo => bo.BaseOrderKeyWords)
-                .HasForeignKey(bokw => bokw.BaseOrderId);
-
-            modelBuilder.Entity<BaseOrderKeyWord>()
-                .HasOne(bokw => bokw.KeyWord)
-                .WithMany(kw => kw.BaseOrderKeyWords)
-                .HasForeignKey(bokw => bokw.KeyWordId);
-
-            modelBuilder.Entity<FeacnCode>()
-                .HasOne(fc => fc.Parent)
-                .WithMany(p => p.Children)
-                .HasForeignKey(fc => fc.ParentId)
-                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

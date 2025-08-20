@@ -24,9 +24,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 using System.Globalization;
-using Microsoft.Extensions.Logging;
-
-namespace Logibooks.Core.Extensions;
+namespace Logibooks.Core.Services;
 
 /// <summary>
 /// Helper class for converting Excel cell values to strongly typed properties

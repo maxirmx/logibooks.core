@@ -27,7 +27,6 @@ using System.Data;
 using System.Globalization;
 using ExcelDataReader;
 using Logibooks.Core.Data;
-using Logibooks.Core.Extensions;
 using Logibooks.Core.Interfaces;
 using Logibooks.Core.Models;
 using Microsoft.EntityFrameworkCore;
@@ -98,11 +97,11 @@ public class FeacnListProcessingService(
         var dataSet = reader.AsDataSet();
         
         if (dataSet.Tables.Count == 0)
-            throw new InvalidOperationException("Excel file contains no data tables");
+            throw new InvalidOperationException("Файл Excel не содержит таблиц данных");
         
         var table = dataSet.Tables[0];
         if (table.Rows.Count < 2)
-            throw new InvalidOperationException("Excel file must contain at least header row and one data row");
+            throw new InvalidOperationException("В файле Excel должна быть как минимум строка заголовка и одна строка данных");
         
         // Validate header row and get column mapping
         var columnMap = ValidateHeaderRow(table);
@@ -156,7 +155,7 @@ public class FeacnListProcessingService(
         
         if (missingHeaders.Any())
         {
-            throw new InvalidOperationException($"Excel file is missing required columns: {string.Join(", ", missingHeaders)}");
+            throw new InvalidOperationException($"В файле Excel отсутствуют обязательные столбцы: {string.Join(", ", missingHeaders)}");
         }
         
         _logger.LogInformation("Successfully mapped {Count} columns from Excel headers", columnMap.Count);
@@ -219,7 +218,7 @@ public class FeacnListProcessingService(
             date1, date2, datePrev, textPrev, text, textEx);
     }
     
-    private string? GetColumnValue(DataRow row, Dictionary<string, int> columnMap, string columnName)
+    private static string? GetColumnValue(DataRow row, Dictionary<string, int> columnMap, string columnName)
     {
         if (columnMap.TryGetValue(columnName, out int columnIndex) && columnIndex < row.Table.Columns.Count)
         {
@@ -281,13 +280,13 @@ public class FeacnListProcessingService(
                 feacnCodes[childIndex].ParentId = null; // Will be set when saving to database
                 
                 // Initialize children collection if needed
-                feacnCodes[i].Children ??= new List<FeacnCode>();
+                feacnCodes[i].Children ??= [];
                 
                 feacnCodes[i].Children!.Add(feacnCodes[childIndex]);
             }
         }
         
-        _logger.LogInformation("Built hierarchical structure with {RootCount} root nodes", 
+        _logger.LogInformation("Построена иерархическая структура с {RootCount} корневыми узлами", 
             feacnCodes.Count(f => f.Parent == null));
         
         return feacnCodes;
