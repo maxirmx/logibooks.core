@@ -64,7 +64,6 @@ public class FeacnCode
     [Column("old_name_to_date")]
     public DateOnly? OldNameToDate { get; set; } = null;
 
-    [ForeignKey("Parent")]
     [Column("parent_id")]
     public int? ParentId { get; set; }
     public FeacnCode? Parent { get; set; }
