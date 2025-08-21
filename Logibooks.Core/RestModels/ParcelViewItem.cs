@@ -72,7 +72,7 @@ public class ParcelViewItem
 
         CountryCode = order.CountryCode;
 
-        if (order is WbrOrder wbr)
+        if (order is WbrParcel wbr)
         {
             OrderNumber = wbr.OrderNumber;
             Shk = wbr.Shk;

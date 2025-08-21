@@ -178,7 +178,7 @@ public class StopWordsControllerTests
         SetCurrentUserId(1);
         var word = new StopWord { Id = 5, Word = "used" };
         var reg = new Register { Id = 1, FileName = "r" };
-        var order = new WbrOrder { Id = 1, RegisterId = 1 };
+        var order = new WbrParcel { Id = 1, RegisterId = 1 };
         var link = new BaseOrderStopWord { BaseOrderId = 1, StopWordId = 5, BaseOrder = order, StopWord = word };
         _dbContext.StopWords.Add(word);
         _dbContext.Registers.Add(reg);

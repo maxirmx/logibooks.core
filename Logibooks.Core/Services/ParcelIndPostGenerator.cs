@@ -169,7 +169,7 @@ public class ParcelIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServi
                 [.. _db.OzonOrders.AsNoTracking().Where(o => o.PostingNumber == ozonOrder.PostingNumber && 
                                                         o.RegisterId == ozonOrder.RegisterId)];
         }
-        else if (order is WbrOrder wbrOrder)
+        else if (order is WbrParcel wbrOrder)
         {
             ordersForGoods = 
                 [.. _db.WbrOrders.AsNoTracking().Where(o => o.Shk == wbrOrder.Shk && 

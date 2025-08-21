@@ -198,7 +198,7 @@ public class ParcelsController(
             return _404Order(id);
         }
 
-        if (order is WbrOrder wbr)
+        if (order is WbrParcel wbr)
         {
             wbr.UpdateFrom(update, _mapper);
         }

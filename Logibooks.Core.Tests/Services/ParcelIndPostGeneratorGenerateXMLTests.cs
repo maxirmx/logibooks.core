@@ -220,7 +220,7 @@ namespace Logibooks.Core.Tests.Services
                     .ThenInclude(c => c!.Country)
                 .First(r => r.Id == 1);
 
-            var order = new WbrOrder { 
+            var order = new WbrParcel { 
                 Id = 1,
                 Register = loadedRegister,
                 RegisterId = 1,

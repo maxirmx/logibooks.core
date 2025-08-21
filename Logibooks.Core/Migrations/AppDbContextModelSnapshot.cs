@@ -533,14 +533,6 @@ namespace Logibooks.Core.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("InsertAfter")
-                        .HasColumnType("text")
-                        .HasColumnName("insert_after");
-
-                    b.Property<string>("InsertBefore")
-                        .HasColumnType("text")
-                        .HasColumnName("insert_before");
-
                     b.Property<int>("MatchTypeId")
                         .HasColumnType("integer")
                         .HasColumnName("match_type_id");
@@ -1161,7 +1153,7 @@ namespace Logibooks.Core.Migrations
                     b.ToTable("ozon_orders", (string)null);
                 });
 
-            modelBuilder.Entity("Logibooks.Core.Models.WbrOrder", b =>
+            modelBuilder.Entity("Logibooks.Core.Models.WbrParcel", b =>
                 {
                     b.HasBaseType("Logibooks.Core.Models.BaseParcel");
 
@@ -1333,7 +1325,7 @@ namespace Logibooks.Core.Migrations
                         .HasColumnType("numeric(10,3)")
                         .HasColumnName("weight_kg");
 
-                    b.HasIndex(new[] { "Shk" }, "IX_wbr_orders_shk");
+                    b.HasIndex(new[] { "Shk" }, "IX_wbr_parcels_shk");
 
                     b.ToTable("wbr_orders", (string)null);
                 });
@@ -1594,11 +1586,11 @@ namespace Logibooks.Core.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Logibooks.Core.Models.WbrOrder", b =>
+            modelBuilder.Entity("Logibooks.Core.Models.WbrParcel", b =>
                 {
                     b.HasOne("Logibooks.Core.Models.BaseParcel", null)
                         .WithOne()
-                        .HasForeignKey("Logibooks.Core.Models.WbrOrder", "Id")
+                        .HasForeignKey("Logibooks.Core.Models.WbrParcel", "Id")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

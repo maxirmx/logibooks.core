@@ -70,7 +70,7 @@ public class FeacnPrefixCheckServiceTests
     {
         var prefix = new FeacnPrefix { Id = 10, Code = "1234", FeacnOrderId = 1 };
         _context.FeacnPrefixes.Add(prefix);
-        var order = new WbrOrder { Id = 1, RegisterId = 1, CheckStatusId = 1, TnVed = "1234567890" };
+        var order = new WbrParcel { Id = 1, RegisterId = 1, CheckStatusId = 1, TnVed = "1234567890" };
         _context.Orders.Add(order);
         await _context.SaveChangesAsync();
 
@@ -89,7 +89,7 @@ public class FeacnPrefixCheckServiceTests
     public async Task CheckOrderAsync_NoMatch_SetsStatusNoIssuesAndReturnsEmptyList()
     {
         _context.FeacnPrefixes.Add(new FeacnPrefix { Id = 10, Code = "9999", FeacnOrderId = 1 });
-        var order = new WbrOrder { Id = 1, RegisterId = 1, CheckStatusId = 1, TnVed = "1234567890" };
+        var order = new WbrParcel { Id = 1, RegisterId = 1, CheckStatusId = 1, TnVed = "1234567890" };
         _context.Orders.Add(order);
         await _context.SaveChangesAsync();
 
@@ -107,7 +107,7 @@ public class FeacnPrefixCheckServiceTests
         var prefix = new FeacnPrefix { Id = 10, Code = "1234", IntervalCode = "56", FeacnOrderId = 1 };
         prefix.FeacnPrefixExceptions.Add(new FeacnPrefixException { Id = 20, Code = "123455" });
         _context.FeacnPrefixes.Add(prefix);
-        var order = new WbrOrder { Id = 1, RegisterId = 1, CheckStatusId = 1, TnVed = "1234550000" };
+        var order = new WbrParcel { Id = 1, RegisterId = 1, CheckStatusId = 1, TnVed = "1234550000" };
         _context.Orders.Add(order);
         await _context.SaveChangesAsync();
 
@@ -125,7 +125,7 @@ public class FeacnPrefixCheckServiceTests
         var prefix1 = new FeacnPrefix { Id = 10, Code = "12", FeacnOrderId = 1 };
         var prefix2 = new FeacnPrefix { Id = 11, Code = "1234", FeacnOrderId = 1 };
         _context.FeacnPrefixes.AddRange(prefix1, prefix2);
-        var order = new WbrOrder { Id = 1, RegisterId = 1, CheckStatusId = 1, TnVed = "1234567890" };
+        var order = new WbrParcel { Id = 1, RegisterId = 1, CheckStatusId = 1, TnVed = "1234567890" };
         _context.Orders.Add(order);
         await _context.SaveChangesAsync();
 
@@ -142,7 +142,7 @@ public class FeacnPrefixCheckServiceTests
     {
         var prefix = new FeacnPrefix { Id = 10, Code = "1200000000", IntervalCode = "1299999999", FeacnOrderId = 1 };
         _context.FeacnPrefixes.Add(prefix);
-        var order = new WbrOrder { Id = 1, RegisterId = 1, CheckStatusId = 1, TnVed = "1234567890" };
+        var order = new WbrParcel { Id = 1, RegisterId = 1, CheckStatusId = 1, TnVed = "1234567890" };
         _context.Orders.Add(order);
         await _context.SaveChangesAsync();
 
@@ -160,7 +160,7 @@ public class FeacnPrefixCheckServiceTests
     {
         var prefix = new FeacnPrefix { Id = 10, Code = "1300000000", IntervalCode = "1399999999", FeacnOrderId = 1 };
         _context.FeacnPrefixes.Add(prefix);
-        var order = new WbrOrder { Id = 1, RegisterId = 1, CheckStatusId = 1, TnVed = "1234567890" };
+        var order = new WbrParcel { Id = 1, RegisterId = 1, CheckStatusId = 1, TnVed = "1234567890" };
         _context.Orders.Add(order);
         await _context.SaveChangesAsync();
 
@@ -176,7 +176,7 @@ public class FeacnPrefixCheckServiceTests
     {
         var prefix = new FeacnPrefix { Id = 10, Code = "1234", FeacnOrderId = 1 };
         _context.FeacnPrefixes.Add(prefix);
-        var order = new WbrOrder { Id = 1, RegisterId = 1, CheckStatusId = 1, TnVed = "1" };
+        var order = new WbrParcel { Id = 1, RegisterId = 1, CheckStatusId = 1, TnVed = "1" };
         _context.Orders.Add(order);
         await _context.SaveChangesAsync();
 
@@ -192,7 +192,7 @@ public class FeacnPrefixCheckServiceTests
     {
         var prefix = new FeacnPrefix { Id = 10, Code = "1", FeacnOrderId = 1 };
         _context.FeacnPrefixes.Add(prefix);
-        var order = new WbrOrder { Id = 1, RegisterId = 1, CheckStatusId = 1, TnVed = "1234567890" };
+        var order = new WbrParcel { Id = 1, RegisterId = 1, CheckStatusId = 1, TnVed = "1234567890" };
         _context.Orders.Add(order);
         await _context.SaveChangesAsync();
 
@@ -208,7 +208,7 @@ public class FeacnPrefixCheckServiceTests
     {
         var prefix = new FeacnPrefix { Id = 10, Code = "99", FeacnOrderId = 1 };
         _context.FeacnPrefixes.Add(prefix);
-        var order = new WbrOrder { Id = 1, RegisterId = 1, CheckStatusId = 1, TnVed = "1234567890" };
+        var order = new WbrParcel { Id = 1, RegisterId = 1, CheckStatusId = 1, TnVed = "1234567890" };
         _context.Orders.Add(order);
         await _context.SaveChangesAsync();
 
@@ -224,7 +224,7 @@ public class FeacnPrefixCheckServiceTests
     {
         var prefix = new FeacnPrefix { Id = 10, Code = "1200000000", IntervalCode = "1299999999", FeacnOrderId = 1 };
         _context.FeacnPrefixes.Add(prefix);
-        var order = new WbrOrder { Id = 1, RegisterId = 1, CheckStatusId = 1, TnVed = "abcd567890" };
+        var order = new WbrParcel { Id = 1, RegisterId = 1, CheckStatusId = 1, TnVed = "abcd567890" };
         _context.Orders.Add(order);
         await _context.SaveChangesAsync();
 
@@ -243,7 +243,7 @@ public class FeacnPrefixCheckServiceTests
         prefix.FeacnPrefixExceptions.Add(new FeacnPrefixException { Id = 20, Code = "9999" }); // Different code that won't match
         prefix.FeacnPrefixExceptions.Add(new FeacnPrefixException { Id = 21, Code = "8888" }); // Different code that won't match
         _context.FeacnPrefixes.Add(prefix);
-        var order = new WbrOrder { Id = 1, RegisterId = 1, CheckStatusId = 1, TnVed = "1234567890" };
+        var order = new WbrParcel { Id = 1, RegisterId = 1, CheckStatusId = 1, TnVed = "1234567890" };
         _context.Orders.Add(order);
         await _context.SaveChangesAsync();
 
@@ -259,7 +259,7 @@ public class FeacnPrefixCheckServiceTests
     {
         var prefix = new FeacnPrefix { Id = 10, Code = "9999", FeacnOrderId = 1 };
         _context.FeacnPrefixes.Add(prefix);
-        var order = new WbrOrder { Id = 1, RegisterId = 1, CheckStatusId = 1, TnVed = "1234567890" };
+        var order = new WbrParcel { Id = 1, RegisterId = 1, CheckStatusId = 1, TnVed = "1234567890" };
         _context.Orders.Add(order);
         await _context.SaveChangesAsync();
 

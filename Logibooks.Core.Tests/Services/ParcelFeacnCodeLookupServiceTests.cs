@@ -49,7 +49,7 @@ public class ParcelFeacnCodeLookupServiceTests
     public async Task LookupAsync_AddsLinksAndRemovesExisting()
     {
         using var ctx = CreateContext();
-        var order = new WbrOrder { Id = 1, RegisterId = 1, CheckStatusId = 1, ProductName = "This is SPAM" };
+        var order = new WbrParcel { Id = 1, RegisterId = 1, CheckStatusId = 1, ProductName = "This is SPAM" };
         ctx.Orders.Add(order);
         var kw1 = new KeyWord { Id = 2, Word = "spam", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols };
         kw1.KeyWordFeacnCodes = new[] { new KeyWordFeacnCode { KeyWordId = 2, FeacnCode = "1", KeyWord = kw1 } };
@@ -74,7 +74,7 @@ public class ParcelFeacnCodeLookupServiceTests
     public async Task LookupAsync_NoMatch_DoesNothing()
     {
         using var ctx = CreateContext();
-        var order = new WbrOrder { Id = 1, RegisterId = 1, CheckStatusId = 1, ProductName = "clean" };
+        var order = new WbrParcel { Id = 1, RegisterId = 1, CheckStatusId = 1, ProductName = "clean" };
         ctx.Orders.Add(order);
         var kw = new KeyWord { Id = 2, Word = "spam", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols };
         kw.KeyWordFeacnCodes = [new KeyWordFeacnCode { KeyWordId = 2, FeacnCode = "1", KeyWord = kw }];
@@ -94,7 +94,7 @@ public class ParcelFeacnCodeLookupServiceTests
     public async Task LookupAsync_MixedKeywords_BothExactAndMorphology()
     {
         using var ctx = CreateContext();
-        var order = new WbrOrder { Id = 1, RegisterId = 1, CheckStatusId = 1, ProductName = "This is SPAM with золотой браслет" };
+        var order = new WbrParcel { Id = 1, RegisterId = 1, CheckStatusId = 1, ProductName = "This is SPAM with золотой браслет" };
         ctx.Orders.Add(order);
 
         var kw1 = new KeyWord { Id = 10, Word = "spam", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols };
@@ -125,7 +125,7 @@ public class ParcelFeacnCodeLookupServiceTests
     public async Task LookupAsync_SkipsMarkedByPartner()
     {
         using var ctx = CreateContext();
-        var order = new WbrOrder
+        var order = new WbrParcel
         {
             Id = 1,
             RegisterId = 1,

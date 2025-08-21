@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Logibooks.Core.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250821185253_0_A_1_InsertByKw_Oder2Parcel")]
-    partial class _0_A_1_InsertByKw_Oder2Parcel
+    [Migration("20250821192813_0_A_1_Order2Parcel")]
+    partial class _0_A_1_Order2Parcel
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -535,14 +535,6 @@ namespace Logibooks.Core.Migrations
                         .HasColumnName("id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("InsertAfter")
-                        .HasColumnType("text")
-                        .HasColumnName("insert_after");
-
-                    b.Property<string>("InsertBefore")
-                        .HasColumnType("text")
-                        .HasColumnName("insert_before");
 
                     b.Property<int>("MatchTypeId")
                         .HasColumnType("integer")
@@ -1164,7 +1156,7 @@ namespace Logibooks.Core.Migrations
                     b.ToTable("ozon_orders", (string)null);
                 });
 
-            modelBuilder.Entity("Logibooks.Core.Models.WbrOrder", b =>
+            modelBuilder.Entity("Logibooks.Core.Models.WbrParcel", b =>
                 {
                     b.HasBaseType("Logibooks.Core.Models.BaseParcel");
 
@@ -1336,7 +1328,7 @@ namespace Logibooks.Core.Migrations
                         .HasColumnType("numeric(10,3)")
                         .HasColumnName("weight_kg");
 
-                    b.HasIndex(new[] { "Shk" }, "IX_wbr_orders_shk");
+                    b.HasIndex(new[] { "Shk" }, "IX_wbr_parcels_shk");
 
                     b.ToTable("wbr_orders", (string)null);
                 });
@@ -1597,11 +1589,11 @@ namespace Logibooks.Core.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Logibooks.Core.Models.WbrOrder", b =>
+            modelBuilder.Entity("Logibooks.Core.Models.WbrParcel", b =>
                 {
                     b.HasOne("Logibooks.Core.Models.BaseParcel", null)
                         .WithOne()
-                        .HasForeignKey("Logibooks.Core.Models.WbrOrder", "Id")
+                        .HasForeignKey("Logibooks.Core.Models.WbrParcel", "Id")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

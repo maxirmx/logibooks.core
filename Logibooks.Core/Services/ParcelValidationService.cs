@@ -73,7 +73,7 @@ public class ParcelValidationService(
         var productName = order.ProductName ?? string.Empty;
         var links1 = SelectStopWordLinks(order.Id, productName, wordsLookupContext, morphologyContext);
 
-        if (order is WbrOrder wbr && !string.IsNullOrWhiteSpace(wbr.Description))
+        if (order is WbrParcel wbr && !string.IsNullOrWhiteSpace(wbr.Description))
         {
             var linksDesc = SelectStopWordLinks(order.Id, wbr.Description, wordsLookupContext, morphologyContext);
             // Add linksDesc to links1, keeping uniqueness by StopWordId

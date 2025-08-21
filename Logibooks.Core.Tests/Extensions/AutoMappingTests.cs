@@ -54,7 +54,7 @@ public class AutoMapperIntegrationTests
             OrderNumber = "DI_TEST_123"
         };
 
-        var order = new WbrOrder
+        var order = new WbrParcel
         {
             Id = 1,
             StatusId = 1,
@@ -74,7 +74,7 @@ public class AutoMapperIntegrationTests
     public void AutoMapper_MapsWeightKgDecimal()
     {
         var updateItem = new ParcelUpdateItem { WeightKg = 1.234m };
-        var order = new WbrOrder();
+        var order = new WbrParcel();
 
         _mapper.Map(updateItem, order);
 
@@ -85,7 +85,7 @@ public class AutoMapperIntegrationTests
     public void AutoMapper_MapsQuantityDecimal()
     {
         var updateItem = new ParcelUpdateItem { Quantity = 2.5m };
-        var order = new WbrOrder();
+        var order = new WbrParcel();
 
         _mapper.Map(updateItem, order);
 
@@ -96,7 +96,7 @@ public class AutoMapperIntegrationTests
     public void AutoMapper_MapsUnitPriceDecimal()
     {
         var updateItem = new ParcelUpdateItem { UnitPrice = 3.5m };
-        var order = new WbrOrder();
+        var order = new WbrParcel();
 
         _mapper.Map(updateItem, order);
 

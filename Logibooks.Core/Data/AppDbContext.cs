@@ -38,7 +38,7 @@ namespace Logibooks.Core.Data
         public DbSet<ParcelStatus> Statuses => Set<ParcelStatus>();
         public DbSet<ParcelCheckStatus> CheckStatuses => Set<ParcelCheckStatus>();
         public DbSet<BaseParcel> Orders => Set<BaseParcel>();
-        public DbSet<WbrOrder> WbrOrders => Set<WbrOrder>();
+        public DbSet<WbrParcel> WbrOrders => Set<WbrParcel>();
         public DbSet<OzonParcel> OzonOrders => Set<OzonParcel>();
         public DbSet<Country> Countries => Set<Country>();
         public DbSet<Company> Companies => Set<Company>();
@@ -157,10 +157,10 @@ namespace Logibooks.Core.Data
                 .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<BaseParcel>().ToTable("base_orders");
-            modelBuilder.Entity<WbrOrder>().ToTable("wbr_orders");
+            modelBuilder.Entity<WbrParcel>().ToTable("wbr_orders");
             modelBuilder.Entity<OzonParcel>().ToTable("ozon_orders");
 
-            modelBuilder.Entity<WbrOrder>()
+            modelBuilder.Entity<WbrParcel>()
                 .HasBaseType<BaseParcel>();
 
             modelBuilder.Entity<OzonParcel>()

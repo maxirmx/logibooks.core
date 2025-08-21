@@ -74,7 +74,7 @@ public class ParcelValidationServiceTests
     public async Task ValidateAsync_AddsLinksAndUpdatesStatus()
     {
         using var ctx = CreateContext();
-        var order = new WbrOrder { Id = 1, RegisterId = 1, CheckStatusId = 1, ProductName = "This is SPAM", TnVed = "1234567890" };
+        var order = new WbrParcel { Id = 1, RegisterId = 1, CheckStatusId = 1, ProductName = "This is SPAM", TnVed = "1234567890" };
         ctx.Orders.Add(order);
         ctx.StopWords.AddRange(
             new StopWord { Id = 2, Word = "spam", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols },
@@ -98,7 +98,7 @@ public class ParcelValidationServiceTests
     public async Task ValidateAsync_NoMatch_DoesNothing()
     {
         using var ctx = CreateContext();
-        var order = new WbrOrder { Id = 1, RegisterId = 1, CheckStatusId = 1, ProductName = "clean", TnVed = "1234567890" };
+        var order = new WbrParcel { Id = 1, RegisterId = 1, CheckStatusId = 1, ProductName = "clean", TnVed = "1234567890" };
         ctx.Orders.Add(order);
         ctx.StopWords.Add(new StopWord { Id = 2, Word = "spam", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols });
         await ctx.SaveChangesAsync();
@@ -116,7 +116,7 @@ public class ParcelValidationServiceTests
     public async Task ValidateAsync_IgnoresCase()
     {
         using var ctx = CreateContext();
-        var order = new WbrOrder { Id = 1, RegisterId = 1, CheckStatusId = 1, ProductName = "bad WORD", TnVed = "1234567890" };
+        var order = new WbrParcel { Id = 1, RegisterId = 1, CheckStatusId = 1, ProductName = "bad WORD", TnVed = "1234567890" };
         ctx.Orders.Add(order);
         ctx.StopWords.Add(new StopWord { Id = 5, Word = "word", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols });
         await ctx.SaveChangesAsync();
@@ -134,7 +134,7 @@ public class ParcelValidationServiceTests
     public async Task ValidateAsync_UsesMorphologyContext()
     {
         using var ctx = CreateContext();
-        var order = new WbrOrder { Id = 1, RegisterId = 1, CheckStatusId = 1, ProductName = "золотой браслет", TnVed = "1234567890" };
+        var order = new WbrParcel { Id = 1, RegisterId = 1, CheckStatusId = 1, ProductName = "золотой браслет", TnVed = "1234567890" };
         ctx.Orders.Add(order);
         var sw = new StopWord { Id = 7, Word = "золото", MatchTypeId = (int)WordMatchTypeCode.StrongMorphology };
         ctx.StopWords.Add(sw);
@@ -155,7 +155,7 @@ public class ParcelValidationServiceTests
     public async Task ValidateAsync_MixedStopWords_BothExactAndMorphology()
     {
         using var ctx = CreateContext();
-        var order = new WbrOrder { Id = 1, RegisterId = 1, CheckStatusId = 1, ProductName = "This is SPAM with золотой браслет", TnVed = "1234567890" };
+        var order = new WbrParcel { Id = 1, RegisterId = 1, CheckStatusId = 1, ProductName = "This is SPAM with золотой браслет", TnVed = "1234567890" };
         ctx.Orders.Add(order);
 
         var stopWords = new[]
@@ -185,7 +185,7 @@ public class ParcelValidationServiceTests
     public async Task ValidateAsync_RemovesExistingLinksCorrectly()
     {
         using var ctx = CreateContext();
-        var order = new WbrOrder { Id = 1, RegisterId = 1, CheckStatusId = 1, ProductName = "SPAM product", TnVed = "1234567890" };
+        var order = new WbrParcel { Id = 1, RegisterId = 1, CheckStatusId = 1, ProductName = "SPAM product", TnVed = "1234567890" };
         ctx.Orders.Add(order);
 
         // Add some existing links that should be removed
@@ -217,7 +217,7 @@ public class ParcelValidationServiceTests
     public async Task ValidateAsync_SkipsMarkedByPartner()
     {
         using var ctx = CreateContext();
-        var order = new WbrOrder
+        var order = new WbrParcel
         {
             Id = 1,
             RegisterId = 1,

@@ -124,12 +124,12 @@ public class RegistersControllerSortingTests : RegistersControllerTestsBase
             new Register { Id = 4, FileName = "r4.xlsx" , CompanyId = 2, TheOtherCompanyId = 3 }
         );
         _dbContext.Orders.AddRange(
-            new WbrOrder { RegisterId = 1, StatusId = 1 },
-            new WbrOrder { RegisterId = 2, StatusId = 1 },
-            new WbrOrder { RegisterId = 2, StatusId = 1 },
-            new WbrOrder { RegisterId = 3, StatusId = 1 },
-            new WbrOrder { RegisterId = 3, StatusId = 1 },
-            new WbrOrder { RegisterId = 3, StatusId = 1 }
+            new WbrParcel { RegisterId = 1, StatusId = 1 },
+            new WbrParcel { RegisterId = 2, StatusId = 1 },
+            new WbrParcel { RegisterId = 2, StatusId = 1 },
+            new WbrParcel { RegisterId = 3, StatusId = 1 },
+            new WbrParcel { RegisterId = 3, StatusId = 1 },
+            new WbrParcel { RegisterId = 3, StatusId = 1 }
         );
         await _dbContext.SaveChangesAsync();
         var r1 = await _controller.GetRegisters(page: 1, pageSize: 2, sortBy: "ordersTotal", sortOrder: "desc");
