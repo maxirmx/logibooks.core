@@ -24,7 +24,6 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 using System.Data;
-using System.Collections.Concurrent;
 using ExcelDataReader;
 using Logibooks.Core.Data;
 using Logibooks.Core.Interfaces;
@@ -51,7 +50,8 @@ public class FeacnListProcessingService(
         public CancellationTokenSource Cts { get; } = new();
     }
 
-    private static readonly ConcurrentDictionary<Guid, ProcessingState> _processes = new();
+    private static ProcessingState? _currentProcess;
+    private static readonly object _processLock = new();
     
     private record struct FeacnExcelRow(
         int Id,
@@ -72,8 +72,19 @@ public class FeacnListProcessingService(
         string fileName,
         CancellationToken cancellationToken = default)
     {
-        var state = new ProcessingState();
-        _processes[state.HandleId] = state;
+        ProcessingState state;
+        
+        lock (_processLock)
+        {
+            // Reject if any process is currently running (not finished)
+            if (_currentProcess != null && !_currentProcess.Finished)
+            {
+                throw new InvalidOperationException("Загрузка кодов ТН ВЭД уже выполняется.");
+            }
+
+            state = new ProcessingState();
+            _currentProcess = state;
+        }
 
         var tcs = new TaskCompletionSource();
 
@@ -85,7 +96,7 @@ public class FeacnListProcessingService(
                 var excelRows = ParseExcelFile(content);
                 state.Total = excelRows.Count;
                 _logger.LogInformation("Parsed {Count} rows from Excel file", excelRows.Count);
-                tcs.TrySetResult();
+                tcs.TrySetResult(); // Only set result on success
 
                 var feacnCodes = BuildFeacnCodesFromExcelRows(excelRows);
                 _logger.LogInformation("Built {Count} FEACN code entities", feacnCodes.Count);
@@ -96,13 +107,17 @@ public class FeacnListProcessingService(
             }
             catch (Exception ex)
             {
-                tcs.TrySetResult();
                 state.Error = ex.Message;
                 _logger.LogError(ex, "Error processing FEACN codes from file: {FileName}", fileName);
+                tcs.TrySetResult(); // Set result after error is captured
             }
             finally
             {
                 state.Finished = true;
+                lock (_processLock)
+                {
+                    _currentProcess = null;
+                }
             }
         }, state.Cts.Token);
 
@@ -388,35 +403,44 @@ public class FeacnListProcessingService(
 
     public ValidationProgress? GetProgress(Guid handleId)
     {
-        if (_processes.TryGetValue(handleId, out var proc))
+        lock (_processLock)
         {
+            var proc = _currentProcess;
+            if (proc != null && proc.HandleId == handleId)
+            {
+                return new ValidationProgress
+                {
+                    HandleId = handleId,
+                    Total = proc.Total,
+                    Processed = proc.Processed,
+                    Finished = proc.Finished,
+                    Error = proc.Error
+                };
+            }
             return new ValidationProgress
             {
                 HandleId = handleId,
-                Total = proc.Total,
-                Processed = proc.Processed,
-                Finished = proc.Finished,
-                Error = proc.Error
+                Total = -1,
+                Processed = -1,
+                Finished = true,
+                Error = null
             };
         }
-        return new ValidationProgress
-        {
-            HandleId = handleId,
-            Total = -1,
-            Processed = -1,
-            Finished = true,
-            Error = null
-        };
     }
 
     public bool Cancel(Guid handleId)
     {
-        if (_processes.TryGetValue(handleId, out var proc))
+        lock (_processLock)
         {
-            proc.Cts.Cancel();
-            proc.Finished = true;
-            return true;
+            var proc = _currentProcess;
+            if (proc != null && proc.HandleId == handleId)
+            {
+                proc.Cts.Cancel();
+                proc.Finished = true;
+                _currentProcess = null;
+                return true;
+            }
+            return false;
         }
-        return false;
     }
 }
