@@ -149,6 +149,67 @@ public class FeacnListProcessingServiceTests
         
         return ms.ToArray();
     }
+
+    /// <summary>
+    /// Creates an Excel file with no sheets (empty workbook)
+    /// </summary>
+    private static byte[] CreateEmptyExcelFile()
+    {
+        using var ms = new MemoryStream();
+        using (var document = SpreadsheetDocument.Create(ms, SpreadsheetDocumentType.Workbook))
+        {
+            var workbookPart = document.AddWorkbookPart();
+            workbookPart.Workbook = new Workbook();
+            // No sheets added - this creates an empty workbook
+            workbookPart.Workbook.Save();
+        }
+        return ms.ToArray();
+    }
+
+    /// <summary>
+    /// Creates an Excel file with a sheet that has only headers but no data rows
+    /// </summary>
+    private static byte[] CreateHeaderOnlyExcelFile(string[] headers)
+    {
+        using var ms = new MemoryStream();
+        using (var document = SpreadsheetDocument.Create(ms, SpreadsheetDocumentType.Workbook))
+        {
+            var workbookPart = document.AddWorkbookPart();
+            workbookPart.Workbook = new Workbook();
+            
+            var worksheetPart = workbookPart.AddNewPart<WorksheetPart>();
+            worksheetPart.Worksheet = new Worksheet(new SheetData());
+            
+            var sheets = new Sheets();
+            var sheet = new Sheet()
+            {
+                Id = workbookPart.GetIdOfPart(worksheetPart),
+                SheetId = 1,
+                Name = "Sheet1"
+            };
+            sheets.Append(sheet);
+            workbookPart.Workbook.Append(sheets);
+            
+            var worksheetSheetData = worksheetPart.Worksheet.GetFirstChild<SheetData>();
+            
+            // Add only header row, no data rows
+            var headerRow = new Row() { RowIndex = 1 };
+            for (int i = 0; i < headers.Length; i++)
+            {
+                var cell = new Cell()
+                {
+                    CellReference = GetCellReference(1, i + 1),
+                    DataType = CellValues.InlineString,
+                    InlineString = new InlineString(new Text(headers[i]))
+                };
+                headerRow.Append(cell);
+            }
+            worksheetSheetData!.Append(headerRow);
+            
+            workbookPart.Workbook.Save();
+        }
+        return ms.ToArray();
+    }
     
     private static string GetCellReference(uint row, int column)
     {
@@ -190,6 +251,126 @@ public class FeacnListProcessingServiceTests
         Assert.That(_service, Is.Not.Null);
         Assert.That(_dbContext, Is.Not.Null);
         Assert.That(_logger, Is.Not.Null);
+    }
+
+    /// <summary>
+    /// Creates a truly empty Excel file (corrupted/invalid format)
+    /// </summary>
+    private static byte[] CreateTrulyEmptyExcelFile()
+    {
+        // Return empty byte array to simulate a completely invalid Excel file
+        return [];
+    }
+
+    // Error case tests for lines 167-172: Excel file with no tables
+    [Test]
+    public void StartProcessingAsync_EmptyExcelFile_ShouldThrowInvalidOperationException()
+    {
+        // Arrange
+        var emptyExcelBytes = CreateEmptyExcelFile();
+
+        // Act & Assert
+        var ex = Assert.ThrowsAsync<InvalidOperationException>(
+            () => _service.StartProcessingAsync(emptyExcelBytes, "empty.xlsx"));
+        
+        // The CreateEmptyExcelFile actually creates a workbook with no sheets, 
+        // so the ExcelDataReader might create tables but with no rows
+        Assert.That(ex?.Message ?? string.Empty, Does.Contain("строка заголовка и одна строка данных").Or.Contain("таблиц данных"));
+    }
+
+    // Error case tests for lines 167-172: Excel file with only header row (insufficient rows)
+    [Test]
+    public void StartProcessingAsync_HeaderOnlyExcelFile_ShouldThrowInvalidOperationException()
+    {
+        // Arrange
+        var headers = new[] { "ID", "Child", "Next", "Level", "Code", "CodeEx", "Date1", "Date2", "DatePrev", "TextPrev", "Text", "TextEx" };
+        var headerOnlyExcelBytes = CreateHeaderOnlyExcelFile(headers);
+
+        // Act & Assert
+        var ex = Assert.ThrowsAsync<InvalidOperationException>(
+            () => _service.StartProcessingAsync(headerOnlyExcelBytes, "headeronly.xlsx"));
+        
+        Assert.That(ex?.Message ?? string.Empty, Is.EqualTo("В файле Excel должна быть как минимум строка заголовка и одна строка данных"));
+    }
+
+    // Error case tests for lines 188-191: Missing required headers
+    [Test]
+    public void StartProcessingAsync_MissingRequiredHeaders_ShouldThrowInvalidOperationException()
+    {
+        // Arrange - create Excel file with incomplete headers
+        var incompleteHeaders = new[] { "ID", "Child", "Next" }; // Missing required headers
+        var rows = new object[][]
+        {
+            new object[] { 1, "", "" }
+        };
+        var excelBytes = CreateExcelFile((incompleteHeaders, rows));
+
+        // Act & Assert
+        var ex = Assert.ThrowsAsync<InvalidOperationException>(
+            () => _service.StartProcessingAsync(excelBytes, "incomplete_headers.xlsx"));
+
+        string msg = ex?.Message ?? string.Empty;
+
+        Assert.That(msg, Does.Contain("В файле Excel отсутствуют обязательные столбцы:"));
+        Assert.That(msg, Does.Contain("Code"));
+        Assert.That(msg, Does.Contain("CodeEx"));
+        Assert.That(msg, Does.Contain("Date1"));
+        Assert.That(msg, Does.Contain("Date2"));
+        Assert.That(msg, Does.Contain("DatePrev"));
+        Assert.That(msg, Does.Contain("TextPrev"));
+        Assert.That(msg, Does.Contain("Text"));
+        Assert.That(msg, Does.Contain("TextEx"));
+    }
+
+
+    [Test]
+    public async Task StartProcessingAsync_CaseInsensitiveHeaders_ShouldProcessSuccessfully()
+    {
+        // Arrange - test that headers are case-insensitive (this should work)
+        var headers = new[] { "id", "child", "next", "level", "code", "codeex", "date1", "date2", "dateprev", "textprev", "text", "textex" };
+        var rows = new object[][]
+        {
+            new object[] { 1, "", "", 1, "1000000000", "1000000000", "2024-01-01", "2024-12-31", "", "", "Test description", "" }
+        };
+        var excelBytes = CreateExcelFile((headers, rows));
+
+        // Act
+        var handle = await _service.StartProcessingAsync(excelBytes, "case_insensitive.xlsx");
+        var progress = await WaitForCompletion(handle);
+        
+        // Assert
+        Assert.That(progress, Is.Not.Null);
+        Assert.That(progress!.Finished, Is.True);
+        Assert.That(progress.Error, Is.Null.Or.Empty);
+        
+        var codes = _dbContext.FeacnCodes.ToList();
+        Assert.That(codes.Count, Is.EqualTo(1));
+        Assert.That(codes.Single().Code, Is.EqualTo("1000000000"));
+    }
+
+    [Test]
+    public async Task StartProcessingAsync_ExtraHeaders_ShouldProcessSuccessfully()
+    {
+        // Arrange - test with extra headers beyond the required ones
+        var headers = new[] { "ID", "Child", "Next", "Level", "Code", "CodeEx", "Date1", "Date2", "DatePrev", "TextPrev", "Text", "TextEx", "ExtraColumn1", "ExtraColumn2" };
+        var rows = new object[][]
+        {
+            new object[] { 1, "", "", 1, "1000000000", "1000000000", "2024-01-01", "2024-12-31", "", "", "Test description", "", "Extra1", "Extra2" }
+        };
+        var excelBytes = CreateExcelFile((headers, rows));
+
+        // Act
+        var handle = await _service.StartProcessingAsync(excelBytes, "extra_headers.xlsx");
+        var progress = await WaitForCompletion(handle);
+        
+        // Assert
+        Assert.That(progress, Is.Not.Null);
+        Assert.That(progress!.Finished, Is.True);
+        Assert.That(progress.Error, Is.Null.Or.Empty);
+        
+        var codes = _dbContext.FeacnCodes.ToList();
+        Assert.That(codes.Count, Is.EqualTo(1));
+        Assert.That(codes.Single().Code, Is.EqualTo("1000000000"));
     }
 
     [Test]

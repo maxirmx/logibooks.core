@@ -64,7 +64,6 @@ public class FeacnListProcessingService(
         int Id,
         int? ChildId,
         int? NextId,
-        int Level,
         string Code,
         string CodeEx,
         DateOnly? Date1,
@@ -197,7 +196,7 @@ public class FeacnListProcessingService(
 
     private Dictionary<string, int> ValidateHeaderRow(DataTable table)
     {
-        var requiredHeaders = new[] { "ID", "Child", "Next", "Level", "Code", "CodeEx", 
+        var requiredHeaders = new[] { "ID", "Child", "Next", "Code", "CodeEx", 
             "Date1", "Date2", "DatePrev", "TextPrev", "Text", "TextEx" };
         
         var columnMap = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
@@ -251,8 +250,8 @@ public class FeacnListProcessingService(
         var nextId = (int?)ExcelDataConverter.ConvertValueToPropertyType(nextValue, typeof(int?), "Next", _logger);
         
         // Parse Level (required)
-        var levelValue = GetColumnValue(row, columnMap, "Level");
-        var level = (int?)ExcelDataConverter.ConvertValueToPropertyType(levelValue, typeof(int), "Level", _logger) ?? 0;
+        // var levelValue = GetColumnValue(row, columnMap, "Level");
+        // var level = (int?)ExcelDataConverter.ConvertValueToPropertyType(levelValue, typeof(int), "Level", _logger) ?? 0;
         
         // Parse Code
         var codeValue = GetColumnValue(row, columnMap, "Code");
@@ -283,7 +282,7 @@ public class FeacnListProcessingService(
         
         // Unit and UnitCode are ignored as per requirements
         
-        return new FeacnExcelRow(id.Value, childId, nextId, level, code, codeEx, 
+        return new FeacnExcelRow(id.Value, childId, nextId, code, codeEx, 
             date1, date2, datePrev, textPrev, text, textEx);
     }
     
