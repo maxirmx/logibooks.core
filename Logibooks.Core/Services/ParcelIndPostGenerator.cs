@@ -163,7 +163,7 @@ public class ParcelIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServi
         var goodsItems = new List<IDictionary<string, string?>>();
 
         IEnumerable<BaseParcel> ordersForGoods;
-        if (order is OzonOrder ozonOrder)
+        if (order is OzonParcel ozonOrder)
         {
             ordersForGoods = 
                 [.. _db.OzonOrders.AsNoTracking().Where(o => o.PostingNumber == ozonOrder.PostingNumber && 

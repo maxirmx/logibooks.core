@@ -73,7 +73,7 @@ public class BaseOrderIndPostApiTests
     [Test]
     public void OzonOrder_IndPostApi_Methods_ReturnExpectedValues()
     {
-        var order = new OzonOrder
+        var order = new OzonParcel
         {
             Id = 2,
             PostingNumber = "POST123",

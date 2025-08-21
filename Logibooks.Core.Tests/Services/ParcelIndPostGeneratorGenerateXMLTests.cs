@@ -128,7 +128,7 @@ namespace Logibooks.Core.Tests.Services
             BaseParcel order;
             if (scenario == "Individual")
             {
-                order = new OzonOrder {
+                order = new OzonParcel {
                     Id = 1,
                     Register = loadedRegister,
                     RegisterId = 1,
@@ -143,7 +143,7 @@ namespace Logibooks.Core.Tests.Services
             }
             else
             {
-                order = new OzonOrder {
+                order = new OzonParcel {
                     Id = 1,
                     Register = loadedRegister,
                     RegisterId = 1,
@@ -158,7 +158,7 @@ namespace Logibooks.Core.Tests.Services
                 };
             }
 
-            _dbContext.OzonOrders.Add((OzonOrder)order);
+            _dbContext.OzonOrders.Add((OzonParcel)order);
             _dbContext.SaveChanges();
 
             _xmlServiceMock.Setup(x => x.CreateXml(It.IsAny<IDictionary<string, string?>>(), It.IsAny<IEnumerable<IDictionary<string, string?>>>()))
@@ -276,7 +276,7 @@ namespace Logibooks.Core.Tests.Services
             // Load the register (which will have null related entities because we didn't add them to the context)
             var loadedRegister = _dbContext.Registers.First(r => r.Id == 1);
 
-            var order = new OzonOrder { 
+            var order = new OzonParcel { 
                 Id = 1,
                 Register = loadedRegister,
                 RegisterId = 1,

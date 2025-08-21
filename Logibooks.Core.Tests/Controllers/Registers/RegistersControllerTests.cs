@@ -1079,9 +1079,9 @@ public class RegistersControllerTests : RegistersControllerTestsBase
         _dbContext.CheckStatuses.Add(new ParcelCheckStatus { Id = 101, Title = "Has" });
         var reg = new Register { Id = 1, FileName = "r.xlsx", CompanyId = 1, TheOtherCompanyId = 3 }; // Ozon company
         _dbContext.Registers.Add(reg);
-        var ozonOrder1 = new OzonOrder { Id = 1, RegisterId = 1, StatusId = 1, CheckStatusId = 101 };
-        var ozonOrder2 = new OzonOrder { Id = 2, RegisterId = 1, StatusId = 1, CheckStatusId = 201 };
-        var ozonOrder3 = new OzonOrder { Id = 3, RegisterId = 1, StatusId = 1, CheckStatusId = 101 };
+        var ozonOrder1 = new OzonParcel { Id = 1, RegisterId = 1, StatusId = 1, CheckStatusId = 101 };
+        var ozonOrder2 = new OzonParcel { Id = 2, RegisterId = 1, StatusId = 1, CheckStatusId = 201 };
+        var ozonOrder3 = new OzonParcel { Id = 3, RegisterId = 1, StatusId = 1, CheckStatusId = 101 };
         _dbContext.Orders.AddRange(ozonOrder1, ozonOrder2, ozonOrder3);
         _dbContext.OzonOrders.AddRange(ozonOrder1, ozonOrder2, ozonOrder3);
         await _dbContext.SaveChangesAsync();

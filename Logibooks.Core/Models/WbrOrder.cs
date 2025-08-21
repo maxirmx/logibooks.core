@@ -23,11 +23,11 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-using DocumentFormat.OpenXml.Wordprocessing;
-using Logibooks.Core.Constants;
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Globalization;
+using DocumentFormat.OpenXml.Wordprocessing;
+
+using Logibooks.Core.Constants;
 
 namespace Logibooks.Core.Models;
 

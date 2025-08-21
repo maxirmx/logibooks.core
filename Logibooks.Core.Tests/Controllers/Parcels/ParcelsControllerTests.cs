@@ -268,7 +268,7 @@ public class ParcelsControllerTests
         SetCurrentUserId(1);
         // Create a WBR register but try to update an order that doesn't exist in WBR table
         var register = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" }; // CompanyId = 2 is WBR
-        var ozonOrder = new OzonOrder { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "A" }; // Order exists in Ozon table
+        var ozonOrder = new OzonParcel { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "A" }; // Order exists in Ozon table
         _dbContext.Registers.Add(register);
         _dbContext.Orders.Add(ozonOrder);
         await _dbContext.SaveChangesAsync();
@@ -328,14 +328,14 @@ public class ParcelsControllerTests
     {
         SetCurrentUserId(1);
         var register = new Register { Id = 2, CompanyId = 1, FileName = "r.xlsx" }; // CompanyId = 1 is Ozon
-        var order = new OzonOrder { Id = 2, RegisterId = 2, StatusId = 1, TnVed = "B", OzonId = "OZON456" };
+        var order = new OzonParcel { Id = 2, RegisterId = 2, StatusId = 1, TnVed = "B", OzonId = "OZON456" };
         _dbContext.Registers.Add(register);
         _dbContext.Orders.Add(order);
         await _dbContext.SaveChangesAsync();
 
         var mockMapper = new Mock<IMapper>();
-        mockMapper.Setup(m => m.Map(It.IsAny<ParcelUpdateItem>(), It.IsAny<OzonOrder>()))
-            .Callback<ParcelUpdateItem, OzonOrder>((src, dest) =>
+        mockMapper.Setup(m => m.Map(It.IsAny<ParcelUpdateItem>(), It.IsAny<OzonParcel>()))
+            .Callback<ParcelUpdateItem, OzonParcel>((src, dest) =>
             {
                 if (src.StatusId.HasValue) dest.StatusId = src.StatusId.Value;
                 if (src.PostingNumber != null) dest.PostingNumber = src.PostingNumber;
@@ -1189,7 +1189,7 @@ public class ParcelsControllerTests
     {
         SetCurrentUserId(1);
         var register = new Register { Id = 2, CompanyId = 1, FileName = "r.xlsx" }; // CompanyId = 1 is Ozon
-        var order = new OzonOrder { Id = 2, RegisterId = 2, StatusId = 1, TnVed = "B", OzonId = "OZON456", PostingNumber = "POST789" };
+        var order = new OzonParcel { Id = 2, RegisterId = 2, StatusId = 1, TnVed = "B", OzonId = "OZON456", PostingNumber = "POST789" };
         _dbContext.Registers.Add(register);
         _dbContext.Orders.Add(order);
         await _dbContext.SaveChangesAsync();
@@ -1210,7 +1210,7 @@ public class ParcelsControllerTests
         SetCurrentUserId(1);
         // Create a WBR register but try to find an order that doesn't exist in WBR table
         var register = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" }; // CompanyId = 2 is WBR
-        var ozonOrder = new OzonOrder { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "A" }; // Order exists in Ozon table
+        var ozonOrder = new OzonParcel { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "A" }; // Order exists in Ozon table
         _dbContext.Registers.Add(register);
         _dbContext.Orders.Add(ozonOrder);
         await _dbContext.SaveChangesAsync();

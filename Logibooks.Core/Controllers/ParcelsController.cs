@@ -202,7 +202,7 @@ public class ParcelsController(
         {
             wbr.UpdateFrom(update, _mapper);
         }
-        else if (order is OzonOrder ozon)
+        else if (order is OzonParcel ozon)
         {
             ozon.UpdateFrom(update, _mapper);
         }

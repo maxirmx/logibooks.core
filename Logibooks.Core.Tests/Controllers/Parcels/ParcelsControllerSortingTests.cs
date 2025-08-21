@@ -317,9 +317,9 @@ public class ParcelsControllerSortingTests
         var register = new Register { Id = 1, CompanyId = 1, FileName = "ozon_test.xlsx" }; // Ozon
         _dbContext.Registers.Add(register);
         _dbContext.Orders.AddRange(
-            new OzonOrder { Id = 3, RegisterId = 1, StatusId = 1, TnVed = "A" },
-            new OzonOrder { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "B" },
-            new OzonOrder { Id = 2, RegisterId = 1, StatusId = 1, TnVed = "C" }
+            new OzonParcel { Id = 3, RegisterId = 1, StatusId = 1, TnVed = "A" },
+            new OzonParcel { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "B" },
+            new OzonParcel { Id = 2, RegisterId = 1, StatusId = 1, TnVed = "C" }
         );
         await _dbContext.SaveChangesAsync();
 
@@ -345,9 +345,9 @@ public class ParcelsControllerSortingTests
         var register = new Register { Id = 1, CompanyId = 1, FileName = "ozon_test.xlsx" }; // Ozon
         _dbContext.Registers.Add(register);
         _dbContext.Orders.AddRange(
-            new OzonOrder { Id = 1, RegisterId = 1, StatusId = 3, TnVed = "A" },
-            new OzonOrder { Id = 2, RegisterId = 1, StatusId = 1, TnVed = "B" },
-            new OzonOrder { Id = 3, RegisterId = 1, StatusId = 2, TnVed = "C" }
+            new OzonParcel { Id = 1, RegisterId = 1, StatusId = 3, TnVed = "A" },
+            new OzonParcel { Id = 2, RegisterId = 1, StatusId = 1, TnVed = "B" },
+            new OzonParcel { Id = 3, RegisterId = 1, StatusId = 2, TnVed = "C" }
         );
         await _dbContext.SaveChangesAsync();
 
@@ -373,9 +373,9 @@ public class ParcelsControllerSortingTests
         var register = new Register { Id = 1, CompanyId = 1, FileName = "ozon_test.xlsx" }; // Ozon
         _dbContext.Registers.Add(register);
         _dbContext.Orders.AddRange(
-            new OzonOrder { Id = 1, RegisterId = 1, StatusId = 1, PostingNumber = "C123" },
-            new OzonOrder { Id = 2, RegisterId = 1, StatusId = 1, PostingNumber = "A456" },
-            new OzonOrder { Id = 3, RegisterId = 1, StatusId = 1, PostingNumber = "B789" }
+            new OzonParcel { Id = 1, RegisterId = 1, StatusId = 1, PostingNumber = "C123" },
+            new OzonParcel { Id = 2, RegisterId = 1, StatusId = 1, PostingNumber = "A456" },
+            new OzonParcel { Id = 3, RegisterId = 1, StatusId = 1, PostingNumber = "B789" }
         );
         await _dbContext.SaveChangesAsync();
 

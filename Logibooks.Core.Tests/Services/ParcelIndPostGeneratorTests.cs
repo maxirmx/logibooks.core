@@ -183,7 +183,7 @@ public class ParcelIndPostGeneratorTests
             TheOtherCountryCode = 643
         };
         _dbContext.Registers.Add(register);
-        var order = new OzonOrder
+        var order = new OzonParcel
         {
             Id = 201,
             RegisterId = 200,
@@ -329,7 +329,7 @@ public class ParcelIndPostGeneratorTests
             .FirstAsync(r => r.Id == 400);
 
         _dbContext.OzonOrders.AddRange(
-            new OzonOrder { 
+            new OzonParcel { 
                 Id = 401, 
                 RegisterId = 400, 
                 Register = loadedRegister, 
@@ -338,7 +338,7 @@ public class ParcelIndPostGeneratorTests
                 PostingNumber = "X",
                 CheckStatusId = (int)ParcelCheckStatusCode.NoIssues
             },
-            new OzonOrder 
+            new OzonParcel 
             { 
                 Id = 402, 
                 RegisterId = 400, 
@@ -348,7 +348,7 @@ public class ParcelIndPostGeneratorTests
                 PostingNumber = "X",
                 CheckStatusId = (int)ParcelCheckStatusCode.Approved
             },
-            new OzonOrder 
+            new OzonParcel 
             { 
                 Id = 403, 
                 RegisterId = 400, 
@@ -487,7 +487,7 @@ public class ParcelIndPostGeneratorTests
         await _dbContext.SaveChangesAsync();
         var loadedRegister = await _dbContext.Registers.FirstAsync(r => r.Id == 600);
         _dbContext.OzonOrders.AddRange(
-            new OzonOrder 
+            new OzonParcel 
             { 
                 Id = 601, 
                 RegisterId = 600, 
@@ -496,7 +496,7 @@ public class ParcelIndPostGeneratorTests
                 PostingNumber = "Z",
                 CheckStatusId = (int)ParcelCheckStatusCode.NoIssues
             },
-            new OzonOrder 
+            new OzonParcel 
             { 
                 Id = 602, 
                 RegisterId = 600, 
@@ -505,7 +505,7 @@ public class ParcelIndPostGeneratorTests
                 PostingNumber = "Z",
                 CheckStatusId = (int)ParcelCheckStatusCode.NoIssues
             },
-            new OzonOrder 
+            new OzonParcel 
             { 
                 Id = 603, 
                 RegisterId = 600, 
@@ -547,7 +547,7 @@ public class ParcelIndPostGeneratorTests
             .FirstAsync(r => r.Id == 800);
 
         _dbContext.OzonOrders.AddRange(
-            new OzonOrder { 
+            new OzonParcel { 
                 Id = 801, 
                 RegisterId = 800, 
                 Register = loadedRegister, 
@@ -556,7 +556,7 @@ public class ParcelIndPostGeneratorTests
                 PostingNumber = "PN1", 
                 CheckStatusId = (int)ParcelCheckStatusCode.NoIssues
             },
-            new OzonOrder 
+            new OzonParcel 
             { 
                 Id = 802, 
                 RegisterId = 800, 

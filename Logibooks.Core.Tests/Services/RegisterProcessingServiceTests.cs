@@ -391,7 +391,7 @@ public class DownloadRegisterTests
         };
         _dbContext.WbrOrders.Add(wOrder);
 
-        var oOrder = new OzonOrder
+        var oOrder = new OzonParcel
         {
             RegisterId = oRegister.Id,
             CountryCode = country.IsoNumeric,

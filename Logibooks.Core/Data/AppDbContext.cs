@@ -39,7 +39,7 @@ namespace Logibooks.Core.Data
         public DbSet<ParcelCheckStatus> CheckStatuses => Set<ParcelCheckStatus>();
         public DbSet<BaseParcel> Orders => Set<BaseParcel>();
         public DbSet<WbrOrder> WbrOrders => Set<WbrOrder>();
-        public DbSet<OzonOrder> OzonOrders => Set<OzonOrder>();
+        public DbSet<OzonParcel> OzonOrders => Set<OzonParcel>();
         public DbSet<Country> Countries => Set<Country>();
         public DbSet<Company> Companies => Set<Company>();
         public DbSet<WordMatchType> WordMatchTypes => Set<WordMatchType>();
@@ -158,15 +158,15 @@ namespace Logibooks.Core.Data
 
             modelBuilder.Entity<BaseParcel>().ToTable("base_orders");
             modelBuilder.Entity<WbrOrder>().ToTable("wbr_orders");
-            modelBuilder.Entity<OzonOrder>().ToTable("ozon_orders");
+            modelBuilder.Entity<OzonParcel>().ToTable("ozon_orders");
 
             modelBuilder.Entity<WbrOrder>()
                 .HasBaseType<BaseParcel>();
 
-            modelBuilder.Entity<OzonOrder>()
+            modelBuilder.Entity<OzonParcel>()
                 .HasBaseType<BaseParcel>();
 
-            modelBuilder.Entity<OzonOrder>()
+            modelBuilder.Entity<OzonParcel>()
                 .HasIndex(o => o.PostingNumber);
 
             modelBuilder.Entity<BaseOrderStopWord>()

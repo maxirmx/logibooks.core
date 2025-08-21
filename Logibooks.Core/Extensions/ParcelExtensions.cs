@@ -36,7 +36,7 @@ public static class ParcelExtensions
         mapper.Map(updateItem, order);
     }
 
-    public static void UpdateFrom(this OzonOrder order, ParcelUpdateItem updateItem, IMapper mapper)
+    public static void UpdateFrom(this OzonParcel order, ParcelUpdateItem updateItem, IMapper mapper)
     {
         mapper.Map(updateItem, order);
     }
