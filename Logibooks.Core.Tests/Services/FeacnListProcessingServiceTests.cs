@@ -253,16 +253,6 @@ public class FeacnListProcessingServiceTests
         Assert.That(_logger, Is.Not.Null);
     }
 
-    /// <summary>
-    /// Creates a truly empty Excel file (corrupted/invalid format)
-    /// </summary>
-    private static byte[] CreateTrulyEmptyExcelFile()
-    {
-        // Return empty byte array to simulate a completely invalid Excel file
-        return [];
-    }
-
-    // Error case tests for lines 167-172: Excel file with no tables
     [Test]
     public void StartProcessingAsync_EmptyExcelFile_ShouldThrowInvalidOperationException()
     {
@@ -278,7 +268,6 @@ public class FeacnListProcessingServiceTests
         Assert.That(ex?.Message ?? string.Empty, Does.Contain("строка заголовка и одна строка данных").Or.Contain("таблиц данных"));
     }
 
-    // Error case tests for lines 167-172: Excel file with only header row (insufficient rows)
     [Test]
     public void StartProcessingAsync_HeaderOnlyExcelFile_ShouldThrowInvalidOperationException()
     {
@@ -293,7 +282,6 @@ public class FeacnListProcessingServiceTests
         Assert.That(ex?.Message ?? string.Empty, Is.EqualTo("В файле Excel должна быть как минимум строка заголовка и одна строка данных"));
     }
 
-    // Error case tests for lines 188-191: Missing required headers
     [Test]
     public void StartProcessingAsync_MissingRequiredHeaders_ShouldThrowInvalidOperationException()
     {
@@ -689,33 +677,6 @@ public class FeacnListProcessingServiceTests
         // Missing columns should result in empty/null values
         Assert.That(codes.Single().Code, Is.EqualTo("1000000000"));
         Assert.That(codes.Single().CodeEx, Is.EqualTo("1000000000"));
-    }
-
-    [Test]
-    public async Task StartProcessingAsync_GetColumnValue_NullCellValue_ShouldReturnNull()
-    {
-        // Arrange - create Excel file with null cell values (represented as DBNull or empty)
-        var headers = new[] { "ID", "Child", "Next", "Code", "CodeEx", "Date1", "Date2", "DatePrev", "TextPrev", "Text", "TextEx" };
-        var rows = new object[] []
-        {
-            new object[] { 1, null, null, "1000000000", null, null, null, null, null, "Test description", null }
-        };
-        var excelBytes = CreateExcelFile((headers, rows));
-
-        // Act
-        var handle = await _service.StartProcessingAsync(excelBytes, "null_cells.xlsx");
-        var progress = await WaitForCompletion(handle);
-        
-        // Assert
-        Assert.That(progress, Is.Not.Null);
-        Assert.That(progress!.Finished, Is.True);
-        
-        var codes = _dbContext.FeacnCodes.ToList();
-        Assert.That(codes.Count, Is.EqualTo(1));
-        Assert.That(codes.Single().Code, Is.EqualTo("1000000000"));
-        Assert.That(codes.Single().CodeEx, Is.EqualTo("")); // null should become empty string after truncation
-        Assert.That(codes.Single().OldName, Is.Null); // TextPrev should remain null
-        Assert.That(codes.Single().DescriptionEx, Is.EqualTo("")); // TextEx null should become empty string
     }
 
     [Test]

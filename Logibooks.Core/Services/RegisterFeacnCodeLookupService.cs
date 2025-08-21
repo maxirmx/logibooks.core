@@ -123,7 +123,7 @@ public class RegisterFeacnCodeLookupService(
             {
                 process.Error = ex.Message;
                 _logger.LogError(ex, "Register feacn code lookup failed");
-                tcs.TrySetException(ex); // Use TrySetException for errors
+                tcs.TrySetException(ex);
             }
             finally
             {
@@ -132,7 +132,7 @@ public class RegisterFeacnCodeLookupService(
             }
         });
 
-        await tcs.Task; // This will now properly propagate exceptions
+        await tcs.Task; 
         return process.HandleId;
     }
 

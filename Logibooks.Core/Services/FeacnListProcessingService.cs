@@ -63,7 +63,6 @@ public class FeacnListProcessingService(
     private record struct FeacnExcelRow(
         int Id,
         int? ChildId,
-        int? NextId,
         string Code,
         string CodeEx,
         DateOnly? Date1,
@@ -246,8 +245,8 @@ public class FeacnListProcessingService(
         var childId = (int?)ExcelDataConverter.ConvertValueToPropertyType(childValue, typeof(int?), "Child", _logger);
         
         // Parse Next ID (optional)
-        var nextValue = GetColumnValue(row, columnMap, "Next");
-        var nextId = (int?)ExcelDataConverter.ConvertValueToPropertyType(nextValue, typeof(int?), "Next", _logger);
+        // var nextValue = GetColumnValue(row, columnMap, "Next");
+        // var nextId = (int?)ExcelDataConverter.ConvertValueToPropertyType(nextValue, typeof(int?), "Next", _logger);
         
         // Parse Level (required)
         // var levelValue = GetColumnValue(row, columnMap, "Level");
@@ -282,7 +281,7 @@ public class FeacnListProcessingService(
         
         // Unit and UnitCode are ignored as per requirements
         
-        return new FeacnExcelRow(id.Value, childId, nextId, code, codeEx, 
+        return new FeacnExcelRow(id.Value, childId, code, codeEx, 
             date1, date2, datePrev, textPrev, text, textEx);
     }
     
