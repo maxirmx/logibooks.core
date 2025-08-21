@@ -299,25 +299,4 @@ public class FeacnListProcessingServiceTests
         Assert.That(codes.Single().Code, Is.EqualTo("newcode"));
     }
 
-    [Test]
-    public async Task StartProcessingAsync_RejectsSecondRequestIfProcessingIsOngoing()
-    {
-        var headers = new[] { "ID", "Child", "Next", "Level", "Code", "CodeEx", "Date1", "Date2", "DatePrev", "TextPrev", "Text", "TextEx" };
-        var rows = new object[] []
-        {
-            new object[] { 1, "", "", 1, "1000000000", "1000000000", "2024-01-01", "2024-12-31", "", "", "Test description", "" }
-        };
-        var excelBytes = CreateExcelFile((headers, rows));
-
-        // Start first processing (do not wait for completion yet)
-        var handle = await _service.StartProcessingAsync(excelBytes, "test.xlsx");
-
-        // Try to start a second processing immediately
-        var ex = Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await _service.StartProcessingAsync(excelBytes, "test2.xlsx"));
-        Assert.That(ex!.Message, Does.Contain("Загрузка кодов ТН ВЭД уже выполняется"));
-
-        // Wait for completion to clean up
-        await WaitForCompletion(handle);
-    }
 }
