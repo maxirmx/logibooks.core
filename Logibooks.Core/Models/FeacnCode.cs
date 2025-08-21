@@ -47,10 +47,10 @@ public class FeacnCode
     public required string CodeEx { get; set; } = string.Empty;
 
     [Column("name")]
-    public required string Description { get; set; } = string.Empty;
+    public required string Name { get; set; } = string.Empty;
 
     [Column("normalized")]
-    public required string DescriptionEx { get; set; } = string.Empty;
+    public required string NormalizedName { get; set; } = string.Empty;
 
     [Column("from_date")]
     public DateOnly? FromDate { get; set; } = null;
