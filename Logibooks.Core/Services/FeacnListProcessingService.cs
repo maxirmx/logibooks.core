@@ -163,11 +163,9 @@ public class FeacnListProcessingService(
         using var reader = ExcelReaderFactory.CreateReader(stream);
         var dataSet = reader.AsDataSet();
         
-        if (dataSet.Tables.Count == 0)
-            throw new InvalidOperationException("Файл Excel не содержит таблиц данных");
-        
-        var table = dataSet.Tables[0];
-        if (table.Rows.Count < 2)
+   
+        var table = dataSet.Tables.Count > 0 ? dataSet.Tables[0] : null;
+        if (table == null || table.Rows.Count < 2)
             throw new InvalidOperationException("В файле Excel должна быть как минимум строка заголовка и одна строка данных");
         
         // Validate header row and get column mapping
@@ -195,7 +193,7 @@ public class FeacnListProcessingService(
 
     private Dictionary<string, int> ValidateHeaderRow(DataTable table)
     {
-        var requiredHeaders = new[] { "ID", "Child", "Next", "Code", "CodeEx", 
+        var requiredHeaders = new[] { "ID", "Child", "Code", "CodeEx", 
             "Date1", "Date2", "DatePrev", "TextPrev", "Text", "TextEx" };
         
         var columnMap = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
