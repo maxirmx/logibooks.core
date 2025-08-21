@@ -252,11 +252,11 @@ public class FeacnListProcessingService(
         
         // Parse Code
         var codeValue = GetColumnValue(row, columnMap, "Code");
-        var code = TruncateWithWarning(codeValue ?? "", FeacnCode.FeacnCodeLength, "Code", rowNumber);
+        var code = TruncateWithWarning(codeValue, FeacnCode.FeacnCodeLength, "Code", rowNumber);
         
         // Parse CodeEx
         var codeExValue = GetColumnValue(row, columnMap, "CodeEx");
-        var codeEx = TruncateWithWarning(codeExValue ?? "", FeacnCode.FeacnCodeLength, "CodeEx", rowNumber);
+        var codeEx = TruncateWithWarning(codeExValue, FeacnCode.FeacnCodeLength, "CodeEx", rowNumber);
         
         // Parse dates using the converter helper
         var date1Value = GetColumnValue(row, columnMap, "Date1");
@@ -272,7 +272,7 @@ public class FeacnListProcessingService(
         var textPrev = GetColumnValue(row, columnMap, "TextPrev");
         if (string.IsNullOrEmpty(textPrev)) textPrev = null;
         
-        var text = GetColumnValue(row, columnMap, "Text") ?? "";
+        var text = GetColumnValue(row, columnMap, "Text");
         
         var textEx = GetColumnValue(row, columnMap, "TextEx");
         if (string.IsNullOrEmpty(textEx)) textEx = null;
@@ -283,13 +283,13 @@ public class FeacnListProcessingService(
             date1, date2, datePrev, textPrev, text, textEx);
     }
     
-    private static string? GetColumnValue(DataRow row, Dictionary<string, int> columnMap, string columnName)
+    private static string GetColumnValue(DataRow row, Dictionary<string, int> columnMap, string columnName)
     {
         if (columnMap.TryGetValue(columnName, out int columnIndex) && columnIndex < row.Table.Columns.Count)
         {
-            return row[columnIndex]?.ToString()?.Trim();
+            return row[columnIndex]?.ToString()?.Trim() ?? string.Empty;
         }
-        return null;
+        return string.Empty;
     }
 
     private string TruncateWithWarning(string value, int maxLength, string fieldName, int rowNumber)
@@ -301,7 +301,7 @@ public class FeacnListProcessingService(
         {
             _logger.LogWarning("Row {RowNumber}: {FieldName} value truncated from {OriginalLength} to {MaxLength} characters", 
                 rowNumber, fieldName, value.Length, maxLength);
-            return value.Substring(0, maxLength);
+            return value[..maxLength];
         }
         
         return value;
