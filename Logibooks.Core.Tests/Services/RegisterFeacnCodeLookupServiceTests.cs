@@ -78,7 +78,7 @@ public class RegisterFeacnCodeLookupServiceTests
 
         var mock = new Mock<IParcelFeacnCodeLookupService>();
         mock.Setup(m => m.LookupAsync(
-            It.IsAny<BaseOrder>(),
+            It.IsAny<BaseParcel>(),
             It.IsAny<MorphologyContext>(),
             It.IsAny<WordsLookupContext<KeyWord>>(),
             It.IsAny<CancellationToken>()))
@@ -96,14 +96,14 @@ public class RegisterFeacnCodeLookupServiceTests
         Assert.That(progress.Processed, Is.EqualTo(-1));
         Assert.That(progress.Finished, Is.True);
         mock.Verify(m => m.LookupAsync(
-            It.IsAny<BaseOrder>(),
+            It.IsAny<BaseParcel>(),
             It.IsAny<MorphologyContext>(),
             It.IsAny<WordsLookupContext<KeyWord>>(),
             It.IsAny<CancellationToken>()), Times.Exactly(2));
     }
 
     [Test]
-    public async Task CancelLookup_StopsProcessing()
+    public async Task Cancel_StopsProcessing()
     {
         using var ctx = CreateContext();
         ctx.Registers.Add(new Register { Id = 2, FileName = "r.xlsx" });
@@ -114,7 +114,7 @@ public class RegisterFeacnCodeLookupServiceTests
 
         var mock = new Mock<IParcelFeacnCodeLookupService>();
         mock.Setup(m => m.LookupAsync(
-            It.IsAny<BaseOrder>(),
+            It.IsAny<BaseParcel>(),
             It.IsAny<MorphologyContext>(),
             It.IsAny<WordsLookupContext<KeyWord>>(),
             It.IsAny<CancellationToken>()))
@@ -125,7 +125,7 @@ public class RegisterFeacnCodeLookupServiceTests
         var svc = new RegisterFeacnCodeLookupService(ctx, scopeFactory, logger, new MorphologySearchService());
 
         var handle = await svc.StartLookupAsync(2);
-        svc.CancelLookup(handle);
+        svc.Cancel(handle);
         await Task.Delay(100);
         var progress = svc.GetProgress(handle)!;
 
@@ -171,21 +171,9 @@ public class RegisterFeacnCodeLookupServiceTests
         var logger = new LoggerFactory().CreateLogger<RegisterFeacnCodeLookupService>();
         var svc = new RegisterFeacnCodeLookupService(ctx, mockScopeFactory.Object, logger, new MorphologySearchService());
 
-        var handle = await svc.StartLookupAsync(10);
-
-        ValidationProgress? progress = null;
-        var sw = System.Diagnostics.Stopwatch.StartNew();
-        while (sw.Elapsed < TimeSpan.FromSeconds(2))
-        {
-            progress = svc.GetProgress(handle);
-            if (progress != null && progress.Error != null)
-                break;
-            await Task.Delay(20);
-        }
-        sw.Stop();
-
-        Assert.That(progress, Is.Not.Null);
-        Assert.That(progress!.Finished, Is.True);
+        // Expect StartLookupAsync to throw an exception when services cannot be resolved
+        var ex = Assert.ThrowsAsync<InvalidOperationException>(async () => await svc.StartLookupAsync(10));
+        Assert.That(ex?.Message ?? String.Empty, Is.EqualTo("Failed to resolve required services"));
     }
 
     [Test]
@@ -257,7 +245,7 @@ public class RegisterFeacnCodeLookupServiceTests
 
         var mock = new Mock<IParcelFeacnCodeLookupService>();
         mock.Setup(m => m.LookupAsync(
-            It.IsAny<BaseOrder>(),
+            It.IsAny<BaseParcel>(),
             It.IsAny<MorphologyContext>(),
             It.IsAny<WordsLookupContext<KeyWord>>(),
             It.IsAny<CancellationToken>()))
@@ -271,22 +259,22 @@ public class RegisterFeacnCodeLookupServiceTests
         await Task.Delay(100);
 
         mock.Verify(m => m.LookupAsync(
-            It.Is<BaseOrder>(o => o.Id == 201),
+            It.Is<BaseParcel>(o => o.Id == 201),
             It.IsAny<MorphologyContext>(),
             It.IsAny<WordsLookupContext<KeyWord>>(),
             It.IsAny<CancellationToken>()), Times.Once);
         mock.Verify(m => m.LookupAsync(
-            It.Is<BaseOrder>(o => o.Id == 202),
+            It.Is<BaseParcel>(o => o.Id == 202),
             It.IsAny<MorphologyContext>(),
             It.IsAny<WordsLookupContext<KeyWord>>(),
             It.IsAny<CancellationToken>()), Times.Never);
         mock.Verify(m => m.LookupAsync(
-            It.Is<BaseOrder>(o => o.Id == 203),
+            It.Is<BaseParcel>(o => o.Id == 203),
             It.IsAny<MorphologyContext>(),
             It.IsAny<WordsLookupContext<KeyWord>>(),
             It.IsAny<CancellationToken>()), Times.Never);
         mock.Verify(m => m.LookupAsync(
-            It.Is<BaseOrder>(o => o.Id == 204),
+            It.Is<BaseParcel>(o => o.Id == 204),
             It.IsAny<MorphologyContext>(),
             It.IsAny<WordsLookupContext<KeyWord>>(),
             It.IsAny<CancellationToken>()), Times.Never);

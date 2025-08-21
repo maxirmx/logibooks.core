@@ -23,20 +23,19 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-using System.ComponentModel.DataAnnotations.Schema;
-using System.Text.Json.Serialization;
+namespace Logibooks.Core.Interfaces;
 
-namespace Logibooks.Core.Models;
-
-[Table("check_statuses")]
-public class ParcelCheckStatus
+public interface IFeacnListProcessingService : IProgressReporter
 {
-    [Column("id")]
-    public int Id { get; set; }
-
-    [Column("title")]
-    public required string Title { get; set; }
-
-    [JsonIgnore]
-    public ICollection<BaseParcel> Orders { get; set; } = [];
+    /// <summary>
+    /// Starts asynchronous processing of FEACN codes from Excel file.
+    /// </summary>
+    /// <param name="content">Excel file content as byte array</param>
+    /// <param name="fileName">Original file name for logging purposes</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Handle identifier for tracking progress</returns>
+    Task<Guid> StartProcessingAsync(
+        byte[] content,
+        string fileName,
+        CancellationToken cancellationToken = default);
 }

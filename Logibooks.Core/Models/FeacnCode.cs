@@ -23,20 +23,51 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Text.Json.Serialization;
 
 namespace Logibooks.Core.Models;
 
-[Table("check_statuses")]
-public class ParcelCheckStatus
+[Table("feacn_codes")]
+[Index(nameof(Code), Name = "IX_feacn_codes_code")]
+public class FeacnCode
 {
+    public const int FeacnCodeLength = 10;
+
     [Column("id")]
     public int Id { get; set; }
 
-    [Column("title")]
-    public required string Title { get; set; }
+    [Column("code")]
+    [StringLength(FeacnCodeLength)]
+    public required string Code { get; set; } = string.Empty;
 
-    [JsonIgnore]
-    public ICollection<BaseParcel> Orders { get; set; } = [];
+    [Column("code_ex")]
+    [StringLength(FeacnCodeLength)]
+    public required string CodeEx { get; set; } = string.Empty;
+
+    [Column("name")]
+    public required string Description { get; set; } = string.Empty;
+
+    [Column("normalized")]
+    public required string DescriptionEx { get; set; } = string.Empty;
+
+    [Column("from_date")]
+    public DateOnly? FromDate { get; set; } = null;
+
+    [Column("to_date")]
+    public DateOnly? ToDate { get; set; } = null;
+
+    [Column("old_name")]
+    public string? OldName { get; set; } = null;
+
+    [Column("old_name_to_date")]
+    public DateOnly? OldNameToDate { get; set; } = null;
+
+    [ForeignKey("Parent")]
+    [Column("parent_id")]
+    public int? ParentId { get; set; }
+    public FeacnCode? Parent { get; set; }
+
+    public ICollection<FeacnCode>? Children { get; set; }
 }

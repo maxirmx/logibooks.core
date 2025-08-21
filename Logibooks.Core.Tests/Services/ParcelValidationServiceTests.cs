@@ -54,7 +54,7 @@ public class ParcelValidationServiceTests
     {
         var mockFeacnService = new Mock<IFeacnPrefixCheckService>();
         // Setup mock to return empty list by default
-        mockFeacnService.Setup(x => x.CheckOrderAsync(It.IsAny<BaseOrder>(), It.IsAny<CancellationToken>()))
+        mockFeacnService.Setup(x => x.CheckOrderAsync(It.IsAny<BaseParcel>(), It.IsAny<CancellationToken>()))
                    .ReturnsAsync(new List<BaseOrderFeacnPrefix>());
 
         return new ParcelValidationService(context, new MorphologySearchService(), mockFeacnService.Object);
@@ -64,7 +64,7 @@ public class ParcelValidationServiceTests
     {
         var mockFeacnService = new Mock<IFeacnPrefixCheckService>();
         // Setup mock to return empty list by default
-        mockFeacnService.Setup(x => x.CheckOrderAsync(It.IsAny<BaseOrder>(), It.IsAny<CancellationToken>()))
+        mockFeacnService.Setup(x => x.CheckOrderAsync(It.IsAny<BaseParcel>(), It.IsAny<CancellationToken>()))
                    .ReturnsAsync(new List<BaseOrderFeacnPrefix>());
 
         return new ParcelValidationService(context, morphService, mockFeacnService.Object);

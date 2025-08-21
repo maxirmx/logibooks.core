@@ -833,7 +833,7 @@ public class ParcelsControllerTests
         var result = await _controller.ValidateOrder(1);
 
         _mockValidationService.Verify(s => s.ValidateAsync(
-            It.IsAny<BaseOrder>(),
+            It.IsAny<BaseParcel>(),
             It.IsAny<MorphologyContext>(),
             It.IsAny<WordsLookupContext<StopWord>>(),
             It.IsAny<FeacnPrefixCheckContext?>(),
@@ -854,7 +854,7 @@ public class ParcelsControllerTests
         var obj = result as ObjectResult;
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
         _mockValidationService.Verify(s => s.ValidateAsync(
-            It.IsAny<BaseOrder>(),
+            It.IsAny<BaseParcel>(),
             It.IsAny<MorphologyContext>(),
             It.IsAny<WordsLookupContext<StopWord>>(),
             It.IsAny<FeacnPrefixCheckContext?>(),
@@ -878,7 +878,7 @@ public class ParcelsControllerTests
         var obj = result as ObjectResult;
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
         _mockValidationService.Verify(s => s.ValidateAsync(
-            It.IsAny<BaseOrder>(),
+            It.IsAny<BaseParcel>(),
             It.IsAny<MorphologyContext>(),
             It.IsAny<WordsLookupContext<StopWord>>(),
             It.IsAny<FeacnPrefixCheckContext?>(),
@@ -952,7 +952,7 @@ public class ParcelsControllerTests
         var result = await _controller.LookupFeacnCode(1);
 
         _mockFeacnLookupService.Verify(s => s.LookupAsync(
-            It.IsAny<BaseOrder>(),
+            It.IsAny<BaseParcel>(),
             It.IsAny<MorphologyContext>(),
             It.IsAny<WordsLookupContext<KeyWord>>(),
             It.IsAny<CancellationToken>()),
@@ -972,7 +972,7 @@ public class ParcelsControllerTests
         var obj = result as ObjectResult;
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
         _mockFeacnLookupService.Verify(s => s.LookupAsync(
-            It.IsAny<BaseOrder>(),
+            It.IsAny<BaseParcel>(),
             It.IsAny<MorphologyContext>(),
             It.IsAny<WordsLookupContext<KeyWord>>(),
             It.IsAny<CancellationToken>()),
@@ -995,7 +995,7 @@ public class ParcelsControllerTests
         var obj = result as ObjectResult;
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
         _mockFeacnLookupService.Verify(s => s.LookupAsync(
-            It.IsAny<BaseOrder>(),
+            It.IsAny<BaseParcel>(),
             It.IsAny<MorphologyContext>(),
             It.IsAny<WordsLookupContext<KeyWord>>(),
             It.IsAny<CancellationToken>()),

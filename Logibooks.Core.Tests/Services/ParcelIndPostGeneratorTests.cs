@@ -727,7 +727,7 @@ public class ParcelIndPostGeneratorTests
         Assert.That(archive.Entries[0].Name, Does.Contain("B"));
     }
 
-    public class DummyOrder : BaseOrder {
+    public class DummyOrder : BaseParcel {
         public override string GetParcelNumber() => "DUMMY";
         public override string GetCurrency() => "DUMMY";
         public override string GetDescription() => "DUMMY";

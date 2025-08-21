@@ -37,7 +37,7 @@ namespace Logibooks.Core.Data
         public DbSet<Register> Registers => Set<Register>();
         public DbSet<ParcelStatus> Statuses => Set<ParcelStatus>();
         public DbSet<ParcelCheckStatus> CheckStatuses => Set<ParcelCheckStatus>();
-        public DbSet<BaseOrder> Orders => Set<BaseOrder>();
+        public DbSet<BaseParcel> Orders => Set<BaseParcel>();
         public DbSet<WbrOrder> WbrOrders => Set<WbrOrder>();
         public DbSet<OzonOrder> OzonOrders => Set<OzonOrder>();
         public DbSet<Country> Countries => Set<Country>();
@@ -53,6 +53,7 @@ namespace Logibooks.Core.Data
         public DbSet<ParcelView> ParcelViews => Set<ParcelView>();
         public DbSet<KeyWord> KeyWords => Set<KeyWord>();
         public DbSet<KeyWordFeacnCode> KeyWordFeacnCodes => Set<KeyWordFeacnCode>();
+        public DbSet<FeacnCode> FeacnCodes => Set<FeacnCode>();
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -132,38 +133,38 @@ namespace Logibooks.Core.Data
                 .HasForeignKey(r => r.CustomsProcedureId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            modelBuilder.Entity<BaseOrder>()
+            modelBuilder.Entity<BaseParcel>()
                 .HasOne(o => o.Register)
                 .WithMany(r => r.Orders)
                 .HasForeignKey(o => o.RegisterId);
 
-            modelBuilder.Entity<BaseOrder>()
+            modelBuilder.Entity<BaseParcel>()
                 .HasOne(o => o.Status)
                 .WithMany(s => s.Orders)
                 .HasForeignKey(o => o.StatusId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            modelBuilder.Entity<BaseOrder>()
+            modelBuilder.Entity<BaseParcel>()
                 .HasOne(o => o.CheckStatus)
                 .WithMany(s => s.Orders)
                 .HasForeignKey(o => o.CheckStatusId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            modelBuilder.Entity<BaseOrder>()
+            modelBuilder.Entity<BaseParcel>()
                 .HasOne(o => o.Country)
                 .WithMany()
                 .HasForeignKey(o => o.CountryCode)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            modelBuilder.Entity<BaseOrder>().ToTable("base_orders");
+            modelBuilder.Entity<BaseParcel>().ToTable("base_orders");
             modelBuilder.Entity<WbrOrder>().ToTable("wbr_orders");
             modelBuilder.Entity<OzonOrder>().ToTable("ozon_orders");
 
             modelBuilder.Entity<WbrOrder>()
-                .HasBaseType<BaseOrder>();
+                .HasBaseType<BaseParcel>();
 
             modelBuilder.Entity<OzonOrder>()
-                .HasBaseType<BaseOrder>();
+                .HasBaseType<BaseParcel>();
 
             modelBuilder.Entity<OzonOrder>()
                 .HasIndex(o => o.PostingNumber);
@@ -203,6 +204,40 @@ namespace Logibooks.Core.Data
                 .HasOne(e => e.FeacnPrefix)
                 .WithMany(p => p.FeacnPrefixExceptions)
                 .HasForeignKey(e => e.FeacnPrefixId);
+
+            modelBuilder.Entity<KeyWord>()
+                .HasOne(k => k.MatchType)
+                .WithMany(mt => mt.KeyWords)
+                .HasForeignKey(k => k.MatchTypeId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<KeyWordFeacnCode>()
+                .HasKey(kwfc => new { kwfc.KeyWordId, kwfc.FeacnCode });
+
+            modelBuilder.Entity<KeyWordFeacnCode>()
+                .HasOne(kwfc => kwfc.KeyWord)
+                .WithMany(kw => kw.KeyWordFeacnCodes)
+                .HasForeignKey(kwfc => kwfc.KeyWordId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<BaseOrderKeyWord>()
+                .HasKey(bokw => new { bokw.BaseOrderId, bokw.KeyWordId });
+
+            modelBuilder.Entity<BaseOrderKeyWord>()
+                .HasOne(bokw => bokw.BaseOrder)
+                .WithMany(bo => bo.BaseOrderKeyWords)
+                .HasForeignKey(bokw => bokw.BaseOrderId);
+
+            modelBuilder.Entity<BaseOrderKeyWord>()
+                .HasOne(bokw => bokw.KeyWord)
+                .WithMany(kw => kw.BaseOrderKeyWords)
+                .HasForeignKey(bokw => bokw.KeyWordId);
+
+            modelBuilder.Entity<FeacnCode>()
+                .HasOne(fc => fc.Parent)
+                .WithMany(p => p.Children)
+                .HasForeignKey(fc => fc.ParentId)
+                .OnDelete(DeleteBehavior.SetNull);
 
             modelBuilder.Entity<Role>().HasData(
                 new Role { Id = 1, Name = "logist", Title = "Логист" },
@@ -373,34 +408,6 @@ namespace Logibooks.Core.Data
                 new WordMatchType { Id = (int)WordMatchTypeCode.WeakMorphology, Name = "Слово и его формы (Золото -> c золотом, о золоте, ...)" },
                 new WordMatchType { Id = (int)WordMatchTypeCode.StrongMorphology, Name = "Слово и однокоренные (Золото -> золотой, золотистый, ...)" }
             );
-
-            modelBuilder.Entity<KeyWord>()
-                .HasOne(k => k.MatchType)
-                .WithMany(mt => mt.KeyWords)
-                .HasForeignKey(k => k.MatchTypeId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            modelBuilder.Entity<KeyWordFeacnCode>()
-                .HasKey(kwfc => new { kwfc.KeyWordId, kwfc.FeacnCode });
-
-            modelBuilder.Entity<KeyWordFeacnCode>()
-                .HasOne(kwfc => kwfc.KeyWord)
-                .WithMany(kw => kw.KeyWordFeacnCodes)
-                .HasForeignKey(kwfc => kwfc.KeyWordId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            modelBuilder.Entity<BaseOrderKeyWord>()
-                .HasKey(bokw => new { bokw.BaseOrderId, bokw.KeyWordId });
-
-            modelBuilder.Entity<BaseOrderKeyWord>()
-                .HasOne(bokw => bokw.BaseOrder)
-                .WithMany(bo => bo.BaseOrderKeyWords)
-                .HasForeignKey(bokw => bokw.BaseOrderId);
-
-            modelBuilder.Entity<BaseOrderKeyWord>()
-                .HasOne(bokw => bokw.KeyWord)
-                .WithMany(kw => kw.BaseOrderKeyWords)
-                .HasForeignKey(bokw => bokw.KeyWordId);
         }
     }
 }

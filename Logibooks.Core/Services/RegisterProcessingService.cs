@@ -152,13 +152,13 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
         var countryAlpha2Lookup = (await _db.Countries.AsNoTracking().ToListAsync(cancellationToken))
             .ToDictionary(c => c.IsoNumeric, c => c.IsoAlpha2 ?? string.Empty);
 
-        List<BaseOrder> orders;
+        List<BaseParcel> orders;
         if (isWbr)
         {
             orders = await _db.WbrOrders.AsNoTracking()
                 .Where(o => o.RegisterId == registerId)
                 .OrderBy(o => o.Id)
-                .Cast<BaseOrder>()
+                .Cast<BaseParcel>()
                 .ToListAsync(cancellationToken);
         }
         else
@@ -166,7 +166,7 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
             orders = await _db.OzonOrders.AsNoTracking()
                 .Where(o => o.RegisterId == registerId)
                 .OrderBy(o => o.Id)
-                .Cast<BaseOrder>()
+                .Cast<BaseParcel>()
                 .ToListAsync(cancellationToken);
         }
 
@@ -197,7 +197,7 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
                 }
                 object? val = prop?.GetValue(baseOrder);
                 string cellValue = string.Empty;
-                if (propName == nameof(BaseOrder.CountryCode) && val is short countryNumeric)
+                if (propName == nameof(BaseParcel.CountryCode) && val is short countryNumeric)
                 {
                     cellValue = countryAlpha2Lookup.TryGetValue(countryNumeric, out var alpha2) ? alpha2 : countryNumeric.ToString();
                 }
@@ -320,7 +320,7 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
                 {
                     try
                     {
-                        if (propInfo.Name == nameof(BaseOrder.CountryCode))
+                        if (propInfo.Name == nameof(BaseParcel.CountryCode))
                         {
                             order.CountryCode = LookupCountryCode(val);
                             if (order.CountryCode == 0)
@@ -330,7 +330,7 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
                         }
                         else
                         {
-                            object? convertedValue = ConvertValueToPropertyType(val, propInfo.PropertyType, propInfo.Name);
+                            object? convertedValue = ExcelDataConverter.ConvertValueToPropertyType(val, propInfo.PropertyType, propInfo.Name, _logger);
                             propInfo.SetValue(order, convertedValue);
                         }
                     }
@@ -394,7 +394,7 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
                 {
                     try
                     {
-                        if (propInfo.Name == nameof(BaseOrder.CountryCode))
+                        if (propInfo.Name == nameof(BaseParcel.CountryCode))
                         {
                             order.CountryCode = LookupCountryCode(val);
                             if (order.CountryCode == 0)
@@ -404,7 +404,7 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
                         }
                         else
                         {
-                            object? convertedValue = ConvertValueToPropertyType(val, propInfo.PropertyType, propInfo.Name);
+                            object? convertedValue = ExcelDataConverter.ConvertValueToPropertyType(val, propInfo.PropertyType, propInfo.Name, _logger);
                             propInfo.SetValue(order, convertedValue);
                         }
                     }
@@ -429,70 +429,6 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
         }
 
         return orders;
-    }
-
-
-    private object? ConvertValueToPropertyType(string? value, Type propertyType, string propertyName)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            if (propertyType.IsClass || Nullable.GetUnderlyingType(propertyType) != null)
-                return propertyType == typeof(string) ? string.Empty : null;
-        }
-
-        Type targetType = Nullable.GetUnderlyingType(propertyType) ?? propertyType;
-
-        if (targetType == typeof(int))
-        {
-            return int.TryParse(value, NumberStyles.Integer, RussianCulture, out int result) ? result : default;
-        }
-        else if (targetType == typeof(decimal))
-        {
-            string normalizedVal = value?.Replace('.', ',') ?? "0";
-            return decimal.TryParse(normalizedVal, NumberStyles.AllowDecimalPoint, RussianCulture, out decimal result) ? result : default;
-        }
-        else if (targetType == typeof(double))
-        {
-            string normalizedVal = value?.Replace('.', ',') ?? "0";
-            return double.TryParse(normalizedVal, NumberStyles.AllowDecimalPoint, RussianCulture, out double result) ? result : default;
-        }
-        else if (targetType == typeof(bool))
-        {
-            if (string.IsNullOrWhiteSpace(value))
-                return default(bool);
-
-            string normalizedVal = value.ToLower(RussianCulture).Trim();
-            string[] trueValues = ["1", "yes", "true", "да"];
-
-            if (trueValues.Contains(normalizedVal, StringComparer.InvariantCultureIgnoreCase))
-                return true;
-            else
-                return false;
-        }
-        else if (targetType == typeof(DateTime))
-        {
-            return DateTime.TryParse(value, RussianCulture, DateTimeStyles.None, out DateTime result) ? result : default;
-        }
-        else if (targetType == typeof(DateOnly))
-        {
-            if (DateOnly.TryParse(value, RussianCulture, DateTimeStyles.None, out DateOnly result))
-                return result;
-            return default(DateOnly);
-        }
-        else if (targetType == typeof(string))
-        {
-            return value ?? string.Empty;
-        }
-
-        try
-        {
-            return Convert.ChangeType(value, targetType, RussianCulture);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Could not convert '{Value}' to type {Type} for property {Property}", value, targetType.Name, propertyName);
-            return targetType.IsValueType ? Activator.CreateInstance(targetType) : null;
-        }
     }
 
     private short LookupCountryCode(string value)

@@ -61,7 +61,7 @@ public class ParcelViewItem
     public List<int> FeacnOrderIds { get; set; } = [];
     public DateTime? DTime { get; set; }
 
-    public ParcelViewItem(BaseOrder order)
+    public ParcelViewItem(BaseParcel order)
     {
         Id = order.Id;
         RegisterId = order.RegisterId;

@@ -610,7 +610,7 @@ public class RegistersController(
         int registerId = current.RegisterId;
         int companyId = current.Register.CompanyId;
 
-        IQueryable<BaseOrder> query = _db.Orders.AsNoTracking()
+        IQueryable<BaseParcel> query = _db.Orders.AsNoTracking()
             .Where(o => o.RegisterId == registerId &&
                         o.CheckStatusId >= (int)ParcelCheckStatusCode.HasIssues && 
                         o.CheckStatusId < (int)ParcelCheckStatusCode.MarkedByPartner)
@@ -627,7 +627,7 @@ public class RegistersController(
             return NoContent();
         }
 
-        BaseOrder? parcel = null;
+        BaseParcel? parcel = null;
 
         if (companyId == IRegisterProcessingService.GetWBRId())
         {
@@ -712,7 +712,7 @@ public class RegistersController(
             return _403();
         }
 
-        var ok = _feacnLookupService.CancelLookup(handleId);
+        var ok = _feacnLookupService.Cancel(handleId);
         if (!ok)
         {
             _logger.LogDebug("CancelLookupFeacnCodes returning '404 Not Found'");
@@ -784,7 +784,7 @@ public class RegistersController(
             return _403();
         }
 
-        var ok = _validationService.CancelValidation(handleId);
+        var ok = _validationService.Cancel(handleId);
         if (!ok)
         {
             _logger.LogDebug("CancelValidation returning '404 Not Found'");
@@ -810,7 +810,7 @@ public class RegistersController(
                 g => g.Where(x => x.Count > 0).ToDictionary(x => x.CheckStatusId, x => x.Count));
     }
 
-    private static IQueryable<TOrder> ApplyOrderIncludes<TOrder>(IQueryable<TOrder> query) where TOrder : BaseOrder
+    private static IQueryable<TOrder> ApplyOrderIncludes<TOrder>(IQueryable<TOrder> query) where TOrder : BaseParcel
     {
         return query
             .Include(o => o.Register)

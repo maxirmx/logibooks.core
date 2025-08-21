@@ -36,6 +36,6 @@ public class KeyWordFeacnCode
     public KeyWord KeyWord { get; set; } = null!;
 
     [Column("feacn_code")]
-    [StringLength(10, MinimumLength = 10, ErrorMessage = "Код ТН ВЭД должен состоять из 10 цифр")]
+    [StringLength(Models.FeacnCode.FeacnCodeLength, MinimumLength = Models.FeacnCode.FeacnCodeLength, ErrorMessage = "Код ТН ВЭД должен состоять из 10 цифр")]
     public string FeacnCode { get; set; } = string.Empty;
 }

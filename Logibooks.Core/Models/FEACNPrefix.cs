@@ -23,6 +23,7 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Logibooks.Core.Models;
@@ -30,12 +31,11 @@ namespace Logibooks.Core.Models;
 [Table("feacn_prefixes")]
 public class FeacnPrefix
 {
-    public const int FeacnCodeLength = 10;
-
     [Column("id")]
     public int Id { get; set; }
 
     [Column("code")]
+    [StringLength(FeacnCode.FeacnCodeLength)]
     public required string Code { get; set; } = string.Empty;
 
     [Column("description")]
@@ -61,7 +61,7 @@ public class FeacnPrefix
         {
             if (Code != null)
             {
-                if (long.TryParse(Code.PadRight(FeacnCodeLength, '0'), out var result))
+                if (long.TryParse(Code.PadRight(FeacnCode.FeacnCodeLength, '0'), out var result))
                 {
                     return result;
                 }
@@ -77,7 +77,7 @@ public class FeacnPrefix
         {
             if (IntervalCode != null)
             {
-                if (long.TryParse(IntervalCode.PadRight(FeacnCodeLength, '0'), out var result))
+                if (long.TryParse(IntervalCode.PadRight(FeacnCode.FeacnCodeLength, '0'), out var result))
                 {
                     return result;
                 }
