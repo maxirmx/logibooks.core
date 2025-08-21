@@ -24,24 +24,23 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 using System;
-using System.Data;
+using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-using System.Collections.Generic;
-using System.Globalization;
+
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
-using Logibooks.Core.Services;
-using Logibooks.Core.Data;
-using Logibooks.Core.Models;
-using Microsoft.EntityFrameworkCore;
-using Moq;
-using ExcelDataReader;
+
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
+
+
+using Logibooks.Core.Services;
+using Logibooks.Core.Data;
+using Logibooks.Core.Models;
 
 namespace Logibooks.Core.Tests.Services;
 

@@ -1,4 +1,4 @@
-// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
+п»ї// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
 // All rights reserved.
 // This file is a part of Logibooks Core application
 //
@@ -24,7 +24,6 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 using System.Data;
-using System.Globalization;
 using ExcelDataReader;
 using Logibooks.Core.Data;
 using Logibooks.Core.Interfaces;
@@ -97,11 +96,11 @@ public class FeacnListProcessingService(
         var dataSet = reader.AsDataSet();
         
         if (dataSet.Tables.Count == 0)
-            throw new InvalidOperationException("Файл Excel не содержит таблиц данных");
+            throw new InvalidOperationException("Р¤Р°Р№Р» Excel РЅРµ СЃРѕРґРµСЂР¶РёС‚ С‚Р°Р±Р»РёС† РґР°РЅРЅС‹С…");
         
         var table = dataSet.Tables[0];
         if (table.Rows.Count < 2)
-            throw new InvalidOperationException("В файле Excel должна быть как минимум строка заголовка и одна строка данных");
+            throw new InvalidOperationException("Р’ С„Р°Р№Р»Рµ Excel РґРѕР»Р¶РЅР° Р±С‹С‚СЊ РєР°Рє РјРёРЅРёРјСѓРј СЃС‚СЂРѕРєР° Р·Р°РіРѕР»РѕРІРєР° Рё РѕРґРЅР° СЃС‚СЂРѕРєР° РґР°РЅРЅС‹С…");
         
         // Validate header row and get column mapping
         var columnMap = ValidateHeaderRow(table);
@@ -155,7 +154,7 @@ public class FeacnListProcessingService(
         
         if (missingHeaders.Any())
         {
-            throw new InvalidOperationException($"В файле Excel отсутствуют обязательные столбцы: {string.Join(", ", missingHeaders)}");
+            throw new InvalidOperationException($"Р’ С„Р°Р№Р»Рµ Excel РѕС‚СЃСѓС‚СЃС‚РІСѓСЋС‚ РѕР±СЏР·Р°С‚РµР»СЊРЅС‹Рµ СЃС‚РѕР»Р±С†С‹: {string.Join(", ", missingHeaders)}");
         }
         
         _logger.LogInformation("Successfully mapped {Count} columns from Excel headers", columnMap.Count);
@@ -286,7 +285,7 @@ public class FeacnListProcessingService(
             }
         }
         
-        _logger.LogInformation("Построена иерархическая структура с {RootCount} корневыми узлами", 
+        _logger.LogInformation("РџРѕСЃС‚СЂРѕРµРЅР° РёРµСЂР°СЂС…РёС‡РµСЃРєР°СЏ СЃС‚СЂСѓРєС‚СѓСЂР° СЃ {RootCount} РєРѕСЂРЅРµРІС‹РјРё СѓР·Р»Р°РјРё", 
             feacnCodes.Count(f => f.Parent == null));
         
         return feacnCodes;
