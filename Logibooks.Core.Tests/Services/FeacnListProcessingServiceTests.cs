@@ -480,4 +480,346 @@ public class FeacnListProcessingServiceTests
         Assert.That(codes.Single().Code, Is.EqualTo("newcode"));
     }
 
+    #region TruncateWithWarning Edge Cases Tests
+
+    [Test]
+    public async Task StartProcessingAsync_TruncateWithWarning_NullValue_ShouldReturnEmptyString()
+    {
+        // Arrange - create Excel file with null Code value (simulated as empty string)
+        var headers = new[] { "ID", "Child", "Next", "Code", "CodeEx", "Date1", "Date2", "DatePrev", "TextPrev", "Text", "TextEx" };
+        var rows = new object[] []
+        {
+            new object[] { 1, "", "", "", "1000000000", "2024-01-01", "2024-12-31", "", "", "Test description", "" }
+        };
+        var excelBytes = CreateExcelFile((headers, rows));
+
+        // Act
+        var handle = await _service.StartProcessingAsync(excelBytes, "null_code.xlsx");
+        var progress = await WaitForCompletion(handle);
+        
+        // Assert
+        Assert.That(progress, Is.Not.Null);
+        Assert.That(progress!.Finished, Is.True);
+        Assert.That(progress.Error, Is.Null.Or.Empty);
+        
+        var codes = _dbContext.FeacnCodes.ToList();
+        Assert.That(codes.Count, Is.EqualTo(1));
+        Assert.That(codes.Single().Code, Is.EqualTo("")); // Should be empty string for null/empty input
+    }
+
+    [Test]
+    public async Task StartProcessingAsync_TruncateWithWarning_EmptyString_ShouldReturnEmptyString()
+    {
+        // Arrange - create Excel file with empty Code value
+        var headers = new[] { "ID", "Child", "Next", "Code", "CodeEx", "Date1", "Date2", "DatePrev", "TextPrev", "Text", "TextEx" };
+        var rows = new object[] []
+        {
+            new object[] { 1, "", "", "", "1000000000", "2024-01-01", "2024-12-31", "", "", "Test description", "" }
+        };
+        var excelBytes = CreateExcelFile((headers, rows));
+
+        // Act
+        var handle = await _service.StartProcessingAsync(excelBytes, "empty_code.xlsx");
+        var progress = await WaitForCompletion(handle);
+        
+        // Assert
+        Assert.That(progress, Is.Not.Null);
+        Assert.That(progress!.Finished, Is.True);
+        
+        var codes = _dbContext.FeacnCodes.ToList();
+        Assert.That(codes.Count, Is.EqualTo(1));
+        Assert.That(codes.Single().Code, Is.EqualTo(""));
+    }
+
+    [Test]
+    public async Task StartProcessingAsync_TruncateWithWarning_ExactMaxLength_ShouldNotTruncate()
+    {
+        // Arrange - create Excel file with Code exactly at max length (10 chars)
+        var headers = new[] { "ID", "Child", "Next", "Code", "CodeEx", "Date1", "Date2", "DatePrev", "TextPrev", "Text", "TextEx" };
+        var exactLengthCode = "1234567890"; // Exactly 10 characters
+        var rows = new object[] []
+        {
+            new object[] { 1, "", "", exactLengthCode, "1000000000", "2024-01-01", "2024-12-31", "", "", "Test description", "" }
+        };
+        var excelBytes = CreateExcelFile((headers, rows));
+
+        // Act
+        var handle = await _service.StartProcessingAsync(excelBytes, "exact_length.xlsx");
+        var progress = await WaitForCompletion(handle);
+        
+        // Assert
+        Assert.That(progress, Is.Not.Null);
+        Assert.That(progress!.Finished, Is.True);
+        
+        var codes = _dbContext.FeacnCodes.ToList();
+        Assert.That(codes.Count, Is.EqualTo(1));
+        Assert.That(codes.Single().Code, Is.EqualTo(exactLengthCode));
+        Assert.That(codes.Single().Code.Length, Is.EqualTo(10));
+    }
+
+    [Test]
+    public async Task StartProcessingAsync_TruncateWithWarning_ExceedsMaxLength_ShouldTruncate()
+    {
+        // Arrange - create Excel file with Code exceeding max length
+        var headers = new[] { "ID", "Child", "Next", "Code", "CodeEx", "Date1", "Date2", "DatePrev", "TextPrev", "Text", "TextEx" };
+        var longCode = "12345678901234567890"; // 20 characters, should be truncated to 10
+        var expectedTruncatedCode = "1234567890"; // First 10 characters
+        var rows = new object[] []
+        {
+            new object[] { 1, "", "", longCode, "1000000000", "2024-01-01", "2024-12-31", "", "", "Test description", "" }
+        };
+        var excelBytes = CreateExcelFile((headers, rows));
+
+        // Act
+        var handle = await _service.StartProcessingAsync(excelBytes, "long_code.xlsx");
+        var progress = await WaitForCompletion(handle);
+        
+        // Assert
+        Assert.That(progress, Is.Not.Null);
+        Assert.That(progress!.Finished, Is.True);
+        
+        var codes = _dbContext.FeacnCodes.ToList();
+        Assert.That(codes.Count, Is.EqualTo(1));
+        Assert.That(codes.Single().Code, Is.EqualTo(expectedTruncatedCode));
+        Assert.That(codes.Single().Code.Length, Is.EqualTo(10));
+    }
+
+    [Test]
+    public async Task StartProcessingAsync_TruncateWithWarning_CodeExExceedsMaxLength_ShouldTruncate()
+    {
+        // Arrange - create Excel file with CodeEx exceeding max length
+        var headers = new[] { "ID", "Child", "Next", "Code", "CodeEx", "Date1", "Date2", "DatePrev", "TextPrev", "Text", "TextEx" };
+        var longCodeEx = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"; // 26 characters, should be truncated to 10
+        var expectedTruncatedCodeEx = "ABCDEFGHIJ"; // First 10 characters
+        var rows = new object[] []
+        {
+            new object[] { 1, "", "", "1000000000", longCodeEx, "2024-01-01", "2024-12-31", "", "", "Test description", "" }
+        };
+        var excelBytes = CreateExcelFile((headers, rows));
+
+        // Act
+        var handle = await _service.StartProcessingAsync(excelBytes, "long_codeex.xlsx");
+        var progress = await WaitForCompletion(handle);
+        
+        // Assert
+        Assert.That(progress, Is.Not.Null);
+        Assert.That(progress!.Finished, Is.True);
+        
+        var codes = _dbContext.FeacnCodes.ToList();
+        Assert.That(codes.Count, Is.EqualTo(1));
+        Assert.That(codes.Single().CodeEx, Is.EqualTo(expectedTruncatedCodeEx));
+        Assert.That(codes.Single().CodeEx.Length, Is.EqualTo(10));
+    }
+
+    [Test]
+    public async Task StartProcessingAsync_TruncateWithWarning_WhitespaceOnlyValue_ShouldReturnEmptyString()
+    {
+        // Arrange - create Excel file with whitespace-only Code value
+        var headers = new[] { "ID", "Child", "Next", "Code", "CodeEx", "Date1", "Date2", "DatePrev", "TextPrev", "Text", "TextEx" };
+        var rows = new object[] []
+        {
+            new object[] { 1, "", "", "   \t\n  ", "1000000000", "2024-01-01", "2024-12-31", "", "", "Test description", "" }
+        };
+        var excelBytes = CreateExcelFile((headers, rows));
+
+        // Act
+        var handle = await _service.StartProcessingAsync(excelBytes, "whitespace_code.xlsx");
+        var progress = await WaitForCompletion(handle);
+        
+        // Assert
+        Assert.That(progress, Is.Not.Null);
+        Assert.That(progress!.Finished, Is.True);
+        
+        var codes = _dbContext.FeacnCodes.ToList();
+        Assert.That(codes.Count, Is.EqualTo(1));
+        Assert.That(codes.Single().Code, Is.EqualTo("")); // Whitespace should result in empty string
+    }
+
+    #endregion
+
+    #region GetColumnValue Edge Cases Tests
+
+    [Test]
+    public async Task StartProcessingAsync_GetColumnValue_NonExistentColumn_ShouldHandleGracefully()
+    {
+        // Arrange - create Excel file that references a column that doesn't exist in mapping
+        var headers = new[] { "ID", "Child", "Next", "Code", "CodeEx", "Date1", "Date2", "DatePrev", "TextPrev", "Text", "TextEx" };
+        var rows = new object[] []
+        {
+            new object[] { 1, "", "", "1000000000", "1000000000", "2024-01-01", "2024-12-31", "", "", "Test description", "" }
+        };
+        var excelBytes = CreateExcelFile((headers, rows));
+
+        // Act
+        var handle = await _service.StartProcessingAsync(excelBytes, "normal_file.xlsx");
+        var progress = await WaitForCompletion(handle);
+        
+        // Assert - should process normally since GetColumnValue handles non-existent columns
+        Assert.That(progress, Is.Not.Null);
+        Assert.That(progress!.Finished, Is.True);
+        Assert.That(progress.Error, Is.Null.Or.Empty);
+        
+        var codes = _dbContext.FeacnCodes.ToList();
+        Assert.That(codes.Count, Is.EqualTo(1));
+    }
+
+    [Test]
+    public async Task StartProcessingAsync_GetColumnValue_ColumnIndexOutOfRange_ShouldReturnNull()
+    {
+        // This tests the edge case where columnIndex >= row.Table.Columns.Count
+        // We'll create an Excel file with data that might trigger this scenario
+        var headers = new[] { "ID", "Child", "Next", "Code", "CodeEx", "Date1", "Date2", "DatePrev", "TextPrev", "Text", "TextEx" };
+        var rows = new object[] []
+        {
+            // Row with fewer cells than expected columns
+            new object[] { 1, "", "", "1000000000", "1000000000" } // Missing some columns
+        };
+        var excelBytes = CreateExcelFile((headers, rows));
+
+        // Act
+        var handle = await _service.StartProcessingAsync(excelBytes, "short_row.xlsx");
+        var progress = await WaitForCompletion(handle);
+        
+        // Assert - should handle gracefully and use default values for missing columns
+        Assert.That(progress, Is.Not.Null);
+        Assert.That(progress!.Finished, Is.True);
+        
+        var codes = _dbContext.FeacnCodes.ToList();
+        Assert.That(codes.Count, Is.EqualTo(1));
+        // Missing columns should result in empty/null values
+        Assert.That(codes.Single().Code, Is.EqualTo("1000000000"));
+        Assert.That(codes.Single().CodeEx, Is.EqualTo("1000000000"));
+    }
+
+    [Test]
+    public async Task StartProcessingAsync_GetColumnValue_NullCellValue_ShouldReturnNull()
+    {
+        // Arrange - create Excel file with null cell values (represented as DBNull or empty)
+        var headers = new[] { "ID", "Child", "Next", "Code", "CodeEx", "Date1", "Date2", "DatePrev", "TextPrev", "Text", "TextEx" };
+        var rows = new object[] []
+        {
+            new object[] { 1, null, null, "1000000000", null, null, null, null, null, "Test description", null }
+        };
+        var excelBytes = CreateExcelFile((headers, rows));
+
+        // Act
+        var handle = await _service.StartProcessingAsync(excelBytes, "null_cells.xlsx");
+        var progress = await WaitForCompletion(handle);
+        
+        // Assert
+        Assert.That(progress, Is.Not.Null);
+        Assert.That(progress!.Finished, Is.True);
+        
+        var codes = _dbContext.FeacnCodes.ToList();
+        Assert.That(codes.Count, Is.EqualTo(1));
+        Assert.That(codes.Single().Code, Is.EqualTo("1000000000"));
+        Assert.That(codes.Single().CodeEx, Is.EqualTo("")); // null should become empty string after truncation
+        Assert.That(codes.Single().OldName, Is.Null); // TextPrev should remain null
+        Assert.That(codes.Single().DescriptionEx, Is.EqualTo("")); // TextEx null should become empty string
+    }
+
+    [Test]
+    public async Task StartProcessingAsync_GetColumnValue_EmptyHeaderNames_ShouldBeSkipped()
+    {
+        // Arrange - create Excel file with some empty header names, but keep all required headers
+        // We'll add an extra empty column between valid headers
+        var headers = new[] { "ID", "Child", "", "Next", "Code", "CodeEx", "Date1", "Date2", "DatePrev", "TextPrev", "Text", "TextEx", "" };
+        var rows = new object[] []
+        {
+            new object[] { 1, "", "ExtraValue1", "", "1000000000", "1000000000", "2024-01-01", "2024-12-31", "", "", "Test description", "", "ExtraValue2" }
+        };
+        var excelBytes = CreateExcelFile((headers, rows));
+
+        // Act
+        var handle = await _service.StartProcessingAsync(excelBytes, "empty_headers.xlsx");
+        var progress = await WaitForCompletion(handle);
+        
+        // Assert - should process normally, empty headers are skipped in mapping
+        Assert.That(progress, Is.Not.Null);
+        Assert.That(progress!.Finished, Is.True);
+        
+        var codes = _dbContext.FeacnCodes.ToList();
+        Assert.That(codes.Count, Is.EqualTo(1));
+        Assert.That(codes.Single().Code, Is.EqualTo("1000000000"));
+    }
+
+    [Test]
+    public async Task StartProcessingAsync_GetColumnValue_WhitespaceOnlyHeaderNames_ShouldBeSkipped()
+    {
+        // Arrange - create Excel file with whitespace-only header names, but keep all required headers
+        // We'll add extra whitespace-only columns between valid headers
+        var headers = new[] { "ID", "Child", "   ", "Next", "Code", "CodeEx", "Date1", "Date2", "DatePrev", "TextPrev", "Text", "TextEx", "\t\n" };
+        var rows = new object[] []
+        {
+            new object[] { 1, "", "ExtraValue1", "", "1000000000", "1000000000", "2024-01-01", "2024-12-31", "", "", "Test description", "", "ExtraValue2" }
+        };
+        var excelBytes = CreateExcelFile((headers, rows));
+
+        // Act
+        var handle = await _service.StartProcessingAsync(excelBytes, "whitespace_headers.xlsx");
+        var progress = await WaitForCompletion(handle);
+        
+        // Assert - should process normally, whitespace-only headers are skipped
+        Assert.That(progress, Is.Not.Null);
+        Assert.That(progress!.Finished, Is.True);
+        
+        var codes = _dbContext.FeacnCodes.ToList();
+        Assert.That(codes.Count, Is.EqualTo(1));
+        Assert.That(codes.Single().Code, Is.EqualTo("1000000000"));
+    }
+
+    [Test]
+    public async Task StartProcessingAsync_GetColumnValue_CaseInsensitiveHeaderMatching_ShouldWork()
+    {
+        // Arrange - create Excel file with mixed case headers that should still be matched
+        var headers = new[] { "id", "CHILD", "Next", "code", "CODEEX", "date1", "DATE2", "dateprev", "TEXTPREV", "text", "TEXTEX" };
+        var rows = new object[] []
+        {
+            new object[] { 1, "", "", "1000000000", "1000000000", "2024-01-01", "2024-12-31", "", "", "Test description", "" }
+        };
+        var excelBytes = CreateExcelFile((headers, rows));
+
+        // Act
+        var handle = await _service.StartProcessingAsync(excelBytes, "mixed_case_headers.xlsx");
+        var progress = await WaitForCompletion(handle);
+        
+        // Assert - should process normally due to case-insensitive matching
+        Assert.That(progress, Is.Not.Null);
+        Assert.That(progress!.Finished, Is.True);
+        
+        var codes = _dbContext.FeacnCodes.ToList();
+        Assert.That(codes.Count, Is.EqualTo(1));
+        Assert.That(codes.Single().Code, Is.EqualTo("1000000000"));
+        Assert.That(codes.Single().CodeEx, Is.EqualTo("1000000000"));
+    }
+
+    [Test]
+    public async Task StartProcessingAsync_GetColumnValue_CellValueWithLeadingTrailingWhitespace_ShouldBeTrimmed()
+    {
+        // Arrange - create Excel file with cell values that have leading/trailing whitespace
+        var headers = new[] { "ID", "Child", "Next", "Code", "CodeEx", "Date1", "Date2", "DatePrev", "TextPrev", "Text", "TextEx" };
+        var rows = new object[] []
+        {
+            new object[] { 1, "", "", "  1000000000  ", "\t1000000000\n", "2024-01-01", "2024-12-31", "", "", "  Test description  ", "\tTest extra\n" }
+        };
+        var excelBytes = CreateExcelFile((headers, rows));
+
+        // Act
+        var handle = await _service.StartProcessingAsync(excelBytes, "whitespace_values.xlsx");
+        var progress = await WaitForCompletion(handle);
+        
+        // Assert - values should be trimmed
+        Assert.That(progress, Is.Not.Null);
+        Assert.That(progress!.Finished, Is.True);
+        
+        var codes = _dbContext.FeacnCodes.ToList();
+        Assert.That(codes.Count, Is.EqualTo(1));
+        Assert.That(codes.Single().Code, Is.EqualTo("1000000000")); // Should be trimmed
+        Assert.That(codes.Single().CodeEx, Is.EqualTo("1000000000")); // Should be trimmed
+        Assert.That(codes.Single().Description, Is.EqualTo("Test description")); // Should be trimmed
+        Assert.That(codes.Single().DescriptionEx, Is.EqualTo("Test extra")); // Should be trimmed
+    }
+
+    #endregion
+
 }
