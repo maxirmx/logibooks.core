@@ -106,7 +106,7 @@ public class RegisterValidationServiceTests
     }
 
     [Test]
-    public async Task CancelValidation_StopsProcessing()
+    public async Task Cancel_StopsProcessing()
     {
         using var ctx = CreateContext();
         ctx.Registers.Add(new Register { Id = 2, FileName = "r.xlsx" });
@@ -130,7 +130,7 @@ public class RegisterValidationServiceTests
         var svc = new RegisterValidationService(ctx, scopeFactory, logger, new MorphologySearchService(), feacnSvc);
 
         var handle = await svc.StartValidationAsync(2);
-        svc.CancelValidation(handle);
+        svc.Cancel(handle);
         await Task.Delay(100); // Give more time for cancellation
         var progress = svc.GetProgress(handle)!;
 

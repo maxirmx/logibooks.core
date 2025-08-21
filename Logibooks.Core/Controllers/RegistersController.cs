@@ -712,7 +712,7 @@ public class RegistersController(
             return _403();
         }
 
-        var ok = _feacnLookupService.CancelLookup(handleId);
+        var ok = _feacnLookupService.Cancel(handleId);
         if (!ok)
         {
             _logger.LogDebug("CancelLookupFeacnCodes returning '404 Not Found'");
@@ -784,7 +784,7 @@ public class RegistersController(
             return _403();
         }
 
-        var ok = _validationService.CancelValidation(handleId);
+        var ok = _validationService.Cancel(handleId);
         if (!ok)
         {
             _logger.LogDebug("CancelValidation returning '404 Not Found'");

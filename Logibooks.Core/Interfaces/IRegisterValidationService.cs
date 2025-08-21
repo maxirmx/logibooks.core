@@ -27,9 +27,7 @@ using Logibooks.Core.RestModels;
 
 namespace Logibooks.Core.Interfaces;
 
-public interface IRegisterValidationService
+public interface IRegisterValidationService : IProgressReporter
 {
     Task<Guid> StartValidationAsync(int registerId, CancellationToken cancellationToken = default);
-    ValidationProgress? GetProgress(Guid handleId);
-    bool CancelValidation(Guid handleId);
 }

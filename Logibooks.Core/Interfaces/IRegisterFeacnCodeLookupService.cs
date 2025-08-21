@@ -27,10 +27,8 @@ using Logibooks.Core.RestModels;
 
 namespace Logibooks.Core.Interfaces;
 
-public interface IRegisterFeacnCodeLookupService
+public interface IRegisterFeacnCodeLookupService : IProgressReporter
 {
     Task<Guid> StartLookupAsync(int registerId, CancellationToken cancellationToken = default);
-    ValidationProgress? GetProgress(Guid handleId);
-    bool CancelLookup(Guid handleId);
 }
 

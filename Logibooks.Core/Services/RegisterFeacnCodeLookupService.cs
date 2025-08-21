@@ -85,9 +85,8 @@ public class RegisterFeacnCodeLookupService(
             {
                 process.Error = "Failed to resolve required services";
                 process.Finished = true;
-                tcs.TrySetResult();
-                _byRegister.TryRemove(registerId, out _);
-                _byHandle.TryRemove(process.HandleId, out _);
+                tcs.TrySetException(new InvalidOperationException("Failed to resolve required services"));
+                CleanupProcess(registerId, process.HandleId);
                 return;
             }
 
@@ -100,7 +99,7 @@ public class RegisterFeacnCodeLookupService(
                     .Select(o => o.Id)
                     .ToListAsync(process.Cts.Token);
                 process.Total = orders.Count;
-                tcs.TrySetResult();
+                tcs.TrySetResult(); // Only set result after successful initialization
 
                 var wordsLookupContext = new WordsLookupContext<KeyWord>(
                     allKeyWords.Where(k => k.MatchTypeId < (int)WordMatchTypeCode.MorphologyMatchTypes));
@@ -122,20 +121,25 @@ public class RegisterFeacnCodeLookupService(
             }
             catch (Exception ex)
             {
-                tcs.TrySetResult();
                 process.Error = ex.Message;
                 _logger.LogError(ex, "Register feacn code lookup failed");
+                tcs.TrySetException(ex); // Use TrySetException for errors
             }
             finally
             {
                 process.Finished = true;
-                _byRegister.TryRemove(registerId, out _);
-                _byHandle.TryRemove(process.HandleId, out _);
+                CleanupProcess(registerId, process.HandleId);
             }
         });
 
-        await tcs.Task;
+        await tcs.Task; // This will now properly propagate exceptions
         return process.HandleId;
+    }
+
+    private void CleanupProcess(int registerId, Guid handleId)
+    {
+        _byRegister.TryRemove(registerId, out _);
+        _byHandle.TryRemove(handleId, out _);
     }
 
     public ValidationProgress? GetProgress(Guid handleId)
@@ -161,7 +165,7 @@ public class RegisterFeacnCodeLookupService(
         };
     }
 
-    public bool CancelLookup(Guid handleId)
+    public bool Cancel(Guid handleId)
     {
         if (_byHandle.TryGetValue(handleId, out var proc))
         {
