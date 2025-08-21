@@ -1,6 +1,8 @@
 using System;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
+using System.IO;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -9,7 +11,9 @@ using Moq;
 using NUnit.Framework;
 using Logibooks.Core.Controllers;
 using Logibooks.Core.Data;
+using Logibooks.Core.Interfaces;
 using Logibooks.Core.Models;
+using Logibooks.Core.RestModels;
 
 namespace Logibooks.Core.Tests.Controllers;
 
@@ -23,7 +27,10 @@ public class FeacnCodesControllerTests
     private FeacnCodesController _controller;
     private Role _userRole;
     private User _user;
+    private Mock<IFeacnListProcessingService> _mockProcessingService;
 #pragma warning restore CS8618
+
+    private readonly string testDataDir = Path.Combine(AppContext.BaseDirectory, "test.data");
 
     [SetUp]
     public void Setup()
@@ -48,7 +55,8 @@ public class FeacnCodesControllerTests
 
         _mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
         _logger = new LoggerFactory().CreateLogger<FeacnCodesController>();
-        _controller = new FeacnCodesController(_mockHttpContextAccessor.Object, _dbContext, _logger);
+        _mockProcessingService = new Mock<IFeacnListProcessingService>();
+        _controller = new FeacnCodesController(_mockHttpContextAccessor.Object, _dbContext, _logger, _mockProcessingService.Object);
     }
 
     [TearDown]
@@ -63,7 +71,10 @@ public class FeacnCodesControllerTests
         var ctx = new DefaultHttpContext();
         ctx.Items["UserId"] = id;
         _mockHttpContextAccessor.Setup(x => x.HttpContext).Returns(ctx);
-        _controller = new FeacnCodesController(_mockHttpContextAccessor.Object, _dbContext, _logger);
+        _controller = new FeacnCodesController(_mockHttpContextAccessor.Object, _dbContext, _logger, _mockProcessingService.Object)
+        {
+            ControllerContext = { HttpContext = ctx }
+        };
     }
 
     [Test]
@@ -174,5 +185,150 @@ public class FeacnCodesControllerTests
 
         Assert.That(result.Value, Is.Not.Null);
         Assert.That(result.Value!.Count(), Is.EqualTo(2));
+    }
+
+    [Test]
+    public async Task Upload_ReturnsGuid_ForExcelFile()
+    {
+        SetCurrentUserId(1);
+        byte[] content = [1, 2, 3];
+        var mockFile = CreateMockFile("codes.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", content);
+        var handle = Guid.NewGuid();
+        _mockProcessingService
+            .Setup(s => s.StartProcessingAsync(It.Is<byte[]>(b => b.SequenceEqual(content)), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(handle);
+
+        var result = await _controller.Upload(mockFile.Object);
+
+        Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
+        var ok = result.Result as OkObjectResult;
+        Assert.That(((GuidReference)ok!.Value!).Id, Is.EqualTo(handle));
+    }
+
+    [Test]
+    public async Task Upload_ReturnsGuid_ForZipFile()
+    {
+        SetCurrentUserId(1);
+        byte[] zipContent = File.ReadAllBytes(Path.Combine(testDataDir, "Реестр_207730349.zip"));
+        var mockFile = CreateMockFile("Реестр_207730349.zip", "application/zip", zipContent);
+        var handle = Guid.NewGuid();
+        _mockProcessingService.Setup(s => s.StartProcessingAsync(It.IsAny<byte[]>(), It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(handle);
+
+        var result = await _controller.Upload(mockFile.Object);
+
+        Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
+        var ok = result.Result as OkObjectResult;
+        Assert.That(((GuidReference)ok!.Value!).Id, Is.EqualTo(handle));
+    }
+
+    [Test]
+    public async Task Upload_ReturnsBadRequest_ForUnsupportedFile()
+    {
+        SetCurrentUserId(1);
+        var mockFile = CreateMockFile("file.txt", "text/plain", [1, 2, 3]);
+
+        var result = await _controller.Upload(mockFile.Object);
+
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
+        _mockProcessingService.Verify(s => s.StartProcessingAsync(It.IsAny<byte[]>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Test]
+    public async Task Upload_ReturnsBadRequest_WhenZipWithoutExcel()
+    {
+        SetCurrentUserId(1);
+        byte[] zipContent = File.ReadAllBytes(Path.Combine(testDataDir, "Zip_Empty.zip"));
+        var mockFile = CreateMockFile("Zip_Empty.zip", "application/zip", zipContent);
+
+        var result = await _controller.Upload(mockFile.Object);
+
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
+        _mockProcessingService.Verify(s => s.StartProcessingAsync(It.IsAny<byte[]>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Test]
+    public async Task Upload_ReturnsBadRequest_WhenFileEmpty()
+    {
+        SetCurrentUserId(1);
+        var mockFile = new Mock<IFormFile>();
+        mockFile.Setup(f => f.Length).Returns(0);
+
+        var result = await _controller.Upload(mockFile.Object);
+
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
+        _mockProcessingService.Verify(s => s.StartProcessingAsync(It.IsAny<byte[]>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Test]
+    public async Task GetUploadProgress_ReturnsData()
+    {
+        SetCurrentUserId(1);
+        var handle = Guid.NewGuid();
+        var progress = new ValidationProgress { HandleId = handle, Total = 10, Processed = 5 };
+        _mockProcessingService.Setup(s => s.GetProgress(handle)).Returns(progress);
+
+        var result = await _controller.GetUploadProgress(handle);
+
+        Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
+        var ok = result.Result as OkObjectResult;
+        Assert.That(ok!.Value, Is.EqualTo(progress));
+    }
+
+    [Test]
+    public async Task GetUploadProgress_ReturnsNotFound()
+    {
+        SetCurrentUserId(1);
+        var handle = Guid.NewGuid();
+        _mockProcessingService.Setup(s => s.GetProgress(handle)).Returns((ValidationProgress?)null);
+
+        var result = await _controller.GetUploadProgress(handle);
+
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+    }
+
+    [Test]
+    public async Task CancelUpload_ReturnsNoContent()
+    {
+        SetCurrentUserId(1);
+        var handle = Guid.NewGuid();
+        _mockProcessingService.Setup(s => s.Cancel(handle)).Returns(true);
+
+        var result = await _controller.CancelUpload(handle);
+
+        Assert.That(result, Is.TypeOf<NoContentResult>());
+    }
+
+    [Test]
+    public async Task CancelUpload_ReturnsNotFound()
+    {
+        SetCurrentUserId(1);
+        var handle = Guid.NewGuid();
+        _mockProcessingService.Setup(s => s.Cancel(handle)).Returns(false);
+
+        var result = await _controller.CancelUpload(handle);
+
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+    }
+
+    private static Mock<IFormFile> CreateMockFile(string fileName, string contentType, byte[] content)
+    {
+        var mockFile = new Mock<IFormFile>();
+        mockFile.Setup(f => f.FileName).Returns(fileName);
+        mockFile.Setup(f => f.ContentType).Returns(contentType);
+        mockFile.Setup(f => f.Length).Returns(content.Length);
+        mockFile.Setup(f => f.CopyToAsync(It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
+            .Callback<Stream, CancellationToken>((stream, token) => { stream.Write(content, 0, content.Length); })
+            .Returns(Task.CompletedTask);
+        return mockFile;
     }
 }

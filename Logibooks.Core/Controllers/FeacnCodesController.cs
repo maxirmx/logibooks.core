@@ -25,10 +25,13 @@
 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using SharpCompress.Archives;
+using System.IO;
 using System.Linq;
 
 using Logibooks.Core.Authorization;
 using Logibooks.Core.Data;
+using Logibooks.Core.Interfaces;
 using Logibooks.Core.Models;
 using Logibooks.Core.RestModels;
 
@@ -42,8 +45,10 @@ namespace Logibooks.Core.Controllers;
 public class FeacnCodesController(
     IHttpContextAccessor httpContextAccessor,
     AppDbContext db,
-    ILogger<FeacnCodesController> logger) : LogibooksControllerBase(httpContextAccessor, db, logger)
+    ILogger<FeacnCodesController> logger,
+    IFeacnListProcessingService processingService) : LogibooksControllerBase(httpContextAccessor, db, logger)
 {
+    private readonly IFeacnListProcessingService _processingService = processingService;
     [HttpGet("{id}")]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(FeacnCodeDto))]
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
@@ -96,6 +101,79 @@ public class FeacnCodesController(
             .Select(c => new FeacnCodeDto(c))
             .ToListAsync();
         return codes;
+    }
+
+    [HttpPost("upload")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(GuidReference))]
+    [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(ErrMessage))]
+    public async Task<ActionResult<GuidReference>> Upload(IFormFile file)
+    {
+        if (file == null || file.Length == 0)
+        {
+            return _400();
+        }
+
+        var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
+        byte[] excelContent = [];
+        string excelFileName = string.Empty;
+
+        if (fileExtension == ".xlsx" || fileExtension == ".xls")
+        {
+            using var ms = new MemoryStream();
+            await file.CopyToAsync(ms);
+            excelContent = ms.ToArray();
+            excelFileName = file.FileName;
+        }
+        else if (fileExtension == ".zip" || fileExtension == ".rar")
+        {
+            using var ms = new MemoryStream();
+            await file.CopyToAsync(ms);
+            ms.Position = 0;
+
+            using var archive = ArchiveFactory.Open(ms);
+            var excelEntry = archive.Entries.FirstOrDefault(entry =>
+                !entry.IsDirectory &&
+                entry.Key != null &&
+                (Path.GetExtension(entry.Key).Equals(".xlsx", StringComparison.InvariantCultureIgnoreCase) ||
+                 Path.GetExtension(entry.Key).Equals(".xls", StringComparison.InvariantCultureIgnoreCase)));
+
+            if (excelEntry == null || excelEntry.Key == null)
+            {
+                return _400NoRegister();
+            }
+
+            excelFileName = excelEntry.Key;
+            using var entryStream = new MemoryStream();
+            excelEntry.WriteTo(entryStream);
+            excelContent = entryStream.ToArray();
+        }
+        else
+        {
+            return _400UnsupportedFileType(fileExtension);
+        }
+
+        var handle = await _processingService.StartProcessingAsync(excelContent, excelFileName, HttpContext.RequestAborted);
+        return Ok(new GuidReference { Id = handle });
+    }
+
+    [HttpGet("upload/{handleId}")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ValidationProgress))]
+    [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
+    public Task<ActionResult<ValidationProgress>> GetUploadProgress(Guid handleId)
+    {
+        var progress = _processingService.GetProgress(handleId);
+        ActionResult<ValidationProgress> result = progress == null ? _404Handle(handleId) : Ok(progress);
+        return Task.FromResult(result);
+    }
+
+    [HttpDelete("upload/{handleId}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
+    public Task<IActionResult> CancelUpload(Guid handleId)
+    {
+        var ok = _processingService.Cancel(handleId);
+        IActionResult result = ok ? NoContent() : _404Handle(handleId);
+        return Task.FromResult(result);
     }
 }
 
