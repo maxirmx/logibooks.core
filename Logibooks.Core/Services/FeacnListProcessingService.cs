@@ -33,6 +33,13 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Logibooks.Core.Services;
 
+
+// Этот сервис отвечает за обработку и загрузку кодов ТН ВЭД из Excel-файла
+// Он сознательно блокирует возможность паралелльной обработки.
+// Паралелльная загрузка -  это не жизненный сценарий, а возможный результат
+// хаотичного нажатия кнопок несколькиими операторами 
+
+
 public class FeacnListProcessingService(
     AppDbContext db,
     ILogger<FeacnListProcessingService> logger) : IFeacnListProcessingService
@@ -45,7 +52,7 @@ public class FeacnListProcessingService(
         public Guid HandleId { get; } = Guid.NewGuid();
         public int Total { get; set; }
         public int Processed;
-        public bool Finished;
+        public volatile bool Finished;
         public string? Error;
         public CancellationTokenSource Cts { get; } = new();
     }
@@ -93,14 +100,19 @@ public class FeacnListProcessingService(
             _logger.LogInformation("Starting FEACN codes processing from file: {FileName}", fileName);
             try
             {
+                // Parse and validate the Excel file
                 var excelRows = ParseExcelFile(content);
                 state.Total = excelRows.Count;
                 _logger.LogInformation("Parsed {Count} rows from Excel file", excelRows.Count);
-                tcs.TrySetResult(); // Only set result on success
 
+                // Build the code hierarchy
                 var feacnCodes = BuildFeacnCodesFromExcelRows(excelRows);
                 _logger.LogInformation("Built {Count} FEACN code entities", feacnCodes.Count);
 
+                // Signal that initialization is complete and database processing can begin
+                tcs.TrySetResult();
+
+                // Perform the actual database replacement
                 await ReplaceFeacnCodesInDatabaseAsync(feacnCodes, state, state.Cts.Token);
 
                 _logger.LogInformation("Successfully processed FEACN codes from file: {FileName}", fileName);
@@ -109,18 +121,36 @@ public class FeacnListProcessingService(
             {
                 state.Error = ex.Message;
                 _logger.LogError(ex, "Error processing FEACN codes from file: {FileName}", fileName);
-                tcs.TrySetResult(); // Set result after error is captured
+                
+                // Use TrySetException to distinguish initialization failure from processing failure
+                if (!tcs.Task.IsCompleted)
+                {
+                    tcs.TrySetException(ex);
+                }
             }
             finally
             {
-                state.Finished = true;
+                // Ensure proper cleanup with thread-safe state management
+                bool shouldCleanup = false;
                 lock (_processLock)
                 {
-                    _currentProcess = null;
+                    if (_currentProcess == state)
+                    {
+                        state.Finished = true;
+                        _currentProcess = null;
+                        shouldCleanup = true;
+                    }
+                }
+                
+                // Dispose resources outside the lock
+                if (shouldCleanup)
+                {
+                    state.Cts.Dispose();
                 }
             }
         }, state.Cts.Token);
 
+        // Wait for initialization to complete (parsing and building, not database operations)
         await tcs.Task;
         return state.HandleId;
     }
@@ -430,17 +460,26 @@ public class FeacnListProcessingService(
 
     public bool Cancel(Guid handleId)
     {
+        ProcessingState? targetState = null;
+        
         lock (_processLock)
         {
             var proc = _currentProcess;
-            if (proc != null && proc.HandleId == handleId)
+            if (proc != null && proc.HandleId == handleId && !proc.Finished)
             {
-                proc.Cts.Cancel();
+                targetState = proc;
                 proc.Finished = true;
                 _currentProcess = null;
-                return true;
             }
-            return false;
         }
+        
+        // Cancel outside the lock to avoid potential deadlocks
+        if (targetState != null)
+        {
+            targetState.Cts.Cancel();
+            return true;
+        }
+        
+        return false;
     }
 }
