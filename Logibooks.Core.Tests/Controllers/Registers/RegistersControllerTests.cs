@@ -805,7 +805,7 @@ public class RegistersControllerTests : RegistersControllerTestsBase
     {
         SetCurrentUserId(1);
         var handle = Guid.NewGuid();
-        _mockRegValidationService.Setup(s => s.CancelValidation(handle)).Returns(true);
+        _mockRegValidationService.Setup(s => s.Cancel(handle)).Returns(true);
 
         var result = await _controller.CancelValidation(handle);
 
@@ -846,7 +846,7 @@ public class RegistersControllerTests : RegistersControllerTestsBase
         Assert.That(result, Is.TypeOf<ObjectResult>());
         var obj = result as ObjectResult;
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
-        _mockRegValidationService.Verify(s => s.CancelValidation(It.IsAny<Guid>()), Times.Never);
+        _mockRegValidationService.Verify(s => s.Cancel(It.IsAny<Guid>()), Times.Never);
     }
 
     [Test]
@@ -968,7 +968,7 @@ public class RegistersControllerTests : RegistersControllerTestsBase
     {
         SetCurrentUserId(1);
         var handle = Guid.NewGuid();
-        _mockRegFeacnLookupService.Setup(s => s.CancelLookup(handle)).Returns(true);
+        _mockRegFeacnLookupService.Setup(s => s.Cancel(handle)).Returns(true);
 
         var result = await _controller.CancelLookupFeacnCodes(handle);
 
@@ -1007,7 +1007,7 @@ public class RegistersControllerTests : RegistersControllerTestsBase
         Assert.That(result, Is.TypeOf<ObjectResult>());
         var obj = result as ObjectResult;
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
-        _mockRegFeacnLookupService.Verify(s => s.CancelLookup(It.IsAny<Guid>()), Times.Never);
+        _mockRegFeacnLookupService.Verify(s => s.Cancel(It.IsAny<Guid>()), Times.Never);
     }
 
     [Test]

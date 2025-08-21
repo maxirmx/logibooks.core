@@ -161,7 +161,7 @@ public class RegisterFeacnCodeLookupService(
         };
     }
 
-    public bool CancelLookup(Guid handleId)
+    public bool Cancel(Guid handleId)
     {
         if (_byHandle.TryGetValue(handleId, out var proc))
         {

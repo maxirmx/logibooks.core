@@ -24,10 +24,12 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 using System.Data;
+using System.Collections.Concurrent;
 using ExcelDataReader;
 using Logibooks.Core.Data;
 using Logibooks.Core.Interfaces;
 using Logibooks.Core.Models;
+using Logibooks.Core.RestModels;
 using Microsoft.EntityFrameworkCore;
 
 namespace Logibooks.Core.Services;
@@ -38,6 +40,18 @@ public class FeacnListProcessingService(
 {
     private readonly AppDbContext _db = db;
     private readonly ILogger<FeacnListProcessingService> _logger = logger;
+
+    private class ProcessingState
+    {
+        public Guid HandleId { get; } = Guid.NewGuid();
+        public int Total { get; set; }
+        public int Processed;
+        public bool Finished;
+        public string? Error;
+        public CancellationTokenSource Cts { get; } = new();
+    }
+
+    private static readonly ConcurrentDictionary<Guid, ProcessingState> _processes = new();
     
     private record struct FeacnExcelRow(
         int Id,
@@ -53,36 +67,47 @@ public class FeacnListProcessingService(
         string Text,
         string? TextEx);
 
-    public async Task<int> ProcessFeacnCodesFromExcelAsync(
+    public async Task<Guid> StartProcessingAsync(
         byte[] content,
         string fileName,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Starting FEACN codes processing from file: {FileName}", fileName);
-        
-        try
+        var state = new ProcessingState();
+        _processes[state.HandleId] = state;
+
+        var tcs = new TaskCompletionSource();
+
+        _ = Task.Run(async () =>
         {
-            // Parse Excel file
-            var excelRows = ParseExcelFile(content);
-            _logger.LogInformation("Parsed {Count} rows from Excel file", excelRows.Count);
-            
-            // Build hierarchical structure and convert to FeacnCode entities
-            var feacnCodes = BuildFeacnCodesFromExcelRows(excelRows);
-            _logger.LogInformation("Built {Count} FEACN code entities", feacnCodes.Count);
-            
-            // Replace data in database using transaction
-            var processedCount = await ReplaceFeacnCodesInDatabaseAsync(feacnCodes, cancellationToken);
-            
-            _logger.LogInformation("Successfully processed {Count} FEACN codes from file: {FileName}", 
-                processedCount, fileName);
-            
-            return processedCount;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error processing FEACN codes from file: {FileName}", fileName);
-            throw;
-        }
+            _logger.LogInformation("Starting FEACN codes processing from file: {FileName}", fileName);
+            try
+            {
+                var excelRows = ParseExcelFile(content);
+                state.Total = excelRows.Count;
+                _logger.LogInformation("Parsed {Count} rows from Excel file", excelRows.Count);
+                tcs.TrySetResult();
+
+                var feacnCodes = BuildFeacnCodesFromExcelRows(excelRows);
+                _logger.LogInformation("Built {Count} FEACN code entities", feacnCodes.Count);
+
+                await ReplaceFeacnCodesInDatabaseAsync(feacnCodes, state, state.Cts.Token);
+
+                _logger.LogInformation("Successfully processed FEACN codes from file: {FileName}", fileName);
+            }
+            catch (Exception ex)
+            {
+                tcs.TrySetResult();
+                state.Error = ex.Message;
+                _logger.LogError(ex, "Error processing FEACN codes from file: {FileName}", fileName);
+            }
+            finally
+            {
+                state.Finished = true;
+            }
+        }, state.Cts.Token);
+
+        await tcs.Task;
+        return state.HandleId;
     }
 
     private List<FeacnExcelRow> ParseExcelFile(byte[] content)
@@ -291,7 +316,7 @@ public class FeacnListProcessingService(
         return feacnCodes;
     }
 
-    private async Task<int> ReplaceFeacnCodesInDatabaseAsync(List<FeacnCode> feacnCodes, CancellationToken cancellationToken)
+    private async Task<int> ReplaceFeacnCodesInDatabaseAsync(List<FeacnCode> feacnCodes, ProcessingState state, CancellationToken cancellationToken)
     {
         // Check if we're using in-memory database (doesn't support transactions)
         bool isInMemory = _db.Database.ProviderName == "Microsoft.EntityFrameworkCore.InMemory";
@@ -301,7 +326,7 @@ public class FeacnListProcessingService(
             using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
             try
             {
-                var result = await ReplaceDataAsync(feacnCodes, cancellationToken);
+                var result = await ReplaceDataAsync(feacnCodes, state, cancellationToken);
                 await transaction.CommitAsync(cancellationToken);
                 return result;
             }
@@ -316,11 +341,11 @@ public class FeacnListProcessingService(
         {
             // For in-memory database, just perform the operations without transaction
             _logger.LogInformation("Using in-memory database, skipping transaction");
-            return await ReplaceDataAsync(feacnCodes, cancellationToken);
+            return await ReplaceDataAsync(feacnCodes, state, cancellationToken);
         }
     }
 
-    private async Task<int> ReplaceDataAsync(List<FeacnCode> feacnCodes, CancellationToken cancellationToken)
+    private async Task<int> ReplaceDataAsync(List<FeacnCode> feacnCodes, ProcessingState state, CancellationToken cancellationToken)
     {
         _logger.LogInformation("Starting FEACN codes replacement");
         
@@ -339,6 +364,7 @@ public class FeacnListProcessingService(
         
         for (int i = 0; i < feacnCodes.Count; i += batchSize)
         {
+            if (state.Cts.IsCancellationRequested) break;
             var batch = feacnCodes.Skip(i).Take(batchSize).ToList();
             
             // Clear entity tracking to avoid conflicts
@@ -352,10 +378,45 @@ public class FeacnListProcessingService(
             await _db.SaveChangesAsync(cancellationToken);
             
             insertedCount += batch.Count;
+            state.Processed = insertedCount;
             _logger.LogDebug("Inserted batch {BatchStart}-{BatchEnd}", i + 1, i + batch.Count);
         }
         
         _logger.LogInformation("Successfully replaced FEACN codes with {Count} records", insertedCount);
         return insertedCount;
+    }
+
+    public ValidationProgress? GetProgress(Guid handleId)
+    {
+        if (_processes.TryGetValue(handleId, out var proc))
+        {
+            return new ValidationProgress
+            {
+                HandleId = handleId,
+                Total = proc.Total,
+                Processed = proc.Processed,
+                Finished = proc.Finished,
+                Error = proc.Error
+            };
+        }
+        return new ValidationProgress
+        {
+            HandleId = handleId,
+            Total = -1,
+            Processed = -1,
+            Finished = true,
+            Error = null
+        };
+    }
+
+    public bool Cancel(Guid handleId)
+    {
+        if (_processes.TryGetValue(handleId, out var proc))
+        {
+            proc.Cts.Cancel();
+            proc.Finished = true;
+            return true;
+        }
+        return false;
     }
 }

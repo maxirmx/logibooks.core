@@ -103,7 +103,7 @@ public class RegisterFeacnCodeLookupServiceTests
     }
 
     [Test]
-    public async Task CancelLookup_StopsProcessing()
+    public async Task Cancel_StopsProcessing()
     {
         using var ctx = CreateContext();
         ctx.Registers.Add(new Register { Id = 2, FileName = "r.xlsx" });
@@ -125,7 +125,7 @@ public class RegisterFeacnCodeLookupServiceTests
         var svc = new RegisterFeacnCodeLookupService(ctx, scopeFactory, logger, new MorphologySearchService());
 
         var handle = await svc.StartLookupAsync(2);
-        svc.CancelLookup(handle);
+        svc.Cancel(handle);
         await Task.Delay(100);
         var progress = svc.GetProgress(handle)!;
 
