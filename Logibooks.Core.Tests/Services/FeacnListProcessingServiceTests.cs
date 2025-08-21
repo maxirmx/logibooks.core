@@ -432,8 +432,8 @@ public class FeacnListProcessingServiceTests
         Assert.That(child, Is.Not.Null, "Child code should exist");
         Assert.That(parent, Is.Not.Null, "Parent code should exist");
 
-        Assert.That(child!.Description, Is.EqualTo("Child"));
-        Assert.That(parent!.Description, Is.EqualTo("Parent"));
+        Assert.That(child!.Name, Is.EqualTo("Child"));
+        Assert.That(parent!.Name, Is.EqualTo("Parent"));
     }
 
     [Test]
@@ -443,8 +443,8 @@ public class FeacnListProcessingServiceTests
         {
             Code = "oldcode",
             CodeEx = "oldcode",
-            Description = "Old",
-            DescriptionEx = "Old"
+            Name = "Old",
+            NormalizedName = "Old"
         });
         await _dbContext.SaveChangesAsync();
         Assert.That(_dbContext.FeacnCodes.Count(), Is.EqualTo(1));
@@ -777,8 +777,8 @@ public class FeacnListProcessingServiceTests
         Assert.That(codes.Count, Is.EqualTo(1));
         Assert.That(codes.Single().Code, Is.EqualTo("1000000000")); // Should be trimmed
         Assert.That(codes.Single().CodeEx, Is.EqualTo("1000000000")); // Should be trimmed
-        Assert.That(codes.Single().Description, Is.EqualTo("Test description")); // Should be trimmed
-        Assert.That(codes.Single().DescriptionEx, Is.EqualTo("Test extra")); // Should be trimmed
+        Assert.That(codes.Single().Name, Is.EqualTo("Test description")); // Should be trimmed
+        Assert.That(codes.Single().NormalizedName, Is.EqualTo("Test extra")); // Should be trimmed
     }
 
     #endregion

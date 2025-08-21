@@ -42,15 +42,15 @@ using Logibooks.Core.Interfaces;
 namespace Logibooks.Core.Tests.Controllers;
 
 [TestFixture]
-public class FeacnCodesControllerTests
+public class FeacnOrdersControllerTests
 {
 #pragma warning disable CS8618
     private AppDbContext _dbContext;
     private Mock<IHttpContextAccessor> _mockHttpContextAccessor;
     private Mock<IUpdateFeacnCodesService> _mockService;
-    private ILogger<FeacnCodesController> _logger;
+    private ILogger<FeacnOrdersController> _logger;
     private IUserInformationService _userService;
-    private FeacnCodesController _controller;
+    private FeacnOrdersController _controller;
     private Role _adminRole;
     private Role _userRole;
     private User _adminUser;
@@ -89,9 +89,9 @@ public class FeacnCodesControllerTests
 
         _mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
         _mockService = new Mock<IUpdateFeacnCodesService>();
-        _logger = new LoggerFactory().CreateLogger<FeacnCodesController>();
+        _logger = new LoggerFactory().CreateLogger<FeacnOrdersController>();
         _userService = new UserInformationService(_dbContext);
-        _controller = new FeacnCodesController(_mockHttpContextAccessor.Object, _dbContext, _userService, _mockService.Object, _logger);
+        _controller = new FeacnOrdersController(_mockHttpContextAccessor.Object, _dbContext, _userService, _mockService.Object, _logger);
     }
 
     [TearDown]
@@ -116,7 +116,7 @@ public class FeacnCodesControllerTests
         var ctx = new DefaultHttpContext();
         ctx.Items["UserId"] = id;
         _mockHttpContextAccessor.Setup(x => x.HttpContext).Returns(ctx);
-        _controller = new FeacnCodesController(_mockHttpContextAccessor.Object, _dbContext, _userService, _mockService.Object, _logger);
+        _controller = new FeacnOrdersController(_mockHttpContextAccessor.Object, _dbContext, _userService, _mockService.Object, _logger);
     }
 
     [Test]

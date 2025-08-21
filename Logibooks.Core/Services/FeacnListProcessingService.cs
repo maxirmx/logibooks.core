@@ -322,8 +322,8 @@ public class FeacnListProcessingService(
             {
                 Code = row.Code,
                 CodeEx = row.CodeEx,
-                Description = row.Text,
-                DescriptionEx = row.TextEx ?? "",
+                Name = row.Text,
+                NormalizedName = row.TextEx ?? "",
                 FromDate = row.Date1,
                 ToDate = row.Date2,
                 OldNameToDate = row.DatePrev,
