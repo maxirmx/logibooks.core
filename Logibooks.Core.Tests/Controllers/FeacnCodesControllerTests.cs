@@ -188,37 +188,31 @@ public class FeacnCodesControllerTests
     }
 
     [Test]
-    public async Task Upload_ReturnsGuid_ForExcelFile()
+    public async Task Upload_ReturnsNoContent_ForExcelFile()
     {
         SetCurrentUserId(1);
         byte[] content = [1, 2, 3];
         var mockFile = CreateMockFile("codes.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", content);
-        var handle = Guid.NewGuid();
         _mockProcessingService
-            .Setup(s => s.StartProcessingAsync(It.Is<byte[]>(b => b.SequenceEqual(content)), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(handle);
+            .Setup(s => s.UploadFeacnCodesAsync(It.Is<byte[]>(b => b.SequenceEqual(content)), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
 
         var result = await _controller.Upload(mockFile.Object);
 
-        Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
-        var ok = result.Result as OkObjectResult;
-        Assert.That(((GuidReference)ok!.Value!).Id, Is.EqualTo(handle));
+        Assert.That(result, Is.TypeOf<NoContentResult>());
     }
 
     [Test]
-    public async Task Upload_ReturnsGuid_ForZipFile()
+    public async Task Upload_ReturnsNoContent_ForZipFile()
     {
         SetCurrentUserId(1);
         byte[] zipContent = File.ReadAllBytes(Path.Combine(testDataDir, "Реестр_207730349.zip"));
         var mockFile = CreateMockFile("Реестр_207730349.zip", "application/zip", zipContent);
-        var handle = Guid.NewGuid();
-        _mockProcessingService.Setup(s => s.StartProcessingAsync(It.IsAny<byte[]>(), It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(handle);
+        _mockProcessingService.Setup(s => s.UploadFeacnCodesAsync(It.IsAny<byte[]>(), It.IsAny<string>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
 
         var result = await _controller.Upload(mockFile.Object);
 
-        Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
-        var ok = result.Result as OkObjectResult;
-        Assert.That(((GuidReference)ok!.Value!).Id, Is.EqualTo(handle));
+        Assert.That(result, Is.TypeOf<NoContentResult>());
     }
 
     [Test]
@@ -229,10 +223,10 @@ public class FeacnCodesControllerTests
 
         var result = await _controller.Upload(mockFile.Object);
 
-        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
-        var obj = result.Result as ObjectResult;
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
-        _mockProcessingService.Verify(s => s.StartProcessingAsync(It.IsAny<byte[]>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        _mockProcessingService.Verify(s => s.UploadFeacnCodesAsync(It.IsAny<byte[]>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Test]
@@ -244,10 +238,10 @@ public class FeacnCodesControllerTests
 
         var result = await _controller.Upload(mockFile.Object);
 
-        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
-        var obj = result.Result as ObjectResult;
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
-        _mockProcessingService.Verify(s => s.StartProcessingAsync(It.IsAny<byte[]>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        _mockProcessingService.Verify(s => s.UploadFeacnCodesAsync(It.IsAny<byte[]>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Test]
@@ -259,65 +253,10 @@ public class FeacnCodesControllerTests
 
         var result = await _controller.Upload(mockFile.Object);
 
-        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
-        var obj = result.Result as ObjectResult;
-        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
-        _mockProcessingService.Verify(s => s.StartProcessingAsync(It.IsAny<byte[]>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
-    }
-
-    [Test]
-    public async Task GetUploadProgress_ReturnsData()
-    {
-        SetCurrentUserId(1);
-        var handle = Guid.NewGuid();
-        var progress = new ValidationProgress { HandleId = handle, Total = 10, Processed = 5 };
-        _mockProcessingService.Setup(s => s.GetProgress(handle)).Returns(progress);
-
-        var result = await _controller.GetUploadProgress(handle);
-
-        Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
-        var ok = result.Result as OkObjectResult;
-        Assert.That(ok!.Value, Is.EqualTo(progress));
-    }
-
-    [Test]
-    public async Task GetUploadProgress_ReturnsNotFound()
-    {
-        SetCurrentUserId(1);
-        var handle = Guid.NewGuid();
-        _mockProcessingService.Setup(s => s.GetProgress(handle)).Returns((ValidationProgress?)null);
-
-        var result = await _controller.GetUploadProgress(handle);
-
-        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
-        var obj = result.Result as ObjectResult;
-        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
-    }
-
-    [Test]
-    public async Task CancelUpload_ReturnsNoContent()
-    {
-        SetCurrentUserId(1);
-        var handle = Guid.NewGuid();
-        _mockProcessingService.Setup(s => s.Cancel(handle)).Returns(true);
-
-        var result = await _controller.CancelUpload(handle);
-
-        Assert.That(result, Is.TypeOf<NoContentResult>());
-    }
-
-    [Test]
-    public async Task CancelUpload_ReturnsNotFound()
-    {
-        SetCurrentUserId(1);
-        var handle = Guid.NewGuid();
-        _mockProcessingService.Setup(s => s.Cancel(handle)).Returns(false);
-
-        var result = await _controller.CancelUpload(handle);
-
         Assert.That(result, Is.TypeOf<ObjectResult>());
         var obj = result as ObjectResult;
-        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
+        _mockProcessingService.Verify(s => s.UploadFeacnCodesAsync(It.IsAny<byte[]>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     private static Mock<IFormFile> CreateMockFile(string fileName, string contentType, byte[] content)

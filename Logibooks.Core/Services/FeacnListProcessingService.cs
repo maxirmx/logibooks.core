@@ -28,7 +28,6 @@ using ExcelDataReader;
 using Logibooks.Core.Data;
 using Logibooks.Core.Interfaces;
 using Logibooks.Core.Models;
-using Logibooks.Core.RestModels;
 using Microsoft.EntityFrameworkCore;
 
 namespace Logibooks.Core.Services;
@@ -46,18 +45,7 @@ public class FeacnListProcessingService(
 {
     private readonly AppDbContext _db = db;
     private readonly ILogger<FeacnListProcessingService> _logger = logger;
-
-    private class ProcessingState
-    {
-        public Guid HandleId { get; } = Guid.NewGuid();
-        public int Total { get; set; }
-        public int Processed;
-        public volatile bool Finished;
-        public string? Error;
-        public CancellationTokenSource Cts { get; } = new();
-    }
-
-    private static ProcessingState? _currentProcess;
+    private static bool _isProcessing;
     private static readonly object _processLock = new();
     
     private record struct FeacnExcelRow(
@@ -72,85 +60,44 @@ public class FeacnListProcessingService(
         string Text,
         string? TextEx);
 
-    public async Task<Guid> StartProcessingAsync(
+    public async Task UploadFeacnCodesAsync(
         byte[] content,
         string fileName,
         CancellationToken cancellationToken = default)
     {
-        ProcessingState state;
-        
         lock (_processLock)
         {
-            // Reject if any process is currently running (not finished)
-            if (_currentProcess != null && !_currentProcess.Finished)
+            if (_isProcessing)
             {
                 throw new InvalidOperationException("Загрузка кодов ТН ВЭД уже выполняется.");
             }
-
-            state = new ProcessingState();
-            _currentProcess = state;
+            _isProcessing = true;
         }
 
-        var tcs = new TaskCompletionSource();
-
-        _ = Task.Run(async () =>
+        try
         {
             _logger.LogInformation("Starting FEACN codes processing from file: {FileName}", fileName);
-            try
+
+            // Parse and validate the Excel file
+            var excelRows = ParseExcelFile(content);
+            _logger.LogInformation("Parsed {Count} rows from Excel file", excelRows.Count);
+
+            // Build the code hierarchy
+            var feacnCodes = BuildFeacnCodesFromExcelRows(excelRows);
+            _logger.LogInformation("Built {Count} FEACN code entities", feacnCodes.Count);
+
+            // Perform the actual database replacement
+            await ReplaceFeacnCodesInDatabaseAsync(feacnCodes, cancellationToken);
+
+            _logger.LogInformation("Successfully processed FEACN codes from file: {FileName}", fileName);
+        }
+        finally
+        {
+            lock (_processLock)
             {
-                // Parse and validate the Excel file
-                var excelRows = ParseExcelFile(content);
-                state.Total = excelRows.Count;
-                _logger.LogInformation("Parsed {Count} rows from Excel file", excelRows.Count);
-
-                // Build the code hierarchy
-                var feacnCodes = BuildFeacnCodesFromExcelRows(excelRows);
-                _logger.LogInformation("Built {Count} FEACN code entities", feacnCodes.Count);
-
-                // Signal that initialization is complete and database processing can begin
-                tcs.TrySetResult();
-
-                // Perform the actual database replacement
-                await ReplaceFeacnCodesInDatabaseAsync(feacnCodes, state, state.Cts.Token);
-
-                _logger.LogInformation("Successfully processed FEACN codes from file: {FileName}", fileName);
+                _isProcessing = false;
             }
-            catch (Exception ex)
-            {
-                state.Error = ex.Message;
-                _logger.LogError(ex, "Error processing FEACN codes from file: {FileName}", fileName);
-                
-                // Use TrySetException to distinguish initialization failure from processing failure
-                if (!tcs.Task.IsCompleted)
-                {
-                    tcs.TrySetException(ex);
-                }
-            }
-            finally
-            {
-                // Ensure proper cleanup with thread-safe state management
-                bool shouldCleanup = false;
-                lock (_processLock)
-                {
-                    if (_currentProcess == state)
-                    {
-                        state.Finished = true;
-                        _currentProcess = null;
-                        shouldCleanup = true;
-                    }
-                }
-                
-                // Dispose resources outside the lock
-                if (shouldCleanup)
-                {
-                    state.Cts.Dispose();
-                }
-            }
-        }, state.Cts.Token);
-
-        // Wait for initialization to complete (parsing and building, not database operations)
-        await tcs.Task;
-        return state.HandleId;
+        }
     }
 
     private List<FeacnExcelRow> ParseExcelFile(byte[] content)
@@ -356,7 +303,7 @@ public class FeacnListProcessingService(
         return feacnCodes;
     }
 
-    private async Task<int> ReplaceFeacnCodesInDatabaseAsync(List<FeacnCode> feacnCodes, ProcessingState state, CancellationToken cancellationToken)
+    private async Task<int> ReplaceFeacnCodesInDatabaseAsync(List<FeacnCode> feacnCodes, CancellationToken cancellationToken)
     {
         // Check if we're using in-memory database (doesn't support transactions)
         bool isInMemory = _db.Database.ProviderName == "Microsoft.EntityFrameworkCore.InMemory";
@@ -366,7 +313,7 @@ public class FeacnListProcessingService(
             using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
             try
             {
-                var result = await ReplaceDataAsync(feacnCodes, state, cancellationToken);
+                var result = await ReplaceDataAsync(feacnCodes, cancellationToken);
                 await transaction.CommitAsync(cancellationToken);
                 return result;
             }
@@ -381,11 +328,11 @@ public class FeacnListProcessingService(
         {
             // For in-memory database, just perform the operations without transaction
             _logger.LogInformation("Using in-memory database, skipping transaction");
-            return await ReplaceDataAsync(feacnCodes, state, cancellationToken);
+            return await ReplaceDataAsync(feacnCodes, cancellationToken);
         }
     }
 
-    private async Task<int> ReplaceDataAsync(List<FeacnCode> feacnCodes, ProcessingState state, CancellationToken cancellationToken)
+    private async Task<int> ReplaceDataAsync(List<FeacnCode> feacnCodes, CancellationToken cancellationToken)
     {
         _logger.LogInformation("Starting FEACN codes replacement");
         
@@ -404,21 +351,18 @@ public class FeacnListProcessingService(
         
         for (int i = 0; i < feacnCodes.Count; i += batchSize)
         {
-            if (state.Cts.IsCancellationRequested) break;
             var batch = feacnCodes.Skip(i).Take(batchSize).ToList();
             
             // Clear entity tracking to avoid conflicts
             foreach (var entity in batch)
             {
                 entity.Id = 0; // Let EF generate new IDs
-                entity.ParentId = null; // Will set parent relationships after first save
             }
             
             await _db.FeacnCodes.AddRangeAsync(batch, cancellationToken);
             await _db.SaveChangesAsync(cancellationToken);
             
             insertedCount += batch.Count;
-            state.Processed = insertedCount;
             _logger.LogDebug("Inserted batch {BatchStart}-{BatchEnd}", i + 1, i + batch.Count);
         }
         
@@ -426,55 +370,5 @@ public class FeacnListProcessingService(
         return insertedCount;
     }
 
-    public ValidationProgress? GetProgress(Guid handleId)
-    {
-        lock (_processLock)
-        {
-            var proc = _currentProcess;
-            if (proc != null && proc.HandleId == handleId)
-            {
-                return new ValidationProgress
-                {
-                    HandleId = handleId,
-                    Total = proc.Total,
-                    Processed = proc.Processed,
-                    Finished = proc.Finished,
-                    Error = proc.Error
-                };
-            }
-            return new ValidationProgress
-            {
-                HandleId = handleId,
-                Total = -1,
-                Processed = -1,
-                Finished = true,
-                Error = null
-            };
-        }
-    }
-
-    public bool Cancel(Guid handleId)
-    {
-        ProcessingState? targetState = null;
-        
-        lock (_processLock)
-        {
-            var proc = _currentProcess;
-            if (proc != null && proc.HandleId == handleId && !proc.Finished)
-            {
-                targetState = proc;
-                proc.Finished = true;
-                _currentProcess = null;
-            }
-        }
-        
-        // Cancel outside the lock to avoid potential deadlocks
-        if (targetState != null)
-        {
-            targetState.Cts.Cancel();
-            return true;
-        }
-        
-        return false;
-    }
+    // No progress reporting or cancellation in simplified implementation
 }
