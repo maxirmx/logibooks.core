@@ -51,6 +51,7 @@ public class FeacnListProcessingService(
     private record struct FeacnExcelRow(
         int Id,
         int? ChildId,
+        int? NextId,
         string Code,
         string CodeEx,
         DateOnly? Date1,
@@ -188,10 +189,12 @@ public class FeacnListProcessingService(
         // Parse Child ID (optional)
         var childValue = GetColumnValue(row, columnMap, "Child");
         var childId = (int?)ExcelDataConverter.ConvertValueToPropertyType(childValue, typeof(int?), "Child", _logger);
-        
+        if (childId == 0) childId = null;
+
         // Parse Next ID (optional)
-        // var nextValue = GetColumnValue(row, columnMap, "Next");
-        // var nextId = (int?)ExcelDataConverter.ConvertValueToPropertyType(nextValue, typeof(int?), "Next", _logger);
+        var nextValue = GetColumnValue(row, columnMap, "Next");
+        var nextId = (int?)ExcelDataConverter.ConvertValueToPropertyType(nextValue, typeof(int?), "Next", _logger);
+        if (nextId == 0) nextId = null;
         
         // Parse Level (required)
         // var levelValue = GetColumnValue(row, columnMap, "Level");
@@ -225,7 +228,7 @@ public class FeacnListProcessingService(
         
         // Unit and UnitCode are ignored
         
-        return new FeacnExcelRow(id.Value, childId, code, codeEx, 
+        return new FeacnExcelRow(id.Value, childId, nextId, code, codeEx,
             date1, date2, datePrev, textPrev, text, textEx);
     }
     
@@ -283,17 +286,27 @@ public class FeacnListProcessingService(
         for (int i = 0; i < excelRows.Count; i++)
         {
             var row = excelRows[i];
-            
+
             if (row.ChildId.HasValue && idToIndexMap.TryGetValue(row.ChildId.Value, out var childIndex))
             {
-                // This row is parent of the child
-                feacnCodes[childIndex].Parent = feacnCodes[i];
-                feacnCodes[childIndex].ParentId = null; // Will be set when saving to database
-                
-                // Initialize children collection if needed
-                feacnCodes[i].Children ??= [];
-                
-                feacnCodes[i].Children!.Add(feacnCodes[childIndex]);
+                var parentCode = feacnCodes[i];
+                var currentIndex = childIndex;
+
+                // Traverse child and its siblings linked via NextId
+                while (true)
+                {
+                    feacnCodes[currentIndex].Parent = parentCode;
+                    feacnCodes[currentIndex].ParentId = null; // Will be set when saving to database
+
+                    parentCode.Children ??= [];
+                    parentCode.Children!.Add(feacnCodes[currentIndex]);
+
+                    var nextId = excelRows[currentIndex].NextId;
+                    if (!nextId.HasValue || !idToIndexMap.TryGetValue(nextId.Value, out currentIndex))
+                    {
+                        break;
+                    }
+                }
             }
         }
         
