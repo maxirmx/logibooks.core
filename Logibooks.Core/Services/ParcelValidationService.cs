@@ -68,8 +68,9 @@ public class ParcelValidationService(
             return;
         }
 
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
         if (await _db.FeacnCodes.AnyAsync(cancellationToken) &&
-            !await _db.FeacnCodes.AnyAsync(fc => fc.Code == order.TnVed, cancellationToken))
+            !await _db.FeacnCodes.AnyAsync(fc => fc.Code == order.TnVed && (fc.FromDate == null || fc.FromDate <= today), cancellationToken))
         {
             order.CheckStatusId = (int)ParcelCheckStatusCode.NonexistingFeacn;
             await _db.SaveChangesAsync(cancellationToken);
