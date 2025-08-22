@@ -25,16 +25,15 @@
 
 namespace Logibooks.Core.Interfaces;
 
-public interface IFeacnListProcessingService : IProgressReporter
+public interface IFeacnListProcessingService
 {
     /// <summary>
-    /// Starts asynchronous processing of FEACN codes from Excel file.
+    /// Uploads FEACN codes from Excel file and replaces existing data.
     /// </summary>
     /// <param name="content">Excel file content as byte array</param>
     /// <param name="fileName">Original file name for logging purposes</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>Handle identifier for tracking progress</returns>
-    Task<Guid> StartProcessingAsync(
+    Task UploadFeacnCodesAsync(
         byte[] content,
         string fileName,
         CancellationToken cancellationToken = default);

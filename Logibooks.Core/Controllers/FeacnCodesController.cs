@@ -104,9 +104,9 @@ public class FeacnCodesController(
     }
 
     [HttpPost("upload")]
-    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(GuidReference))]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(ErrMessage))]
-    public async Task<ActionResult<GuidReference>> Upload(IFormFile file)
+    public async Task<IActionResult> Upload(IFormFile file)
     {
         if (file == null || file.Length == 0)
         {
@@ -152,28 +152,8 @@ public class FeacnCodesController(
             return _400UnsupportedFileType(fileExtension);
         }
 
-        var handle = await _processingService.StartProcessingAsync(excelContent, excelFileName, HttpContext.RequestAborted);
-        return Ok(new GuidReference { Id = handle });
-    }
-
-    [HttpGet("upload/{handleId}")]
-    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ValidationProgress))]
-    [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
-    public Task<ActionResult<ValidationProgress>> GetUploadProgress(Guid handleId)
-    {
-        var progress = _processingService.GetProgress(handleId);
-        ActionResult<ValidationProgress> result = progress == null ? _404Handle(handleId) : Ok(progress);
-        return Task.FromResult(result);
-    }
-
-    [HttpDelete("upload/{handleId}")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
-    public Task<IActionResult> CancelUpload(Guid handleId)
-    {
-        var ok = _processingService.Cancel(handleId);
-        IActionResult result = ok ? NoContent() : _404Handle(handleId);
-        return Task.FromResult(result);
+        await _processingService.UploadFeacnCodesAsync(excelContent, excelFileName, HttpContext.RequestAborted);
+        return NoContent();
     }
 }
 
