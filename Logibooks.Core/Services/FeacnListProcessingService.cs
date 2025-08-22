@@ -36,7 +36,7 @@ namespace Logibooks.Core.Services;
 // Этот сервис отвечает за обработку и загрузку кодов ТН ВЭД из Excel-файла
 // Он сознательно блокирует возможность паралелльной обработки.
 // Паралелльная загрузка -  это не жизненный сценарий, а возможный результат
-// хаотичного нажатия кнопок несколькиими операторами 
+// хаотичного нажатия кнопок несколькими операторами 
 
 
 public class FeacnListProcessingService(
@@ -180,9 +180,9 @@ public class FeacnListProcessingService(
         // Parse ID (required)
         var idValue = GetColumnValue(row, columnMap, "ID");
         var id = (int?)ExcelDataConverter.ConvertValueToPropertyType(idValue, typeof(int), "ID", _logger);
-        if (!id.HasValue || id.Value == 0)
+        if (!id.HasValue)
         {
-            _logger.LogDebug("Skipping row {RowNumber}: invalid or missing ID", rowNumber);
+            _logger.LogDebug("Skipping row {RowNumber}: missing ID", rowNumber);
             return null;
         }
         

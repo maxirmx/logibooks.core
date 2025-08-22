@@ -54,7 +54,10 @@ public class FeacnCodesController(
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
     public async Task<ActionResult<FeacnCodeDto>> Get(int id)
     {
-        var code = await _db.FeacnCodes.AsNoTracking().FirstOrDefaultAsync(c => c.Id == id);
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var code = await _db.FeacnCodes.AsNoTracking()
+            .Where(c => c.Id == id && (c.FromDate == null || c.FromDate <= today))
+            .FirstOrDefaultAsync();
         return code == null ? _404Object(id) : new FeacnCodeDto(code);
     }
 
@@ -71,7 +74,10 @@ public class FeacnCodesController(
             return _400MustBe10Digits(code);
         }
 
-        var fc = await _db.FeacnCodes.AsNoTracking().FirstOrDefaultAsync(c => c.Code == code);
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var fc = await _db.FeacnCodes.AsNoTracking()
+            .Where(c => c.Code == code && (c.FromDate == null || c.FromDate <= today))
+            .FirstOrDefaultAsync();
         return fc == null ? _404FeacnCode(code) : new FeacnCodeDto(fc);
     }
 
@@ -80,13 +86,32 @@ public class FeacnCodesController(
     public async Task<ActionResult<IEnumerable<FeacnCodeDto>>> Lookup(string key)
     {
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        var upperKey = key.ToUpper();
-        var codes = await _db.FeacnCodes.AsNoTracking()
-            .Where(c => (c.FromDate == null || c.FromDate <= today) &&
-                        c.NormalizedName.Contains(upperKey))
+        
+        IQueryable<FeacnCode> query = _db.FeacnCodes.AsNoTracking()
+            .Where(c => c.FromDate == null || c.FromDate <= today);
+
+        // Handle empty or whitespace-only keys
+        if (string.IsNullOrWhiteSpace(key))
+        {
+            return new List<FeacnCodeDto>();
+        }
+
+        // If key contains only digits, search by code prefix; otherwise search by normalized name
+        if (key.All(char.IsDigit))
+        {
+            query = query.Where(c => c.Code.StartsWith(key));
+        }
+        else
+        {
+            var upperKey = key.ToUpper();
+            query = query.Where(c => c.NormalizedName.Contains(upperKey));
+        }
+
+        var codes = await query
             .OrderBy(c => c.Id)
             .Select(c => new FeacnCodeDto(c))
             .ToListAsync();
+        
         return codes;
     }
 
@@ -94,8 +119,12 @@ public class FeacnCodesController(
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<FeacnCodeDto>))]
     public async Task<ActionResult<IEnumerable<FeacnCodeDto>>> Children(int? id)
     {
-        IQueryable<FeacnCode> query = _db.FeacnCodes.AsNoTracking();
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        IQueryable<FeacnCode> query = _db.FeacnCodes.AsNoTracking()
+            .Where(c => c.FromDate == null || c.FromDate <= today);
+        
         query = id.HasValue ? query.Where(c => c.ParentId == id.Value) : query.Where(c => c.ParentId == null);
+        
         var codes = await query
             .OrderBy(c => c.Id)
             .Select(c => new FeacnCodeDto(c))

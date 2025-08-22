@@ -92,6 +92,73 @@ public class FeacnCodesControllerTests
     }
 
     [Test]
+    public async Task Get_ReturnsDto_WhenExistsAndFromDateIsNull()
+    {
+        SetCurrentUserId(1);
+        var code = new FeacnCode 
+        { 
+            Id = 11, 
+            Code = "1234567891", 
+            CodeEx = "1234567891", 
+            Name = "Name", 
+            NormalizedName = "NAME",
+            FromDate = null
+        };
+        _dbContext.FeacnCodes.Add(code);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.Get(11);
+
+        Assert.That(result.Value, Is.Not.Null);
+        Assert.That(result.Value!.Id, Is.EqualTo(11));
+    }
+
+    [Test]
+    public async Task Get_ReturnsDto_WhenExistsAndFromDateIsInPast()
+    {
+        SetCurrentUserId(1);
+        var code = new FeacnCode 
+        { 
+            Id = 12, 
+            Code = "1234567892", 
+            CodeEx = "1234567892", 
+            Name = "Name", 
+            NormalizedName = "NAME",
+            FromDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-5))
+        };
+        _dbContext.FeacnCodes.Add(code);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.Get(12);
+
+        Assert.That(result.Value, Is.Not.Null);
+        Assert.That(result.Value!.Id, Is.EqualTo(12));
+    }
+
+    [Test]
+    public async Task Get_ReturnsNotFound_WhenFromDateIsInFuture()
+    {
+        SetCurrentUserId(1);
+        var code = new FeacnCode 
+        { 
+            Id = 13, 
+            Code = "1234567893", 
+            CodeEx = "1234567893", 
+            Name = "Name", 
+            NormalizedName = "NAME",
+            FromDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(5))
+        };
+        _dbContext.FeacnCodes.Add(code);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.Get(13);
+
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+    }
+
+    [Test]
     public async Task Get_ReturnsNotFound_WhenMissing()
     {
         SetCurrentUserId(1);
@@ -136,6 +203,73 @@ public class FeacnCodesControllerTests
     }
 
     [Test]
+    public async Task GetByCode_ReturnsDto_WhenExistsAndFromDateIsNull()
+    {
+        SetCurrentUserId(1);
+        var code = new FeacnCode 
+        { 
+            Id = 21, 
+            Code = "1234567821", 
+            CodeEx = "1234567821", 
+            Name = "N1", 
+            NormalizedName = "N1",
+            FromDate = null
+        };
+        _dbContext.FeacnCodes.Add(code);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.GetByCode("1234567821");
+
+        Assert.That(result.Value, Is.Not.Null);
+        Assert.That(result.Value!.Code, Is.EqualTo("1234567821"));
+    }
+
+    [Test]
+    public async Task GetByCode_ReturnsDto_WhenExistsAndFromDateIsInPast()
+    {
+        SetCurrentUserId(1);
+        var code = new FeacnCode 
+        { 
+            Id = 22, 
+            Code = "1234567822", 
+            CodeEx = "1234567822", 
+            Name = "N1", 
+            NormalizedName = "N1",
+            FromDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-3))
+        };
+        _dbContext.FeacnCodes.Add(code);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.GetByCode("1234567822");
+
+        Assert.That(result.Value, Is.Not.Null);
+        Assert.That(result.Value!.Code, Is.EqualTo("1234567822"));
+    }
+
+    [Test]
+    public async Task GetByCode_ReturnsNotFound_WhenFromDateIsInFuture()
+    {
+        SetCurrentUserId(1);
+        var code = new FeacnCode 
+        { 
+            Id = 23, 
+            Code = "1234567823", 
+            CodeEx = "1234567823", 
+            Name = "N1", 
+            NormalizedName = "N1",
+            FromDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(3))
+        };
+        _dbContext.FeacnCodes.Add(code);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.GetByCode("1234567823");
+
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+    }
+
+    [Test]
     public async Task Lookup_ReturnsMatchingCodes()
     {
         SetCurrentUserId(1);
@@ -154,37 +288,217 @@ public class FeacnCodesControllerTests
     }
 
     [Test]
-    public async Task Children_ReturnsTopLevel_WhenIdNull()
+    public async Task Lookup_ReturnsCodesByPrefix_WhenKeyIsDigitsOnly()
     {
         SetCurrentUserId(1);
         _dbContext.FeacnCodes.AddRange(
-            new FeacnCode { Id = 1, Code = "1111111111", CodeEx = "1111111111", Name = "root", NormalizedName = "ROOT" },
-            new FeacnCode { Id = 2, Code = "2222222222", CodeEx = "2222222222", Name = "child", NormalizedName = "CHILD", ParentId = 1 }
+            new FeacnCode { Id = 1, Code = "1234567890", CodeEx = "1234567890", Name = "Product A", NormalizedName = "PRODUCT A", FromDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1)) },
+            new FeacnCode { Id = 2, Code = "1235678901", CodeEx = "1235678901", Name = "Product B", NormalizedName = "PRODUCT B", FromDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1)) },
+            new FeacnCode { Id = 3, Code = "9876543210", CodeEx = "9876543210", Name = "Product C", NormalizedName = "PRODUCT C", FromDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1)) },
+            new FeacnCode { Id = 4, Code = "1230000000", CodeEx = "1230000000", Name = "Product D", NormalizedName = "PRODUCT D", FromDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(1)) } // Future date - should be filtered out
         );
         await _dbContext.SaveChangesAsync();
 
-        var result = await _controller.Children(null);
+        var result = await _controller.Lookup("123");
 
         Assert.That(result.Value, Is.Not.Null);
-        Assert.That(result.Value!.Count(), Is.EqualTo(1));
-        Assert.That(result.Value!.First().Id, Is.EqualTo(1));
+        Assert.That(result.Value!.Count(), Is.EqualTo(2)); // Only codes starting with "123" and with valid dates
+        var codes = result.Value!.ToList();
+        Assert.That(codes.Any(c => c.Code == "1234567890"), Is.True, "Should include code starting with 123");
+        Assert.That(codes.Any(c => c.Code == "1235678901"), Is.True, "Should include code starting with 123");
+        Assert.That(codes.Any(c => c.Code == "9876543210"), Is.False, "Should not include code not starting with 123");
+        Assert.That(codes.Any(c => c.Code == "1230000000"), Is.False, "Should not include code with future FromDate");
     }
 
     [Test]
-    public async Task Children_ReturnsChildren_ForGivenId()
+    public async Task Lookup_ReturnsCodesByNormalizedName_WhenKeyContainsNonDigits()
     {
         SetCurrentUserId(1);
         _dbContext.FeacnCodes.AddRange(
-            new FeacnCode { Id = 1, Code = "1111111111", CodeEx = "1111111111", Name = "root", NormalizedName = "ROOT" },
-            new FeacnCode { Id = 2, Code = "2222222222", CodeEx = "2222222222", Name = "child1", NormalizedName = "CHILD1", ParentId = 1 },
-            new FeacnCode { Id = 3, Code = "3333333333", CodeEx = "3333333333", Name = "child2", NormalizedName = "CHILD2", ParentId = 1 }
+            new FeacnCode { Id = 1, Code = "1111111111", CodeEx = "1111111111", Name = "Metal Product", NormalizedName = "METAL PRODUCT", FromDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1)) },
+            new FeacnCode { Id = 2, Code = "2222222222", CodeEx = "2222222222", Name = "Wood Product", NormalizedName = "WOOD PRODUCT", FromDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1)) },
+            new FeacnCode { Id = 3, Code = "3333333333", CodeEx = "3333333333", Name = "Metal Tools", NormalizedName = "METAL TOOLS", FromDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1)) }
         );
         await _dbContext.SaveChangesAsync();
 
-        var result = await _controller.Children(1);
+        var result = await _controller.Lookup("metal");
 
         Assert.That(result.Value, Is.Not.Null);
-        Assert.That(result.Value!.Count(), Is.EqualTo(2));
+        Assert.That(result.Value!.Count(), Is.EqualTo(2)); // Both codes containing "METAL" in normalized name
+        var codes = result.Value!.ToList();
+        Assert.That(codes.Any(c => c.Code == "1111111111"), Is.True, "Should include Metal Product");
+        Assert.That(codes.Any(c => c.Code == "3333333333"), Is.True, "Should include Metal Tools");
+        Assert.That(codes.Any(c => c.Code == "2222222222"), Is.False, "Should not include Wood Product");
+    }
+
+    [Test]
+    public async Task Lookup_ReturnsCodesByNormalizedName_WhenKeyContainsMixedCharacters()
+    {
+        SetCurrentUserId(1);
+        _dbContext.FeacnCodes.AddRange(
+            new FeacnCode { Id = 1, Code = "1111111111", CodeEx = "1111111111", Name = "ABC123 Product", NormalizedName = "ABC123 PRODUCT", FromDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1)) },
+            new FeacnCode { Id = 2, Code = "1234567890", CodeEx = "1234567890", Name = "XYZ789 Item", NormalizedName = "XYZ789 ITEM", FromDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1)) }
+        );
+        await _dbContext.SaveChangesAsync();
+
+        // Mixed characters should search by normalized name, not code prefix
+        var result = await _controller.Lookup("abc123");
+
+        Assert.That(result.Value, Is.Not.Null);
+        Assert.That(result.Value!.Count(), Is.EqualTo(1));
+        Assert.That(result.Value!.First().Code, Is.EqualTo("1111111111"));
+    }
+
+    [Test]
+    public async Task Lookup_ReturnsEmptyList_WhenNoDigitsOnlyMatchFound()
+    {
+        SetCurrentUserId(1);
+        _dbContext.FeacnCodes.AddRange(
+            new FeacnCode { Id = 1, Code = "1111111111", CodeEx = "1111111111", Name = "Product A", NormalizedName = "PRODUCT A", FromDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1)) },
+            new FeacnCode { Id = 2, Code = "2222222222", CodeEx = "2222222222", Name = "Product B", NormalizedName = "PRODUCT B", FromDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1)) }
+        );
+        await _dbContext.SaveChangesAsync();
+
+        // Search for digits that don't match any code prefix
+        var result = await _controller.Lookup("999");
+
+        Assert.That(result.Value, Is.Not.Null);
+        Assert.That(result.Value!.Count(), Is.EqualTo(0));
+    }
+
+    [Test]
+    public async Task Lookup_ReturnsEmptyList_WhenNoTextMatchFound()
+    {
+        SetCurrentUserId(1);
+        _dbContext.FeacnCodes.AddRange(
+            new FeacnCode { Id = 1, Code = "1111111111", CodeEx = "1111111111", Name = "Metal Product", NormalizedName = "METAL PRODUCT", FromDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1)) },
+            new FeacnCode { Id = 2, Code = "2222222222", CodeEx = "2222222222", Name = "Wood Product", NormalizedName = "WOOD PRODUCT", FromDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1)) }
+        );
+        await _dbContext.SaveChangesAsync();
+
+        // Search for text that doesn't match any normalized name
+        var result = await _controller.Lookup("plastic");
+
+        Assert.That(result.Value, Is.Not.Null);
+        Assert.That(result.Value!.Count(), Is.EqualTo(0));
+    }
+
+    [Test]
+    public async Task Lookup_HandlesSingleDigit_CorrectlyAsDigitsOnly()
+    {
+        SetCurrentUserId(1);
+        _dbContext.FeacnCodes.AddRange(
+            new FeacnCode { Id = 1, Code = "1234567890", CodeEx = "1234567890", Name = "Product A", NormalizedName = "PRODUCT A", FromDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1)) },
+            new FeacnCode { Id = 2, Code = "9876543210", CodeEx = "9876543210", Name = "Product B", NormalizedName = "PRODUCT B", FromDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1)) }
+        );
+        await _dbContext.SaveChangesAsync();
+
+        // Single digit should be treated as digits-only search
+        var result = await _controller.Lookup("1");
+
+        Assert.That(result.Value, Is.Not.Null);
+        Assert.That(result.Value!.Count(), Is.EqualTo(1));
+        Assert.That(result.Value!.First().Code, Is.EqualTo("1234567890"));
+    }
+
+    [Test]
+    public async Task Lookup_HandlesEmptyString_GracefullyAsText()
+    {
+        SetCurrentUserId(1);
+        _dbContext.FeacnCodes.AddRange(
+            new FeacnCode { Id = 1, Code = "1111111111", CodeEx = "1111111111", Name = "Product A", NormalizedName = "PRODUCT A", FromDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1)) }
+        );
+        await _dbContext.SaveChangesAsync();
+
+        // Empty string should return no results due to explicit handling
+        var result = await _controller.Lookup("");
+
+        Assert.That(result.Value, Is.Not.Null);
+        Assert.That(result.Value!.Count(), Is.EqualTo(0), "Empty string should return no results");
+    }
+
+    [Test]
+    public async Task Lookup_HandlesWhitespaceString_GracefullyAsText()
+    {
+        SetCurrentUserId(1);
+        _dbContext.FeacnCodes.AddRange(
+            new FeacnCode { Id = 1, Code = "1111111111", CodeEx = "1111111111", Name = "Product A", NormalizedName = "PRODUCT A", FromDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1)) }
+        );
+        await _dbContext.SaveChangesAsync();
+
+        // Whitespace-only string should return no results due to explicit handling
+        var result = await _controller.Lookup("   ");
+
+        Assert.That(result.Value, Is.Not.Null);
+        Assert.That(result.Value!.Count(), Is.EqualTo(0), "Whitespace-only string should return no results");
+    }
+
+    [Test]
+    public async Task Lookup_IsCaseInsensitive_ForTextSearch()
+    {
+        SetCurrentUserId(1);
+        _dbContext.FeacnCodes.AddRange(
+            new FeacnCode { Id = 1, Code = "1111111111", CodeEx = "1111111111", Name = "Metal Product", NormalizedName = "METAL PRODUCT", FromDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1)) }
+        );
+        await _dbContext.SaveChangesAsync();
+
+        // Test different case variations
+        var resultLower = await _controller.Lookup("metal");
+        var resultUpper = await _controller.Lookup("METAL");
+        var resultMixed = await _controller.Lookup("Metal");
+
+        Assert.That(resultLower.Value!.Count(), Is.EqualTo(1));
+        Assert.That(resultUpper.Value!.Count(), Is.EqualTo(1));
+        Assert.That(resultMixed.Value!.Count(), Is.EqualTo(1));
+        
+        // All should return the same result
+        Assert.That(resultLower.Value!.First().Code, Is.EqualTo("1111111111"));
+        Assert.That(resultUpper.Value!.First().Code, Is.EqualTo("1111111111"));
+        Assert.That(resultMixed.Value!.First().Code, Is.EqualTo("1111111111"));
+    }
+
+    [Test]
+    public async Task Lookup_ReturnsResultsOrderedById()
+    {
+        SetCurrentUserId(1);
+        _dbContext.FeacnCodes.AddRange(
+            new FeacnCode { Id = 3, Code = "1230000003", CodeEx = "1230000003", Name = "Product C", NormalizedName = "PRODUCT C", FromDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1)) },
+            new FeacnCode { Id = 1, Code = "1230000001", CodeEx = "1230000001", Name = "Product A", NormalizedName = "PRODUCT A", FromDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1)) },
+            new FeacnCode { Id = 2, Code = "1230000002", CodeEx = "1230000002", Name = "Product B", NormalizedName = "PRODUCT B", FromDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1)) }
+        );
+        await _dbContext.SaveChangesAsync();
+
+        // Search by prefix should return results ordered by ID
+        var result = await _controller.Lookup("123");
+
+        Assert.That(result.Value, Is.Not.Null);
+        Assert.That(result.Value!.Count(), Is.EqualTo(3));
+        
+        var codes = result.Value!.ToList();
+        Assert.That(codes[0].Id, Is.EqualTo(1), "First result should have ID 1");
+        Assert.That(codes[1].Id, Is.EqualTo(2), "Second result should have ID 2");
+        Assert.That(codes[2].Id, Is.EqualTo(3), "Third result should have ID 3");
+    }
+
+    [Test]
+    public async Task Lookup_HandlesSpecialCharacters_InTextSearch()
+    {
+        SetCurrentUserId(1);
+        _dbContext.FeacnCodes.AddRange(
+            new FeacnCode { Id = 1, Code = "1111111111", CodeEx = "1111111111", Name = "Special-Product", NormalizedName = "SPECIAL-PRODUCT", FromDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1)) },
+            new FeacnCode { Id = 2, Code = "2222222222", CodeEx = "2222222222", Name = "Product & Item", NormalizedName = "PRODUCT & ITEM", FromDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1)) }
+        );
+        await _dbContext.SaveChangesAsync();
+
+        // Test search with special characters
+        var resultHyphen = await _controller.Lookup("special-");
+        var resultAmpersand = await _controller.Lookup(" & ");
+
+        Assert.That(resultHyphen.Value!.Count(), Is.EqualTo(1));
+        Assert.That(resultHyphen.Value!.First().Code, Is.EqualTo("1111111111"));
+        
+        Assert.That(resultAmpersand.Value!.Count(), Is.EqualTo(1));
+        Assert.That(resultAmpersand.Value!.First().Code, Is.EqualTo("2222222222"));
     }
 
     [Test]
