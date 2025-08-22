@@ -242,6 +242,54 @@ public class ParcelValidationServiceTests
     }
 
     [Test]
+    public async Task ValidateAsync_NonexistingFeacn_SetsStatus()
+    {
+        using var ctx = CreateContext();
+        ctx.FeacnCodes.Add(new FeacnCode
+        {
+            Id = 1,
+            Code = "1111111111",
+            CodeEx = "1111111111",
+            Name = "name",
+            NormalizedName = "name"
+        });
+        var order = new WbrParcel { Id = 1, RegisterId = 1, CheckStatusId = 1, TnVed = "1234567890" };
+        ctx.Orders.Add(order);
+        await ctx.SaveChangesAsync();
+
+        var svc = CreateService(ctx);
+        var wordsLookupContext = new WordsLookupContext<StopWord>(Enumerable.Empty<StopWord>());
+        var morphologyContext = new MorphologyContext();
+        await svc.ValidateAsync(order, morphologyContext, wordsLookupContext);
+
+        Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)ParcelCheckStatusCode.NonexistingFeacn));
+    }
+
+    [Test]
+    public async Task ValidateAsync_ExistingFeacn_ContinuesProcessing()
+    {
+        using var ctx = CreateContext();
+        ctx.FeacnCodes.Add(new FeacnCode
+        {
+            Id = 1,
+            Code = "1234567890",
+            CodeEx = "1234567890",
+            Name = "name",
+            NormalizedName = "name"
+        });
+        var order = new WbrParcel { Id = 1, RegisterId = 1, CheckStatusId = 1, TnVed = "1234567890" };
+        ctx.Orders.Add(order);
+        await ctx.SaveChangesAsync();
+
+        var svc = CreateService(ctx);
+        var wordsLookupContext = new WordsLookupContext<StopWord>(Enumerable.Empty<StopWord>());
+        var morphologyContext = new MorphologyContext();
+        await svc.ValidateAsync(order, morphologyContext, wordsLookupContext);
+
+        Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)ParcelCheckStatusCode.NoIssues));
+    }
+
+    [Test]
     public void GetMatchingWords_IgnoresEmptyStopWord()
     {
         // Arrange
