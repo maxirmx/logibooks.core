@@ -26,6 +26,7 @@
 using Logibooks.Core.Data;
 using Logibooks.Core.Interfaces;
 using Logibooks.Core.Models;
+using Microsoft.EntityFrameworkCore;
 using System.Text.RegularExpressions;
 
 namespace Logibooks.Core.Services;
@@ -63,6 +64,18 @@ public class ParcelValidationService(
         if (string.IsNullOrWhiteSpace(order.TnVed) || !TnVedRegex.IsMatch(order.TnVed))
         {
             order.CheckStatusId = (int)ParcelCheckStatusCode.InvalidFeacnFormat;
+            await _db.SaveChangesAsync(cancellationToken);
+            return;
+        }
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var codeExists = await _db.FeacnCodes.AnyAsync(
+            fc => fc.Code == order.TnVed && (fc.FromDate == null || fc.FromDate <= today),
+            cancellationToken);
+
+        if (!codeExists && await _db.FeacnCodes.AnyAsync(cancellationToken))
+        {
+            order.CheckStatusId = (int)ParcelCheckStatusCode.NonexistingFeacn;
             await _db.SaveChangesAsync(cancellationToken);
             return;
         }
