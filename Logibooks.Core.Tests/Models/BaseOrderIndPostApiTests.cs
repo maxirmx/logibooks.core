@@ -35,7 +35,7 @@ public class BaseOrderIndPostApiTests
     [Test]
     public void WbrOrder_IndPostApi_Methods_ReturnExpectedValues()
     {
-        var order = new WbrOrder
+        var order = new WbrParcel
         {
             Id = 1,
             Shk = "SHK123",
@@ -73,7 +73,7 @@ public class BaseOrderIndPostApiTests
     [Test]
     public void OzonOrder_IndPostApi_Methods_ReturnExpectedValues()
     {
-        var order = new OzonOrder
+        var order = new OzonParcel
         {
             Id = 2,
             PostingNumber = "POST123",

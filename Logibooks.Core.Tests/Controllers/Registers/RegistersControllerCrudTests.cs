@@ -114,9 +114,9 @@ public class RegistersControllerCrudTests : RegistersControllerTestsBase
         var register = new Register { Id = 1, FileName = "reg.xlsx", CompanyId = 2, TheOtherCompanyId = 3 };
         _dbContext.Registers.Add(register);
         _dbContext.Orders.AddRange(
-            new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1, CheckStatusId = 1 },
-            new WbrOrder { Id = 2, RegisterId = 1, StatusId = 2, CheckStatusId = 2 },
-            new WbrOrder { Id = 3, RegisterId = 1, StatusId = 1, CheckStatusId = 1 }
+            new WbrParcel { Id = 1, RegisterId = 1, StatusId = 1, CheckStatusId = 1 },
+            new WbrParcel { Id = 2, RegisterId = 1, StatusId = 2, CheckStatusId = 2 },
+            new WbrParcel { Id = 3, RegisterId = 1, StatusId = 1, CheckStatusId = 1 }
         );
         await _dbContext.SaveChangesAsync();
 
@@ -140,10 +140,10 @@ public class RegistersControllerCrudTests : RegistersControllerTestsBase
         var register = new Register { Id = 1, FileName = "reg.xlsx", CompanyId = 2, TheOtherCompanyId = 3 };
         _dbContext.Registers.Add(register);
         _dbContext.Orders.AddRange(
-            new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1, CheckStatusId = 1 },
-            new WbrOrder { Id = 2, RegisterId = 1, StatusId = 2, CheckStatusId = 2 },
-            new WbrOrder { Id = 3, RegisterId = 1, StatusId = 3, CheckStatusId = 3 },
-            new WbrOrder { Id = 4, RegisterId = 1, StatusId = 3, CheckStatusId = 3 }
+            new WbrParcel { Id = 1, RegisterId = 1, StatusId = 1, CheckStatusId = 1 },
+            new WbrParcel { Id = 2, RegisterId = 1, StatusId = 2, CheckStatusId = 2 },
+            new WbrParcel { Id = 3, RegisterId = 1, StatusId = 3, CheckStatusId = 3 },
+            new WbrParcel { Id = 4, RegisterId = 1, StatusId = 3, CheckStatusId = 3 }
         );
         await _dbContext.SaveChangesAsync();
 
@@ -415,8 +415,8 @@ public class RegistersControllerCrudTests : RegistersControllerTestsBase
         SetCurrentUserId(1); // Logist user
 
         var register = new Register { Id = 1, FileName = "reg.xlsx", TheOtherCompanyId = 3 };
-        var order1 = new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1 };
-        var order2 = new WbrOrder { Id = 2, RegisterId = 1, StatusId = 1 };
+        var order1 = new WbrParcel { Id = 1, RegisterId = 1, StatusId = 1 };
+        var order2 = new WbrParcel { Id = 2, RegisterId = 1, StatusId = 1 };
         _dbContext.Registers.Add(register);
         _dbContext.Orders.AddRange(order1, order2);
         await _dbContext.SaveChangesAsync();

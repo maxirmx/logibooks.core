@@ -145,9 +145,9 @@ public class ParcelsControllerSortingTests
         var register = new Register { Id = 1, CompanyId = 2, FileName = "wbr_test.xlsx" }; // WBR
         _dbContext.Registers.Add(register);
         _dbContext.Orders.AddRange(
-            new WbrOrder { Id = 3, RegisterId = 1, StatusId = 1, TnVed = "A" },
-            new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "B" },
-            new WbrOrder { Id = 2, RegisterId = 1, StatusId = 1, TnVed = "C" }
+            new WbrParcel { Id = 3, RegisterId = 1, StatusId = 1, TnVed = "A" },
+            new WbrParcel { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "B" },
+            new WbrParcel { Id = 2, RegisterId = 1, StatusId = 1, TnVed = "C" }
         );
         await _dbContext.SaveChangesAsync();
 
@@ -173,9 +173,9 @@ public class ParcelsControllerSortingTests
         var register = new Register { Id = 1, CompanyId = 2, FileName = "wbr_test.xlsx" }; // WBR
         _dbContext.Registers.Add(register);
         _dbContext.Orders.AddRange(
-            new WbrOrder { Id = 3, RegisterId = 1, StatusId = 1, TnVed = "A" },
-            new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "B" },
-            new WbrOrder { Id = 2, RegisterId = 1, StatusId = 1, TnVed = "C" }
+            new WbrParcel { Id = 3, RegisterId = 1, StatusId = 1, TnVed = "A" },
+            new WbrParcel { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "B" },
+            new WbrParcel { Id = 2, RegisterId = 1, StatusId = 1, TnVed = "C" }
         );
         await _dbContext.SaveChangesAsync();
 
@@ -201,9 +201,9 @@ public class ParcelsControllerSortingTests
         var register = new Register { Id = 1, CompanyId = 2, FileName = "wbr_test.xlsx" }; // WBR
         _dbContext.Registers.Add(register);
         _dbContext.Orders.AddRange(
-            new WbrOrder { Id = 1, RegisterId = 1, StatusId = 3, TnVed = "A" },
-            new WbrOrder { Id = 2, RegisterId = 1, StatusId = 1, TnVed = "B" },
-            new WbrOrder { Id = 3, RegisterId = 1, StatusId = 2, TnVed = "C" }
+            new WbrParcel { Id = 1, RegisterId = 1, StatusId = 3, TnVed = "A" },
+            new WbrParcel { Id = 2, RegisterId = 1, StatusId = 1, TnVed = "B" },
+            new WbrParcel { Id = 3, RegisterId = 1, StatusId = 2, TnVed = "C" }
         );
         await _dbContext.SaveChangesAsync();
 
@@ -229,9 +229,9 @@ public class ParcelsControllerSortingTests
         var register = new Register { Id = 1, CompanyId = 2, FileName = "wbr_test.xlsx" }; // WBR
         _dbContext.Registers.Add(register);
         _dbContext.Orders.AddRange(
-            new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1, CheckStatusId = 101, TnVed = "A" },
-            new WbrOrder { Id = 2, RegisterId = 1, StatusId = 1, CheckStatusId = 201, TnVed = "B" },
-            new WbrOrder { Id = 3, RegisterId = 1, StatusId = 1, CheckStatusId = 1, TnVed = "C" }
+            new WbrParcel { Id = 1, RegisterId = 1, StatusId = 1, CheckStatusId = 101, TnVed = "A" },
+            new WbrParcel { Id = 2, RegisterId = 1, StatusId = 1, CheckStatusId = 201, TnVed = "B" },
+            new WbrParcel { Id = 3, RegisterId = 1, StatusId = 1, CheckStatusId = 1, TnVed = "C" }
         );
         await _dbContext.SaveChangesAsync();
 
@@ -257,9 +257,9 @@ public class ParcelsControllerSortingTests
         var register = new Register { Id = 1, CompanyId = 2, FileName = "wbr_test.xlsx" }; // WBR
         _dbContext.Registers.Add(register);
         _dbContext.Orders.AddRange(
-            new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "XYZ" },
-            new WbrOrder { Id = 2, RegisterId = 1, StatusId = 1, TnVed = "ABC" },
-            new WbrOrder { Id = 3, RegisterId = 1, StatusId = 1, TnVed = "MNO" }
+            new WbrParcel { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "XYZ" },
+            new WbrParcel { Id = 2, RegisterId = 1, StatusId = 1, TnVed = "ABC" },
+            new WbrParcel { Id = 3, RegisterId = 1, StatusId = 1, TnVed = "MNO" }
         );
         await _dbContext.SaveChangesAsync();
 
@@ -285,9 +285,9 @@ public class ParcelsControllerSortingTests
         var register = new Register { Id = 1, CompanyId = 2, FileName = "wbr_test.xlsx" }; // WBR
         _dbContext.Registers.Add(register);
         _dbContext.Orders.AddRange(
-            new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1, Shk = "C123" },
-            new WbrOrder { Id = 2, RegisterId = 1, StatusId = 1, Shk = "A456" },
-            new WbrOrder { Id = 3, RegisterId = 1, StatusId = 1, Shk = "B789" }
+            new WbrParcel { Id = 1, RegisterId = 1, StatusId = 1, Shk = "C123" },
+            new WbrParcel { Id = 2, RegisterId = 1, StatusId = 1, Shk = "A456" },
+            new WbrParcel { Id = 3, RegisterId = 1, StatusId = 1, Shk = "B789" }
         );
         await _dbContext.SaveChangesAsync();
 
@@ -317,9 +317,9 @@ public class ParcelsControllerSortingTests
         var register = new Register { Id = 1, CompanyId = 1, FileName = "ozon_test.xlsx" }; // Ozon
         _dbContext.Registers.Add(register);
         _dbContext.Orders.AddRange(
-            new OzonOrder { Id = 3, RegisterId = 1, StatusId = 1, TnVed = "A" },
-            new OzonOrder { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "B" },
-            new OzonOrder { Id = 2, RegisterId = 1, StatusId = 1, TnVed = "C" }
+            new OzonParcel { Id = 3, RegisterId = 1, StatusId = 1, TnVed = "A" },
+            new OzonParcel { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "B" },
+            new OzonParcel { Id = 2, RegisterId = 1, StatusId = 1, TnVed = "C" }
         );
         await _dbContext.SaveChangesAsync();
 
@@ -345,9 +345,9 @@ public class ParcelsControllerSortingTests
         var register = new Register { Id = 1, CompanyId = 1, FileName = "ozon_test.xlsx" }; // Ozon
         _dbContext.Registers.Add(register);
         _dbContext.Orders.AddRange(
-            new OzonOrder { Id = 1, RegisterId = 1, StatusId = 3, TnVed = "A" },
-            new OzonOrder { Id = 2, RegisterId = 1, StatusId = 1, TnVed = "B" },
-            new OzonOrder { Id = 3, RegisterId = 1, StatusId = 2, TnVed = "C" }
+            new OzonParcel { Id = 1, RegisterId = 1, StatusId = 3, TnVed = "A" },
+            new OzonParcel { Id = 2, RegisterId = 1, StatusId = 1, TnVed = "B" },
+            new OzonParcel { Id = 3, RegisterId = 1, StatusId = 2, TnVed = "C" }
         );
         await _dbContext.SaveChangesAsync();
 
@@ -373,9 +373,9 @@ public class ParcelsControllerSortingTests
         var register = new Register { Id = 1, CompanyId = 1, FileName = "ozon_test.xlsx" }; // Ozon
         _dbContext.Registers.Add(register);
         _dbContext.Orders.AddRange(
-            new OzonOrder { Id = 1, RegisterId = 1, StatusId = 1, PostingNumber = "C123" },
-            new OzonOrder { Id = 2, RegisterId = 1, StatusId = 1, PostingNumber = "A456" },
-            new OzonOrder { Id = 3, RegisterId = 1, StatusId = 1, PostingNumber = "B789" }
+            new OzonParcel { Id = 1, RegisterId = 1, StatusId = 1, PostingNumber = "C123" },
+            new OzonParcel { Id = 2, RegisterId = 1, StatusId = 1, PostingNumber = "A456" },
+            new OzonParcel { Id = 3, RegisterId = 1, StatusId = 1, PostingNumber = "B789" }
         );
         await _dbContext.SaveChangesAsync();
 
@@ -405,10 +405,10 @@ public class ParcelsControllerSortingTests
         var register = new Register { Id = 1, CompanyId = 2, FileName = "filter_test.xlsx" }; // WBR
         _dbContext.Registers.Add(register);
         _dbContext.Orders.AddRange(
-            new WbrOrder { Id = 1, RegisterId = 1, StatusId = 3, TnVed = "A" },
-            new WbrOrder { Id = 2, RegisterId = 1, StatusId = 2, TnVed = "B" },
-            new WbrOrder { Id = 3, RegisterId = 1, StatusId = 2, TnVed = "C" },
-            new WbrOrder { Id = 4, RegisterId = 1, StatusId = 1, TnVed = "D" }
+            new WbrParcel { Id = 1, RegisterId = 1, StatusId = 3, TnVed = "A" },
+            new WbrParcel { Id = 2, RegisterId = 1, StatusId = 2, TnVed = "B" },
+            new WbrParcel { Id = 3, RegisterId = 1, StatusId = 2, TnVed = "C" },
+            new WbrParcel { Id = 4, RegisterId = 1, StatusId = 1, TnVed = "D" }
         );
         await _dbContext.SaveChangesAsync();
 
@@ -434,10 +434,10 @@ public class ParcelsControllerSortingTests
         var register = new Register { Id = 1, CompanyId = 2, FileName = "filter_test.xlsx" }; // WBR
         _dbContext.Registers.Add(register);
         _dbContext.Orders.AddRange(
-            new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "123456" },
-            new WbrOrder { Id = 2, RegisterId = 1, StatusId = 1, TnVed = "123ABC" },
-            new WbrOrder { Id = 3, RegisterId = 1, StatusId = 1, TnVed = "456DEF" },
-            new WbrOrder { Id = 4, RegisterId = 1, StatusId = 1, TnVed = "789XYZ" }
+            new WbrParcel { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "123456" },
+            new WbrParcel { Id = 2, RegisterId = 1, StatusId = 1, TnVed = "123ABC" },
+            new WbrParcel { Id = 3, RegisterId = 1, StatusId = 1, TnVed = "456DEF" },
+            new WbrParcel { Id = 4, RegisterId = 1, StatusId = 1, TnVed = "789XYZ" }
         );
         await _dbContext.SaveChangesAsync();
 
@@ -463,10 +463,10 @@ public class ParcelsControllerSortingTests
         var register = new Register { Id = 1, CompanyId = 2, FileName = "combined_test.xlsx" }; // WBR
         _dbContext.Registers.Add(register);
         _dbContext.Orders.AddRange(
-            new WbrOrder { Id = 1, RegisterId = 1, StatusId = 2, TnVed = "123ABC" },
-            new WbrOrder { Id = 2, RegisterId = 1, StatusId = 2, TnVed = "123XYZ" },
-            new WbrOrder { Id = 3, RegisterId = 1, StatusId = 1, TnVed = "123DEF" },
-            new WbrOrder { Id = 4, RegisterId = 1, StatusId = 2, TnVed = "456ABC" }
+            new WbrParcel { Id = 1, RegisterId = 1, StatusId = 2, TnVed = "123ABC" },
+            new WbrParcel { Id = 2, RegisterId = 1, StatusId = 2, TnVed = "123XYZ" },
+            new WbrParcel { Id = 3, RegisterId = 1, StatusId = 1, TnVed = "123DEF" },
+            new WbrParcel { Id = 4, RegisterId = 1, StatusId = 2, TnVed = "456ABC" }
         );
         await _dbContext.SaveChangesAsync();
 
@@ -504,7 +504,7 @@ public class ParcelsControllerSortingTests
         // Add 15 orders
         for (int i = 1; i <= 15; i++)
         {
-            _dbContext.Orders.Add(new WbrOrder 
+            _dbContext.Orders.Add(new WbrParcel 
             { 
                 Id = i, 
                 RegisterId = 1, 
@@ -545,7 +545,7 @@ public class ParcelsControllerSortingTests
         // Add 20 orders
         for (int i = 1; i <= 20; i++)
         {
-            _dbContext.Orders.Add(new WbrOrder 
+            _dbContext.Orders.Add(new WbrParcel 
             { 
                 Id = i, 
                 RegisterId = 1, 
@@ -579,7 +579,7 @@ public class ParcelsControllerSortingTests
         // Add 10 orders
         for (int i = 1; i <= 10; i++)
         {
-            _dbContext.Orders.Add(new WbrOrder 
+            _dbContext.Orders.Add(new WbrParcel 
             { 
                 Id = i, 
                 RegisterId = 1, 

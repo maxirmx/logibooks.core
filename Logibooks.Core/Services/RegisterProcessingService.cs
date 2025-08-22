@@ -283,10 +283,10 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
         }
     }
 
-    private List<WbrOrder> CreateWbrOrders(System.Data.DataTable table, int registerId, Dictionary<int, string> columnMap, IXLWorksheet worksheet)
+    private List<WbrParcel> CreateWbrOrders(System.Data.DataTable table, int registerId, Dictionary<int, string> columnMap, IXLWorksheet worksheet)
     {
-        var orders = new List<WbrOrder>();
-        var orderType = typeof(WbrOrder);
+        var orders = new List<WbrParcel>();
+        var orderType = typeof(WbrParcel);
 
         for (int r = 1; r < table.Rows.Count; r++)
         {
@@ -310,7 +310,7 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
                 continue;
             }
 
-            var order = new WbrOrder { RegisterId = registerId, StatusId = 1, CheckStatusId = 1 };
+            var order = new WbrParcel { RegisterId = registerId, StatusId = 1, CheckStatusId = 1 };
 
             foreach (var kv in columnMap)
             {
@@ -357,10 +357,10 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
         return orders;
     }
 
-    private List<OzonOrder> CreateOzonOrders(System.Data.DataTable table, int registerId, Dictionary<int, string> columnMap, IXLWorksheet worksheet)
+    private List<OzonParcel> CreateOzonOrders(System.Data.DataTable table, int registerId, Dictionary<int, string> columnMap, IXLWorksheet worksheet)
     {
-        var orders = new List<OzonOrder>();
-        var orderType = typeof(OzonOrder);
+        var orders = new List<OzonParcel>();
+        var orderType = typeof(OzonParcel);
 
         for (int r = 1; r < table.Rows.Count; r++)
         {
@@ -384,7 +384,7 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
                 continue;
             }
 
-            var order = new OzonOrder { RegisterId = registerId, StatusId = 1, CheckStatusId = 1 };
+            var order = new OzonParcel { RegisterId = registerId, StatusId = 1, CheckStatusId = 1 };
 
             foreach (var kv in columnMap)
             {

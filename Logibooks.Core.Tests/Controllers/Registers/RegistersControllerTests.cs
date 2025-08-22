@@ -856,7 +856,7 @@ public class RegistersControllerTests : RegistersControllerTestsBase
         var register = new Register { Id = 200, FileName = "r.xlsx", TheOtherCompanyId = 3 };
         var feacnOrder = new FeacnOrder { Id = 300, Title = "t" };
         var prefix = new FeacnPrefix { Id = 400, Code = "12", FeacnOrderId = 300, FeacnOrder = feacnOrder };
-        var order = new WbrOrder { Id = 201, RegisterId = 200, StatusId = 1, TnVed = "1234567890" };
+        var order = new WbrParcel { Id = 201, RegisterId = 200, StatusId = 1, TnVed = "1234567890" };
         _dbContext.Registers.Add(register);
         _dbContext.FeacnOrders.Add(feacnOrder);
         _dbContext.FeacnPrefixes.Add(prefix);
@@ -1015,7 +1015,7 @@ public class RegistersControllerTests : RegistersControllerTestsBase
     {
         SetCurrentUserId(1);
         var register = new Register { Id = 300, FileName = "r.xlsx", TheOtherCompanyId = 3 };
-        var order = new WbrOrder { Id = 301, RegisterId = 300, StatusId = 1, ProductName = "malware item" };
+        var order = new WbrParcel { Id = 301, RegisterId = 300, StatusId = 1, ProductName = "malware item" };
         _dbContext.Registers.Add(register);
         _dbContext.Orders.Add(order);
         _dbContext.KeyWords.Add(new KeyWord { Id = 401, Word = "malware", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols });
@@ -1060,9 +1060,9 @@ public class RegistersControllerTests : RegistersControllerTestsBase
         var reg = new Register { Id = 1, FileName = "r.xlsx", CompanyId = 2, TheOtherCompanyId = 3 };
         _dbContext.Registers.Add(reg);
         _dbContext.Orders.AddRange(
-            new WbrOrder { Id = 10, RegisterId = 1, StatusId = 1, CheckStatusId = 101 },
-            new WbrOrder { Id = 20, RegisterId = 1, StatusId = 1, CheckStatusId = 101 },
-            new WbrOrder { Id = 30, RegisterId = 1, StatusId = 1, CheckStatusId = 201 }
+            new WbrParcel { Id = 10, RegisterId = 1, StatusId = 1, CheckStatusId = 101 },
+            new WbrParcel { Id = 20, RegisterId = 1, StatusId = 1, CheckStatusId = 101 },
+            new WbrParcel { Id = 30, RegisterId = 1, StatusId = 1, CheckStatusId = 201 }
         );
         await _dbContext.SaveChangesAsync();
 
@@ -1079,9 +1079,9 @@ public class RegistersControllerTests : RegistersControllerTestsBase
         _dbContext.CheckStatuses.Add(new ParcelCheckStatus { Id = 101, Title = "Has" });
         var reg = new Register { Id = 1, FileName = "r.xlsx", CompanyId = 1, TheOtherCompanyId = 3 }; // Ozon company
         _dbContext.Registers.Add(reg);
-        var ozonOrder1 = new OzonOrder { Id = 1, RegisterId = 1, StatusId = 1, CheckStatusId = 101 };
-        var ozonOrder2 = new OzonOrder { Id = 2, RegisterId = 1, StatusId = 1, CheckStatusId = 201 };
-        var ozonOrder3 = new OzonOrder { Id = 3, RegisterId = 1, StatusId = 1, CheckStatusId = 101 };
+        var ozonOrder1 = new OzonParcel { Id = 1, RegisterId = 1, StatusId = 1, CheckStatusId = 101 };
+        var ozonOrder2 = new OzonParcel { Id = 2, RegisterId = 1, StatusId = 1, CheckStatusId = 201 };
+        var ozonOrder3 = new OzonParcel { Id = 3, RegisterId = 1, StatusId = 1, CheckStatusId = 101 };
         _dbContext.Orders.AddRange(ozonOrder1, ozonOrder2, ozonOrder3);
         _dbContext.OzonOrders.AddRange(ozonOrder1, ozonOrder2, ozonOrder3);
         await _dbContext.SaveChangesAsync();
@@ -1099,7 +1099,7 @@ public class RegistersControllerTests : RegistersControllerTestsBase
         _dbContext.CheckStatuses.Add(new ParcelCheckStatus { Id = 201, Title = "Ok" });
         var reg = new Register { Id = 1, FileName = "r.xlsx", CompanyId = 2 };
         _dbContext.Registers.Add(reg);
-        _dbContext.Orders.Add(new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1, CheckStatusId = 201 });
+        _dbContext.Orders.Add(new WbrParcel { Id = 1, RegisterId = 1, StatusId = 1, CheckStatusId = 201 });
         await _dbContext.SaveChangesAsync();
 
         var result = await _controller.NextParcel(1);
@@ -1239,9 +1239,9 @@ public class RegistersControllerTests : RegistersControllerTestsBase
         var reg = new Register { Id = 1, FileName = "r.xlsx", CompanyId = 2, TheOtherCompanyId = 3 };
         _dbContext.Registers.Add(reg);
         _dbContext.Orders.AddRange(
-            new WbrOrder { Id = 10, RegisterId = 1, StatusId = 1, CheckStatusId = 101 },
-            new WbrOrder { Id = 20, RegisterId = 1, StatusId = 1, CheckStatusId = 200 }, // MarkedByPartner
-            new WbrOrder { Id = 30, RegisterId = 1, StatusId = 1, CheckStatusId = 101 }
+            new WbrParcel { Id = 10, RegisterId = 1, StatusId = 1, CheckStatusId = 101 },
+            new WbrParcel { Id = 20, RegisterId = 1, StatusId = 1, CheckStatusId = 200 }, // MarkedByPartner
+            new WbrParcel { Id = 30, RegisterId = 1, StatusId = 1, CheckStatusId = 101 }
         );
         await _dbContext.SaveChangesAsync();
 
@@ -1262,8 +1262,8 @@ public class RegistersControllerTests : RegistersControllerTestsBase
         var reg = new Register { Id = 2, FileName = "r.xlsx", CompanyId = 2, TheOtherCompanyId = 3 };
         _dbContext.Registers.Add(reg);
         _dbContext.Orders.AddRange(
-            new WbrOrder { Id = 1, RegisterId = 2, StatusId = 1, CheckStatusId = 101 },
-            new WbrOrder { Id = 2, RegisterId = 2, StatusId = 1, CheckStatusId = 200 }
+            new WbrParcel { Id = 1, RegisterId = 2, StatusId = 1, CheckStatusId = 101 },
+            new WbrParcel { Id = 2, RegisterId = 2, StatusId = 1, CheckStatusId = 200 }
         );
         await _dbContext.SaveChangesAsync();
 

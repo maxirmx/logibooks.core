@@ -198,11 +198,11 @@ public class ParcelsController(
             return _404Order(id);
         }
 
-        if (order is WbrOrder wbr)
+        if (order is WbrParcel wbr)
         {
             wbr.UpdateFrom(update, _mapper);
         }
-        else if (order is OzonOrder ozon)
+        else if (order is OzonParcel ozon)
         {
             ozon.UpdateFrom(update, _mapper);
         }

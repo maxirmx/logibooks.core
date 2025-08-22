@@ -72,8 +72,8 @@ public class RegisterFeacnCodeLookupServiceTests
         using var ctx = CreateContext();
         ctx.Registers.Add(new Register { Id = 1, FileName = "r.xlsx" });
         ctx.Orders.AddRange(
-            new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1 },
-            new WbrOrder { Id = 2, RegisterId = 1, StatusId = 1 });
+            new WbrParcel { Id = 1, RegisterId = 1, StatusId = 1 },
+            new WbrParcel { Id = 2, RegisterId = 1, StatusId = 1 });
         await ctx.SaveChangesAsync();
 
         var mock = new Mock<IParcelFeacnCodeLookupService>();
@@ -108,8 +108,8 @@ public class RegisterFeacnCodeLookupServiceTests
         using var ctx = CreateContext();
         ctx.Registers.Add(new Register { Id = 2, FileName = "r.xlsx" });
         ctx.Orders.AddRange(
-            new WbrOrder { Id = 3, RegisterId = 2, StatusId = 1 },
-            new WbrOrder { Id = 4, RegisterId = 2, StatusId = 1 });
+            new WbrParcel { Id = 3, RegisterId = 2, StatusId = 1 },
+            new WbrParcel { Id = 4, RegisterId = 2, StatusId = 1 });
         await ctx.SaveChangesAsync();
 
         var mock = new Mock<IParcelFeacnCodeLookupService>();
@@ -182,8 +182,8 @@ public class RegisterFeacnCodeLookupServiceTests
         using var ctx = CreateContext();
         ctx.Registers.Add(new Register { Id = 100, FileName = "test.xlsx" });
         ctx.Orders.AddRange(
-            new WbrOrder { Id = 101, RegisterId = 100, ProductName = "This is SPAM and malware" },
-            new WbrOrder { Id = 102, RegisterId = 100, ProductName = "Clean product" }
+            new WbrParcel { Id = 101, RegisterId = 100, ProductName = "This is SPAM and malware" },
+            new WbrParcel { Id = 102, RegisterId = 100, ProductName = "Clean product" }
         );
         ctx.KeyWords.AddRange(
             new KeyWord { Id = 201, Word = "spam", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols, KeyWordFeacnCodes = [new KeyWordFeacnCode { KeyWordId = 201, FeacnCode = "1" }] },
@@ -236,10 +236,10 @@ public class RegisterFeacnCodeLookupServiceTests
         using var ctx = CreateContext();
         ctx.Registers.Add(new Register { Id = 200, FileName = "r.xlsx" });
         ctx.Orders.AddRange(
-            new WbrOrder { Id = 201, RegisterId = 200, StatusId = 1, CheckStatusId = 1 },
-            new WbrOrder { Id = 202, RegisterId = 200, StatusId = 1, CheckStatusId = 200 },
-            new WbrOrder { Id = 203, RegisterId = 200, StatusId = 1, CheckStatusId = 301 },
-            new WbrOrder { Id = 204, RegisterId = 200, StatusId = 1, CheckStatusId = 400 }
+            new WbrParcel { Id = 201, RegisterId = 200, StatusId = 1, CheckStatusId = 1 },
+            new WbrParcel { Id = 202, RegisterId = 200, StatusId = 1, CheckStatusId = 200 },
+            new WbrParcel { Id = 203, RegisterId = 200, StatusId = 1, CheckStatusId = 301 },
+            new WbrParcel { Id = 204, RegisterId = 200, StatusId = 1, CheckStatusId = 400 }
         );
         await ctx.SaveChangesAsync();
 

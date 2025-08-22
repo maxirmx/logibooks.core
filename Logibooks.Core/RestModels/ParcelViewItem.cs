@@ -72,7 +72,7 @@ public class ParcelViewItem
 
         CountryCode = order.CountryCode;
 
-        if (order is WbrOrder wbr)
+        if (order is WbrParcel wbr)
         {
             OrderNumber = wbr.OrderNumber;
             Shk = wbr.Shk;
@@ -86,7 +86,7 @@ public class ParcelViewItem
             RecipientInn = wbr.RecipientInn;
             PassportNumber = wbr.PassportNumber;
         }
-        else if (order is OzonOrder ozon)
+        else if (order is OzonParcel ozon)
         {
             PostingNumber = ozon.PostingNumber;
             OzonId = ozon.OzonId;

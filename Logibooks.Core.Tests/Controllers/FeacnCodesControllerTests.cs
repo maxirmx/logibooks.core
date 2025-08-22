@@ -23,7 +23,12 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.IO.Compression;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -33,11 +38,9 @@ using Moq;
 using NUnit.Framework;
 using Logibooks.Core.Controllers;
 using Logibooks.Core.Data;
-using Logibooks.Core.Models;
-using Logibooks.Core.Services;
-using System;
-using System.Threading;
 using Logibooks.Core.Interfaces;
+using Logibooks.Core.Models;
+using Logibooks.Core.RestModels;
 
 namespace Logibooks.Core.Tests.Controllers;
 
@@ -47,197 +50,242 @@ public class FeacnCodesControllerTests
 #pragma warning disable CS8618
     private AppDbContext _dbContext;
     private Mock<IHttpContextAccessor> _mockHttpContextAccessor;
-    private Mock<IUpdateFeacnCodesService> _mockService;
-    private ILogger<FeacnCodesController> _logger;
-    private IUserInformationService _userService;
+    private Mock<ILogger<FeacnCodesController>> _mockLogger;
     private FeacnCodesController _controller;
-    private Role _adminRole;
     private Role _userRole;
-    private User _adminUser;
-    private User _regularUser;
+    private User _user;
+    private Mock<IFeacnListProcessingService> _mockProcessingService;
 #pragma warning restore CS8618
 
     [SetUp]
     public void Setup()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseInMemoryDatabase($"feacn_controller_db_{System.Guid.NewGuid()}")
+            .UseInMemoryDatabase($"feacn_codes_db_{Guid.NewGuid()}")
             .Options;
         _dbContext = new AppDbContext(options);
 
-        _adminRole = new Role { Id = 1, Name = "administrator", Title = "Admin" };
-        _userRole = new Role { Id = 2, Name = "user", Title = "User" };
-        _dbContext.Roles.AddRange(_adminRole, _userRole);
-
+        _userRole = new Role { Id = 1, Name = "user", Title = "User" };
         string hpw = BCrypt.Net.BCrypt.HashPassword("pwd");
-        _adminUser = new User
+        _user = new User
         {
             Id = 1,
-            Email = "admin@example.com",
-            Password = hpw,
-            UserRoles = [new UserRole { UserId = 1, RoleId = 1, Role = _adminRole }]
-        };
-        _regularUser = new User
-        {
-            Id = 2,
             Email = "user@example.com",
             Password = hpw,
-            UserRoles = [new UserRole { UserId = 2, RoleId = 2, Role = _userRole }]
+            UserRoles = [ new UserRole { UserId = 1, RoleId = 1, Role = _userRole } ]
         };
-        _dbContext.Users.AddRange(_adminUser, _regularUser);
+        _dbContext.Roles.Add(_userRole);
+        _dbContext.Users.Add(_user);
         _dbContext.SaveChanges();
 
         _mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
-        _mockService = new Mock<IUpdateFeacnCodesService>();
-        _logger = new LoggerFactory().CreateLogger<FeacnCodesController>();
-        _userService = new UserInformationService(_dbContext);
-        _controller = new FeacnCodesController(_mockHttpContextAccessor.Object, _dbContext, _userService, _mockService.Object, _logger);
+        var ctx = new DefaultHttpContext();
+        ctx.Items["UserId"] = _user.Id;
+        _mockHttpContextAccessor.Setup(x => x.HttpContext).Returns(ctx);
+
+        _mockLogger = new Mock<ILogger<FeacnCodesController>>();
+        _mockProcessingService = new Mock<IFeacnListProcessingService>();
+        _controller = new FeacnCodesController(_mockHttpContextAccessor.Object,
+                                              _dbContext,
+                                              _mockLogger.Object,
+                                              _mockProcessingService.Object);
+        _controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = ctx
+        };
     }
 
     [TearDown]
     public void TearDown()
     {
-        if (_dbContext != null)
+        _dbContext.Database.EnsureDeleted();
+        _dbContext.Dispose();
+    }
+
+    private static FeacnCode CreateCode(int id, string code, string name,
+                                        int? parentId = null,
+                                        DateOnly? fromDate = null)
+    {
+        return new FeacnCode
         {
-            try
-            {
-                _dbContext.Database.EnsureDeleted();
-                _dbContext.Dispose();
-            }
-            catch (ObjectDisposedException)
-            {
-                // Already disposed, ignore
-            }
-        }
-    }
-
-    private void SetCurrentUserId(int id)
-    {
-        var ctx = new DefaultHttpContext();
-        ctx.Items["UserId"] = id;
-        _mockHttpContextAccessor.Setup(x => x.HttpContext).Returns(ctx);
-        _controller = new FeacnCodesController(_mockHttpContextAccessor.Object, _dbContext, _userService, _mockService.Object, _logger);
+            Id = id,
+            Code = code,
+            CodeEx = code,
+            Name = name,
+            NormalizedName = name.ToUpperInvariant(),
+            ParentId = parentId,
+            FromDate = fromDate
+        };
     }
 
     [Test]
-    public async Task Update_ReturnsForbidden_ForNonAdmin()
+    public async Task Get_ReturnsCode_WhenExists()
     {
-        SetCurrentUserId(2);
-        var result = await _controller.Update();
-        Assert.That(result, Is.TypeOf<ObjectResult>());
-        var obj = result as ObjectResult;
-        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
-    }
-
-    [Test]
-    public async Task Update_ReturnsNoContent_ForAdmin()
-    {
-        SetCurrentUserId(1);
-        var result = await _controller.Update();
-        _mockService.Verify(s => s.RunAsync(It.IsAny<CancellationToken>()), Times.Once);
-        Assert.That(result, Is.TypeOf<NoContentResult>());
-    }
-
-
-    [Test]
-    public async Task GetAllOrders_ReturnsOrders()
-    {
-        SetCurrentUserId(2);
-        _dbContext.FeacnOrders.Add(new FeacnOrder { Id = 1, Title = "OrderTitle2", Url = "0100" });
+        var fc = CreateCode(1, "1234567890", "Test");
+        _dbContext.FeacnCodes.Add(fc);
         await _dbContext.SaveChangesAsync();
 
-        var result = await _controller.GetAllOrders();
-
+        var result = await _controller.Get(1);
         Assert.That(result.Value, Is.Not.Null);
-        Assert.That(result.Value!.Count(), Is.EqualTo(1));
-        var dto = result.Value!.First();
-        Assert.That(dto.Title, Is.EqualTo("OrderTitle2"));
-        Assert.That(dto.Url, Is.Not.Null);
+        Assert.That(result.Value!.Id, Is.EqualTo(1));
     }
 
     [Test]
-    public async Task GetPrefixes_ReturnsPrefixesForOrder()
+    public async Task Get_ReturnsNotFound_ForMissingOrInactive()
     {
-        SetCurrentUserId(2);
-        var order = new FeacnOrder { Id = 1, Title = "OrderTitle3" };
-        var prefix = new FeacnPrefix { Id = 2, Code = "12", FeacnOrderId = 1, FeacnOrder = order };
-        var ex = new FeacnPrefixException { Id = 3, Code = "12a", FeacnPrefixId = 2, FeacnPrefix = prefix };
-        _dbContext.FeacnOrders.Add(order);
-        _dbContext.FeacnPrefixes.Add(prefix);
-        _dbContext.FeacnPrefixExceptions.Add(ex);
+        var fc = CreateCode(1, "1234567890", "Future", fromDate: DateOnly.FromDateTime(DateTime.UtcNow.AddDays(1)));
+        _dbContext.FeacnCodes.Add(fc);
         await _dbContext.SaveChangesAsync();
 
-        var result = await _controller.GetPrefixes(1);
+        var result = await _controller.Get(1);
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
 
+        var result2 = await _controller.Get(99);
+        Assert.That(result2.Result, Is.TypeOf<ObjectResult>());
+        var obj2 = result2.Result as ObjectResult;
+        Assert.That(obj2!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+    }
+
+    [Test]
+    public async Task GetByCode_ReturnsBadRequest_ForInvalidCode()
+    {
+        var result = await _controller.GetByCode("12AB");
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
+    }
+
+    [Test]
+    public async Task GetByCode_ReturnsCode_WhenExists()
+    {
+        var fc = CreateCode(1, "1234567890", "Test");
+        _dbContext.FeacnCodes.Add(fc);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.GetByCode("1234567890");
         Assert.That(result.Value, Is.Not.Null);
-        Assert.That(result.Value!.Count(), Is.EqualTo(1));
-        Assert.That(result.Value!.First().Exceptions.Count, Is.EqualTo(1));
+        Assert.That(result.Value!.Code, Is.EqualTo("1234567890"));
     }
 
     [Test]
-    public async Task EnableOrder_SetsEnabledTrue_ForAdmin()
+    public async Task GetByCode_ReturnsNotFound_WhenMissing()
     {
-        SetCurrentUserId(1);
-        var order = new FeacnOrder { Id = 10, Title = "TestOrder", Enabled = false };
-        _dbContext.FeacnOrders.Add(order);
-        await _dbContext.SaveChangesAsync();
-
-        var result = await _controller.EnableOrder(10);
-        Assert.That(result, Is.TypeOf<NoContentResult>());
-        var updated = await _dbContext.FeacnOrders.FindAsync(10);
-        Assert.That(updated!.Enabled, Is.True);
-    }
-
-    [Test]
-    public async Task DisableOrder_SetsEnabledFalse_ForAdmin()
-    {
-        SetCurrentUserId(1);
-        var order = new FeacnOrder { Id = 11, Title = "TestOrder2", Enabled = true };
-        _dbContext.FeacnOrders.Add(order);
-        await _dbContext.SaveChangesAsync();
-
-        var result = await _controller.DisableOrder(11);
-        Assert.That(result, Is.TypeOf<NoContentResult>());
-        var updated = await _dbContext.FeacnOrders.FindAsync(11);
-        Assert.That(updated!.Enabled, Is.False);
-    }
-
-    [Test]
-    public async Task EnableOrder_Returns404_IfNotFound()
-    {
-        SetCurrentUserId(1);
-        var result = await _controller.EnableOrder(999);
-        Assert.That(result, Is.TypeOf<ObjectResult>());
-        var obj = result as ObjectResult;
+        var result = await _controller.GetByCode("1234567890");
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
     }
 
     [Test]
-    public async Task EnableOrder_Returns403_ForNonAdmin()
+    public async Task Lookup_SearchesByPrefixOrName()
     {
-        SetCurrentUserId(2);
-        var order = new FeacnOrder { Id = 12, Title = "TestOrder3", Enabled = false };
-        _dbContext.FeacnOrders.Add(order);
+        _dbContext.FeacnCodes.AddRange(
+            CreateCode(1, "1234567890", "Alpha"),
+            CreateCode(2, "1234560000", "Beta"),
+            CreateCode(3, "9876543210", "Gamma")
+        );
         await _dbContext.SaveChangesAsync();
 
-        var result = await _controller.EnableOrder(12);
-        Assert.That(result, Is.TypeOf<ObjectResult>());
-        var obj = result as ObjectResult;
-        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
+        var byPrefix = await _controller.Lookup("1234");
+        Assert.That(byPrefix.Value!.Count(), Is.EqualTo(2));
+
+        var byName = await _controller.Lookup("gamma");
+        Assert.That(byName.Value!.Single().Id, Is.EqualTo(3));
+
+        var empty = await _controller.Lookup("   ");
+        Assert.That(empty.Value, Is.Empty);
     }
 
     [Test]
-    public async Task DisableOrder_Returns403_ForNonAdmin()
+    public async Task Children_ReturnsCorrectSets()
     {
-        SetCurrentUserId(2);
-        var order = new FeacnOrder { Id = 13, Title = "TestOrder4", Enabled = true };
-        _dbContext.FeacnOrders.Add(order);
+        _dbContext.FeacnCodes.AddRange(
+            CreateCode(1, "1111111111", "Root1"),
+            CreateCode(2, "2222222222", "Root2"),
+            CreateCode(3, "3333333333", "Child", parentId: 1)
+        );
         await _dbContext.SaveChangesAsync();
 
-        var result = await _controller.DisableOrder(13);
+        var roots = await _controller.Children(null);
+        Assert.That(roots.Value!.Count(), Is.EqualTo(2));
+
+        var children = await _controller.Children(1);
+        Assert.That(children.Value!.Single().Id, Is.EqualTo(3));
+    }
+
+    [Test]
+    public async Task Upload_ReturnsBadRequest_ForNullOrUnsupportedFile()
+    {
+        var resNull = await _controller.Upload(null!);
+        Assert.That(resNull, Is.TypeOf<ObjectResult>());
+        var objNull = resNull as ObjectResult;
+        Assert.That(objNull!.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
+
+        await using var ms = new MemoryStream([1, 2, 3]);
+        IFormFile file = new FormFile(ms, 0, ms.Length, "file", "codes.txt");
+        var resBad = await _controller.Upload(file);
+        Assert.That(resBad, Is.TypeOf<ObjectResult>());
+        var objBad = resBad as ObjectResult;
+        Assert.That(objBad!.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
+    }
+
+    [Test]
+    public async Task Upload_ReturnsBadRequest_WhenZipWithoutExcel()
+    {
+        var zipStream = new MemoryStream();
+        using (var archive = new ZipArchive(zipStream, ZipArchiveMode.Create, true))
+        {
+            var entry = archive.CreateEntry("inner.txt");
+            await using var entryStream = entry.Open();
+            var data = new byte[] { 1, 2, 3 };
+            await entryStream.WriteAsync(data, 0, data.Length);
+        }
+        zipStream.Position = 0;
+        IFormFile file = new FormFile(zipStream, 0, zipStream.Length, "file", "codes.zip");
+
+        var result = await _controller.Upload(file);
         Assert.That(result, Is.TypeOf<ObjectResult>());
         var obj = result as ObjectResult;
-        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
+    }
+
+    [Test]
+    public async Task Upload_CallsService_ForXlsx()
+    {
+        var content = new byte[] { 1, 2, 3 };
+        await using var ms = new MemoryStream(content);
+        IFormFile file = new FormFile(ms, 0, ms.Length, "file", "codes.xlsx");
+
+        var result = await _controller.Upload(file);
+        Assert.That(result, Is.TypeOf<NoContentResult>());
+        _mockProcessingService.Verify(s => s.UploadFeacnCodesAsync(
+            It.Is<byte[]>(b => b.SequenceEqual(content)),
+            "codes.xlsx",
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
+    public async Task Upload_CallsService_ForZipWithExcel()
+    {
+        var excelBytes = new byte[] { 4, 5, 6 };
+        var zipStream = new MemoryStream();
+        using (var archive = new ZipArchive(zipStream, ZipArchiveMode.Create, true))
+        {
+            var entry = archive.CreateEntry("inner.xls");
+            await using var entryStream = entry.Open();
+            await entryStream.WriteAsync(excelBytes, 0, excelBytes.Length);
+        }
+        zipStream.Position = 0;
+        IFormFile file = new FormFile(zipStream, 0, zipStream.Length, "file", "codes.zip");
+
+        var result = await _controller.Upload(file);
+        Assert.That(result, Is.TypeOf<NoContentResult>());
+        _mockProcessingService.Verify(s => s.UploadFeacnCodesAsync(
+            It.Is<byte[]>(b => b.SequenceEqual(excelBytes)),
+            "inner.xls",
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 
 }

@@ -25,12 +25,15 @@
 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using SharpCompress.Archives;
+using System.IO;
+using System.Linq;
 
 using Logibooks.Core.Authorization;
 using Logibooks.Core.Data;
-using Logibooks.Core.RestModels;
-using System.Linq.Expressions;
 using Logibooks.Core.Interfaces;
+using Logibooks.Core.Models;
+using Logibooks.Core.RestModels;
 
 namespace Logibooks.Core.Controllers;
 
@@ -39,88 +42,147 @@ namespace Logibooks.Core.Controllers;
 [Route("api/[controller]")]
 [ProducesResponseType(StatusCodes.Status401Unauthorized, Type = typeof(ErrMessage))]
 [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(ErrMessage))]
-
 public class FeacnCodesController(
     IHttpContextAccessor httpContextAccessor,
     AppDbContext db,
-    IUserInformationService userService,
-    IUpdateFeacnCodesService service,
-    ILogger<FeacnCodesController> logger) : LogibooksControllerBase(httpContextAccessor, db, logger)
+    ILogger<FeacnCodesController> logger,
+    IFeacnListProcessingService processingService) : LogibooksControllerBase(httpContextAccessor, db, logger)
 {
-    private readonly IUserInformationService _userService = userService;
-    private readonly IUpdateFeacnCodesService _service = service;
-
-    private static async Task<List<TDto>> FetchAndConvertAsync<TEntity, TDto>(
-        IQueryable<TEntity> query,
-        Expression<Func<TEntity, bool>>? filter,
-        Func<TEntity, TDto> convertToDto)
-        where TEntity : class
+    private readonly IFeacnListProcessingService _processingService = processingService;
+    [HttpGet("{id}")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(FeacnCodeDto))]
+    [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
+    public async Task<ActionResult<FeacnCodeDto>> Get(int id)
     {
-        if (filter != null)
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var code = await _db.FeacnCodes.AsNoTracking()
+            .Where(c => c.Id == id && (c.FromDate == null || c.FromDate <= today))
+            .FirstOrDefaultAsync();
+        return code == null ? _404Object(id) : new FeacnCodeDto(code);
+    }
+
+    [HttpGet("code/{code}")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(FeacnCodeDto))]
+    [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(ErrMessage))]
+    [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
+    public async Task<ActionResult<FeacnCodeDto>> GetByCode(string code)
+    {
+        if (string.IsNullOrWhiteSpace(code) ||
+            code.Length != FeacnCode.FeacnCodeLength ||
+            !code.All(char.IsDigit))
         {
-            query = query.Where(filter);
+            return _400MustBe10Digits(code);
         }
-        var entities = await query.AsNoTracking().OrderBy(e => EF.Property<object>(e, "Id")).ToListAsync();
-        return entities.Select(convertToDto).ToList();
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var fc = await _db.FeacnCodes.AsNoTracking()
+            .Where(c => c.Code == code && (c.FromDate == null || c.FromDate <= today))
+            .FirstOrDefaultAsync();
+        return fc == null ? _404FeacnCode(code) : new FeacnCodeDto(fc);
     }
 
-    [HttpGet("orders")]
-    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<FeacnOrderDto>))]
-    public async Task<ActionResult<IEnumerable<FeacnOrderDto>>> GetAllOrders()
+    [HttpGet("lookup/{key}")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<FeacnCodeDto>))]
+    public async Task<ActionResult<IEnumerable<FeacnCodeDto>>> Lookup(string key)
     {
-        var orders = await FetchAndConvertAsync(_db.FeacnOrders, null, o => new FeacnOrderDto(o));
-        return orders;
-    }
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        
+        IQueryable<FeacnCode> query = _db.FeacnCodes.AsNoTracking()
+            .Where(c => c.FromDate == null || c.FromDate <= today);
 
-    [HttpGet("orders/{orderId}/prefixes")]
-    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<FeacnPrefixDto>))]
-    public async Task<ActionResult<IEnumerable<FeacnPrefixDto>>> GetPrefixes(int orderId)
-    {
-        var prefixes = await _db.FeacnPrefixes
-            .AsNoTracking()
-            .Include(p => p.FeacnPrefixExceptions)
-            .Where(p => p.FeacnOrderId == orderId)
-            .OrderBy(p => p.Id)
-            .Select(p => new FeacnPrefixDto(p))
+        // Handle empty or whitespace-only keys
+        if (string.IsNullOrWhiteSpace(key))
+        {
+            return new List<FeacnCodeDto>();
+        }
+
+        // If key contains only digits, search by code prefix; otherwise search by normalized name
+        if (key.All(char.IsDigit))
+        {
+            query = query.Where(c => c.Code.StartsWith(key));
+        }
+        else
+        {
+            var upperKey = key.ToUpper();
+            query = query.Where(c => c.NormalizedName.Contains(upperKey));
+        }
+
+        var codes = await query
+            .OrderBy(c => c.Id)
+            .Select(c => new FeacnCodeDto(c))
             .ToListAsync();
-        return prefixes;
+        
+        return codes;
     }
 
-    [HttpPost("orders/{orderId}/enable")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
-    [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
-    public async Task<IActionResult> EnableOrder(int orderId)
+    [HttpGet("children")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<FeacnCodeDto>))]
+    public async Task<ActionResult<IEnumerable<FeacnCodeDto>>> Children(int? id)
     {
-        if (!await _userService.CheckAdmin(_curUserId)) return _403();
-        var order = await _db.FeacnOrders.FindAsync(orderId);
-        if (order == null) return _404FeacnOrder(orderId);
-        order.Enabled = true;
-        await _db.SaveChangesAsync();
-        return NoContent();
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        IQueryable<FeacnCode> query = _db.FeacnCodes.AsNoTracking()
+            .Where(c => c.FromDate == null || c.FromDate <= today);
+        
+        query = id.HasValue ? query.Where(c => c.ParentId == id.Value) : query.Where(c => c.ParentId == null);
+        
+        var codes = await query
+            .OrderBy(c => c.Id)
+            .Select(c => new FeacnCodeDto(c))
+            .ToListAsync();
+        return codes;
     }
 
-    [HttpPost("orders/{orderId}/disable")]
+    [HttpPost("upload")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
-    [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
-    public async Task<IActionResult> DisableOrder(int orderId)
+    [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(ErrMessage))]
+    public async Task<IActionResult> Upload(IFormFile file)
     {
-        if (!await _userService.CheckAdmin(_curUserId)) return _403();
-        var order = await _db.FeacnOrders.FindAsync(orderId);
-        if (order == null) return _404FeacnOrder(orderId);
-        order.Enabled = false;
-        await _db.SaveChangesAsync();
-        return NoContent();
-    }
+        if (file == null || file.Length == 0)
+        {
+            return _400();
+        }
 
-    [HttpPost("update")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
-    public async Task<IActionResult> Update()
-    {
-        if (!await _userService.CheckAdmin(_curUserId)) return _403();
-        await _service.RunAsync();
+        var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
+        byte[] excelContent = [];
+        string excelFileName = string.Empty;
+
+        if (fileExtension == ".xlsx" || fileExtension == ".xls")
+        {
+            using var ms = new MemoryStream();
+            await file.CopyToAsync(ms);
+            excelContent = ms.ToArray();
+            excelFileName = file.FileName;
+        }
+        else if (fileExtension == ".zip" || fileExtension == ".rar")
+        {
+            using var ms = new MemoryStream();
+            await file.CopyToAsync(ms);
+            ms.Position = 0;
+
+            using var archive = ArchiveFactory.Open(ms);
+            var excelEntry = archive.Entries.FirstOrDefault(entry =>
+                !entry.IsDirectory &&
+                entry.Key != null &&
+                (Path.GetExtension(entry.Key).Equals(".xlsx", StringComparison.InvariantCultureIgnoreCase) ||
+                 Path.GetExtension(entry.Key).Equals(".xls", StringComparison.InvariantCultureIgnoreCase)));
+
+            if (excelEntry == null || excelEntry.Key == null)
+            {
+                return _400NoRegister();
+            }
+
+            excelFileName = excelEntry.Key;
+            using var entryStream = new MemoryStream();
+            excelEntry.WriteTo(entryStream);
+            excelContent = entryStream.ToArray();
+        }
+        else
+        {
+            return _400UnsupportedFileType(fileExtension);
+        }
+
+        await _processingService.UploadFeacnCodesAsync(excelContent, excelFileName, HttpContext.RequestAborted);
         return NoContent();
     }
 }
+

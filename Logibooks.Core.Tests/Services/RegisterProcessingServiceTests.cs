@@ -380,7 +380,7 @@ public class DownloadRegisterTests
         _dbContext.Registers.Add(wRegister);
         await _dbContext.SaveChangesAsync();
 
-        var wOrder = new WbrOrder
+        var wOrder = new WbrParcel
         {
             RegisterId = wRegister.Id,
             CountryCode = country.IsoNumeric,
@@ -391,7 +391,7 @@ public class DownloadRegisterTests
         };
         _dbContext.WbrOrders.Add(wOrder);
 
-        var oOrder = new OzonOrder
+        var oOrder = new OzonParcel
         {
             RegisterId = oRegister.Id,
             CountryCode = country.IsoNumeric,

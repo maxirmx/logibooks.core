@@ -1,4 +1,4 @@
-﻿// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
+// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
 // All rights reserved.
 // This file is a part of Logibooks Core application
 //
@@ -23,21 +23,31 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-using AutoMapper;
 using Logibooks.Core.Models;
-using Logibooks.Core.RestModels;
 
-namespace Logibooks.Core.Extensions;
+namespace Logibooks.Core.RestModels;
 
-public static class ParcelExtensions
+public class FeacnCodeDto
 {
-    public static void UpdateFrom(this WbrParcel order, ParcelUpdateItem updateItem, IMapper mapper)
+    public int Id { get; set; }
+    public string Code { get; set; } = string.Empty;
+    public string CodeEx { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string NormalizedName { get; set; } = string.Empty;
+    public int? ParentId { get; set; }
+
+    public FeacnCodeDto()
     {
-        mapper.Map(updateItem, order);
     }
 
-    public static void UpdateFrom(this OzonParcel order, ParcelUpdateItem updateItem, IMapper mapper)
+    public FeacnCodeDto(FeacnCode code)
     {
-        mapper.Map(updateItem, order);
+        Id = code.Id;
+        Code = code.Code;
+        CodeEx = code.CodeEx;
+        Name = code.Name;
+        NormalizedName = code.NormalizedName;
+        ParentId = code.ParentId;
     }
 }
+

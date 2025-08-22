@@ -23,17 +23,17 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-using DocumentFormat.OpenXml.Wordprocessing;
-using Logibooks.Core.Constants;
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Globalization;
+using DocumentFormat.OpenXml.Wordprocessing;
+
+using Logibooks.Core.Constants;
 
 namespace Logibooks.Core.Models;
 
-[Table("wbr_orders")]
-[Index(nameof(Shk), Name = "IX_wbr_orders_shk")]
-public class WbrOrder : BaseParcel
+[Table("wbr_parcels")]
+[Index(nameof(Shk), Name = "IX_wbr_parcels_shk")]
+public class WbrParcel : BaseParcel
 {
     [Column("row_number")]
     public int RowNumber { get; set; }

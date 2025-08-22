@@ -133,7 +133,7 @@ public class ParcelStatusesControllerTests
         SetCurrentUserId(1);
         var status = new ParcelStatus { Id = 5, Title = "Used" };
         var reg = new Register { Id = 1, FileName = "r" };
-        var order = new WbrOrder { Id = 1, RegisterId = 1, StatusId = 5 };
+        var order = new WbrParcel { Id = 1, RegisterId = 1, StatusId = 5 };
         _dbContext.Statuses.Add(status);
         _dbContext.Registers.Add(reg);
         _dbContext.Orders.Add(order);

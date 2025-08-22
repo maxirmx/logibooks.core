@@ -43,14 +43,13 @@ public class FeacnCode
     public required string Code { get; set; } = string.Empty;
 
     [Column("code_ex")]
-    [StringLength(FeacnCodeLength)]
     public required string CodeEx { get; set; } = string.Empty;
 
     [Column("name")]
-    public required string Description { get; set; } = string.Empty;
+    public required string Name { get; set; } = string.Empty;
 
     [Column("normalized")]
-    public required string DescriptionEx { get; set; } = string.Empty;
+    public required string NormalizedName { get; set; } = string.Empty;
 
     [Column("from_date")]
     public DateOnly? FromDate { get; set; } = null;
@@ -64,7 +63,6 @@ public class FeacnCode
     [Column("old_name_to_date")]
     public DateOnly? OldNameToDate { get; set; } = null;
 
-    [ForeignKey("Parent")]
     [Column("parent_id")]
     public int? ParentId { get; set; }
     public FeacnCode? Parent { get; set; }

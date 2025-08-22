@@ -113,7 +113,7 @@ public class ParcelIndPostGeneratorTests
 
         _dbContext.Registers.Add(register);
 
-        var order = new WbrOrder { 
+        var order = new WbrParcel { 
             Id = 3, 
             RegisterId = 10, 
             StatusId = 1, 
@@ -146,7 +146,7 @@ public class ParcelIndPostGeneratorTests
             TheOtherCountryCode = 860
         };
         _dbContext.Registers.Add(register);
-        var order = new WbrOrder
+        var order = new WbrParcel
         {
             Id = 101,
             RegisterId = 100,
@@ -183,7 +183,7 @@ public class ParcelIndPostGeneratorTests
             TheOtherCountryCode = 643
         };
         _dbContext.Registers.Add(register);
-        var order = new OzonOrder
+        var order = new OzonParcel
         {
             Id = 201,
             RegisterId = 200,
@@ -243,7 +243,7 @@ public class ParcelIndPostGeneratorTests
             .FirstAsync(r => r.Id == 300);
 
         _dbContext.WbrOrders.AddRange(
-            new WbrOrder 
+            new WbrParcel 
             { 
                 Id = 301, 
                 RegisterId = 300, 
@@ -253,7 +253,7 @@ public class ParcelIndPostGeneratorTests
                 Shk = "A",
                 CheckStatusId = (int)ParcelCheckStatusCode.NoIssues
             },
-            new WbrOrder 
+            new WbrParcel 
             { 
                 Id = 302, 
                 RegisterId = 300, 
@@ -263,7 +263,7 @@ public class ParcelIndPostGeneratorTests
                 Shk = "A",
                 CheckStatusId = (int)ParcelCheckStatusCode.NoIssues
             },
-            new WbrOrder 
+            new WbrParcel 
             { 
                 Id = 303, 
                 RegisterId = 300, 
@@ -329,7 +329,7 @@ public class ParcelIndPostGeneratorTests
             .FirstAsync(r => r.Id == 400);
 
         _dbContext.OzonOrders.AddRange(
-            new OzonOrder { 
+            new OzonParcel { 
                 Id = 401, 
                 RegisterId = 400, 
                 Register = loadedRegister, 
@@ -338,7 +338,7 @@ public class ParcelIndPostGeneratorTests
                 PostingNumber = "X",
                 CheckStatusId = (int)ParcelCheckStatusCode.NoIssues
             },
-            new OzonOrder 
+            new OzonParcel 
             { 
                 Id = 402, 
                 RegisterId = 400, 
@@ -348,7 +348,7 @@ public class ParcelIndPostGeneratorTests
                 PostingNumber = "X",
                 CheckStatusId = (int)ParcelCheckStatusCode.Approved
             },
-            new OzonOrder 
+            new OzonParcel 
             { 
                 Id = 403, 
                 RegisterId = 400, 
@@ -439,7 +439,7 @@ public class ParcelIndPostGeneratorTests
 
         _dbContext.Registers.Add(register);
 
-        var order = new WbrOrder
+        var order = new WbrParcel
         {
             Id = 21,
             RegisterId = 20,
@@ -487,7 +487,7 @@ public class ParcelIndPostGeneratorTests
         await _dbContext.SaveChangesAsync();
         var loadedRegister = await _dbContext.Registers.FirstAsync(r => r.Id == 600);
         _dbContext.OzonOrders.AddRange(
-            new OzonOrder 
+            new OzonParcel 
             { 
                 Id = 601, 
                 RegisterId = 600, 
@@ -496,7 +496,7 @@ public class ParcelIndPostGeneratorTests
                 PostingNumber = "Z",
                 CheckStatusId = (int)ParcelCheckStatusCode.NoIssues
             },
-            new OzonOrder 
+            new OzonParcel 
             { 
                 Id = 602, 
                 RegisterId = 600, 
@@ -505,7 +505,7 @@ public class ParcelIndPostGeneratorTests
                 PostingNumber = "Z",
                 CheckStatusId = (int)ParcelCheckStatusCode.NoIssues
             },
-            new OzonOrder 
+            new OzonParcel 
             { 
                 Id = 603, 
                 RegisterId = 600, 
@@ -547,7 +547,7 @@ public class ParcelIndPostGeneratorTests
             .FirstAsync(r => r.Id == 800);
 
         _dbContext.OzonOrders.AddRange(
-            new OzonOrder { 
+            new OzonParcel { 
                 Id = 801, 
                 RegisterId = 800, 
                 Register = loadedRegister, 
@@ -556,7 +556,7 @@ public class ParcelIndPostGeneratorTests
                 PostingNumber = "PN1", 
                 CheckStatusId = (int)ParcelCheckStatusCode.NoIssues
             },
-            new OzonOrder 
+            new OzonParcel 
             { 
                 Id = 802, 
                 RegisterId = 800, 
@@ -593,7 +593,7 @@ public class ParcelIndPostGeneratorTests
             TheOtherCountryCode = 860
         };
         _dbContext.Registers.Add(register);
-        var order = new WbrOrder
+        var order = new WbrParcel
         {
             Id = 31,
             RegisterId = 30,
@@ -624,7 +624,7 @@ public class ParcelIndPostGeneratorTests
             TheOtherCountryCode = 860
         };
         _dbContext.Registers.Add(register);
-        var order1 = new WbrOrder
+        var order1 = new WbrParcel
         {
             Id = 33,
             RegisterId = 32,
@@ -633,7 +633,7 @@ public class ParcelIndPostGeneratorTests
             Shk = "A",
             CheckStatusId = (int)ParcelCheckStatusCode.HasIssues // Should be skipped
         };
-        var order2 = new WbrOrder
+        var order2 = new WbrParcel
         {
             Id = 34,
             RegisterId = 32,
@@ -668,7 +668,7 @@ public class ParcelIndPostGeneratorTests
             TheOtherCountryCode = 860
         };
         _dbContext.Registers.Add(register);
-        var order = new WbrOrder
+        var order = new WbrParcel
         {
             Id = 36,
             RegisterId = 35,
@@ -699,7 +699,7 @@ public class ParcelIndPostGeneratorTests
             TheOtherCountryCode = 860
         };
         _dbContext.Registers.Add(register);
-        var order1 = new WbrOrder
+        var order1 = new WbrParcel
         {
             Id = 38,
             RegisterId = 37,
@@ -708,7 +708,7 @@ public class ParcelIndPostGeneratorTests
             Shk = "A",
             CheckStatusId = (int)ParcelCheckStatusCode.HasIssues // Should be skipped
         };
-        var order2 = new WbrOrder
+        var order2 = new WbrParcel
         {
             Id = 39,
             RegisterId = 37,

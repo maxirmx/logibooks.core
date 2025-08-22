@@ -33,8 +33,8 @@ public class ParcelMappingProfile : Profile
 {
     public ParcelMappingProfile()
     {
-        MapOrderUpdate<WbrOrder>();
-        MapOrderUpdate<OzonOrder>();
+        MapOrderUpdate<WbrParcel>();
+        MapOrderUpdate<OzonParcel>();
     }
 
     private void MapOrderUpdate<TOrder>() where TOrder : BaseParcel

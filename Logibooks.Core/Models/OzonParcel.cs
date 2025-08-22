@@ -23,14 +23,18 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-using Logibooks.Core.Constants;
+using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Globalization;
+
+using DocumentFormat.OpenXml.Wordprocessing;
+using Logibooks.Core.Constants;
 
 namespace Logibooks.Core.Models;
 
-[Table("ozon_orders")]
-public class OzonOrder : BaseParcel
+[Table("ozon_parcels")]
+[Index(nameof(PostingNumber), Name = "IX_ozon_parcels_posting_number")]
+
+public class OzonParcel : BaseParcel
 {
     [Column("posting_number")]
     public string? PostingNumber { get; set; }

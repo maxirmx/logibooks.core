@@ -26,6 +26,7 @@
 using Logibooks.Core.Data;
 using Logibooks.Core.Interfaces;
 using Logibooks.Core.Models;
+using Microsoft.EntityFrameworkCore;
 using System.Text.RegularExpressions;
 
 namespace Logibooks.Core.Services;
@@ -67,13 +68,25 @@ public class ParcelValidationService(
             return;
         }
 
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var codeExists = await _db.FeacnCodes.AnyAsync(
+            fc => fc.Code == order.TnVed && (fc.FromDate == null || fc.FromDate <= today),
+            cancellationToken);
+
+        if (!codeExists && await _db.FeacnCodes.AnyAsync(cancellationToken))
+        {
+            order.CheckStatusId = (int)ParcelCheckStatusCode.NonexistingFeacn;
+            await _db.SaveChangesAsync(cancellationToken);
+            return;
+        }
+
         order.CheckStatusId = (int)ParcelCheckStatusCode.NotChecked;
         await _db.SaveChangesAsync(cancellationToken);
 
         var productName = order.ProductName ?? string.Empty;
         var links1 = SelectStopWordLinks(order.Id, productName, wordsLookupContext, morphologyContext);
 
-        if (order is WbrOrder wbr && !string.IsNullOrWhiteSpace(wbr.Description))
+        if (order is WbrParcel wbr && !string.IsNullOrWhiteSpace(wbr.Description))
         {
             var linksDesc = SelectStopWordLinks(order.Id, wbr.Description, wordsLookupContext, morphologyContext);
             // Add linksDesc to links1, keeping uniqueness by StopWordId

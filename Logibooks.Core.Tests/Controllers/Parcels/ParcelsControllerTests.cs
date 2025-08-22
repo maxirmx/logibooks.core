@@ -141,7 +141,7 @@ public class ParcelsControllerTests
     {
         SetCurrentUserId(1);
         var register = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
-        var order = new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "A" };
+        var order = new WbrParcel { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "A" };
         var sw = new StopWord { Id = 5, Word = "bad" };
         var kw = new KeyWord { Id = 6, Word = "test" };
         // Keywords can exist without FeacnCodes, so this is optional now
@@ -172,7 +172,7 @@ public class ParcelsControllerTests
     {
         SetCurrentUserId(1);
         var register = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
-        var order = new WbrOrder { Id = 2, RegisterId = 1, StatusId = 1, TnVed = "A" };
+        var order = new WbrParcel { Id = 2, RegisterId = 1, StatusId = 1, TnVed = "A" };
         _dbContext.Registers.Add(register);
         _dbContext.Orders.Add(order);
         await _dbContext.SaveChangesAsync();
@@ -181,8 +181,8 @@ public class ParcelsControllerTests
 
         // Configure the mock to perform the actual mapping
         var mockMapper = new Mock<IMapper>();
-        mockMapper.Setup(m => m.Map(It.IsAny<ParcelUpdateItem>(), It.IsAny<WbrOrder>()))
-            .Callback<ParcelUpdateItem, WbrOrder>((src, dest) =>
+        mockMapper.Setup(m => m.Map(It.IsAny<ParcelUpdateItem>(), It.IsAny<WbrParcel>()))
+            .Callback<ParcelUpdateItem, WbrParcel>((src, dest) =>
             {
                 // Simulate the AutoMapper behavior - only update non-null values
                 if (src.StatusId.HasValue) dest.StatusId = src.StatusId.Value;
@@ -248,7 +248,7 @@ public class ParcelsControllerTests
         SetCurrentUserId(1);
         // Create an order with a register that references a non-existent company
         var register = new Register { Id = 1, CompanyId = 999, FileName = "r.xlsx" }; // Company 999 doesn't exist
-        var order = new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "A" };
+        var order = new WbrParcel { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "A" };
         _dbContext.Registers.Add(register);
         _dbContext.Orders.Add(order);
         await _dbContext.SaveChangesAsync();
@@ -268,7 +268,7 @@ public class ParcelsControllerTests
         SetCurrentUserId(1);
         // Create a WBR register but try to update an order that doesn't exist in WBR table
         var register = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" }; // CompanyId = 2 is WBR
-        var ozonOrder = new OzonOrder { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "A" }; // Order exists in Ozon table
+        var ozonOrder = new OzonParcel { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "A" }; // Order exists in Ozon table
         _dbContext.Registers.Add(register);
         _dbContext.Orders.Add(ozonOrder);
         await _dbContext.SaveChangesAsync();
@@ -288,14 +288,14 @@ public class ParcelsControllerTests
     {
         SetCurrentUserId(1);
         var register = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" }; // CompanyId = 2 is WBR
-        var order = new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "A", OrderNumber = "WBR123" };
+        var order = new WbrParcel { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "A", OrderNumber = "WBR123" };
         _dbContext.Registers.Add(register);
         _dbContext.Orders.Add(order);
         await _dbContext.SaveChangesAsync();
 
         var mockMapper = new Mock<IMapper>();
-        mockMapper.Setup(m => m.Map(It.IsAny<ParcelUpdateItem>(), It.IsAny<WbrOrder>()))
-            .Callback<ParcelUpdateItem, WbrOrder>((src, dest) =>
+        mockMapper.Setup(m => m.Map(It.IsAny<ParcelUpdateItem>(), It.IsAny<WbrParcel>()))
+            .Callback<ParcelUpdateItem, WbrParcel>((src, dest) =>
             {
                 if (src.StatusId.HasValue) dest.StatusId = src.StatusId.Value;
                 if (src.OrderNumber != null) dest.OrderNumber = src.OrderNumber;
@@ -328,14 +328,14 @@ public class ParcelsControllerTests
     {
         SetCurrentUserId(1);
         var register = new Register { Id = 2, CompanyId = 1, FileName = "r.xlsx" }; // CompanyId = 1 is Ozon
-        var order = new OzonOrder { Id = 2, RegisterId = 2, StatusId = 1, TnVed = "B", OzonId = "OZON456" };
+        var order = new OzonParcel { Id = 2, RegisterId = 2, StatusId = 1, TnVed = "B", OzonId = "OZON456" };
         _dbContext.Registers.Add(register);
         _dbContext.Orders.Add(order);
         await _dbContext.SaveChangesAsync();
 
         var mockMapper = new Mock<IMapper>();
-        mockMapper.Setup(m => m.Map(It.IsAny<ParcelUpdateItem>(), It.IsAny<OzonOrder>()))
-            .Callback<ParcelUpdateItem, OzonOrder>((src, dest) =>
+        mockMapper.Setup(m => m.Map(It.IsAny<ParcelUpdateItem>(), It.IsAny<OzonParcel>()))
+            .Callback<ParcelUpdateItem, OzonParcel>((src, dest) =>
             {
                 if (src.StatusId.HasValue) dest.StatusId = src.StatusId.Value;
                 if (src.PostingNumber != null) dest.PostingNumber = src.PostingNumber;
@@ -370,9 +370,9 @@ public class ParcelsControllerTests
         var reg = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
         _dbContext.Registers.Add(reg);
         _dbContext.Orders.AddRange(
-            new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "B" },
-            new WbrOrder { Id = 2, RegisterId = 1, StatusId = 2, TnVed = "A" },
-            new WbrOrder { Id = 3, RegisterId = 1, StatusId = 2, TnVed = "B" }
+            new WbrParcel { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "B" },
+            new WbrParcel { Id = 2, RegisterId = 1, StatusId = 2, TnVed = "A" },
+            new WbrParcel { Id = 3, RegisterId = 1, StatusId = 2, TnVed = "B" }
         );
         await _dbContext.SaveChangesAsync();
 
@@ -390,7 +390,7 @@ public class ParcelsControllerTests
         SetCurrentUserId(1);
         var reg = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
         var sw = new StopWord { Id = 7, Word = "foo" };
-        var o1 = new WbrOrder { Id = 10, RegisterId = 1, StatusId = 1 };
+        var o1 = new WbrParcel { Id = 10, RegisterId = 1, StatusId = 1 };
         var link = new BaseOrderStopWord { BaseOrderId = 10, StopWordId = 7, BaseOrder = o1, StopWord = sw };
         _dbContext.Registers.Add(reg);
         _dbContext.StopWords.Add(sw);
@@ -413,8 +413,8 @@ public class ParcelsControllerTests
         var reg = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
         _dbContext.Registers.Add(reg);
         _dbContext.Orders.AddRange(
-            new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1, CheckStatusId = 1 },
-            new WbrOrder { Id = 2, RegisterId = 1, StatusId = 1, CheckStatusId = (int)ParcelCheckStatusCode.MarkedByPartner }
+            new WbrParcel { Id = 1, RegisterId = 1, StatusId = 1, CheckStatusId = 1 },
+            new WbrParcel { Id = 2, RegisterId = 1, StatusId = 1, CheckStatusId = (int)ParcelCheckStatusCode.MarkedByPartner }
         );
         await _dbContext.SaveChangesAsync();
 
@@ -473,7 +473,7 @@ public class ParcelsControllerTests
         SetCurrentUserId(1);
         // Create an order with a register that references a non-existent company
         var register = new Register { Id = 1, CompanyId = 999, FileName = "r.xlsx" }; // Company 999 doesn't exist
-        var order = new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "A" };
+        var order = new WbrParcel { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "A" };
         _dbContext.Registers.Add(register);
         _dbContext.Orders.Add(order);
         await _dbContext.SaveChangesAsync();
@@ -490,7 +490,7 @@ public class ParcelsControllerTests
     {
         SetCurrentUserId(1);
         var register = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
-        var order = new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1, CheckStatusId = (int)ParcelCheckStatusCode.MarkedByPartner };
+        var order = new WbrParcel { Id = 1, RegisterId = 1, StatusId = 1, CheckStatusId = (int)ParcelCheckStatusCode.MarkedByPartner };
         _dbContext.Registers.Add(register);
         _dbContext.Orders.Add(order);
         await _dbContext.SaveChangesAsync();
@@ -559,8 +559,8 @@ public class ParcelsControllerTests
         var reg = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
         _dbContext.Registers.Add(reg);
         _dbContext.Orders.AddRange(
-            new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "A" },
-            new WbrOrder { Id = 2, RegisterId = 1, StatusId = 1, TnVed = "B" }
+            new WbrParcel { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "A" },
+            new WbrParcel { Id = 2, RegisterId = 1, StatusId = 1, TnVed = "B" }
         );
         await _dbContext.SaveChangesAsync();
 
@@ -581,7 +581,7 @@ public class ParcelsControllerTests
         _dbContext.Registers.Add(reg);
         for (int i = 1; i <= 6; i++)
         {
-            _dbContext.Orders.Add(new WbrOrder { Id = i, RegisterId = 1, StatusId = 1, TnVed = "A" });
+            _dbContext.Orders.Add(new WbrParcel { Id = i, RegisterId = 1, StatusId = 1, TnVed = "A" });
         }
         await _dbContext.SaveChangesAsync();
 
@@ -721,7 +721,7 @@ public class ParcelsControllerTests
         var reg = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
         _dbContext.Registers.Add(reg);
         var status = new ParcelStatus { Id = 1, Title = "Test Status" };
-        var order = new WbrOrder { Shk = "12345678", RegisterId = 1, StatusId = 1, Status = status };
+        var order = new WbrParcel { Shk = "12345678", RegisterId = 1, StatusId = 1, Status = status };
         _dbContext.Statuses.Add(status);
         _dbContext.Orders.Add(order);
         await _dbContext.SaveChangesAsync();
@@ -755,7 +755,7 @@ public class ParcelsControllerTests
         var reg = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
         _dbContext.Registers.Add(reg);
         var status = new ParcelStatus { Id = 1, Title = "Available" };
-        var order = new WbrOrder { Shk = "ABC", RegisterId = 1, StatusId = 1, Status = status, CheckStatusId = (int)ParcelCheckStatusCode.MarkedByPartner };
+        var order = new WbrParcel { Shk = "ABC", RegisterId = 1, StatusId = 1, Status = status, CheckStatusId = (int)ParcelCheckStatusCode.MarkedByPartner };
         _dbContext.Statuses.Add(status);
         _dbContext.Orders.Add(order);
         await _dbContext.SaveChangesAsync();
@@ -774,7 +774,7 @@ public class ParcelsControllerTests
         var reg = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
         _dbContext.Registers.Add(reg);
         var status = new ParcelStatus { Id = 1, Title = "Available" };
-        var order = new WbrOrder { Shk = "ABC123", RegisterId = 1,  StatusId = 1, Status = status };
+        var order = new WbrParcel { Shk = "ABC123", RegisterId = 1,  StatusId = 1, Status = status };
         _dbContext.Statuses.Add(status);
         _dbContext.Orders.Add(order);
         await _dbContext.SaveChangesAsync();
@@ -809,7 +809,7 @@ public class ParcelsControllerTests
     {
         SetCurrentUserId(1);
         var register = new Register { Id = 10, CompanyId = 2, FileName = "r.xlsx" };
-        var order = new WbrOrder { Id = 10, RegisterId = 10, StatusId = 1 };
+        var order = new WbrParcel { Id = 10, RegisterId = 10, StatusId = 1 };
         _dbContext.Registers.Add(register);
         _dbContext.Orders.Add(order);
         await _dbContext.SaveChangesAsync();
@@ -867,7 +867,7 @@ public class ParcelsControllerTests
     {
         SetCurrentUserId(1);
         var register = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
-        var order = new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1, CheckStatusId = (int)ParcelCheckStatusCode.MarkedByPartner };
+        var order = new WbrParcel { Id = 1, RegisterId = 1, StatusId = 1, CheckStatusId = (int)ParcelCheckStatusCode.MarkedByPartner };
         _dbContext.Registers.Add(register);
         _dbContext.Orders.Add(order);
         await _dbContext.SaveChangesAsync();
@@ -894,7 +894,7 @@ public class ParcelsControllerTests
         var register = new Register { Id = 20, CompanyId = 2, FileName = "r.xlsx" };
         var feacnOrder = new FeacnOrder { Id = 30, Title = "t" };
         var prefix = new FeacnPrefix { Id = 40, Code = "12", FeacnOrderId = 30, FeacnOrder = feacnOrder };
-        var order = new WbrOrder { Id = 20, RegisterId = 20, StatusId = 1, TnVed = "1234567890" };
+        var order = new WbrParcel { Id = 20, RegisterId = 20, StatusId = 1, TnVed = "1234567890" };
         _dbContext.Registers.Add(register);
         _dbContext.FeacnOrders.Add(feacnOrder);
         _dbContext.FeacnPrefixes.Add(prefix);
@@ -929,7 +929,7 @@ public class ParcelsControllerTests
     {
         SetCurrentUserId(1);
         var register = new Register { Id = 10, CompanyId = 2, FileName = "r.xlsx" };
-        var order = new WbrOrder { Id = 10, RegisterId = 10, StatusId = 1 };
+        var order = new WbrParcel { Id = 10, RegisterId = 10, StatusId = 1 };
         _dbContext.Registers.Add(register);
         _dbContext.Orders.Add(order);
         await _dbContext.SaveChangesAsync();
@@ -984,7 +984,7 @@ public class ParcelsControllerTests
     {
         SetCurrentUserId(1);
         var register = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
-        var order = new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1, CheckStatusId = (int)ParcelCheckStatusCode.MarkedByPartner };
+        var order = new WbrParcel { Id = 1, RegisterId = 1, StatusId = 1, CheckStatusId = (int)ParcelCheckStatusCode.MarkedByPartner };
         _dbContext.Registers.Add(register);
         _dbContext.Orders.Add(order);
         await _dbContext.SaveChangesAsync();
@@ -1008,7 +1008,7 @@ public class ParcelsControllerTests
         SetCurrentUserId(1);
 
         var register = new Register { Id = 20, CompanyId = 2, FileName = "r.xlsx" };
-        var order = new WbrOrder { Id = 20, RegisterId = 20, StatusId = 1, ProductName = "This is SPAM" };
+        var order = new WbrParcel { Id = 20, RegisterId = 20, StatusId = 1, ProductName = "This is SPAM" };
         _dbContext.Registers.Add(register);
         _dbContext.Orders.Add(order);
         
@@ -1049,7 +1049,7 @@ public class ParcelsControllerTests
         var register = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
         var feacnOrder1 = new FeacnOrder { Id = 10, Title = "Order 1" };
         var feacnOrder2 = new FeacnOrder { Id = 20, Title = "Order 2" };
-        var order = new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "A" };
+        var order = new WbrParcel { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "A" };
         
         // Create multiple prefixes - some with the same FeacnOrderId and some with different FeacnOrderIds
         var prefix1 = new FeacnPrefix { Id = 100, Code = "12", FeacnOrderId = 10, FeacnOrder = feacnOrder1 };
@@ -1083,7 +1083,7 @@ public class ParcelsControllerTests
         var reg = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
         var feacnOrder = new FeacnOrder { Id = 25, Title = "FEACN Order" };
         var prefix = new FeacnPrefix { Id = 50, Code = "78", FeacnOrderId = 25, FeacnOrder = feacnOrder };
-        var order = new WbrOrder { Id = 10, RegisterId = 1, StatusId = 1 };
+        var order = new WbrParcel { Id = 10, RegisterId = 1, StatusId = 1 };
         var link = new BaseOrderFeacnPrefix { BaseOrderId = 10, FeacnPrefixId = 50, BaseOrder = order, FeacnPrefix = prefix };
         
         _dbContext.Registers.Add(reg);
@@ -1106,7 +1106,7 @@ public class ParcelsControllerTests
     {
         SetCurrentUserId(1);
         var register = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
-        var order = new WbrOrder { Id = 5, RegisterId = 1, StatusId = 1 };
+        var order = new WbrParcel { Id = 5, RegisterId = 1, StatusId = 1 };
         _dbContext.Registers.Add(register);
         _dbContext.Orders.Add(order);
         await _dbContext.SaveChangesAsync();
@@ -1122,7 +1122,7 @@ public class ParcelsControllerTests
     {
         SetCurrentUserId(99); // unknown user
         var register = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
-        var order = new WbrOrder { Id = 5, RegisterId = 1, StatusId = 1 };
+        var order = new WbrParcel { Id = 5, RegisterId = 1, StatusId = 1 };
         _dbContext.Registers.Add(register);
         _dbContext.Orders.Add(order);
         await _dbContext.SaveChangesAsync();
@@ -1152,7 +1152,7 @@ public class ParcelsControllerTests
         SetCurrentUserId(1);
         // Create an order with a register that references a non-existent company
         var register = new Register { Id = 1, CompanyId = 999, FileName = "r.xlsx" }; // Company 999 doesn't exist
-        var order = new WbrOrder { Id = 5, RegisterId = 1, StatusId = 1 };
+        var order = new WbrParcel { Id = 5, RegisterId = 1, StatusId = 1 };
         _dbContext.Registers.Add(register);
         _dbContext.Orders.Add(order);
         await _dbContext.SaveChangesAsync();
@@ -1170,7 +1170,7 @@ public class ParcelsControllerTests
     {
         SetCurrentUserId(1);
         var register = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" }; // CompanyId = 2 is WBR
-        var order = new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "A", OrderNumber = "WBR123" };
+        var order = new WbrParcel { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "A", OrderNumber = "WBR123" };
         _dbContext.Registers.Add(register);
         _dbContext.Orders.Add(order);
         await _dbContext.SaveChangesAsync();
@@ -1189,7 +1189,7 @@ public class ParcelsControllerTests
     {
         SetCurrentUserId(1);
         var register = new Register { Id = 2, CompanyId = 1, FileName = "r.xlsx" }; // CompanyId = 1 is Ozon
-        var order = new OzonOrder { Id = 2, RegisterId = 2, StatusId = 1, TnVed = "B", OzonId = "OZON456", PostingNumber = "POST789" };
+        var order = new OzonParcel { Id = 2, RegisterId = 2, StatusId = 1, TnVed = "B", OzonId = "OZON456", PostingNumber = "POST789" };
         _dbContext.Registers.Add(register);
         _dbContext.Orders.Add(order);
         await _dbContext.SaveChangesAsync();
@@ -1210,7 +1210,7 @@ public class ParcelsControllerTests
         SetCurrentUserId(1);
         // Create a WBR register but try to find an order that doesn't exist in WBR table
         var register = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" }; // CompanyId = 2 is WBR
-        var ozonOrder = new OzonOrder { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "A" }; // Order exists in Ozon table
+        var ozonOrder = new OzonParcel { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "A" }; // Order exists in Ozon table
         _dbContext.Registers.Add(register);
         _dbContext.Orders.Add(ozonOrder);
         await _dbContext.SaveChangesAsync();
@@ -1228,7 +1228,7 @@ public class ParcelsControllerTests
     {
         SetCurrentUserId(1);
         var register = new Register { Id = 5, CompanyId = 2, FileName = "r.xlsx" };
-        var order = new WbrOrder { Id = 5, RegisterId = 5, StatusId = 1, Shk = "123" };
+        var order = new WbrParcel { Id = 5, RegisterId = 5, StatusId = 1, Shk = "123" };
         _dbContext.Registers.Add(register);
         _dbContext.Orders.Add(order);
         await _dbContext.SaveChangesAsync();
@@ -1268,7 +1268,7 @@ public class ParcelsControllerTests
     {
         SetCurrentUserId(1);
         var register = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
-        var order = new WbrOrder { Id = 100, RegisterId = 1, StatusId = 1, CheckStatusId = 1 };
+        var order = new WbrParcel { Id = 100, RegisterId = 1, StatusId = 1, CheckStatusId = 1 };
         _dbContext.Registers.Add(register);
         _dbContext.Orders.Add(order);
         await _dbContext.SaveChangesAsync();
@@ -1283,7 +1283,7 @@ public class ParcelsControllerTests
     {
         SetCurrentUserId(99); // unknown user
         var register = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
-        var order = new WbrOrder { Id = 101, RegisterId = 1, StatusId = 1, CheckStatusId = 1 };
+        var order = new WbrParcel { Id = 101, RegisterId = 1, StatusId = 1, CheckStatusId = 1 };
         _dbContext.Registers.Add(register);
         _dbContext.Orders.Add(order);
         await _dbContext.SaveChangesAsync();
@@ -1311,7 +1311,7 @@ public class ParcelsControllerTests
     {
         SetCurrentUserId(1);
         var register = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
-        var order = new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "A" };
+        var order = new WbrParcel { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "A" };
         _dbContext.Registers.Add(register);
         _dbContext.Orders.Add(order);
         await _dbContext.SaveChangesAsync();
@@ -1332,7 +1332,7 @@ public class ParcelsControllerTests
     {
         SetCurrentUserId(1);
         var register = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
-        var order = new WbrOrder { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "A" };
+        var order = new WbrParcel { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "A" };
         _dbContext.Registers.Add(register);
         _dbContext.Orders.Add(order);
         await _dbContext.SaveChangesAsync();
