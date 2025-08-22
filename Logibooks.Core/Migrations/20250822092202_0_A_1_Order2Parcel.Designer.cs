@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Logibooks.Core.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250821192813_0_A_1_Order2Parcel")]
+    [Migration("20250822092202_0_A_1_Order2Parcel")]
     partial class _0_A_1_Order2Parcel
     {
         /// <inheritdoc />
@@ -125,7 +125,7 @@ namespace Logibooks.Core.Migrations
 
                     b.HasIndex(new[] { "TnVed" }, "IX_base_parcels_tn_ved");
 
-                    b.ToTable("base_orders", (string)null);
+                    b.ToTable("base_parcels", (string)null);
 
                     b.UseTptMappingStrategy();
                 });
@@ -352,19 +352,19 @@ namespace Logibooks.Core.Migrations
                         .HasColumnType("character varying(10)")
                         .HasColumnName("code_ex");
 
-                    b.Property<string>("Description")
+                    b.Property<DateOnly?>("FromDate")
+                        .HasColumnType("date")
+                        .HasColumnName("from_date");
+
+                    b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("name");
 
-                    b.Property<string>("DescriptionEx")
+                    b.Property<string>("NormalizedName")
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("normalized");
-
-                    b.Property<DateOnly?>("FromDate")
-                        .HasColumnType("date")
-                        .HasColumnName("from_date");
 
                     b.Property<string>("OldName")
                         .HasColumnType("text")
@@ -1153,7 +1153,7 @@ namespace Logibooks.Core.Migrations
 
                     b.HasIndex(new[] { "PostingNumber" }, "IX_ozon_parcels_posting_number");
 
-                    b.ToTable("ozon_orders", (string)null);
+                    b.ToTable("ozon_parcels", (string)null);
                 });
 
             modelBuilder.Entity("Logibooks.Core.Models.WbrParcel", b =>
@@ -1330,7 +1330,7 @@ namespace Logibooks.Core.Migrations
 
                     b.HasIndex(new[] { "Shk" }, "IX_wbr_parcels_shk");
 
-                    b.ToTable("wbr_orders", (string)null);
+                    b.ToTable("wbr_parcels", (string)null);
                 });
 
             modelBuilder.Entity("Logibooks.Core.Models.BaseOrderFeacnPrefix", b =>

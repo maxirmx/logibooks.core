@@ -193,7 +193,7 @@ public class FeacnListProcessingService(
 
     private Dictionary<string, int> ValidateHeaderRow(DataTable table)
     {
-        var requiredHeaders = new[] { "ID", "Child", "Code", "CodeEx", 
+        var requiredHeaders = new[] { "ID", "Child", "Next", "Code", "CodeEx", 
             "Date1", "Date2", "DatePrev", "TextPrev", "Text", "TextEx" };
         
         var columnMap = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
@@ -253,11 +253,9 @@ public class FeacnListProcessingService(
         // Parse Code
         var codeValue = GetColumnValue(row, columnMap, "Code");
         var code = TruncateWithWarning(codeValue, FeacnCode.FeacnCodeLength, "Code", rowNumber);
-        
-        // Parse CodeEx
-        var codeExValue = GetColumnValue(row, columnMap, "CodeEx");
-        var codeEx = TruncateWithWarning(codeExValue, FeacnCode.FeacnCodeLength, "CodeEx", rowNumber);
-        
+
+        var codeEx = GetColumnValue(row, columnMap, "CodeEx");
+
         // Parse dates using the converter helper
         var date1Value = GetColumnValue(row, columnMap, "Date1");
         var date1 = (DateOnly?)ExcelDataConverter.ConvertValueToPropertyType(date1Value, typeof(DateOnly?), "Date1", _logger);
@@ -267,8 +265,9 @@ public class FeacnListProcessingService(
         
         var datePrevValue = GetColumnValue(row, columnMap, "DatePrev");
         var datePrev = (DateOnly?)ExcelDataConverter.ConvertValueToPropertyType(datePrevValue, typeof(DateOnly?), "DatePrev", _logger);
-        
+
         // Parse text fields
+
         var textPrev = GetColumnValue(row, columnMap, "TextPrev");
         if (string.IsNullOrEmpty(textPrev)) textPrev = null;
         
@@ -277,7 +276,7 @@ public class FeacnListProcessingService(
         var textEx = GetColumnValue(row, columnMap, "TextEx");
         if (string.IsNullOrEmpty(textEx)) textEx = null;
         
-        // Unit and UnitCode are ignored as per requirements
+        // Unit and UnitCode are ignored
         
         return new FeacnExcelRow(id.Value, childId, code, codeEx, 
             date1, date2, datePrev, textPrev, text, textEx);

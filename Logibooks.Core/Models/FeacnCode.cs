@@ -43,7 +43,6 @@ public class FeacnCode
     public required string Code { get; set; } = string.Empty;
 
     [Column("code_ex")]
-    [StringLength(FeacnCodeLength)]
     public required string CodeEx { get; set; } = string.Empty;
 
     [Column("name")]

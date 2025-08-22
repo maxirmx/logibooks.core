@@ -156,9 +156,9 @@ namespace Logibooks.Core.Data
                 .HasForeignKey(o => o.CountryCode)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            modelBuilder.Entity<BaseParcel>().ToTable("base_orders");
-            modelBuilder.Entity<WbrParcel>().ToTable("wbr_orders");
-            modelBuilder.Entity<OzonParcel>().ToTable("ozon_orders");
+            modelBuilder.Entity<BaseParcel>().ToTable("base_parcels");
+            modelBuilder.Entity<WbrParcel>().ToTable("wbr_parcels");
+            modelBuilder.Entity<OzonParcel>().ToTable("ozon_parcels");
 
             modelBuilder.Entity<WbrParcel>()
                 .HasBaseType<BaseParcel>();

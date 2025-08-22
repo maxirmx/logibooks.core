@@ -573,33 +573,6 @@ public class FeacnListProcessingServiceTests
     }
 
     [Test]
-    public async Task StartProcessingAsync_TruncateWithWarning_CodeExExceedsMaxLength_ShouldTruncate()
-    {
-        // Arrange - create Excel file with CodeEx exceeding max length
-        var headers = new[] { "ID", "Child", "Next", "Code", "CodeEx", "Date1", "Date2", "DatePrev", "TextPrev", "Text", "TextEx" };
-        var longCodeEx = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"; // 26 characters, should be truncated to 10
-        var expectedTruncatedCodeEx = "ABCDEFGHIJ"; // First 10 characters
-        var rows = new object[] []
-        {
-            new object[] { 1, "", "", "1000000000", longCodeEx, "2024-01-01", "2024-12-31", "", "", "Test description", "" }
-        };
-        var excelBytes = CreateExcelFile((headers, rows));
-
-        // Act
-        var handle = await _service.StartProcessingAsync(excelBytes, "long_codeex.xlsx");
-        var progress = await WaitForCompletion(handle);
-        
-        // Assert
-        Assert.That(progress, Is.Not.Null);
-        Assert.That(progress!.Finished, Is.True);
-        
-        var codes = _dbContext.FeacnCodes.ToList();
-        Assert.That(codes.Count, Is.EqualTo(1));
-        Assert.That(codes.Single().CodeEx, Is.EqualTo(expectedTruncatedCodeEx));
-        Assert.That(codes.Single().CodeEx.Length, Is.EqualTo(10));
-    }
-
-    [Test]
     public async Task StartProcessingAsync_TruncateWithWarning_WhitespaceOnlyValue_ShouldReturnEmptyString()
     {
         // Arrange - create Excel file with whitespace-only Code value
