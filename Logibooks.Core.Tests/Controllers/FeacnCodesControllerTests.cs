@@ -502,75 +502,307 @@ public class FeacnCodesControllerTests
     }
 
     [Test]
-    public async Task Upload_ReturnsNoContent_ForExcelFile()
+    public async Task Children_ReturnsEmpty_WhenParentHasNoChildren()
     {
         SetCurrentUserId(1);
-        byte[] content = [1, 2, 3];
-        var mockFile = CreateMockFile("codes.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", content);
-        _mockProcessingService
-            .Setup(s => s.UploadFeacnCodesAsync(It.Is<byte[]>(b => b.SequenceEqual(content)), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+        _dbContext.FeacnCodes.AddRange(
+            new FeacnCode { Id = 1, Code = "1111111111", CodeEx = "1111111111", Name = "Standalone", NormalizedName = "STANDALONE" },
+            new FeacnCode { Id = 2, Code = "2222222222", CodeEx = "2222222222", Name = "Another", NormalizedName = "ANOTHER" }
+        );
+        await _dbContext.SaveChangesAsync();
 
-        var result = await _controller.Upload(mockFile.Object);
+        var result = await _controller.Children(1);
 
-        Assert.That(result, Is.TypeOf<NoContentResult>());
+        Assert.That(result.Value, Is.Not.Null);
+        Assert.That(result.Value!.Count(), Is.EqualTo(0));
     }
 
     [Test]
-    public async Task Upload_ReturnsNoContent_ForZipFile()
+    public async Task Children_ReturnsEmpty_WhenParentDoesNotExist()
     {
         SetCurrentUserId(1);
-        byte[] zipContent = File.ReadAllBytes(Path.Combine(testDataDir, "Реестр_207730349.zip"));
-        var mockFile = CreateMockFile("Реестр_207730349.zip", "application/zip", zipContent);
-        _mockProcessingService.Setup(s => s.UploadFeacnCodesAsync(It.IsAny<byte[]>(), It.IsAny<string>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        _dbContext.FeacnCodes.AddRange(
+            new FeacnCode { Id = 1, Code = "1111111111", CodeEx = "1111111111", Name = "Code1", NormalizedName = "CODE1" },
+            new FeacnCode { Id = 2, Code = "2222222222", CodeEx = "2222222222", Name = "Code2", NormalizedName = "CODE2" }
+        );
+        await _dbContext.SaveChangesAsync();
 
-        var result = await _controller.Upload(mockFile.Object);
+        var result = await _controller.Children(999); // Non-existent parent
 
-        Assert.That(result, Is.TypeOf<NoContentResult>());
+        Assert.That(result.Value, Is.Not.Null);
+        Assert.That(result.Value!.Count(), Is.EqualTo(0));
     }
 
     [Test]
-    public async Task Upload_ReturnsBadRequest_ForUnsupportedFile()
+    public async Task Children_ReturnsMultipleLevels_ButOnlyDirectChildren()
     {
         SetCurrentUserId(1);
-        var mockFile = CreateMockFile("file.txt", "text/plain", [1, 2, 3]);
+        _dbContext.FeacnCodes.AddRange(
+            new FeacnCode { Id = 1, Code = "1111111111", CodeEx = "1111111111", Name = "Root", NormalizedName = "ROOT" },
+            new FeacnCode { Id = 2, Code = "2222222222", CodeEx = "2222222222", Name = "Child1", NormalizedName = "CHILD1", ParentId = 1 },
+            new FeacnCode { Id = 3, Code = "3333333333", CodeEx = "3333333333", Name = "Child2", NormalizedName = "CHILD2", ParentId = 1 },
+            new FeacnCode { Id = 4, Code = "4444444444", CodeEx = "4444444444", Name = "Grandchild1", NormalizedName = "GRANDCHILD1", ParentId = 2 },
+            new FeacnCode { Id = 5, Code = "5555555555", CodeEx = "5555555555", Name = "Grandchild2", NormalizedName = "GRANDCHILD2", ParentId = 2 }
+        );
+        await _dbContext.SaveChangesAsync();
 
-        var result = await _controller.Upload(mockFile.Object);
+        var result = await _controller.Children(1);
 
-        Assert.That(result, Is.TypeOf<ObjectResult>());
-        var obj = result as ObjectResult;
-        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
-        _mockProcessingService.Verify(s => s.UploadFeacnCodesAsync(It.IsAny<byte[]>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        Assert.That(result.Value, Is.Not.Null);
+        Assert.That(result.Value!.Count(), Is.EqualTo(2)); // Only direct children, not grandchildren
+        var children = result.Value!.ToList();
+        Assert.That(children.Any(c => c.Id == 2), Is.True, "Should include direct child");
+        Assert.That(children.Any(c => c.Id == 3), Is.True, "Should include direct child");
+        Assert.That(children.Any(c => c.Id == 4), Is.False, "Should not include grandchild");
+        Assert.That(children.Any(c => c.Id == 5), Is.False, "Should not include grandchild");
     }
 
     [Test]
-    public async Task Upload_ReturnsBadRequest_WhenZipWithoutExcel()
+    public async Task Children_FiltersOutFutureDatedCodes_ForSpecificParent()
     {
         SetCurrentUserId(1);
-        byte[] zipContent = File.ReadAllBytes(Path.Combine(testDataDir, "Zip_Empty.zip"));
-        var mockFile = CreateMockFile("Zip_Empty.zip", "application/zip", zipContent);
+        _dbContext.FeacnCodes.AddRange(
+            new FeacnCode 
+            { 
+                Id = 10, 
+                Code = "1000000010", 
+                CodeEx = "1000000010", 
+                Name = "Parent", 
+                NormalizedName = "PARENT",
+                FromDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1))
+            },
+            new FeacnCode 
+            { 
+                Id = 11, 
+                Code = "1000000011", 
+                CodeEx = "1000000011", 
+                Name = "ValidChild", 
+                NormalizedName = "VALIDCHILD", 
+                ParentId = 10,
+                FromDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1))
+            },
+            new FeacnCode 
+            { 
+                Id = 12, 
+                Code = "1000000012", 
+                CodeEx = "1000000012", 
+                Name = "FutureChild", 
+                NormalizedName = "FUTURECHILD", 
+                ParentId = 10,
+                FromDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(5)) // Future date
+            },
+            new FeacnCode 
+            { 
+                Id = 13, 
+                Code = "1000000013", 
+                CodeEx = "1000000013", 
+                Name = "NullDateChild", 
+                NormalizedName = "NULLDATECHILD", 
+                ParentId = 10,
+                FromDate = null
+            }
+        );
+        await _dbContext.SaveChangesAsync();
 
-        var result = await _controller.Upload(mockFile.Object);
+        var result = await _controller.Children(10);
 
-        Assert.That(result, Is.TypeOf<ObjectResult>());
-        var obj = result as ObjectResult;
-        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
-        _mockProcessingService.Verify(s => s.UploadFeacnCodesAsync(It.IsAny<byte[]>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        Assert.That(result.Value, Is.Not.Null);
+        Assert.That(result.Value!.Count(), Is.EqualTo(2)); // Should return valid child and null date child
+        var children = result.Value!.ToList();
+        Assert.That(children.Any(c => c.Id == 11), Is.True, "Should include child with past FromDate");
+        Assert.That(children.Any(c => c.Id == 12), Is.False, "Should exclude child with future FromDate");
+        Assert.That(children.Any(c => c.Id == 13), Is.True, "Should include child with null FromDate");
     }
 
     [Test]
-    public async Task Upload_ReturnsBadRequest_WhenFileEmpty()
+    public async Task Children_OrdersResultsById()
     {
         SetCurrentUserId(1);
-        var mockFile = new Mock<IFormFile>();
-        mockFile.Setup(f => f.Length).Returns(0);
+        _dbContext.FeacnCodes.AddRange(
+            new FeacnCode { Id = 10, Code = "1000000010", CodeEx = "1000000010", Name = "Parent", NormalizedName = "PARENT" },
+            new FeacnCode { Id = 13, Code = "1000000013", CodeEx = "1000000013", Name = "Child3", NormalizedName = "CHILD3", ParentId = 10 },
+            new FeacnCode { Id = 11, Code = "1000000011", CodeEx = "1000000011", Name = "Child1", NormalizedName = "CHILD1", ParentId = 10 },
+            new FeacnCode { Id = 15, Code = "1000000015", CodeEx = "1000000015", Name = "Child5", NormalizedName = "CHILD5", ParentId = 10 },
+            new FeacnCode { Id = 12, Code = "1000000012", CodeEx = "1000000012", Name = "Child2", NormalizedName = "CHILD2", ParentId = 10 }
+        );
+        await _dbContext.SaveChangesAsync();
 
-        var result = await _controller.Upload(mockFile.Object);
+        var result = await _controller.Children(10);
 
-        Assert.That(result, Is.TypeOf<ObjectResult>());
-        var obj = result as ObjectResult;
-        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
-        _mockProcessingService.Verify(s => s.UploadFeacnCodesAsync(It.IsAny<byte[]>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        Assert.That(result.Value, Is.Not.Null);
+        Assert.That(result.Value!.Count(), Is.EqualTo(4));
+        
+        var children = result.Value!.ToList();
+        Assert.That(children[0].Id, Is.EqualTo(11), "First result should have ID 11");
+        Assert.That(children[1].Id, Is.EqualTo(12), "Second result should have ID 12");
+        Assert.That(children[2].Id, Is.EqualTo(13), "Third result should have ID 13");
+        Assert.That(children[3].Id, Is.EqualTo(15), "Fourth result should have ID 15");
+    }
+
+    [Test]
+    public async Task Children_WorksWithComplexHierarchy()
+    {
+        SetCurrentUserId(1);
+        _dbContext.FeacnCodes.AddRange(
+            // Level 0 (roots)
+            new FeacnCode { Id = 1, Code = "1000000001", CodeEx = "1000000001", Name = "Root1", NormalizedName = "ROOT1" },
+            new FeacnCode { Id = 2, Code = "1000000002", CodeEx = "1000000002", Name = "Root2", NormalizedName = "ROOT2" },
+            
+            // Level 1 (children of root1)
+            new FeacnCode { Id = 11, Code = "1000000011", CodeEx = "1000000011", Name = "Child1-1", NormalizedName = "CHILD1-1", ParentId = 1 },
+            new FeacnCode { Id = 12, Code = "1000000012", CodeEx = "1000000012", Name = "Child1-2", NormalizedName = "CHILD1-2", ParentId = 1 },
+            
+            // Level 1 (children of root2)
+            new FeacnCode { Id = 21, Code = "1000000021", CodeEx = "1000000021", Name = "Child2-1", NormalizedName = "CHILD2-1", ParentId = 2 },
+            
+            // Level 2 (grandchildren)
+            new FeacnCode { Id = 111, Code = "1000000111", CodeEx = "1000000111", Name = "Grandchild1-1-1", NormalizedName = "GRANDCHILD1-1-1", ParentId = 11 },
+            new FeacnCode { Id = 112, Code = "1000000112", CodeEx = "1000000112", Name = "Grandchild1-1-2", NormalizedName = "GRANDCHILD1-1-2", ParentId = 11 }
+        );
+        await _dbContext.SaveChangesAsync();
+
+        // Test getting children of root1
+        var root1Children = await _controller.Children(1);
+        Assert.That(root1Children.Value!.Count(), Is.EqualTo(2));
+        Assert.That(root1Children.Value!.Any(c => c.Id == 11), Is.True);
+        Assert.That(root1Children.Value!.Any(c => c.Id == 12), Is.True);
+
+        // Test getting children of root2
+        var root2Children = await _controller.Children(2);
+        Assert.That(root2Children.Value!.Count(), Is.EqualTo(1));
+        Assert.That(root2Children.Value!.Any(c => c.Id == 21), Is.True);
+
+        // Test getting grandchildren
+        var grandchildren = await _controller.Children(11);
+        Assert.That(grandchildren.Value!.Count(), Is.EqualTo(2));
+        Assert.That(grandchildren.Value!.Any(c => c.Id == 111), Is.True);
+        Assert.That(grandchildren.Value!.Any(c => c.Id == 112), Is.True);
+    }
+
+    [Test]
+    public async Task Children_ReturnsCorrectDtoStructure()
+    {
+        SetCurrentUserId(1);
+        _dbContext.FeacnCodes.AddRange(
+            new FeacnCode 
+            { 
+                Id = 1, 
+                Code = "1234567890", 
+                CodeEx = "1234567899", 
+                Name = "Parent Code", 
+                NormalizedName = "PARENT CODE",
+                FromDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-10)),
+                ToDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(10)),
+                OldName = "Old Parent Name",
+                OldNameToDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-5))
+            },
+            new FeacnCode 
+            { 
+                Id = 2, 
+                Code = "9876543210", 
+                CodeEx = "9876543219", 
+                Name = "Child Code", 
+                NormalizedName = "CHILD CODE",
+                ParentId = 1,
+                FromDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-5)),
+                ToDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(15)),
+                OldName = "Old Child Name",
+                OldNameToDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-2))
+            }
+        );
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.Children(1);
+
+        Assert.That(result.Value, Is.Not.Null);
+        Assert.That(result.Value!.Count(), Is.EqualTo(1));
+        
+        var childDto = result.Value!.First();
+        Assert.That(childDto.Id, Is.EqualTo(2));
+        Assert.That(childDto.Code, Is.EqualTo("9876543210"));
+        Assert.That(childDto.CodeEx, Is.EqualTo("9876543219"));
+        Assert.That(childDto.Name, Is.EqualTo("Child Code"));
+        Assert.That(childDto.NormalizedName, Is.EqualTo("CHILD CODE"));
+        Assert.That(childDto.ParentId, Is.EqualTo(1));
+    }
+
+    [Test]
+    public async Task Children_WithNullId_ReturnsOnlyTopLevelNodes()
+    {
+        SetCurrentUserId(1);
+        _dbContext.FeacnCodes.AddRange(
+            // Top level nodes (no parent)
+            new FeacnCode { Id = 1, Code = "1111111111", CodeEx = "1111111111", Name = "TopLevel1", NormalizedName = "TOPLEVEL1" },
+            new FeacnCode { Id = 2, Code = "2222222222", CodeEx = "2222222222", Name = "TopLevel2", NormalizedName = "TOPLEVEL2" },
+            
+            // Child nodes (have parents)
+            new FeacnCode { Id = 3, Code = "3333333333", CodeEx = "3333333333", Name = "Child1", NormalizedName = "CHILD1", ParentId = 1 },
+            new FeacnCode { Id = 4, Code = "4444444444", CodeEx = "4444444444", Name = "Child2", NormalizedName = "CHILD2", ParentId = 2 },
+            
+            // Top level with future date (should be filtered out)
+            new FeacnCode 
+            { 
+                Id = 5, 
+                Code = "5555555555", 
+                CodeEx = "5555555555", 
+                Name = "FutureTopLevel", 
+                NormalizedName = "FUTURETOPLEVEL",
+                FromDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(10))
+            }
+        );
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.Children(null);
+
+        Assert.That(result.Value, Is.Not.Null);
+        Assert.That(result.Value!.Count(), Is.EqualTo(2)); // Only valid top-level nodes
+        var topLevelNodes = result.Value!.ToList();
+        Assert.That(topLevelNodes.Any(c => c.Id == 1), Is.True, "Should include first top-level node");
+        Assert.That(topLevelNodes.Any(c => c.Id == 2), Is.True, "Should include second top-level node");
+        Assert.That(topLevelNodes.Any(c => c.Id == 3), Is.False, "Should not include child node");
+        Assert.That(topLevelNodes.Any(c => c.Id == 4), Is.False, "Should not include child node");
+        Assert.That(topLevelNodes.Any(c => c.Id == 5), Is.False, "Should not include future-dated top-level node");
+    }
+
+    [Test]
+    public async Task Children_HandlesLargeNumberOfChildren()
+    {
+        SetCurrentUserId(1);
+        var codes = new System.Collections.Generic.List<FeacnCode>
+        {
+            // Parent
+            new FeacnCode { Id = 1, Code = "1000000001", CodeEx = "1000000001", Name = "Parent", NormalizedName = "PARENT" }
+        };
+
+        // Add 100 children
+        for (int i = 2; i <= 101; i++)
+        {
+            codes.Add(new FeacnCode 
+            { 
+                Id = i, 
+                Code = $"100000{i:D4}", 
+                CodeEx = $"100000{i:D4}", 
+                Name = $"Child{i}", 
+                NormalizedName = $"CHILD{i}", 
+                ParentId = 1 
+            });
+        }
+
+        _dbContext.FeacnCodes.AddRange(codes);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.Children(1);
+
+        Assert.That(result.Value, Is.Not.Null);
+        Assert.That(result.Value!.Count(), Is.EqualTo(100));
+        
+        // Verify ordering (should be ordered by Id)
+        var children = result.Value!.ToList();
+        for (int i = 0; i < children.Count - 1; i++)
+        {
+            Assert.That(children[i].Id, Is.LessThan(children[i + 1].Id), 
+                $"Children should be ordered by Id: {children[i].Id} should be less than {children[i + 1].Id}");
+        }
     }
 
     private static Mock<IFormFile> CreateMockFile(string fileName, string contentType, byte[] content)
