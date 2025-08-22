@@ -95,6 +95,61 @@ public class FeacnListProcessingServiceTests
     }
 
     [Test]
+    public async Task UploadFeacnCodesAsync_NextColumn_ShouldLinkSiblings()
+    {
+        var headers = new[] { "ID", "Child", "Next", "Code", "CodeEx", "Date1", "Date2", "DatePrev", "TextPrev", "Text", "TextEx" };
+        var rows = new object[][]
+        {
+            new object[] { 1, 2, "", "1000000000", "1000000000", "2024-01-01", "2024-12-31", "", "", "Parent", "" },
+            new object[] { 2, "", 3, "2000000000", "2000000000", "2024-01-01", "2024-12-31", "", "", "Child1", "" },
+            new object[] { 3, "", "", "3000000000", "3000000000", "2024-01-01", "2024-12-31", "", "", "Child2", "" }
+        };
+        var excelBytes = CreateExcelFile((headers, rows));
+        await _service.UploadFeacnCodesAsync(excelBytes, "codes.xlsx");
+        var codes = _dbContext.FeacnCodes.ToList();
+        var parent = codes.First(c => c.Code == "1000000000");
+        var child1 = codes.First(c => c.Code == "2000000000");
+        var child2 = codes.First(c => c.Code == "3000000000");
+        Assert.That(child1.ParentId, Is.EqualTo(parent.Id));
+        Assert.That(child2.ParentId, Is.EqualTo(parent.Id));
+        Assert.That(parent.Children, Has.Count.EqualTo(2));
+    }
+
+    [Test]
+    public async Task UploadFeacnCodesAsync_NextColumn_ShouldHandleMultipleChains()
+    {
+        var headers = new[] { "ID", "Child", "Next", "Code", "CodeEx", "Date1", "Date2", "DatePrev", "TextPrev", "Text", "TextEx" };
+        var rows = new object[][]
+        {
+            new object[] { 1, 10, "", "1000000000", "1000000000", "2024-01-01", "2024-12-31", "", "", "Parent", "" },
+            new object[] { 10, "", 20, "2000000000", "2000000000", "2024-01-01", "2024-12-31", "", "", "Child1", "" },
+            new object[] { 20, 40, 30, "3000000000", "3000000000", "2024-01-01", "2024-12-31", "", "", "Child2", "" },
+            new object[] { 30, "", 0, "4000000000", "4000000000", "2024-01-01", "2024-12-31", "", "", "Child3", "" },
+            new object[] { 40, "", 50, "5000000000", "5000000000", "2024-01-01", "2024-12-31", "", "", "Grandchild1", "" },
+            new object[] { 50, "", "", "6000000000", "6000000000", "2024-01-01", "2024-12-31", "", "", "Grandchild2", "" }
+        };
+
+        var excelBytes = CreateExcelFile((headers, rows));
+        await _service.UploadFeacnCodesAsync(excelBytes, "codes.xlsx");
+
+        var codes = _dbContext.FeacnCodes.ToList();
+        var parent = codes.First(c => c.Code == "1000000000");
+        var child1 = codes.First(c => c.Code == "2000000000");
+        var child2 = codes.First(c => c.Code == "3000000000");
+        var child3 = codes.First(c => c.Code == "4000000000");
+        var grand1 = codes.First(c => c.Code == "5000000000");
+        var grand2 = codes.First(c => c.Code == "6000000000");
+
+        Assert.That(parent.Children, Has.Count.EqualTo(3));
+        Assert.That(child1.ParentId, Is.EqualTo(parent.Id));
+        Assert.That(child2.ParentId, Is.EqualTo(parent.Id));
+        Assert.That(child3.ParentId, Is.EqualTo(parent.Id));
+        Assert.That(child2.Children, Has.Count.EqualTo(2));
+        Assert.That(grand1.ParentId, Is.EqualTo(child2.Id));
+        Assert.That(grand2.ParentId, Is.EqualTo(child2.Id));
+    }
+
+    [Test]
     public async Task UploadFeacnCodesAsync_ReplaceData_ShouldRemoveOldAndInsertNew()
     {
         _dbContext.FeacnCodes.Add(new FeacnCode { Code = "old", CodeEx = "old", Name = "Old", NormalizedName = "OLD" });
