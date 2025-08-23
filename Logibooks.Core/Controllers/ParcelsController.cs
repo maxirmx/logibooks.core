@@ -460,9 +460,9 @@ public class ParcelsController(
             return _403();
         }
 
-        var order = await _db.Orders
+        var parcel = await _db.Orders
             .FirstOrDefaultAsync(o => o.Id == id && o.CheckStatusId != (int)ParcelCheckStatusCode.MarkedByPartner);
-        if (order == null)
+        if (parcel == null)
         {
             _logger.LogDebug("LookupFeacnCode returning '404 Not Found'");
             return _404Order(id);
@@ -475,7 +475,7 @@ public class ParcelsController(
         var wordsLookupContext = new WordsLookupContext<KeyWord>(
             keyWords.Where(k => k.MatchTypeId < (int)WordMatchTypeCode.MorphologyMatchTypes));
 
-        await _feacnLookupService.LookupAsync(order, morphologyContext, wordsLookupContext);
+        await _feacnLookupService.LookupAsync(parcel, morphologyContext, wordsLookupContext);
 
         return NoContent();
     }
