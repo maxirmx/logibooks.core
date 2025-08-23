@@ -28,11 +28,12 @@ namespace Logibooks.Core.Migrations
                 table: "base_parcel_feacn_prefixes",
                 newName: "base_parcel_id");
 
-            // Update the foreign key constraint
+            // Drop the existing foreign key constraint (correct name after table/column renames)
             migrationBuilder.DropForeignKey(
-                name: "FK_base_order_feacn_prefixes_base_parcels_base_order_id",
+                name: "FK_base_order_feacn_prefixes_base_orders_base_order_id",
                 table: "base_parcel_feacn_prefixes");
 
+            // Add the new foreign key constraint with correct references
             migrationBuilder.AddForeignKey(
                 name: "FK_base_parcel_feacn_prefixes_base_parcels_base_parcel_id",
                 table: "base_parcel_feacn_prefixes",
@@ -69,7 +70,7 @@ namespace Logibooks.Core.Migrations
             migrationBuilder.DropTable(
                 name: "feacn_insert_items");
 
-            // Reverse the foreign key constraint
+            // Drop the foreign key constraint
             migrationBuilder.DropForeignKey(
                 name: "FK_base_parcel_feacn_prefixes_base_parcels_base_parcel_id",
                 table: "base_parcel_feacn_prefixes");
@@ -91,12 +92,12 @@ namespace Logibooks.Core.Migrations
                 name: "base_parcel_feacn_prefixes",
                 newName: "base_order_feacn_prefixes");
 
-            // Restore the original foreign key constraint
+            // Restore the original foreign key constraint (referencing base_orders)
             migrationBuilder.AddForeignKey(
-                name: "FK_base_order_feacn_prefixes_base_parcels_base_order_id",
+                name: "FK_base_order_feacn_prefixes_base_orders_base_order_id",
                 table: "base_order_feacn_prefixes",
                 column: "base_order_id",
-                principalTable: "base_parcels",
+                principalTable: "base_orders", // Note: This should be base_orders in the Down method
                 principalColumn: "id",
                 onDelete: ReferentialAction.Cascade);
         }
