@@ -62,6 +62,9 @@ public class KeywordsProcessingService(AppDbContext db, ILogger<KeywordsProcessi
             var header = table.Rows[0];
             int codeCol = -1;
             int nameCol = -1;
+            int insertBeforeCol = -1;
+            int insertAfterCol = -1;
+            
             for (int c = 0; c < table.Columns.Count; c++)
             {
                 var head = header[c]?.ToString()?.Trim().ToLower(RussianCulture);
@@ -69,12 +72,17 @@ public class KeywordsProcessingService(AppDbContext db, ILogger<KeywordsProcessi
                     codeCol = c;
                 else if (head == "наименование")
                     nameCol = c;
+                else if (head == "перед описанием")
+                    insertBeforeCol = c;
+                else if (head == "в конце описания")
+                    insertAfterCol = c;
             }
 
             if (codeCol < 0 || nameCol < 0)
                 throw new InvalidOperationException("Не найдены столбцы 'код' и 'наименование'");
 
             var wordFeacnMap = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
+            var feacnInsertItems = new Dictionary<string, FeacnInsertItem>();
             
             for (int r = 1; r < table.Rows.Count; r++)
             {
@@ -108,6 +116,36 @@ public class KeywordsProcessingService(AppDbContext db, ILogger<KeywordsProcessi
                         wordFeacnMap[word] = codes;
                     }
                     codes.Add(code);
+                }
+
+                // Process FEACN insert items if columns are present
+                if (insertBeforeCol >= 0 || insertAfterCol >= 0)
+                {
+                    string? insertBefore = null;
+                    string? insertAfter = null;
+
+                    if (insertBeforeCol >= 0)
+                    {
+                        var beforeValue = table.Rows[r][insertBeforeCol]?.ToString()?.Trim();
+                        insertBefore = string.IsNullOrWhiteSpace(beforeValue) ? null : beforeValue;
+                    }
+
+                    if (insertAfterCol >= 0)
+                    {
+                        var afterValue = table.Rows[r][insertAfterCol]?.ToString()?.Trim();
+                        insertAfter = string.IsNullOrWhiteSpace(afterValue) ? null : afterValue;
+                    }
+
+                    // Only create/update FEACN insert item if at least one value is not null
+                    if (insertBefore != null || insertAfter != null)
+                    {
+                        feacnInsertItems[code] = new FeacnInsertItem
+                        {
+                            Code = code,
+                            InsertBefore = insertBefore,
+                            InsertAfter = insertAfter
+                        };
+                    }
                 }
             }
 
@@ -147,11 +185,13 @@ public class KeywordsProcessingService(AppDbContext db, ILogger<KeywordsProcessi
             {
                 await using var tx = await _db.Database.BeginTransactionAsync(cancellationToken);
                 await ProcessKeywords(parsed, cancellationToken);
+                await ProcessFeacnInsertItems(feacnInsertItems.Values, cancellationToken);
                 await tx.CommitAsync(cancellationToken);
             }
             else
             {
                 await ProcessKeywords(parsed, cancellationToken);
+                await ProcessFeacnInsertItems(feacnInsertItems.Values, cancellationToken);
             }
             return parsed;
         }
@@ -197,6 +237,36 @@ public class KeywordsProcessingService(AppDbContext db, ILogger<KeywordsProcessi
             else
             {
                 _db.KeyWords.Add(kw);
+            }
+        }
+
+        await _db.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task ProcessFeacnInsertItems(IEnumerable<FeacnInsertItem> parsedItems, CancellationToken cancellationToken)
+    {
+        if (!parsedItems.Any())
+            return;
+
+        var codes = parsedItems.Select(item => item.Code).ToList();
+        var existingItems = await _db.FeacnInsertItems
+            .Where(item => codes.Contains(item.Code))
+            .ToListAsync(cancellationToken);
+
+        var existingDict = existingItems.ToDictionary(item => item.Code, StringComparer.OrdinalIgnoreCase);
+
+        foreach (var newItem in parsedItems)
+        {
+            if (existingDict.TryGetValue(newItem.Code, out var existingItem))
+            {
+                // Update existing item - overwrite both fields
+                existingItem.InsertBefore = newItem.InsertBefore;
+                existingItem.InsertAfter = newItem.InsertAfter;
+            }
+            else
+            {
+                // Create new item
+                _db.FeacnInsertItems.Add(newItem);
             }
         }
 
