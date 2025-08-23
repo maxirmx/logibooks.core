@@ -447,10 +447,10 @@ public class ParcelsController(
     }
 
     [HttpPost("{id}/lookup-feacn-code")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(LookupFeacnCodeResult))]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
-    public async Task<IActionResult> LookupFeacnCode(int id)
+    public async Task<ActionResult<LookupFeacnCodeResult>> LookupFeacnCode(int id)
     {
         _logger.LogDebug("LookupFeacnCode for id={id}", id);
 
@@ -475,9 +475,9 @@ public class ParcelsController(
         var wordsLookupContext = new WordsLookupContext<KeyWord>(
             keyWords.Where(k => k.MatchTypeId < (int)WordMatchTypeCode.MorphologyMatchTypes));
 
-        await _feacnLookupService.LookupAsync(parcel, morphologyContext, wordsLookupContext);
+        var keyWordIds = await _feacnLookupService.LookupAsync(parcel, morphologyContext, wordsLookupContext);
 
-        return NoContent();
+        return Ok(new LookupFeacnCodeResult { KeyWordIds = keyWordIds });
     }
 
     [HttpPost("{id}/validate")]

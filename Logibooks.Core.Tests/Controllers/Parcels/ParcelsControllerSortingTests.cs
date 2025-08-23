@@ -24,7 +24,9 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
+using System.Collections.Generic;
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -97,6 +99,12 @@ public class ParcelsControllerSortingTests
         _logger = new LoggerFactory().CreateLogger<ParcelsController>();
         _mockValidationService = new Mock<IParcelValidationService>();
         _mockFeacnLookupService = new Mock<IParcelFeacnCodeLookupService>();
+        _mockFeacnLookupService.Setup(s => s.LookupAsync(
+            It.IsAny<BaseParcel>(),
+            It.IsAny<MorphologyContext>(),
+            It.IsAny<WordsLookupContext<KeyWord>>(),
+            It.IsAny<CancellationToken>()
+        )).ReturnsAsync(new List<int>());
         _mockProcessingService = new Mock<IRegisterProcessingService>();
         _mockIndPostGenerator = new Mock<IParcelIndPostGenerator>();
         _morphologyService = new MorphologySearchService();

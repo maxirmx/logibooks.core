@@ -26,6 +26,7 @@
 using Logibooks.Core.Data;
 using Logibooks.Core.Interfaces;
 using Logibooks.Core.Models;
+using System.Linq;
 
 namespace Logibooks.Core.Services;
 
@@ -36,7 +37,7 @@ public class ParcelFeacnCodeLookupService(
     private readonly AppDbContext _db = db;
     private readonly IMorphologySearchService _morphService = morphService;
 
-    public async Task LookupAsync(
+    public async Task<List<int>> LookupAsync(
         BaseParcel order,
         MorphologyContext morphologyContext,
         WordsLookupContext<KeyWord> wordsLookupContext,
@@ -44,7 +45,7 @@ public class ParcelFeacnCodeLookupService(
     {
         if (order.CheckStatusId == (int)ParcelCheckStatusCode.MarkedByPartner)
         {
-            return;
+            return [];
         }
 
         var existing = _db.Set<BaseOrderKeyWord>().Where(l => l.BaseOrderId == order.Id);
@@ -72,6 +73,8 @@ public class ParcelFeacnCodeLookupService(
         }
 
         await _db.SaveChangesAsync(cancellationToken);
+
+        return links.Select(l => l.KeyWordId).ToList();
     }
 
     private List<BaseOrderKeyWord> SelectKeyWordLinks(

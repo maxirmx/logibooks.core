@@ -97,6 +97,12 @@ public class ParcelsControllerTests
         _logger = new LoggerFactory().CreateLogger<ParcelsController>();
         _mockValidationService = new Mock<IParcelValidationService>();
         _mockFeacnLookupService = new Mock<IParcelFeacnCodeLookupService>();
+        _mockFeacnLookupService.Setup(s => s.LookupAsync(
+            It.IsAny<BaseParcel>(),
+            It.IsAny<MorphologyContext>(),
+            It.IsAny<WordsLookupContext<KeyWord>>(),
+            It.IsAny<CancellationToken>()
+        )).ReturnsAsync(new List<int>());
         _mockProcessingService = new Mock<IRegisterProcessingService>();
         _mockIndPostGenerator = new Mock<IParcelIndPostGenerator>();
         // Note: Cannot mock static methods GetWBRId() and GetOzonId() - they return constants
@@ -942,7 +948,11 @@ public class ParcelsControllerTests
             It.IsAny<WordsLookupContext<KeyWord>>(),
             It.IsAny<CancellationToken>()),
             Times.Once);
-        Assert.That(result, Is.TypeOf<NoContentResult>());
+        Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
+        var ok = result.Result as OkObjectResult;
+        var dto = ok!.Value as LookupFeacnCodeResult;
+        Assert.That(dto, Is.Not.Null);
+        Assert.That(dto!.KeyWordIds, Is.Empty);
     }
 
     [Test]
@@ -957,8 +967,8 @@ public class ParcelsControllerTests
             It.IsAny<WordsLookupContext<KeyWord>>(),
             It.IsAny<CancellationToken>()),
             Times.Never);
-        Assert.That(result, Is.TypeOf<ObjectResult>());
-        var obj = result as ObjectResult;
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
     }
 
@@ -968,8 +978,8 @@ public class ParcelsControllerTests
         SetCurrentUserId(1);
         var result = await _controller.LookupFeacnCode(99);
 
-        Assert.That(result, Is.TypeOf<ObjectResult>());
-        var obj = result as ObjectResult;
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
         _mockFeacnLookupService.Verify(s => s.LookupAsync(
             It.IsAny<BaseParcel>(),
@@ -991,8 +1001,8 @@ public class ParcelsControllerTests
 
         var result = await _controller.LookupFeacnCode(1);
 
-        Assert.That(result, Is.TypeOf<ObjectResult>());
-        var obj = result as ObjectResult;
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
         _mockFeacnLookupService.Verify(s => s.LookupAsync(
             It.IsAny<BaseParcel>(),
@@ -1035,9 +1045,12 @@ public class ParcelsControllerTests
             _mockProcessingService.Object,
             _mockIndPostGenerator.Object);
 
-        await ctrl.LookupFeacnCode(20);
+        var result = await ctrl.LookupFeacnCode(20);
+        var dto = ((LookupFeacnCodeResult)((OkObjectResult)result.Result!).Value!);
         var links = _dbContext.Set<BaseOrderKeyWord>().Where(l => l.BaseOrderId == 20).ToList();
 
+        Assert.That(dto.KeyWordIds.Count, Is.EqualTo(1));
+        Assert.That(dto.KeyWordIds[0], Is.EqualTo(2));
         Assert.That(links.Count, Is.EqualTo(1));
         Assert.That(links[0].KeyWordId, Is.EqualTo(2));
     }
