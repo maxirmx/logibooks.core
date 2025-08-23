@@ -1070,15 +1070,15 @@ public class ParcelsControllerTests
         var prefix3 = new FeacnPrefix { Id = 102, Code = "56", FeacnOrderId = 20, FeacnOrder = feacnOrder2 }; // Different order
         
         // Create links to all prefixes
-        var link1 = new BaseOrderFeacnPrefix { BaseOrderId = 1, FeacnPrefixId = 100, BaseOrder = order, FeacnPrefix = prefix1 };
-        var link2 = new BaseOrderFeacnPrefix { BaseOrderId = 1, FeacnPrefixId = 101, BaseOrder = order, FeacnPrefix = prefix2 };
-        var link3 = new BaseOrderFeacnPrefix { BaseOrderId = 1, FeacnPrefixId = 102, BaseOrder = order, FeacnPrefix = prefix3 };
+        var link1 = new BaseParcelFeacnPrefix { BaseParcelId = 1, FeacnPrefixId = 100, BaseParcel = order, FeacnPrefix = prefix1 };
+        var link2 = new BaseParcelFeacnPrefix { BaseParcelId = 1, FeacnPrefixId = 101, BaseParcel = order, FeacnPrefix = prefix2 };
+        var link3 = new BaseParcelFeacnPrefix { BaseParcelId = 1, FeacnPrefixId = 102, BaseParcel = order, FeacnPrefix = prefix3 };
 
         _dbContext.Registers.Add(register);
         _dbContext.FeacnOrders.AddRange(feacnOrder1, feacnOrder2);
         _dbContext.FeacnPrefixes.AddRange(prefix1, prefix2, prefix3);
         _dbContext.Orders.Add(order);
-        _dbContext.Set<BaseOrderFeacnPrefix>().AddRange(link1, link2, link3);
+        _dbContext.Set<BaseParcelFeacnPrefix>().AddRange(link1, link2, link3);
         await _dbContext.SaveChangesAsync();
 
         var result = await _controller.GetOrder(1);
@@ -1097,13 +1097,13 @@ public class ParcelsControllerTests
         var feacnOrder = new FeacnOrder { Id = 25, Title = "FEACN Order" };
         var prefix = new FeacnPrefix { Id = 50, Code = "78", FeacnOrderId = 25, FeacnOrder = feacnOrder };
         var order = new WbrParcel { Id = 10, RegisterId = 1, StatusId = 1 };
-        var link = new BaseOrderFeacnPrefix { BaseOrderId = 10, FeacnPrefixId = 50, BaseOrder = order, FeacnPrefix = prefix };
+        var link = new BaseParcelFeacnPrefix { BaseParcelId = 10, FeacnPrefixId = 50, BaseParcel = order, FeacnPrefix = prefix };
         
         _dbContext.Registers.Add(reg);
         _dbContext.FeacnOrders.Add(feacnOrder);
         _dbContext.FeacnPrefixes.Add(prefix);
         _dbContext.Orders.Add(order);
-        _dbContext.Set<BaseOrderFeacnPrefix>().Add(link);
+        _dbContext.Set<BaseParcelFeacnPrefix>().Add(link);
         await _dbContext.SaveChangesAsync();
 
         var result = await _controller.GetOrders(registerId: 1);

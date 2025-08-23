@@ -23,18 +23,18 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-using Logibooks.Core.Models;
+using System.ComponentModel.DataAnnotations.Schema;
 
-namespace Logibooks.Core.Interfaces;
+namespace Logibooks.Core.Models;
 
-public interface IFeacnPrefixCheckService
+[Table("base_parcel_feacn_prefixes")]
+public class BaseParcelFeacnPrefix
 {
-    Task<IEnumerable<BaseParcelFeacnPrefix>> CheckOrderAsync(BaseParcel order, CancellationToken cancellationToken = default);
-    IEnumerable<BaseParcelFeacnPrefix> CheckOrder(BaseParcel order, FeacnPrefixCheckContext context);
-    Task<FeacnPrefixCheckContext> CreateContext(CancellationToken cancellationToken = default);
-}
+    [Column("base_parcel_id")]
+    public int BaseParcelId { get; set; }
+    public BaseParcel BaseParcel { get; set; } = null!;
 
-public class FeacnPrefixCheckContext
-{
-    internal Dictionary<string, List<FeacnPrefix>> Prefixes { get; } = new();
+    [Column("feacn_prefix_id")]
+    public int FeacnPrefixId { get; set; }
+    public FeacnPrefix FeacnPrefix { get; set; } = null!;
 }

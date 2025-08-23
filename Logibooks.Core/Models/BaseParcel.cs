@@ -79,7 +79,7 @@ public abstract class BaseParcel
     }
 
     public ICollection<BaseOrderStopWord> BaseOrderStopWords { get; set; } = [];
-    public ICollection<BaseOrderFeacnPrefix> BaseOrderFeacnPrefixes { get; set; } = [];
+    public ICollection<BaseParcelFeacnPrefix> BaseOrderFeacnPrefixes { get; set; } = [];
     public ICollection<BaseOrderKeyWord> BaseOrderKeyWords { get; set; } = [];
 
     // IndPost generation API

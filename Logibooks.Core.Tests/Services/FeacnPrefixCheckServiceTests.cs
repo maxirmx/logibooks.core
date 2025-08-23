@@ -80,7 +80,7 @@ public class FeacnPrefixCheckServiceTests
         Assert.That(order.CheckStatusId, Is.EqualTo(1));
         Assert.That(links.Count(), Is.EqualTo(1));
         var link = links.First();
-        Assert.That(link.BaseOrderId, Is.EqualTo(1));
+        Assert.That(link.BaseParcelId, Is.EqualTo(1));
         Assert.That(link.FeacnPrefixId, Is.EqualTo(10));
 
     }
@@ -98,7 +98,7 @@ public class FeacnPrefixCheckServiceTests
 
         Assert.That(order.CheckStatusId, Is.EqualTo(1));
         Assert.That(links.Count(), Is.EqualTo(0));
-        Assert.That(_context.Set<BaseOrderFeacnPrefix>().Any(), Is.False);
+        Assert.That(_context.Set<BaseParcelFeacnPrefix>().Any(), Is.False);
     }
 
     [Test]
@@ -116,7 +116,7 @@ public class FeacnPrefixCheckServiceTests
 
         Assert.That(order.CheckStatusId, Is.EqualTo(1));
         Assert.That(links.Count(), Is.EqualTo(0));
-        Assert.That(_context.Set<BaseOrderFeacnPrefix>().Any(), Is.False);
+        Assert.That(_context.Set<BaseParcelFeacnPrefix>().Any(), Is.False);
     }
 
     [Test]

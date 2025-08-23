@@ -48,12 +48,13 @@ namespace Logibooks.Core.Data
         public DbSet<FeacnPrefix> FeacnPrefixes => Set<FeacnPrefix>();
         public DbSet<FeacnPrefixException> FeacnPrefixExceptions => Set<FeacnPrefixException>();
         public DbSet<CustomsProcedure> CustomsProcedures => Set<CustomsProcedure>();
-        public DbSet<BaseOrderFeacnPrefix> BaseOrderFeacnPrefixes => Set<BaseOrderFeacnPrefix>();
+        public DbSet<BaseParcelFeacnPrefix> BaseOrderFeacnPrefixes => Set<BaseParcelFeacnPrefix>();
         public DbSet<TransportationType> TransportationTypes => Set<TransportationType>();
         public DbSet<ParcelView> ParcelViews => Set<ParcelView>();
         public DbSet<KeyWord> KeyWords => Set<KeyWord>();
         public DbSet<KeyWordFeacnCode> KeyWordFeacnCodes => Set<KeyWordFeacnCode>();
         public DbSet<FeacnCode> FeacnCodes => Set<FeacnCode>();
+        public DbSet<FeacnInsertItem> FeacnInsertItems => Set<FeacnInsertItem>();
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -182,15 +183,15 @@ namespace Logibooks.Core.Data
                 .WithMany(sw => sw.BaseOrderStopWords)
                 .HasForeignKey(bosw => bosw.StopWordId);
 
-            modelBuilder.Entity<BaseOrderFeacnPrefix>()
-                .HasKey(bofp => new { bofp.BaseOrderId, bofp.FeacnPrefixId });
+            modelBuilder.Entity<BaseParcelFeacnPrefix>()
+                .HasKey(bofp => new { bofp.BaseParcelId, bofp.FeacnPrefixId });
 
-            modelBuilder.Entity<BaseOrderFeacnPrefix>()
-                .HasOne(bofp => bofp.BaseOrder)
+            modelBuilder.Entity<BaseParcelFeacnPrefix>()
+                .HasOne(bofp => bofp.BaseParcel)
                 .WithMany(bo => bo.BaseOrderFeacnPrefixes)
-                .HasForeignKey(bofp => bofp.BaseOrderId);
+                .HasForeignKey(bofp => bofp.BaseParcelId);
 
-            modelBuilder.Entity<BaseOrderFeacnPrefix>()
+            modelBuilder.Entity<BaseParcelFeacnPrefix>()
                 .HasOne(bofp => bofp.FeacnPrefix)
                 .WithMany(fp => fp.BaseOrderFeacnPrefixes)
                 .HasForeignKey(bofp => bofp.FeacnPrefixId);

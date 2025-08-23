@@ -23,18 +23,28 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Logibooks.Core.Models;
 
-[Table("base_order_feacn_prefixes")]
-public class BaseOrderFeacnPrefix
+[Table("feacn_insert_items")]
+[Index(nameof(Code), Name = "IX_insert_items_code", IsUnique = true)]
+public class FeacnInsertItem
 {
-    [Column("base_order_id")]
-    public int BaseOrderId { get; set; }
-    public BaseParcel BaseOrder { get; set; } = null!;
+    [Key]
+    [Column("id")]
+    public int Id { get; set; }
 
-    [Column("feacn_prefix_id")]
-    public int FeacnPrefixId { get; set; }
-    public FeacnPrefix FeacnPrefix { get; set; } = null!;
+    [Column("code")]
+    [Required]
+    [StringLength(FeacnCode.FeacnCodeLength)]
+    public string Code { get; set; } = string.Empty;
+
+    [Column("insert_before")]
+    public string? InsertBefore { get; set; } = null;
+
+    [Column("insert_after")]
+    public string? InsertAfter { get; set; } = null;
 }
