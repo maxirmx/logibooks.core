@@ -23,16 +23,9 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-using Logibooks.Core.Models;
-using System.Runtime.CompilerServices;
-[assembly: InternalsVisibleTo("Logibooks.Core.Tests")]
+namespace Logibooks.Core.RestModels;
 
-namespace Logibooks.Core.Interfaces;
-
-public interface IParcelFeacnCodeLookupService
+public class LookupFeacnCodeResult
 {
-    Task<List<int>> LookupAsync(BaseParcel order,
-        MorphologyContext morphologyContext,
-        WordsLookupContext<KeyWord> wordsLookupContext,
-        CancellationToken cancellationToken = default);
+    public List<int> KeyWordIds { get; set; } = [];
 }

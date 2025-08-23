@@ -37,6 +37,7 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Collections.Generic;
 
 namespace Logibooks.Core.Tests.Services;
 
@@ -82,7 +83,7 @@ public class RegisterFeacnCodeLookupServiceTests
             It.IsAny<MorphologyContext>(),
             It.IsAny<WordsLookupContext<KeyWord>>(),
             It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync(new List<int>());
 
         var logger = new LoggerFactory().CreateLogger<RegisterFeacnCodeLookupService>();
         var scopeFactory = CreateMockScopeFactory(ctx, mock.Object);
@@ -118,7 +119,7 @@ public class RegisterFeacnCodeLookupServiceTests
             It.IsAny<MorphologyContext>(),
             It.IsAny<WordsLookupContext<KeyWord>>(),
             It.IsAny<CancellationToken>()))
-            .Returns(async () => { await Task.Delay(20); });
+            .Returns(async () => { await Task.Delay(20); return new List<int>(); });
 
         var logger = new LoggerFactory().CreateLogger<RegisterFeacnCodeLookupService>();
         var scopeFactory = CreateMockScopeFactory(ctx, mock.Object);
@@ -249,7 +250,7 @@ public class RegisterFeacnCodeLookupServiceTests
             It.IsAny<MorphologyContext>(),
             It.IsAny<WordsLookupContext<KeyWord>>(),
             It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync(new List<int>());
 
         var logger = new LoggerFactory().CreateLogger<RegisterFeacnCodeLookupService>();
         var scopeFactory = CreateMockScopeFactory(ctx, mock.Object);
