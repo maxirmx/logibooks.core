@@ -85,7 +85,7 @@ public abstract class BaseParcel
     // IndPost generation API
     public abstract string GetParcelNumber();
     public abstract string GetCurrency();
-    public abstract string GetDescription();
+    public abstract string GetDescription(string? insertBefore, string? insertAfter);
     public abstract string GetQuantity();
     public abstract string GetCost();
     public abstract string GetWeight();

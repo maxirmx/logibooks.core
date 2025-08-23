@@ -165,7 +165,24 @@ public class WbrParcel : BaseParcel
     public override string GetParcelNumber() => 
         string.IsNullOrEmpty(Shk) ? $"{Placeholders.ParcelWoNumber}{Id}" : Shk.PadLeft(20, '0');
     public override string GetCurrency() => Currency ?? "RUB";
-    public override string GetDescription() => $"УИН:{GetParcelNumber()}; {ProductName ?? Placeholders.NotSet}";
+    public override string GetDescription(string? insertBefore, string? insertAfter)
+    {
+        var description = $"УИН:{GetParcelNumber()};";
+        
+        if (!string.IsNullOrEmpty(insertBefore))
+        {
+            description += $" {insertBefore}";
+        }
+        
+        description += $" {ProductName ?? Placeholders.NotSet}";
+        
+        if (!string.IsNullOrEmpty(insertAfter))
+        {
+            description += $" {insertAfter}";
+        }
+        
+        return description;
+    } 
     public override string GetQuantity() => Quantity?.ToString() ?? "1";
     public override string GetCost() => FormatCost(UnitPrice * Quantity);
     public override string GetWeight() => FormatWeight(WeightKg);

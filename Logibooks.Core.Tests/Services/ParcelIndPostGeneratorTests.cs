@@ -730,7 +730,7 @@ public class ParcelIndPostGeneratorTests
     public class DummyOrder : BaseParcel {
         public override string GetParcelNumber() => "DUMMY";
         public override string GetCurrency() => "DUMMY";
-        public override string GetDescription() => "DUMMY";
+        public override string GetDescription(string? insertBefore, string? insertAfter) => "DUMMY";
         public override string GetQuantity() => "1";
         public override string GetCost() => "0";
         public override string GetWeight() => "0";
@@ -743,6 +743,204 @@ public class ParcelIndPostGeneratorTests
         public override string GetFullName() => "";
         public override string GetSeries() => "";
         public override string GetNumber() => "";
+    }
+
+    [Test]
+    public async Task GenerateXML_WithFeacnInsertItems_InsertsTextCorrectly()
+    {
+        // Add FEACN insert items
+        _dbContext.FeacnInsertItems.AddRange(
+            new FeacnInsertItem { Id = 1, Code = "1234567890", InsertBefore = "BEFORE TEXT", InsertAfter = "AFTER TEXT" },
+            new FeacnInsertItem { Id = 2, Code = "0987654321", InsertBefore = null, InsertAfter = "ONLY AFTER" },
+            new FeacnInsertItem { Id = 3, Code = "1111111111", InsertBefore = "ONLY BEFORE", InsertAfter = null }
+        );
+        
+        var register = new Register
+        {
+            Id = 900,
+            CompanyId = 2,
+            TransportationTypeId = 1,
+            CustomsProcedureId = 1,
+            FileName = "feacn_insert_test.xlsx",
+            DTime = DateTime.Now,
+            InvoiceNumber = "FEACN-INV-001",
+            InvoiceDate = new DateOnly(2024, 6, 1),
+            TheOtherCountryCode = 860
+        };
+
+        _dbContext.Registers.Add(register);
+
+        // Add WBR orders with different TN VED codes
+        _dbContext.WbrOrders.AddRange(
+            new WbrParcel
+            {
+                Id = 901,
+                RegisterId = 900,
+                StatusId = 1,
+                CountryCode = 643,
+                Shk = "WBR-SHK-1",
+                ProductName = "Product 1",
+                TnVed = "1234567890", // Has both InsertBefore and InsertAfter
+                CheckStatusId = (int)ParcelCheckStatusCode.NoIssues
+            },
+            new WbrParcel
+            {
+                Id = 902,
+                RegisterId = 900,
+                StatusId = 1,
+                CountryCode = 643,
+                Shk = "WBR-SHK-2",
+                ProductName = "Product 2",
+                TnVed = "0987654321", // Has only InsertAfter
+                CheckStatusId = (int)ParcelCheckStatusCode.NoIssues
+            },
+            new WbrParcel
+            {
+                Id = 903,
+                RegisterId = 900,
+                StatusId = 1,
+                CountryCode = 643,
+                Shk = "WBR-SHK-3",
+                ProductName = "Product 3",
+                TnVed = "1111111111", // Has only InsertBefore
+                CheckStatusId = (int)ParcelCheckStatusCode.NoIssues
+            },
+            new WbrParcel
+            {
+                Id = 904,
+                RegisterId = 900,
+                StatusId = 1,
+                CountryCode = 643,
+                Shk = "WBR-SHK-4",
+                ProductName = "Product 4",
+                TnVed = "9999999999", // No FEACN insert item
+                CheckStatusId = (int)ParcelCheckStatusCode.NoIssues
+            }
+        );
+
+        _dbContext.SaveChanges();
+
+        var svc = new ParcelIndPostGenerator(_dbContext, new IndPostXmlService());
+
+        // Test Product 1 - should have both InsertBefore and InsertAfter
+        var (filename1, xml1) = await svc.GenerateXML(901);
+        Assert.That(xml1, Does.Contain("BEFORE TEXT"));
+        Assert.That(xml1, Does.Contain("Product 1"));
+        Assert.That(xml1, Does.Contain("AFTER TEXT"));
+
+        // Test Product 2 - should have only InsertAfter
+        var (filename2, xml2) = await svc.GenerateXML(902);
+        Assert.That(xml2, Does.Not.Contain("BEFORE TEXT"));
+        Assert.That(xml2, Does.Contain("Product 2"));
+        Assert.That(xml2, Does.Contain("ONLY AFTER"));
+
+        // Test Product 3 - should have only InsertBefore
+        var (filename3, xml3) = await svc.GenerateXML(903);
+        Assert.That(xml3, Does.Contain("ONLY BEFORE"));
+        Assert.That(xml3, Does.Contain("Product 3"));
+        Assert.That(xml3, Does.Not.Contain("AFTER TEXT"));
+
+        // Test Product 4 - should have no insertions
+        var (filename4, xml4) = await svc.GenerateXML(904);
+        Assert.That(xml4, Does.Not.Contain("BEFORE TEXT"));
+        Assert.That(xml4, Does.Contain("Product 4"));
+        Assert.That(xml4, Does.Not.Contain("AFTER TEXT"));
+        Assert.That(xml4, Does.Not.Contain("ONLY BEFORE"));
+        Assert.That(xml4, Does.Not.Contain("ONLY AFTER"));
+    }
+
+    [Test]
+    public async Task GenerateXML4R_LoadsFeacnInsertItemsOnceForMultipleOrders()
+    {
+        // Add FEACN insert items with shared codes
+        _dbContext.FeacnInsertItems.AddRange(
+            new FeacnInsertItem { Id = 1, Code = "1234567890", InsertBefore = "SHARED BEFORE", InsertAfter = "SHARED AFTER" },
+            new FeacnInsertItem { Id = 2, Code = "0987654321", InsertBefore = null, InsertAfter = "UNIQUE AFTER" }
+        );
+        
+        var register = new Register
+        {
+            Id = 950,
+            CompanyId = 2, // WBR company
+            TransportationTypeId = 1,
+            CustomsProcedureId = 1,
+            FileName = "shared_feacn_test.xlsx",
+            DTime = DateTime.Now,
+            InvoiceNumber = "SHARED-INV-001",
+            InvoiceDate = new DateOnly(2024, 6, 1),
+            TheOtherCountryCode = 860
+        };
+        
+        _dbContext.Registers.Add(register);
+
+        // Add WBR orders that share the same TN VED code
+        _dbContext.WbrOrders.AddRange(
+            new WbrParcel
+            {
+                Id = 951,
+                RegisterId = 950,
+                StatusId = 1,
+                CountryCode = 643,
+                Shk = "SHARED-SHK-1",
+                ProductName = "Product 1",
+                TnVed = "1234567890", // Shared code
+                CheckStatusId = (int)ParcelCheckStatusCode.NoIssues
+            },
+            new WbrParcel
+            {
+                Id = 952,
+                RegisterId = 950,
+                StatusId = 1,
+                CountryCode = 643,
+                Shk = "SHARED-SHK-2",
+                ProductName = "Product 2",
+                TnVed = "1234567890", // Same shared code
+                CheckStatusId = (int)ParcelCheckStatusCode.NoIssues
+            },
+            new WbrParcel
+            {
+                Id = 953,
+                RegisterId = 950,
+                StatusId = 1,
+                CountryCode = 643,
+                Shk = "UNIQUE-SHK-3",
+                ProductName = "Product 3",
+                TnVed = "0987654321", // Different code
+                CheckStatusId = (int)ParcelCheckStatusCode.NoIssues
+            }
+        );
+
+        _dbContext.SaveChanges();
+
+        var svc = new ParcelIndPostGenerator(_dbContext, new IndPostXmlService());
+
+        // Generate ZIP with multiple orders - should load FEACN insert items once
+        var (fileName, zipData) = await svc.GenerateXML4R(950);
+
+        // Verify ZIP contains expected files
+        using var ms = new MemoryStream(zipData);
+        using var archive = new ZipArchive(ms, ZipArchiveMode.Read);
+        Assert.That(archive.Entries.Count, Is.EqualTo(3)); // Three unique orders
+
+        // Verify content of each XML file contains correct FEACN inserts
+        foreach (var entry in archive.Entries)
+        {
+            using var reader = new StreamReader(entry.Open());
+            var xmlContent = reader.ReadToEnd();
+            
+            if (entry.Name.Contains("SHARED-SHK"))
+            {
+                // Orders with shared TN VED should have shared FEACN insert
+                Assert.That(xmlContent, Does.Contain("SHARED BEFORE"));
+                Assert.That(xmlContent, Does.Contain("SHARED AFTER"));
+            }
+            else if (entry.Name.Contains("UNIQUE-SHK"))
+            {
+                // Order with unique TN VED should have unique FEACN insert
+                Assert.That(xmlContent, Does.Not.Contain("SHARED BEFORE"));
+                Assert.That(xmlContent, Does.Contain("UNIQUE AFTER"));
+            }
+        }
     }
 
 }

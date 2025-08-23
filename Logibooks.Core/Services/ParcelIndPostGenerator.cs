@@ -63,10 +63,10 @@ public class ParcelIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServi
         if (order.CheckStatusId >= (int)ParcelCheckStatusCode.HasIssues && order.CheckStatusId < (int)ParcelCheckStatusCode.NoIssues)
             throw new InvalidOperationException($"Order is not eligible for IndPost XML [id={orderId}]");
 
-        return (GenerateFilename(order), GenerateXML(order));
+        return (GenerateFilename(order), await GenerateXML(order));
     }
 
-    public string GenerateXML(BaseParcel order)
+    public async Task<string> GenerateXML(BaseParcel order, Dictionary<string, FeacnInsertItem>? feacnInsertItems = null)
     {
         // Skip if in [HasIssues, NoIssues)
         if (order.CheckStatusId >= (int)ParcelCheckStatusCode.HasIssues && order.CheckStatusId < (int)ParcelCheckStatusCode.NoIssues)
@@ -180,14 +180,26 @@ public class ParcelIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServi
             ordersForGoods = [];
         }
 
+        // Load FEACN insert items only if not provided as parameter
+        if (feacnInsertItems == null)
+        {
+            var tnVedCodes = ordersForGoods.Select(o => o.TnVed).Where(tnVed => !string.IsNullOrEmpty(tnVed)).Distinct().ToList();
+            feacnInsertItems = await _db.FeacnInsertItems.AsNoTracking()
+                .Where(fii => tnVedCodes.Contains(fii.Code))
+                .ToDictionaryAsync(fii => fii.Code, fii => fii);
+        }
+
         decimal totalCost = 0m;
         decimal totalWeight = 0m;
 
         foreach (var o in ordersForGoods)
         {
+            // Look up FEACN insert item for this parcel's TN VED code
+            feacnInsertItems.TryGetValue(o.TnVed ?? "", out var feacnInsertItem);
+
             goodsItems.Add(new Dictionary<string, string?>
             {
-                { "DESCR", o.GetDescription() },
+                { "DESCR", o.GetDescription(feacnInsertItem?.InsertBefore, feacnInsertItem?.InsertAfter) },
                 { "QTY", o.GetQuantity() },
                 { "COST", o.GetCost() },
                 { "COSTRUB", o.GetCost() },
@@ -257,6 +269,51 @@ public class ParcelIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServi
             orders = [];
         }
 
+        // Pre-load all FEACN insert items for the entire register once
+        Dictionary<string, FeacnInsertItem> feacnInsertItems = new Dictionary<string, FeacnInsertItem>();
+        if (orders.Any())
+        {
+            var allTnVedCodes = new HashSet<string>();
+            
+            // Collect all TN VED codes from all orders in this register
+            foreach (var order in orders)
+            {
+                IEnumerable<BaseParcel> ordersForGoods;
+                if (order is OzonParcel ozonOrder)
+                {
+                    ordersForGoods = _db.OzonOrders.AsNoTracking()
+                        .Where(o => o.PostingNumber == ozonOrder.PostingNumber && o.RegisterId == ozonOrder.RegisterId)
+                        .ToList();
+                }
+                else if (order is WbrParcel wbrOrder)
+                {
+                    ordersForGoods = _db.WbrOrders.AsNoTracking()
+                        .Where(o => o.Shk == wbrOrder.Shk && o.RegisterId == wbrOrder.RegisterId)
+                        .ToList();
+                }
+                else
+                {
+                    continue;
+                }
+
+                foreach (var o in ordersForGoods)
+                {
+                    if (!string.IsNullOrEmpty(o.TnVed))
+                    {
+                        allTnVedCodes.Add(o.TnVed);
+                    }
+                }
+            }
+
+            // Load all FEACN insert items once for all orders
+            if (allTnVedCodes.Any())
+            {
+                feacnInsertItems = await _db.FeacnInsertItems.AsNoTracking()
+                    .Where(fii => allTnVedCodes.Contains(fii.Code))
+                    .ToDictionaryAsync(fii => fii.Code, fii => fii);
+            }
+        }
+
         var fileBase = !string.IsNullOrWhiteSpace(register.InvoiceNumber) ? register.InvoiceNumber : registerId.ToString();
 
         using var ms = new MemoryStream();
@@ -270,7 +327,7 @@ public class ParcelIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServi
 
                 var entry = archive.CreateEntry($"{fileBase}_{order.GetParcelNumber()}.xml");
                 using var writer = new StreamWriter(entry.Open(), Encoding.UTF8);
-                var xml = GenerateXML(order);
+                var xml = await GenerateXML(order, feacnInsertItems);
                 writer.Write(xml);
             }
         }
