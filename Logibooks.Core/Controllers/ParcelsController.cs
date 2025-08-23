@@ -475,8 +475,7 @@ public class ParcelsController(
         var wordsLookupContext = new WordsLookupContext<KeyWord>(
             keyWords.Where(k => k.MatchTypeId < (int)WordMatchTypeCode.MorphologyMatchTypes));
 
-        await _feacnLookupService.LookupAsync(order, morphologyContext, wordsLookupContext);
-
+        var keyWordIds = await _feacnLookupService.LookupAsync(parcel, morphologyContext, wordsLookupContext);
         return Ok(new LookupFeacnCodeResult { KeyWordIds = keyWordIds });
     }
 
