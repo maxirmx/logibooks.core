@@ -138,7 +138,24 @@ public class OzonParcel : BaseParcel
     // IndPost generation API
     public override string GetParcelNumber() => PostingNumber ?? $"{Placeholders.ParcelWoNumber}{Id}";
     public override string GetCurrency() => Currency ?? "RUB";
-    public override string GetDescription() => $"УИН:{(Article ?? "").PadLeft(20, '0')}; {ProductName ?? Placeholders.NotSet}";
+    public override string GetDescription(string? insertBefore, string? insertAfter)
+    {
+        var description = $"УИН:{(Article ?? "").PadLeft(20, '0')};";
+        
+        if (!string.IsNullOrEmpty(insertBefore))
+        {
+            description += $" {insertBefore}";
+        }
+        
+        description += $" {ProductName ?? Placeholders.NotSet}";
+        
+        if (!string.IsNullOrEmpty(insertAfter))
+        {
+            description += $" {insertAfter}";
+        }
+        
+        return description;
+    }
     public override string GetQuantity() => Quantity?.ToString() ?? "1";
     public override string GetCost() => FormatCost(UnitPrice * Quantity);
     public override string GetWeight() => FormatWeight(WeightKg);

@@ -34,7 +34,7 @@ public class FeacnPrefixCheckService(AppDbContext db) : IFeacnPrefixCheckService
 {
     private readonly AppDbContext _db = db;
 
-    public async Task<IEnumerable<BaseOrderFeacnPrefix>> CheckOrderAsync(BaseParcel order, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<BaseParcelFeacnPrefix>> CheckOrderAsync(BaseParcel order, CancellationToken cancellationToken = default)
     {
         if (order.TnVed == null || order.TnVed.Length < 2)
         {
@@ -51,14 +51,14 @@ public class FeacnPrefixCheckService(AppDbContext db) : IFeacnPrefixCheckService
             .AsNoTracking()
             .ToListAsync(cancellationToken);
 
-        var links = new List<BaseOrderFeacnPrefix>();
+        var links = new List<BaseParcelFeacnPrefix>();
         foreach (var prefix in prefixes)
         {
             if (MatchesPrefix(tnVed, prefix))
             {
-                links.Add(new BaseOrderFeacnPrefix
+                links.Add(new BaseParcelFeacnPrefix
                 {
-                    BaseOrderId = order.Id,
+                    BaseParcelId = order.Id,
                     FeacnPrefixId = prefix.Id
                 });
             }
@@ -67,7 +67,7 @@ public class FeacnPrefixCheckService(AppDbContext db) : IFeacnPrefixCheckService
         return links;
     }
 
-    public IEnumerable<BaseOrderFeacnPrefix> CheckOrder(
+    public IEnumerable<BaseParcelFeacnPrefix> CheckOrder(
         BaseParcel order,
         FeacnPrefixCheckContext context)
     {
@@ -84,14 +84,14 @@ public class FeacnPrefixCheckService(AppDbContext db) : IFeacnPrefixCheckService
             return [];
         }
 
-        var links = new List<BaseOrderFeacnPrefix>();
+        var links = new List<BaseParcelFeacnPrefix>();
         foreach (var prefix in prefixes)
         {
             if (MatchesPrefix(tnVed, prefix))
             {
-                links.Add(new BaseOrderFeacnPrefix
+                links.Add(new BaseParcelFeacnPrefix
                 {
-                    BaseOrderId = order.Id,
+                    BaseParcelId = order.Id,
                     FeacnPrefixId = prefix.Id
                 });
             }

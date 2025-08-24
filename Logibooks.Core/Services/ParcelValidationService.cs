@@ -57,9 +57,9 @@ public class ParcelValidationService(
         var existing1 = _db.Set<BaseOrderStopWord>().Where(l => l.BaseOrderId == order.Id);
         _db.Set<BaseOrderStopWord>().RemoveRange(existing1);
 
-        var existing2 = _db.Set<BaseOrderFeacnPrefix>()
-            .Where(l => l.BaseOrderId == order.Id);
-        _db.Set<BaseOrderFeacnPrefix>().RemoveRange(existing2);
+        var existing2 = _db.Set<BaseParcelFeacnPrefix>()
+            .Where(l => l.BaseParcelId == order.Id);
+        _db.Set<BaseParcelFeacnPrefix>().RemoveRange(existing2);
 
         if (string.IsNullOrWhiteSpace(order.TnVed) || !TnVedRegex.IsMatch(order.TnVed))
         {

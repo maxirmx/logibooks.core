@@ -52,7 +52,7 @@ public class FeacnPrefix
     public FeacnOrder FeacnOrder { get; set; } = null!;
 
     public ICollection<FeacnPrefixException> FeacnPrefixExceptions { get; set; } = new List<FeacnPrefixException>();
-    public ICollection<BaseOrderFeacnPrefix> BaseOrderFeacnPrefixes { get; set; } = new List<BaseOrderFeacnPrefix>();
+    public ICollection<BaseParcelFeacnPrefix> BaseOrderFeacnPrefixes { get; set; } = new List<BaseParcelFeacnPrefix>();
 
     [NotMapped]
     public long LeftValue

@@ -23,18 +23,36 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-using System.ComponentModel.DataAnnotations.Schema;
+namespace Logibooks.Core.RestModels;
 
-namespace Logibooks.Core.Models;
+using Logibooks.Core.Models;
 
-[Table("base_order_feacn_prefixes")]
-public class BaseOrderFeacnPrefix
+public class FeacnInsertItemDto
 {
-    [Column("base_order_id")]
-    public int BaseOrderId { get; set; }
-    public BaseParcel BaseOrder { get; set; } = null!;
+    public int Id { get; set; }
+    public string Code { get; set; } = string.Empty;
+    public string? InsBefore { get; set; }
+    public string? InsAfter { get; set; }
 
-    [Column("feacn_prefix_id")]
-    public int FeacnPrefixId { get; set; }
-    public FeacnPrefix FeacnPrefix { get; set; } = null!;
+    public FeacnInsertItemDto() {}
+
+    public FeacnInsertItemDto(FeacnInsertItem item)
+    {
+        Id = item.Id;
+        Code = item.Code;
+        InsBefore = item.InsertBefore;
+        InsAfter = item.InsertAfter;
+    }
+
+    public FeacnInsertItem ToModel()
+    {
+        return new FeacnInsertItem
+        {
+            Id = Id,
+            Code = Code,
+            InsertBefore = InsBefore,
+            InsertAfter = InsAfter
+        };
+    }
 }
+

@@ -79,13 +79,13 @@ public abstract class BaseParcel
     }
 
     public ICollection<BaseOrderStopWord> BaseOrderStopWords { get; set; } = [];
-    public ICollection<BaseOrderFeacnPrefix> BaseOrderFeacnPrefixes { get; set; } = [];
+    public ICollection<BaseParcelFeacnPrefix> BaseOrderFeacnPrefixes { get; set; } = [];
     public ICollection<BaseOrderKeyWord> BaseOrderKeyWords { get; set; } = [];
 
     // IndPost generation API
     public abstract string GetParcelNumber();
     public abstract string GetCurrency();
-    public abstract string GetDescription();
+    public abstract string GetDescription(string? insertBefore, string? insertAfter);
     public abstract string GetQuantity();
     public abstract string GetCost();
     public abstract string GetWeight();

@@ -23,18 +23,28 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-using Logibooks.Core.Models;
+using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
-namespace Logibooks.Core.Interfaces;
+namespace Logibooks.Core.Models;
 
-public interface IFeacnPrefixCheckService
+[Table("feacn_insert_items")]
+[Index(nameof(Code), Name = "IX_insert_items_code", IsUnique = true)]
+public class FeacnInsertItem
 {
-    Task<IEnumerable<BaseParcelFeacnPrefix>> CheckOrderAsync(BaseParcel order, CancellationToken cancellationToken = default);
-    IEnumerable<BaseParcelFeacnPrefix> CheckOrder(BaseParcel order, FeacnPrefixCheckContext context);
-    Task<FeacnPrefixCheckContext> CreateContext(CancellationToken cancellationToken = default);
-}
+    [Key]
+    [Column("id")]
+    public int Id { get; set; }
 
-public class FeacnPrefixCheckContext
-{
-    internal Dictionary<string, List<FeacnPrefix>> Prefixes { get; } = new();
+    [Column("code")]
+    [Required]
+    [StringLength(FeacnCode.FeacnCodeLength)]
+    public string Code { get; set; } = string.Empty;
+
+    [Column("insert_before")]
+    public string? InsertBefore { get; set; } = null;
+
+    [Column("insert_after")]
+    public string? InsertAfter { get; set; } = null;
 }

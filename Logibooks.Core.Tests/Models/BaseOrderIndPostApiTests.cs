@@ -54,7 +54,7 @@ public class BaseOrderIndPostApiTests
 
         Assert.That(order.GetParcelNumber(), Is.EqualTo("SHK123".PadLeft(20, '0')));
         Assert.That(order.GetCurrency(), Is.EqualTo("RUR"));
-        Assert.That(order.GetDescription(), Does.Contain("УИН:"));
+        Assert.That(order.GetDescription("Логибукс", "Тестовый заказ"), Does.Contain("УИН:"));
         Assert.That(order.GetQuantity(), Is.EqualTo("2"));
         Assert.That(order.GetCost(), Is.EqualTo("21.00"));
         Assert.That(order.GetWeight(), Is.EqualTo("1.234"));
@@ -95,7 +95,7 @@ public class BaseOrderIndPostApiTests
 
         Assert.That(order.GetParcelNumber(), Is.EqualTo("POST123"));
         Assert.That(order.GetCurrency(), Is.EqualTo("EUR"));
-        Assert.That(order.GetDescription(), Does.Contain("УИН:"));
+        Assert.That(order.GetDescription("Логибукс", "Тестовый заказ"), Does.Contain("УИН:"));
         Assert.That(order.GetQuantity(), Is.EqualTo("3"));
         Assert.That(order.GetCost(), Is.EqualTo("46.50"));
         Assert.That(order.GetWeight(), Is.EqualTo("2.345"));

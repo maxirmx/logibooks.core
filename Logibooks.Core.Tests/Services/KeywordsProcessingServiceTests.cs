@@ -111,6 +111,36 @@ public class KeywordsProcessingServiceTests
         return ms.ToArray();
     }
 
+    private byte[] CreateTestExcelFileWithInsertColumns(List<(string code, string name, string? insertBefore, string? insertAfter)> rows, bool includeHeader = true)
+    {
+        using var workbook = new XLWorkbook();
+        var worksheet = workbook.Worksheets.Add("Sheet1");
+
+        int rowIndex = 1;
+
+        if (includeHeader)
+        {
+            worksheet.Cell(rowIndex, 1).Value = "Код";
+            worksheet.Cell(rowIndex, 2).Value = "Наименование";
+            worksheet.Cell(rowIndex, 3).Value = "Перед описанием";
+            worksheet.Cell(rowIndex, 4).Value = "В конце описания";
+            rowIndex++;
+        }
+
+        foreach (var (code, name, insertBefore, insertAfter) in rows)
+        {
+            worksheet.Cell(rowIndex, 1).Value = code;
+            worksheet.Cell(rowIndex, 2).Value = name;
+            worksheet.Cell(rowIndex, 3).Value = insertBefore ?? "";
+            worksheet.Cell(rowIndex, 4).Value = insertAfter ?? "";
+            rowIndex++;
+        }
+
+        using var ms = new MemoryStream();
+        workbook.SaveAs(ms);
+        return ms.ToArray();
+    }
+
     private byte[] CreateEmptyExcelFile()
     {
         using var workbook = new XLWorkbook();
@@ -643,6 +673,348 @@ public class KeywordsProcessingServiceTests
         Assert.That(savedFeacnCodes, Contains.Item("1234567890"));
         Assert.That(savedFeacnCodes, Contains.Item("0987654321"));
         Assert.That(savedFeacnCodes, Contains.Item("5555555555"));
+    }
+
+    [Test]
+    public async Task UploadKeywordsFromExcelAsync_WithFeacnInsertColumns_ShouldCreateFeacnInsertItems()
+    {
+        // Arrange
+        var testData = new List<(string, string, string?, string?)>
+        {
+            ("1234567890", "тестовое слово", "до текста", "после текста"),
+            ("0987654321", "другое слово", null, "только после"),
+            ("5555555555", "третье слово", "только до", null),
+            ("6666666666", "четвертое слово", null, null) // No insert values
+        };
+        var excelBytes = CreateTestExcelFileWithInsertColumns(testData);
+
+        // Act
+        var result = await _service.UploadKeywordsFromExcelAsync(excelBytes, "test.xlsx");
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.Count, Is.EqualTo(4)); // 4 keywords processed
+
+        // Verify FEACN insert items were created (only for first 3 rows with non-null values)
+        var feacnInsertItems = await _dbContext.FeacnInsertItems.ToListAsync();
+        Assert.That(feacnInsertItems.Count, Is.EqualTo(3)); // Only 3 have insert values
+
+        // Verify first item (both values)
+        var item1 = feacnInsertItems.FirstOrDefault(item => item.Code == "1234567890");
+        Assert.That(item1, Is.Not.Null);
+        Assert.That(item1!.InsertBefore, Is.EqualTo("до текста"));
+        Assert.That(item1.InsertAfter, Is.EqualTo("после текста"));
+
+        // Verify second item (only after)
+        var item2 = feacnInsertItems.FirstOrDefault(item => item.Code == "0987654321");
+        Assert.That(item2, Is.Not.Null);
+        Assert.That(item2!.InsertBefore, Is.Null);
+        Assert.That(item2.InsertAfter, Is.EqualTo("только после"));
+
+        // Verify third item (only before)
+        var item3 = feacnInsertItems.FirstOrDefault(item => item.Code == "5555555555");
+        Assert.That(item3, Is.Not.Null);
+        Assert.That(item3!.InsertBefore, Is.EqualTo("только до"));
+        Assert.That(item3.InsertAfter, Is.Null);
+
+        // Verify no item for fourth row (no insert values)
+        var item4 = feacnInsertItems.FirstOrDefault(item => item.Code == "6666666666");
+        Assert.That(item4, Is.Null);
+    }
+
+    [Test]
+    public async Task UploadKeywordsFromExcelAsync_WithFeacnInsertColumns_ShouldUpdateExistingItems()
+    {
+        // Arrange - Add existing FEACN insert item
+        var existingItem = new FeacnInsertItem
+        {
+            Code = "1234567890",
+            InsertBefore = "старое до",
+            InsertAfter = "старое после"
+        };
+        _dbContext.FeacnInsertItems.Add(existingItem);
+        await _dbContext.SaveChangesAsync();
+
+        var testData = new List<(string, string, string?, string?)>
+        {
+            ("1234567890", "тестовое слово", "новое до", null) // Update existing item - overwrite both fields
+        };
+        var excelBytes = CreateTestExcelFileWithInsertColumns(testData);
+
+        // Act
+        var result = await _service.UploadKeywordsFromExcelAsync(excelBytes, "test.xlsx");
+
+        // Assert
+        var feacnInsertItems = await _dbContext.FeacnInsertItems.ToListAsync();
+        Assert.That(feacnInsertItems.Count, Is.EqualTo(1)); // Still only one item
+
+        var updatedItem = feacnInsertItems.First();
+        Assert.That(updatedItem.Code, Is.EqualTo("1234567890"));
+        Assert.That(updatedItem.InsertBefore, Is.EqualTo("новое до")); // Updated
+        Assert.That(updatedItem.InsertAfter, Is.Null); // Overwritten to null
+    }
+
+    [Test]
+    public async Task UploadKeywordsFromExcelAsync_WithFeacnInsertColumns_ShouldTrimsWhitespace()
+    {
+        // Arrange
+        var testData = new List<(string, string, string?, string?)>
+        {
+            ("1234567890", "тестовое слово", "  до с пробелами  ", "  после с пробелами  ")
+        };
+        var excelBytes = CreateTestExcelFileWithInsertColumns(testData);
+
+        // Act
+        var result = await _service.UploadKeywordsFromExcelAsync(excelBytes, "test.xlsx");
+
+        // Assert
+        var feacnInsertItems = await _dbContext.FeacnInsertItems.ToListAsync();
+        Assert.That(feacnInsertItems.Count, Is.EqualTo(1));
+
+        var item = feacnInsertItems.First();
+        Assert.That(item.InsertBefore, Is.EqualTo("до с пробелами")); // Trimmed
+        Assert.That(item.InsertAfter, Is.EqualTo("после с пробелами")); // Trimmed
+    }
+
+    [Test]
+    public async Task UploadKeywordsFromExcelAsync_WithFeacnInsertColumns_ShouldTreatEmptyStringAsNull()
+    {
+        // Arrange
+        var testData = new List<(string, string, string?, string?)>
+        {
+            ("1234567890", "тестовое слово", "", "   ") // Empty and whitespace-only values
+        };
+        var excelBytes = CreateTestExcelFileWithInsertColumns(testData);
+
+        // Act
+        var result = await _service.UploadKeywordsFromExcelAsync(excelBytes, "test.xlsx");
+
+        // Assert
+        var feacnInsertItems = await _dbContext.FeacnInsertItems.ToListAsync();
+        Assert.That(feacnInsertItems.Count, Is.EqualTo(0)); // No item created since both values are effectively null
+    }
+
+    [Test]
+    public async Task UploadKeywordsFromExcelAsync_WithOnlyInsertBeforeColumn_ShouldWork()
+    {
+        // Arrange
+        using var workbook = new XLWorkbook();
+        var worksheet = workbook.Worksheets.Add("Sheet1");
+        
+        // Header with only insertBefore column
+        worksheet.Cell(1, 1).Value = "Код";
+        worksheet.Cell(1, 2).Value = "Наименование";
+        worksheet.Cell(1, 3).Value = "Перед описанием";
+        
+        // Data
+        worksheet.Cell(2, 1).Value = "1234567890";
+        worksheet.Cell(2, 2).Value = "тестовое слово";
+        worksheet.Cell(2, 3).Value = "только до";
+        
+        using var ms = new MemoryStream();
+        workbook.SaveAs(ms);
+        var excelBytes = ms.ToArray();
+
+        // Act
+        var result = await _service.UploadKeywordsFromExcelAsync(excelBytes, "test.xlsx");
+
+        // Assert
+        var feacnInsertItems = await _dbContext.FeacnInsertItems.ToListAsync();
+        Assert.That(feacnInsertItems.Count, Is.EqualTo(1));
+
+        var item = feacnInsertItems.First();
+        Assert.That(item.Code, Is.EqualTo("1234567890"));
+        Assert.That(item.InsertBefore, Is.EqualTo("только до"));
+        Assert.That(item.InsertAfter, Is.Null);
+    }
+
+    [Test]
+    public async Task UploadKeywordsFromExcelAsync_WithOnlyInsertAfterColumn_ShouldWork()
+    {
+        // Arrange
+        using var workbook = new XLWorkbook();
+        var worksheet = workbook.Worksheets.Add("Sheet1");
+        
+        // Header with only insertAfter column
+        worksheet.Cell(1, 1).Value = "Код";
+        worksheet.Cell(1, 2).Value = "Наименование";
+        worksheet.Cell(1, 3).Value = "В конце описания";
+        
+        // Data
+        worksheet.Cell(2, 1).Value = "1234567890";
+        worksheet.Cell(2, 2).Value = "тестовое слово";
+        worksheet.Cell(2, 3).Value = "только после";
+        
+        using var ms = new MemoryStream();
+        workbook.SaveAs(ms);
+        var excelBytes = ms.ToArray();
+
+        // Act
+        var result = await _service.UploadKeywordsFromExcelAsync(excelBytes, "test.xlsx");
+
+        // Assert
+        var feacnInsertItems = await _dbContext.FeacnInsertItems.ToListAsync();
+        Assert.That(feacnInsertItems.Count, Is.EqualTo(1));
+
+        var item = feacnInsertItems.First();
+        Assert.That(item.Code, Is.EqualTo("1234567890"));
+        Assert.That(item.InsertBefore, Is.Null);
+        Assert.That(item.InsertAfter, Is.EqualTo("только после"));
+    }
+
+    [Test]
+    public async Task UploadKeywordsFromExcelAsync_WithoutInsertColumns_ShouldNotAffectFeacnInsertItems()
+    {
+        // Arrange - Add existing FEACN insert item
+        var existingItem = new FeacnInsertItem
+        {
+            Code = "1234567890",
+            InsertBefore = "существующее до",
+            InsertAfter = "существующее после"
+        };
+        _dbContext.FeacnInsertItems.Add(existingItem);
+        await _dbContext.SaveChangesAsync();
+
+        // Create Excel without insert columns
+        var testData = new List<(string, string)>
+        {
+            ("1234567890", "тестовое слово"),
+            ("0987654321", "другое слово")
+        };
+        var excelBytes = CreateTestExcelFile(testData);
+
+        // Act
+        var result = await _service.UploadKeywordsFromExcelAsync(excelBytes, "test.xlsx");
+
+        // Assert
+        var feacnInsertItems = await _dbContext.FeacnInsertItems.ToListAsync();
+        Assert.That(feacnInsertItems.Count, Is.EqualTo(1)); // Existing item preserved
+
+        var item = feacnInsertItems.First();
+        Assert.That(item.Code, Is.EqualTo("1234567890"));
+        Assert.That(item.InsertBefore, Is.EqualTo("существующее до")); // Unchanged
+        Assert.That(item.InsertAfter, Is.EqualTo("существующее после")); // Unchanged
+    }
+
+    [Test]
+    public async Task UploadKeywordsFromExcelAsync_WithFeacnInsertColumns_ShouldHandleNineDigitCodes()
+    {
+        // Arrange
+        var testData = new List<(string, string, string?, string?)>
+        {
+            ("123456789", "тестовое слово", "до текста", "после текста") // 9 digits, should be padded
+        };
+        var excelBytes = CreateTestExcelFileWithInsertColumns(testData);
+
+        // Act
+        var result = await _service.UploadKeywordsFromExcelAsync(excelBytes, "test.xlsx");
+
+        // Assert
+        var feacnInsertItems = await _dbContext.FeacnInsertItems.ToListAsync();
+        Assert.That(feacnInsertItems.Count, Is.EqualTo(1));
+
+        var item = feacnInsertItems.First();
+        Assert.That(item.Code, Is.EqualTo("0123456789")); // Padded with zero
+        Assert.That(item.InsertBefore, Is.EqualTo("до текста"));
+        Assert.That(item.InsertAfter, Is.EqualTo("после текста"));
+    }
+
+    [Test]
+    public async Task UploadKeywordsFromExcelAsync_WithFeacnInsertColumns_ShouldHandleMultipleRowsWithSameCode()
+    {
+        // Arrange - Multiple rows with same code but different insert values
+        var testData = new List<(string, string, string?, string?)>
+        {
+            ("1234567890", "первое слово", "до1", "после1"),
+            ("1234567890", "второе слово", "до2", "после2") // Same code, should overwrite
+        };
+        var excelBytes = CreateTestExcelFileWithInsertColumns(testData);
+
+        // Act
+        var result = await _service.UploadKeywordsFromExcelAsync(excelBytes, "test.xlsx");
+
+        // Assert
+        var feacnInsertItems = await _dbContext.FeacnInsertItems.ToListAsync();
+        Assert.That(feacnInsertItems.Count, Is.EqualTo(1)); // Only one item for the code
+
+        var item = feacnInsertItems.First();
+        Assert.That(item.Code, Is.EqualTo("1234567890"));
+        // Should have the values from the last processed row
+        Assert.That(item.InsertBefore, Is.EqualTo("до2"));
+        Assert.That(item.InsertAfter, Is.EqualTo("после2"));
+    }
+
+    [Test]
+    public async Task UploadKeywordsFromExcelAsync_IntegrationTest_ShouldProcessKeywordsAndFeacnInsertItems()
+    {
+        // Arrange - Create a comprehensive Excel file with all features
+        using var workbook = new XLWorkbook();
+        var worksheet = workbook.Worksheets.Add("Sheet1");
+        
+        // Headers
+        worksheet.Cell(1, 1).Value = "Код";
+        worksheet.Cell(1, 2).Value = "Наименование";
+        worksheet.Cell(1, 3).Value = "Перед описанием";
+        worksheet.Cell(1, 4).Value = "В конце описания";
+        
+        // Test data with mixed scenarios
+        worksheet.Cell(2, 1).Value = "1234567890"; // Keywords + insert items
+        worksheet.Cell(2, 2).Value = "обувь, кроссовки";
+        worksheet.Cell(2, 3).Value = "Спортивная";
+        worksheet.Cell(2, 4).Value = "для активного отдыха";
+        
+        worksheet.Cell(3, 1).Value = "987654321"; // Keywords only (9 digits, will be padded)
+        worksheet.Cell(3, 2).Value = "одежда, рубашка";
+        worksheet.Cell(3, 3).Value = "";
+        worksheet.Cell(3, 4).Value = "";
+        
+        worksheet.Cell(4, 1).Value = "5555555555"; // Insert items only
+        worksheet.Cell(4, 2).Value = "аксессуары";
+        worksheet.Cell(4, 3).Value = "Модные";
+        worksheet.Cell(4, 4).Value = "";
+        
+        using var ms = new MemoryStream();
+        workbook.SaveAs(ms);
+        var excelBytes = ms.ToArray();
+
+        // Act
+        var result = await _service.UploadKeywordsFromExcelAsync(excelBytes, "integration_test.xlsx");
+
+        // Assert Keywords
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.Count, Is.EqualTo(5)); // обувь, кроссовки, одежда, рубашка, аксессуары
+
+        var savedKeywords = await _dbContext.KeyWords
+            .Include(k => k.KeyWordFeacnCodes)
+            .ToListAsync();
+        Assert.That(savedKeywords.Count, Is.EqualTo(5));
+
+        // Verify specific keywords
+        var obuvKeyword = savedKeywords.FirstOrDefault(k => k.Word == "обувь");
+        Assert.That(obuvKeyword, Is.Not.Null);
+        Assert.That(obuvKeyword!.KeyWordFeacnCodes.First().FeacnCode, Is.EqualTo("1234567890"));
+
+        var odezhKeyword = savedKeywords.FirstOrDefault(k => k.Word == "одежда");
+        Assert.That(odezhKeyword, Is.Not.Null);
+        Assert.That(odezhKeyword!.KeyWordFeacnCodes.First().FeacnCode, Is.EqualTo("0987654321")); // Padded
+
+        // Assert FEACN Insert Items
+        var feacnInsertItems = await _dbContext.FeacnInsertItems.ToListAsync();
+        Assert.That(feacnInsertItems.Count, Is.EqualTo(2)); // Only rows 1 and 3 have insert values
+
+        var insertItem1 = feacnInsertItems.FirstOrDefault(item => item.Code == "1234567890");
+        Assert.That(insertItem1, Is.Not.Null);
+        Assert.That(insertItem1!.InsertBefore, Is.EqualTo("Спортивная"));
+        Assert.That(insertItem1.InsertAfter, Is.EqualTo("для активного отдыха"));
+
+        var insertItem2 = feacnInsertItems.FirstOrDefault(item => item.Code == "5555555555");
+        Assert.That(insertItem2, Is.Not.Null);
+        Assert.That(insertItem2!.InsertBefore, Is.EqualTo("Модные"));
+        Assert.That(insertItem2.InsertAfter, Is.Null);
+
+        // Verify no insert item for the row with empty values
+        var noInsertItem = feacnInsertItems.FirstOrDefault(item => item.Code == "0987654321");
+        Assert.That(noInsertItem, Is.Null);
     }
 }
 
