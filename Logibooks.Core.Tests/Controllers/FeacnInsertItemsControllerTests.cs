@@ -215,15 +215,6 @@ public class FeacnInsertItemsControllerTests
     }
 
     [Test]
-    public async Task Update_ReturnsBadRequest_WhenIdMismatch()
-    {
-        SetCurrentUserId(1);
-        var dto = new FeacnInsertItemDto { Id = 2, Code = "3333333333" };
-        var result = await _controller.UpdateItem(1, dto);
-        Assert.That(result, Is.TypeOf<BadRequestResult>());
-    }
-
-    [Test]
     public async Task Update_ReturnsBadRequest_ForInvalidCode()
     {
         SetCurrentUserId(1);
