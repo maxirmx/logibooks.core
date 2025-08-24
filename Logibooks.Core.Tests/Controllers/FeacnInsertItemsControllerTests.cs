@@ -146,14 +146,14 @@ public class FeacnInsertItemsControllerTests
     public async Task CreateUpdateDelete_Work_ForAdmin()
     {
         SetCurrentUserId(1);
-        var dto = new FeacnInsertItemDto { Code = "1234567890", InsertBefore = "111", InsertAfter = "222" };
+        var dto = new FeacnInsertItemDto { Code = "1234567890", InsBefore = "111", InsAfter = "222" };
         var created = await _controller.CreateItem(dto);
         Assert.That(created.Result, Is.TypeOf<CreatedAtActionResult>());
         var createdDto = (created.Result as CreatedAtActionResult)!.Value as FeacnInsertItemDto;
         Assert.That(createdDto!.Id, Is.GreaterThan(0));
 
         var id = createdDto.Id;
-        createdDto.InsertBefore = "333";
+        createdDto.InsBefore = "333";
         var upd = await _controller.UpdateItem(id, createdDto);
         Assert.That(upd, Is.TypeOf<NoContentResult>());
 

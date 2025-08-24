@@ -123,7 +123,6 @@ public class FeacnInsertItemsController(
     public async Task<IActionResult> UpdateItem(int id, FeacnInsertItemDto dto)
     {
         if (!await _userService.CheckAdmin(_curUserId)) return _403();
-        if (id != dto.Id) return BadRequest();
         if (string.IsNullOrWhiteSpace(dto.Code) ||
             dto.Code.Length != FeacnCode.FeacnCodeLength ||
             !dto.Code.All(char.IsDigit))
@@ -141,8 +140,8 @@ public class FeacnInsertItemsController(
         }
 
         item.Code = dto.Code;
-        item.InsertBefore = dto.InsertBefore;
-        item.InsertAfter = dto.InsertAfter;
+        item.InsertBefore = dto.InsBefore;
+        item.InsertAfter = dto.InsAfter;
 
         try
         {

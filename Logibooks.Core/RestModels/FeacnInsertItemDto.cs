@@ -31,8 +31,8 @@ public class FeacnInsertItemDto
 {
     public int Id { get; set; }
     public string Code { get; set; } = string.Empty;
-    public string? InsertBefore { get; set; }
-    public string? InsertAfter { get; set; }
+    public string? InsBefore { get; set; }
+    public string? InsAfter { get; set; }
 
     public FeacnInsertItemDto() {}
 
@@ -40,8 +40,8 @@ public class FeacnInsertItemDto
     {
         Id = item.Id;
         Code = item.Code;
-        InsertBefore = item.InsertBefore;
-        InsertAfter = item.InsertAfter;
+        InsBefore = item.InsertBefore;
+        InsAfter = item.InsertAfter;
     }
 
     public FeacnInsertItem ToModel()
@@ -50,8 +50,8 @@ public class FeacnInsertItemDto
         {
             Id = Id,
             Code = Code,
-            InsertBefore = InsertBefore,
-            InsertAfter = InsertAfter
+            InsertBefore = InsBefore,
+            InsertAfter = InsAfter
         };
     }
 }
