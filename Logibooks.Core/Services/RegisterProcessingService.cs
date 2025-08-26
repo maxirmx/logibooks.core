@@ -223,6 +223,10 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
                     ws.Row(row).Style.Fill.BackgroundColor = baseOrder.PartnerColorXL;
                 }
             }
+            else if (baseOrder.CheckStatusId == (int)ParcelCheckStatusCode.ApprovedWithExcise)
+            {
+                ws.Row(row).Style.Fill.BackgroundColor = XLColor.Orange;
+            }
             else if (baseOrder.CheckStatusId >= (int)ParcelCheckStatusCode.HasIssues &&
                      baseOrder.CheckStatusId < (int)ParcelCheckStatusCode.NoIssues)
             {

@@ -153,7 +153,7 @@ public class ParcelsControllerTests
         // Keywords can exist without FeacnCodes, so this is optional now
         kw.KeyWordFeacnCodes = []; // Empty collection is allowed
         var stopWordLink = new BaseOrderStopWord { BaseOrderId = 1, StopWordId = 5, BaseOrder = order, StopWord = sw };
-        var keyWordLink = new BaseOrderKeyWord { BaseOrderId = 1, KeyWordId = 6, BaseOrder = order, KeyWord = kw };
+        var keyWordLink = new BaseParcelKeyWord { BaseParcelId = 1, KeyWordId = 6, BaseParcel = order, KeyWord = kw };
         _dbContext.Registers.Add(register);
         _dbContext.Orders.Add(order);
         _dbContext.StopWords.Add(sw);
@@ -1047,7 +1047,7 @@ public class ParcelsControllerTests
 
         var result = await ctrl.LookupFeacnCode(20);
         var dto = ((LookupFeacnCodeResult)((OkObjectResult)result.Result!).Value!);
-        var links = _dbContext.Set<BaseOrderKeyWord>().Where(l => l.BaseOrderId == 20).ToList();
+        var links = _dbContext.Set<BaseParcelKeyWord>().Where(l => l.BaseParcelId == 20).ToList();
 
         Assert.That(dto.KeyWordIds.Count, Is.EqualTo(1));
         Assert.That(dto.KeyWordIds[0], Is.EqualTo(2));

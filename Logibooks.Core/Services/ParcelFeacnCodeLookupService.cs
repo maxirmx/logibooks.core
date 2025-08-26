@@ -48,8 +48,8 @@ public class ParcelFeacnCodeLookupService(
             return [];
         }
 
-        var existing = _db.Set<BaseOrderKeyWord>().Where(l => l.BaseOrderId == order.Id);
-        _db.Set<BaseOrderKeyWord>().RemoveRange(existing);
+        var existing = _db.Set<BaseParcelKeyWord>().Where(l => l.BaseParcelId == order.Id);
+        _db.Set<BaseParcelKeyWord>().RemoveRange(existing);
 
         var productName = order.ProductName ?? string.Empty;
         var links = SelectKeyWordLinks(order.Id, productName, wordsLookupContext, morphologyContext);
@@ -77,20 +77,20 @@ public class ParcelFeacnCodeLookupService(
         return links.Select(l => l.KeyWordId).ToList();
     }
 
-    private List<BaseOrderKeyWord> SelectKeyWordLinks(
+    private List<BaseParcelKeyWord> SelectKeyWordLinks(
         int orderId,
         string text,
         WordsLookupContext<KeyWord> wordsLookupContext,
         MorphologyContext morphologyContext)
     {
-        var links = new List<BaseOrderKeyWord>();
+        var links = new List<BaseParcelKeyWord>();
         var existingKeyWordIds = new HashSet<int>();
 
         var matchingWords = wordsLookupContext.GetMatchingWords(text);
 
         foreach (var kw in matchingWords)
         {
-            links.Add(new BaseOrderKeyWord { BaseOrderId = orderId, KeyWordId = kw.Id });
+            links.Add(new BaseParcelKeyWord { BaseParcelId = orderId, KeyWordId = kw.Id });
             existingKeyWordIds.Add(kw.Id);
         }
 
@@ -99,7 +99,7 @@ public class ParcelFeacnCodeLookupService(
         {
             if (existingKeyWordIds.Add(id))
             {
-                links.Add(new BaseOrderKeyWord { BaseOrderId = orderId, KeyWordId = id });
+                links.Add(new BaseParcelKeyWord { BaseParcelId = orderId, KeyWordId = id });
             }
         }
 

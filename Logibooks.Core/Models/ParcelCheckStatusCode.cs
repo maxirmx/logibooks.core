@@ -33,5 +33,6 @@ public enum ParcelCheckStatusCode
     HasIssuesAtDescription = 104,
     MarkedByPartner = 200,
     NoIssues = 201,
-    Approved = 301
+    Approved = 301,
+    ApprovedWithExcise = 399,
 }

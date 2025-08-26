@@ -340,6 +340,144 @@ public class DownloadRegisterTests
     }
 
     [Test]
+    public async Task DownloadRegister_ApprovedWithExcise_UsesOrangeColor()
+    {
+        // Arrange: Create test data with ApprovedWithExcise status
+        var content = await File.ReadAllBytesAsync(Path.Combine("test.data", "Озон_Short.xlsx"));
+        var reference = await _service.UploadRegisterFromExcelAsync(_service.GetOzonId(), content, "Озон_Short.xlsx");
+
+        var first = _dbContext.OzonOrders.OrderBy(o => o.Id).First();
+        first.CheckStatusId = (int)ParcelCheckStatusCode.ApprovedWithExcise;
+        await _dbContext.SaveChangesAsync();
+
+        // Act: Download Excel with the ApprovedWithExcise status
+        var bytes = await _service.DownloadRegisterToExcelAsync(reference.Id);
+
+        // Assert: Verify orange color is applied
+        using var ms = new MemoryStream(bytes);
+        using var workbook = new XLWorkbook(ms);
+        var worksheet = workbook.Worksheet(1);
+        
+        // Find the row with ApprovedWithExcise status (should be row 2 since row 1 is header)
+        var row = worksheet.Row(2);
+        var backgroundColor = row.Style.Fill.BackgroundColor;
+        
+        Assert.That(backgroundColor, Is.EqualTo(XLColor.Orange), "ApprovedWithExcise status should use orange background color");
+    }
+
+    [Test]
+    public async Task DownloadRegister_ApprovedWithExcise_WbrOrders_UsesOrangeColor()
+    {
+        // Arrange: Create test data with WBR orders and ApprovedWithExcise status
+        var content = await File.ReadAllBytesAsync(Path.Combine("test.data", "Реестр_207730349.xlsx"));
+        var reference = await _service.UploadRegisterFromExcelAsync(_service.GetWBRId(), content, "Реестр_207730349.xlsx");
+
+        var first = _dbContext.WbrOrders.OrderBy(o => o.Id).First();
+        first.CheckStatusId = (int)ParcelCheckStatusCode.ApprovedWithExcise;
+        await _dbContext.SaveChangesAsync();
+
+        // Act: Download Excel with the ApprovedWithExcise status
+        var bytes = await _service.DownloadRegisterToExcelAsync(reference.Id);
+
+        // Assert: Verify orange color is applied
+        using var ms = new MemoryStream(bytes);
+        using var workbook = new XLWorkbook(ms);
+        var worksheet = workbook.Worksheet(1);
+        
+        // Find the row with ApprovedWithExcise status (should be row 2 since row 1 is header)
+        var row = worksheet.Row(2);
+        var backgroundColor = row.Style.Fill.BackgroundColor;
+        
+        Assert.That(backgroundColor, Is.EqualTo(XLColor.Orange), "ApprovedWithExcise status should use orange background color for WBR orders");
+    }
+
+
+    [Test]
+    public async Task DownloadRegister_HasIssuesRange_UsesRedColor()
+    {
+        // Arrange: Test various HasIssues status codes
+        var content = await File.ReadAllBytesAsync(Path.Combine("test.data", "Озон_Short.xlsx"));
+        var reference = await _service.UploadRegisterFromExcelAsync(_service.GetOzonId(), content, "Озон_Short.xlsx");
+
+        var orders = _dbContext.OzonOrders.OrderBy(o => o.Id).ToList();
+        
+        // Set different HasIssues status codes
+        orders[0].CheckStatusId = (int)ParcelCheckStatusCode.HasIssues; // 101
+        orders[1].CheckStatusId = (int)ParcelCheckStatusCode.InvalidFeacnFormat; // 102  
+        orders[2].CheckStatusId = (int)ParcelCheckStatusCode.HasIssuesAtDescription; // 104
+        
+        await _dbContext.SaveChangesAsync();
+
+        // Act: Download Excel
+        var bytes = await _service.DownloadRegisterToExcelAsync(reference.Id);
+
+        // Assert: All should have red background
+        using var ms = new MemoryStream(bytes);
+        using var workbook = new XLWorkbook(ms);
+        var worksheet = workbook.Worksheet(1);
+        
+        for (int i = 2; i <= 4; i++) // Rows 2-4 (row 1 is header)
+        {
+            var row = worksheet.Row(i);
+            Assert.That(row.Style.Fill.BackgroundColor, Is.EqualTo(XLColor.Red), 
+                $"Row {i} with HasIssues status should be red");
+        }
+    }
+
+    [Test]
+    public async Task DownloadRegister_NoIssuesStatus_NoColorApplied()
+    {
+        // Arrange: Create test data with NoIssues status
+        var content = await File.ReadAllBytesAsync(Path.Combine("test.data", "Озон_Short.xlsx"));
+        var reference = await _service.UploadRegisterFromExcelAsync(_service.GetOzonId(), content, "Озон_Short.xlsx");
+
+        var first = _dbContext.OzonOrders.OrderBy(o => o.Id).First();
+        first.CheckStatusId = (int)ParcelCheckStatusCode.NoIssues;
+        await _dbContext.SaveChangesAsync();
+
+        // Act: Download Excel
+        var bytes = await _service.DownloadRegisterToExcelAsync(reference.Id);
+
+        // Assert: No special color should be applied (should be default/transparent)
+        using var ms = new MemoryStream(bytes);
+        using var workbook = new XLWorkbook(ms);
+        var worksheet = workbook.Worksheet(1);
+        
+        var row = worksheet.Row(2);
+        var backgroundColor = row.Style.Fill.BackgroundColor;
+        
+        // The background should be either NoColor, Transparent, or default
+        Assert.That(backgroundColor, Is.Not.EqualTo(XLColor.Orange).And.Not.EqualTo(XLColor.Red), 
+            "NoIssues status should not apply any special color");
+    }
+
+    [Test]
+    public async Task DownloadRegister_MarkedByPartnerWithoutColor_StillGetsMarkedStatus()
+    {
+        // Arrange: Test MarkedByPartner without partner color set
+        var content = await File.ReadAllBytesAsync(Path.Combine("test.data", "Озон_Short.xlsx"));
+        var reference = await _service.UploadRegisterFromExcelAsync(_service.GetOzonId(), content, "Озон_Short.xlsx");
+
+        var first = _dbContext.OzonOrders.OrderBy(o => o.Id).First();
+        first.CheckStatusId = (int)ParcelCheckStatusCode.MarkedByPartner;
+        first.PartnerColor = 0; // No partner color set
+        await _dbContext.SaveChangesAsync();
+
+        // Act: Download Excel
+        var bytes = await _service.DownloadRegisterToExcelAsync(reference.Id);
+
+        // Assert: Since PartnerColor is 0, no color should be applied but logic should still work
+        using var ms = new MemoryStream(bytes);
+        using var workbook = new XLWorkbook(ms);
+        var worksheet = workbook.Worksheet(1);
+        
+        var row = worksheet.Row(2);
+        // The condition checks if PartnerColor != 0, so no color should be applied
+        Assert.That(row.Style.Fill.BackgroundColor, Is.Not.EqualTo(XLColor.Orange).And.Not.EqualTo(XLColor.Red), 
+            "MarkedByPartner with PartnerColor=0 should not apply any color");
+    }
+
+    [Test]
     public async Task DownloadRegister_PreservesOrder()
     {
         var content = await File.ReadAllBytesAsync(Path.Combine("test.data", "Озон_Short.xlsx"));

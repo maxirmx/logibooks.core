@@ -27,12 +27,12 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Logibooks.Core.Models;
 
-[Table("base_order_key_words")]
-public class BaseOrderKeyWord
+[Table("base_parcel_key_words")]
+public class BaseParcelKeyWord
 {
-    [Column("base_order_id")]
-    public int BaseOrderId { get; set; }
-    public BaseParcel BaseOrder { get; set; } = null!;
+    [Column("base_parcel_id")]
+    public int BaseParcelId { get; set; }
+    public BaseParcel BaseParcel { get; set; } = null!;
 
     [Column("key_word_id")]
     public int KeyWordId { get; set; }
