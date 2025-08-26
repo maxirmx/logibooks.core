@@ -543,9 +543,9 @@ public class ParcelsController(
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
-    public async Task<IActionResult> ApproveParcel(int id)
+    public async Task<IActionResult> ApproveParcel(int id, [FromQuery] bool withExcise = false)
     {
-        _logger.LogDebug("ApproveParcel for id={id}", id);
+        _logger.LogDebug("ApproveParcel for id={id}, withExcise={withExcise}", id, withExcise);
 
         var ok = await _userService.CheckLogist(_curUserId);
         if (!ok)
@@ -554,19 +554,23 @@ public class ParcelsController(
             return _403();
         }
 
-        var order = await _db.Orders
+        var parcel = await _db.Orders
             .FirstOrDefaultAsync(o => o.Id == id && o.CheckStatusId != (int)ParcelCheckStatusCode.MarkedByPartner);
-        if (order == null)
+        if (parcel == null)
         {
             _logger.LogDebug("ApproveParcel returning '404 Not Found'");
             return _404Order(id);
         }
 
-        order.CheckStatusId = (int)ParcelCheckStatusCode.Approved;
-        _db.Entry(order).State = EntityState.Modified;
+        parcel.CheckStatusId = withExcise 
+            ? (int)ParcelCheckStatusCode.ApprovedWithExcise 
+            : (int)ParcelCheckStatusCode.Approved;
+        
+        _db.Entry(parcel).State = EntityState.Modified;
         await _db.SaveChangesAsync();
 
-        _logger.LogDebug("ApproveParcel returning '204 No content' for id={id}", id);
+        _logger.LogDebug("ApproveParcel returning '204 No content' for id={id}, status={status}", 
+            id, withExcise ? "ApprovedWithExcise" : "Approved");
         return NoContent();
     }
 
