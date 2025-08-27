@@ -170,15 +170,15 @@ namespace Logibooks.Core.Data
             modelBuilder.Entity<OzonParcel>()
                 .HasIndex(o => o.PostingNumber);
 
-            modelBuilder.Entity<BaseOrderStopWord>()
-                .HasKey(bosw => new { bosw.BaseOrderId, bosw.StopWordId });
+            modelBuilder.Entity<BaseParcelStopWord>()
+                .HasKey(bosw => new { bosw.BaseParcelId, bosw.StopWordId });
 
-            modelBuilder.Entity<BaseOrderStopWord>()
-                .HasOne(bosw => bosw.BaseOrder)
+            modelBuilder.Entity<BaseParcelStopWord>()
+                .HasOne(bosw => bosw.BaseParcel)
                 .WithMany(bo => bo.BaseOrderStopWords)
-                .HasForeignKey(bosw => bosw.BaseOrderId);
+                .HasForeignKey(bosw => bosw.BaseParcelId);
 
-            modelBuilder.Entity<BaseOrderStopWord>()
+            modelBuilder.Entity<BaseParcelStopWord>()
                 .HasOne(bosw => bosw.StopWord)
                 .WithMany(sw => sw.BaseOrderStopWords)
                 .HasForeignKey(bosw => bosw.StopWordId);

@@ -610,15 +610,13 @@ public class RegistersController(
         int registerId = current.RegisterId;
         int companyId = current.Register.CompanyId;
 
-        IQueryable<BaseParcel> query = _db.Orders.AsNoTracking()
+        // Find the next parcel with issues after the current one (no rollover)
+        var next = await _db.Orders.AsNoTracking()
             .Where(o => o.RegisterId == registerId &&
                         o.CheckStatusId >= (int)ParcelCheckStatusCode.HasIssues && 
-                        o.CheckStatusId < (int)ParcelCheckStatusCode.MarkedByPartner)
-            .OrderBy(o => o.Id);
-
-        var next = await query
-            .OrderBy(o => o.Id > parcelId ? 0 : 1) 
-            .ThenBy(o => o.Id)                   
+                        o.CheckStatusId < (int)ParcelCheckStatusCode.MarkedByPartner &&
+                        o.Id > parcelId)
+            .OrderBy(o => o.Id)
             .FirstOrDefaultAsync();
 
         if (next == null)
@@ -647,6 +645,71 @@ public class RegistersController(
         }
 
         _logger.LogDebug("NextParcel returning order {id}", parcel.Id);
+        return new ParcelViewItem(parcel);
+    }
+
+    [HttpGet("the-nextparcel/{parcelId}")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ParcelViewItem))]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
+    [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
+    public async Task<ActionResult<ParcelViewItem>> TheNextParcel(int parcelId)
+    {
+        _logger.LogDebug("TheNextParcel for parcelId={parcelId}", parcelId);
+
+        if (!await _userService.CheckLogist(_curUserId))
+        {
+            _logger.LogDebug("TheNextParcel returning '403 Forbidden'");
+            return _403();
+        }
+
+        var current = await _db.Orders.AsNoTracking()
+            .Include(o => o.Register)
+            .FirstOrDefaultAsync(o => o.Id == parcelId);
+
+        if (current == null)
+        {
+            _logger.LogDebug("TheNextParcel returning '404 Not Found'");
+            return _404Order(parcelId);
+        }
+
+        int registerId = current.RegisterId;
+        int companyId = current.Register.CompanyId;
+
+        // Find the next parcel after the current one (no rollover)
+        var next = await _db.Orders.AsNoTracking()
+            .Where(o => o.RegisterId == registerId && o.Id > parcelId && 
+                   o.CheckStatusId != (int)ParcelCheckStatusCode.MarkedByPartner)
+            .OrderBy(o => o.Id)
+            .FirstOrDefaultAsync();
+
+        // If no next parcel found, return 204 No Content
+        if (next == null)
+        {
+            _logger.LogDebug("TheNextParcel returning '204 No Content' - no next parcel found");
+            return NoContent();
+        }
+
+        BaseParcel? parcel = null;
+
+        if (companyId == IRegisterProcessingService.GetWBRId())
+        {
+            parcel = await ApplyOrderIncludes(_db.WbrOrders.AsNoTracking())
+                .FirstOrDefaultAsync(o => o.Id == next.Id);
+        }
+        else if (companyId == IRegisterProcessingService.GetOzonId())
+        {
+            parcel = await ApplyOrderIncludes(_db.OzonOrders.AsNoTracking())
+                .FirstOrDefaultAsync(o => o.Id == next.Id);
+        }
+
+        if (parcel == null)
+        {
+            _logger.LogDebug("TheNextParcel returning '204 No Content' - derived parcel not found");
+            return NoContent();
+        }
+
+        _logger.LogDebug("TheNextParcel returning order {id}", parcel.Id);
         return new ParcelViewItem(parcel);
     }
 

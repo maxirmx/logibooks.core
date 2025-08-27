@@ -152,7 +152,7 @@ public class ParcelsControllerTests
         var kw = new KeyWord { Id = 6, Word = "test" };
         // Keywords can exist without FeacnCodes, so this is optional now
         kw.KeyWordFeacnCodes = []; // Empty collection is allowed
-        var stopWordLink = new BaseOrderStopWord { BaseOrderId = 1, StopWordId = 5, BaseOrder = order, StopWord = sw };
+        var stopWordLink = new BaseParcelStopWord { BaseParcelId = 1, StopWordId = 5, BaseParcel = order, StopWord = sw };
         var keyWordLink = new BaseParcelKeyWord { BaseParcelId = 1, KeyWordId = 6, BaseParcel = order, KeyWord = kw };
         _dbContext.Registers.Add(register);
         _dbContext.Orders.Add(order);
@@ -397,7 +397,7 @@ public class ParcelsControllerTests
         var reg = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
         var sw = new StopWord { Id = 7, Word = "foo" };
         var o1 = new WbrParcel { Id = 10, RegisterId = 1, StatusId = 1 };
-        var link = new BaseOrderStopWord { BaseOrderId = 10, StopWordId = 7, BaseOrder = o1, StopWord = sw };
+        var link = new BaseParcelStopWord { BaseParcelId = 10, StopWordId = 7, BaseParcel = o1, StopWord = sw };
         _dbContext.Registers.Add(reg);
         _dbContext.StopWords.Add(sw);
         _dbContext.Orders.Add(o1);
