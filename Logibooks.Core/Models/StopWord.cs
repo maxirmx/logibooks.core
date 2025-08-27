@@ -32,5 +32,5 @@ namespace Logibooks.Core.Models;
 [Index(nameof(Word), IsUnique = true, Name = "IX_stop_words_word")]
 public class StopWord : WordBase
 {
-    public ICollection<BaseOrderStopWord> BaseOrderStopWords { get; set; } = [];
+    public ICollection<BaseParcelStopWord> BaseOrderStopWords { get; set; } = [];
 }

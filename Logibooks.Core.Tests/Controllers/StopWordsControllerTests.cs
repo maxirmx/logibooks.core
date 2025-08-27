@@ -179,7 +179,7 @@ public class StopWordsControllerTests
         var word = new StopWord { Id = 5, Word = "used" };
         var reg = new Register { Id = 1, FileName = "r" };
         var order = new WbrParcel { Id = 1, RegisterId = 1 };
-        var link = new BaseOrderStopWord { BaseOrderId = 1, StopWordId = 5, BaseOrder = order, StopWord = word };
+        var link = new BaseParcelStopWord { BaseParcelId = 1, StopWordId = 5, BaseParcel = order, StopWord = word };
         _dbContext.StopWords.Add(word);
         _dbContext.Registers.Add(reg);
         _dbContext.Orders.Add(order);
@@ -191,7 +191,7 @@ public class StopWordsControllerTests
         Assert.That(result, Is.TypeOf<NoContentResult>());
         // Verify the link is also deleted
         Assert.That(_dbContext.StopWords.Find(5), Is.Null);
-        Assert.That(_dbContext.Set<BaseOrderStopWord>().Any(x => x.StopWordId == 5), Is.False);
+        Assert.That(_dbContext.Set<BaseParcelStopWord>().Any(x => x.StopWordId == 5), Is.False);
     }
 
     [Test]

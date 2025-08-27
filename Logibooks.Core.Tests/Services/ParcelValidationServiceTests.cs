@@ -80,7 +80,7 @@ public class ParcelValidationServiceTests
             new StopWord { Id = 2, Word = "spam", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols },
             new StopWord { Id = 3, Word = "other", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols }
         );
-        ctx.Set<BaseOrderStopWord>().Add(new BaseOrderStopWord { BaseOrderId = 1, StopWordId = 99 });
+        ctx.Set<BaseParcelStopWord>().Add(new BaseParcelStopWord { BaseParcelId = 1, StopWordId = 99 });
         await ctx.SaveChangesAsync();
 
         var svc = CreateService(ctx);
@@ -88,8 +88,8 @@ public class ParcelValidationServiceTests
         var morphologyContext = new MorphologyContext(); // Assuming you have a way to create this context
         await svc.ValidateAsync(order, morphologyContext, wordsLookupContext);
 
-        Assert.That(ctx.Set<BaseOrderStopWord>().Count(), Is.EqualTo(1));
-        var link = ctx.Set<BaseOrderStopWord>().Single();
+        Assert.That(ctx.Set<BaseParcelStopWord>().Count(), Is.EqualTo(1));
+        var link = ctx.Set<BaseParcelStopWord>().Single();
         Assert.That(link.StopWordId, Is.EqualTo(2));
         Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)ParcelCheckStatusCode.HasIssues));
     }
@@ -108,7 +108,7 @@ public class ParcelValidationServiceTests
         var morphologyContext = new MorphologyContext(); // Assuming you have a way to create this context
         await svc.ValidateAsync(order, morphologyContext, wordsLookupContext);
 
-        Assert.That(ctx.Set<BaseOrderStopWord>().Any(), Is.False);
+        Assert.That(ctx.Set<BaseParcelStopWord>().Any(), Is.False);
         Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)ParcelCheckStatusCode.NoIssues));
     }
 
@@ -126,7 +126,7 @@ public class ParcelValidationServiceTests
         var morphologyContext = new MorphologyContext(); // Assuming you have a way to create this context
         await svc.ValidateAsync(order, morphologyContext, wordsLookupContext);
 
-        Assert.That(ctx.Set<BaseOrderStopWord>().Single().StopWordId, Is.EqualTo(5));
+        Assert.That(ctx.Set<BaseParcelStopWord>().Single().StopWordId, Is.EqualTo(5));
         Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)ParcelCheckStatusCode.HasIssues));
     }
 
@@ -146,7 +146,7 @@ public class ParcelValidationServiceTests
         var svc = CreateServiceWithMorphology(ctx, morph);
         await svc.ValidateAsync(order, morphologyContext, wordsLookupContext);
 
-        var link = ctx.Set<BaseOrderStopWord>().Single();
+        var link = ctx.Set<BaseParcelStopWord>().Single();
         Assert.That(link.StopWordId, Is.EqualTo(7));
         Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)ParcelCheckStatusCode.HasIssues));
     }
@@ -173,7 +173,7 @@ public class ParcelValidationServiceTests
         var wordsLookupContext = new WordsLookupContext<StopWord>(stopWords.Where(sw => sw.MatchTypeId == (int)WordMatchTypeCode.ExactSymbols));
         await svc.ValidateAsync(order, morphologyContext, wordsLookupContext);
 
-        var links = ctx.Set<BaseOrderStopWord>().ToList();
+        var links = ctx.Set<BaseParcelStopWord>().ToList();
         var foundIds = links.Select(l => l.StopWordId).OrderBy(id => id).ToList();
 
         Assert.That(links.Count, Is.EqualTo(2), "Should find exactly 2 matches");
@@ -189,9 +189,9 @@ public class ParcelValidationServiceTests
         ctx.Orders.Add(order);
 
         // Add some existing links that should be removed
-        ctx.Set<BaseOrderStopWord>().AddRange(
-            new BaseOrderStopWord { BaseOrderId = 1, StopWordId = 999 },
-            new BaseOrderStopWord { BaseOrderId = 1, StopWordId = 998 }
+        ctx.Set<BaseParcelStopWord>().AddRange(
+            new BaseParcelStopWord { BaseParcelId = 1, StopWordId = 999 },
+            new BaseParcelStopWord { BaseParcelId = 1, StopWordId = 998 }
         );
 
         var stopWords = new[]
@@ -206,7 +206,7 @@ public class ParcelValidationServiceTests
         var morphologyContext = new MorphologyContext();
         await svc.ValidateAsync(order, morphologyContext, wordsLookupContext);
 
-        var links = ctx.Set<BaseOrderStopWord>().ToList();
+        var links = ctx.Set<BaseParcelStopWord>().ToList();
 
         Assert.That(links.Count, Is.EqualTo(1), "Should replace existing links");
         Assert.That(links.Single().StopWordId, Is.EqualTo(800), "Should have new link only");
@@ -227,7 +227,7 @@ public class ParcelValidationServiceTests
         };
         ctx.Orders.Add(order);
         ctx.StopWords.Add(new StopWord { Id = 2, Word = "spam", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols });
-        ctx.Set<BaseOrderStopWord>().Add(new BaseOrderStopWord { BaseOrderId = 1, StopWordId = 99 });
+        ctx.Set<BaseParcelStopWord>().Add(new BaseParcelStopWord { BaseParcelId = 1, StopWordId = 99 });
         await ctx.SaveChangesAsync();
 
         var svc = CreateService(ctx);
@@ -235,7 +235,7 @@ public class ParcelValidationServiceTests
         var morphologyContext = new MorphologyContext();
         await svc.ValidateAsync(order, morphologyContext, wordsLookupContext);
 
-        var links = ctx.Set<BaseOrderStopWord>().ToList();
+        var links = ctx.Set<BaseParcelStopWord>().ToList();
         Assert.That(links.Count, Is.EqualTo(1));
         Assert.That(links.Single().StopWordId, Is.EqualTo(99));
         Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)ParcelCheckStatusCode.MarkedByPartner));

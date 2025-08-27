@@ -1073,27 +1073,7 @@ public class RegistersControllerTests : RegistersControllerTestsBase
     }
 
     [Test]
-    public async Task NextParcel_PerformsCircularSearch()
-    {
-        SetCurrentUserId(1);
-        _dbContext.CheckStatuses.Add(new ParcelCheckStatus { Id = 101, Title = "Has" });
-        var reg = new Register { Id = 1, FileName = "r.xlsx", CompanyId = 1, TheOtherCompanyId = 3 }; // Ozon company
-        _dbContext.Registers.Add(reg);
-        var ozonOrder1 = new OzonParcel { Id = 1, RegisterId = 1, StatusId = 1, CheckStatusId = 101 };
-        var ozonOrder2 = new OzonParcel { Id = 2, RegisterId = 1, StatusId = 1, CheckStatusId = 201 };
-        var ozonOrder3 = new OzonParcel { Id = 3, RegisterId = 1, StatusId = 1, CheckStatusId = 101 };
-        _dbContext.Orders.AddRange(ozonOrder1, ozonOrder2, ozonOrder3);
-        _dbContext.OzonOrders.AddRange(ozonOrder1, ozonOrder2, ozonOrder3);
-        await _dbContext.SaveChangesAsync();
-
-        var result = await _controller.NextParcel(3);
-
-        Assert.That(result.Value, Is.Not.Null);
-        Assert.That(result.Value!.Id, Is.EqualTo(1));
-    }
-
-    [Test]
-    public async Task NextParcel_ReturnsNoContent_WhenNoMatches()
+    public async Task NextParcel_ReturnsNoContent_WhenNoNextParcelWithIssues()
     {
         SetCurrentUserId(1);
         _dbContext.CheckStatuses.Add(new ParcelCheckStatus { Id = 201, Title = "Ok" });

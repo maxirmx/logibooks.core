@@ -78,7 +78,7 @@ public abstract class BaseParcel
         set => PartnerColor = (uint)value.Color.ToArgb();
     }
 
-    public ICollection<BaseOrderStopWord> BaseOrderStopWords { get; set; } = [];
+    public ICollection<BaseParcelStopWord> BaseOrderStopWords { get; set; } = [];
     public ICollection<BaseParcelFeacnPrefix> BaseOrderFeacnPrefixes { get; set; } = [];
     public ICollection<BaseParcelKeyWord> BaseOrderKeyWords { get; set; } = [];
 

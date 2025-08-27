@@ -54,8 +54,8 @@ public class ParcelValidationService(
         }
 
         // remove existing links for this order
-        var existing1 = _db.Set<BaseOrderStopWord>().Where(l => l.BaseOrderId == order.Id);
-        _db.Set<BaseOrderStopWord>().RemoveRange(existing1);
+        var existing1 = _db.Set<BaseParcelStopWord>().Where(l => l.BaseParcelId == order.Id);
+        _db.Set<BaseParcelStopWord>().RemoveRange(existing1);
 
         var existing2 = _db.Set<BaseParcelFeacnPrefix>()
             .Where(l => l.BaseParcelId == order.Id);
@@ -112,13 +112,13 @@ public class ParcelValidationService(
         await _db.SaveChangesAsync(cancellationToken);
     }
 
-    private List<BaseOrderStopWord> SelectStopWordLinks(
+    private List<BaseParcelStopWord> SelectStopWordLinks(
         int orderId,
         string productName,
         WordsLookupContext<StopWord> wordsLookupContext,
         MorphologyContext morphologyContext)
     {
-        var links = new List<BaseOrderStopWord>();
+        var links = new List<BaseParcelStopWord>();
         var existingStopWordIds = new HashSet<int>();
 
         var matchingWords = wordsLookupContext.GetMatchingWords(productName);
@@ -126,7 +126,7 @@ public class ParcelValidationService(
         // Add stop words to links
         foreach (var sw in matchingWords)
         {
-            links.Add(new BaseOrderStopWord { BaseOrderId = orderId, StopWordId = sw.Id });
+            links.Add(new BaseParcelStopWord { BaseParcelId = orderId, StopWordId = sw.Id });
             existingStopWordIds.Add(sw.Id);
         }
 
@@ -134,7 +134,7 @@ public class ParcelValidationService(
         foreach (var id in ids)
         {
             if (existingStopWordIds.Add(id)) // HashSet.Add returns false if already exists
-                links.Add(new BaseOrderStopWord { BaseOrderId = orderId, StopWordId = id });
+                links.Add(new BaseParcelStopWord { BaseParcelId = orderId, StopWordId = id });
         }
 
         return links;
