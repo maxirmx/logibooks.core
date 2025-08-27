@@ -56,7 +56,7 @@ public class ParcelFeacnCodeLookupServiceTests
         var kw2 = new KeyWord { Id = 3, Word = "other", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols };
         kw2.KeyWordFeacnCodes = new[] { new KeyWordFeacnCode { KeyWordId = 3, FeacnCode = "2", KeyWord = kw2 } };
         ctx.KeyWords.AddRange(kw1, kw2);
-        ctx.Set<BaseOrderKeyWord>().Add(new BaseOrderKeyWord { BaseOrderId = 1, KeyWordId = 99 });
+        ctx.Set<BaseParcelKeyWord>().Add(new BaseParcelKeyWord { BaseParcelId = 1, KeyWordId = 99 });
         await ctx.SaveChangesAsync();
 
         var svc = new ParcelFeacnCodeLookupService(ctx, new MorphologySearchService());
@@ -64,7 +64,7 @@ public class ParcelFeacnCodeLookupServiceTests
         var morphologyContext = new MorphologyContext();
         await svc.LookupAsync(order, morphologyContext, wordsLookupContext);
 
-        var links = ctx.Set<BaseOrderKeyWord>().ToList();
+        var links = ctx.Set<BaseParcelKeyWord>().ToList();
         Assert.That(links.Count, Is.EqualTo(1));
         Assert.That(links.Single().KeyWordId, Is.EqualTo(2));
         Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo(1));
@@ -86,7 +86,7 @@ public class ParcelFeacnCodeLookupServiceTests
         var morphologyContext = new MorphologyContext();
         await svc.LookupAsync(order, morphologyContext, wordsLookupContext);
 
-        Assert.That(ctx.Set<BaseOrderKeyWord>().Any(), Is.False);
+        Assert.That(ctx.Set<BaseParcelKeyWord>().Any(), Is.False);
         Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo(1));
     }
 
@@ -114,7 +114,7 @@ public class ParcelFeacnCodeLookupServiceTests
         var svc = new ParcelFeacnCodeLookupService(ctx, morph);
         await svc.LookupAsync(order, morphologyContext, wordsLookupContext);
 
-        var links = ctx.Set<BaseOrderKeyWord>().ToList();
+        var links = ctx.Set<BaseParcelKeyWord>().ToList();
         var foundIds = links.Select(l => l.KeyWordId).OrderBy(id => id).ToList();
 
         Assert.That(links.Count, Is.EqualTo(2));
@@ -136,7 +136,7 @@ public class ParcelFeacnCodeLookupServiceTests
         var kw = new KeyWord { Id = 2, Word = "spam", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols };
         kw.KeyWordFeacnCodes = [new KeyWordFeacnCode { KeyWordId = 2, FeacnCode = "1", KeyWord = kw }];
         ctx.KeyWords.Add(kw);
-        ctx.Set<BaseOrderKeyWord>().Add(new BaseOrderKeyWord { BaseOrderId = 1, KeyWordId = 99 });
+        ctx.Set<BaseParcelKeyWord>().Add(new BaseParcelKeyWord { BaseParcelId = 1, KeyWordId = 99 });
         await ctx.SaveChangesAsync();
 
         var svc = new ParcelFeacnCodeLookupService(ctx, new MorphologySearchService());
@@ -144,7 +144,7 @@ public class ParcelFeacnCodeLookupServiceTests
         var morphologyContext = new MorphologyContext();
         await svc.LookupAsync(order, morphologyContext, wordsLookupContext);
 
-        var links = ctx.Set<BaseOrderKeyWord>().ToList();
+        var links = ctx.Set<BaseParcelKeyWord>().ToList();
         Assert.That(links.Count, Is.EqualTo(1));
         Assert.That(links.Single().KeyWordId, Is.EqualTo(99));
         Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)ParcelCheckStatusCode.MarkedByPartner));

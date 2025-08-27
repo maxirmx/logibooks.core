@@ -221,15 +221,15 @@ namespace Logibooks.Core.Data
                 .HasForeignKey(kwfc => kwfc.KeyWordId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            modelBuilder.Entity<BaseOrderKeyWord>()
-                .HasKey(bokw => new { bokw.BaseOrderId, bokw.KeyWordId });
+            modelBuilder.Entity<BaseParcelKeyWord>()
+                .HasKey(bokw => new { bokw.BaseParcelId, bokw.KeyWordId });
 
-            modelBuilder.Entity<BaseOrderKeyWord>()
-                .HasOne(bokw => bokw.BaseOrder)
+            modelBuilder.Entity<BaseParcelKeyWord>()
+                .HasOne(bokw => bokw.BaseParcel)
                 .WithMany(bo => bo.BaseOrderKeyWords)
-                .HasForeignKey(bokw => bokw.BaseOrderId);
+                .HasForeignKey(bokw => bokw.BaseParcelId);
 
-            modelBuilder.Entity<BaseOrderKeyWord>()
+            modelBuilder.Entity<BaseParcelKeyWord>()
                 .HasOne(bokw => bokw.KeyWord)
                 .WithMany(kw => kw.BaseOrderKeyWords)
                 .HasForeignKey(bokw => bokw.KeyWordId);
@@ -254,9 +254,10 @@ namespace Logibooks.Core.Data
                 new ParcelCheckStatus { Id = (int)ParcelCheckStatusCode.HasIssues, Title = "Запрет" },
                 new ParcelCheckStatus { Id = (int)ParcelCheckStatusCode.InvalidFeacnFormat, Title = "Неправильный формат ТН ВЭД" },
                 new ParcelCheckStatus { Id = (int)ParcelCheckStatusCode.NonexistingFeacn, Title = "Несуществующий ТН ВЭД" },
-                new ParcelCheckStatus { Id = (int)ParcelCheckStatusCode.MarkedByPartner, Title = "Отмечено партнёром" },
+                new ParcelCheckStatus { Id = (int)ParcelCheckStatusCode.MarkedByPartner, Title = "Запрещено партнёром" },
                 new ParcelCheckStatus { Id = (int)ParcelCheckStatusCode.NoIssues, Title = "Ок" },
-                new ParcelCheckStatus { Id = (int)ParcelCheckStatusCode.Approved, Title = "Согласовано" }
+                new ParcelCheckStatus { Id = (int)ParcelCheckStatusCode.Approved, Title = "Согласовано" },
+                new ParcelCheckStatus { Id = (int)ParcelCheckStatusCode.ApprovedWithExcise, Title = "Согласовано с акцизом" }
             );
 
             modelBuilder.Entity<User>().HasData(

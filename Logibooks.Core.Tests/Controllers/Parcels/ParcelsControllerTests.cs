@@ -153,7 +153,7 @@ public class ParcelsControllerTests
         // Keywords can exist without FeacnCodes, so this is optional now
         kw.KeyWordFeacnCodes = []; // Empty collection is allowed
         var stopWordLink = new BaseOrderStopWord { BaseOrderId = 1, StopWordId = 5, BaseOrder = order, StopWord = sw };
-        var keyWordLink = new BaseOrderKeyWord { BaseOrderId = 1, KeyWordId = 6, BaseOrder = order, KeyWord = kw };
+        var keyWordLink = new BaseParcelKeyWord { BaseParcelId = 1, KeyWordId = 6, BaseParcel = order, KeyWord = kw };
         _dbContext.Registers.Add(register);
         _dbContext.Orders.Add(order);
         _dbContext.StopWords.Add(sw);
@@ -1047,7 +1047,7 @@ public class ParcelsControllerTests
 
         var result = await ctrl.LookupFeacnCode(20);
         var dto = ((LookupFeacnCodeResult)((OkObjectResult)result.Result!).Value!);
-        var links = _dbContext.Set<BaseOrderKeyWord>().Where(l => l.BaseOrderId == 20).ToList();
+        var links = _dbContext.Set<BaseParcelKeyWord>().Where(l => l.BaseParcelId == 20).ToList();
 
         Assert.That(dto.KeyWordIds.Count, Is.EqualTo(1));
         Assert.That(dto.KeyWordIds[0], Is.EqualTo(2));
@@ -1292,20 +1292,89 @@ public class ParcelsControllerTests
     }
 
     [Test]
-    public async Task ApproveParcel_ReturnsForbidden_ForNonLogist()
+    public async Task ApproveParcel_WithExciseFalse_SetsCheckStatusToApproved()
     {
-        SetCurrentUserId(99); // unknown user
+        SetCurrentUserId(1);
+        var register = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
+        var order = new WbrParcel { Id = 100, RegisterId = 1, StatusId = 1, CheckStatusId = 1 };
+        _dbContext.Registers.Add(register);
+        _dbContext.Orders.Add(order);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.ApproveParcel(100, withExcise: false);
+
+        Assert.That(result, Is.TypeOf<NoContentResult>());
+        var saved = await _dbContext.Orders.FindAsync(100);
+        Assert.That(saved!.CheckStatusId, Is.EqualTo((int)ParcelCheckStatusCode.Approved));
+    }
+
+    [Test]
+    public async Task ApproveParcel_WithExciseTrue_SetsCheckStatusToApprovedWithExcise()
+    {
+        SetCurrentUserId(1);
         var register = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
         var order = new WbrParcel { Id = 101, RegisterId = 1, StatusId = 1, CheckStatusId = 1 };
         _dbContext.Registers.Add(register);
         _dbContext.Orders.Add(order);
         await _dbContext.SaveChangesAsync();
 
-        var result = await _controller.ApproveParcel(101);
+        var result = await _controller.ApproveParcel(101, withExcise: true);
+
+        Assert.That(result, Is.TypeOf<NoContentResult>());
+        var saved = await _dbContext.Orders.FindAsync(101);
+        Assert.That(saved!.CheckStatusId, Is.EqualTo((int)ParcelCheckStatusCode.ApprovedWithExcise));
+    }
+
+    [Test]
+    public async Task ApproveParcel_WithExciseTrue_WorksWithOzonParcel()
+    {
+        SetCurrentUserId(1);
+        var register = new Register { Id = 2, CompanyId = 1, FileName = "r.xlsx" }; // Ozon company
+        var order = new OzonParcel { Id = 102, RegisterId = 2, StatusId = 1, CheckStatusId = 1 };
+        _dbContext.Registers.Add(register);
+        _dbContext.Orders.Add(order);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.ApproveParcel(102, withExcise: true);
+
+        Assert.That(result, Is.TypeOf<NoContentResult>());
+        var saved = await _dbContext.Orders.FindAsync(102);
+        Assert.That(saved!.CheckStatusId, Is.EqualTo((int)ParcelCheckStatusCode.ApprovedWithExcise));
+    }
+
+    [Test]
+    public async Task ApproveParcel_WithExciseFalse_WorksWithOzonParcel()
+    {
+        SetCurrentUserId(1);
+        var register = new Register { Id = 2, CompanyId = 1, FileName = "r.xlsx" }; // Ozon company
+        var order = new OzonParcel { Id = 103, RegisterId = 2, StatusId = 1, CheckStatusId = 1 };
+        _dbContext.Registers.Add(register);
+        _dbContext.Orders.Add(order);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.ApproveParcel(103, withExcise: false);
+
+        Assert.That(result, Is.TypeOf<NoContentResult>());
+        var saved = await _dbContext.Orders.FindAsync(103);
+        Assert.That(saved!.CheckStatusId, Is.EqualTo((int)ParcelCheckStatusCode.Approved));
+    }
+
+    [Test]
+    public async Task ApproveParcel_WithExciseParameter_ReturnsForbidden_ForNonLogist()
+    {
+        SetCurrentUserId(99); // unknown user
+        var register = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
+        var order = new WbrParcel { Id = 104, RegisterId = 1, StatusId = 1, CheckStatusId = 1 };
+        _dbContext.Registers.Add(register);
+        _dbContext.Orders.Add(order);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.ApproveParcel(104, withExcise: true);
+
         Assert.That(result, Is.TypeOf<ObjectResult>());
         var obj = result as ObjectResult;
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
-        var saved = await _dbContext.Orders.FindAsync(101);
+        var saved = await _dbContext.Orders.FindAsync(104);
         Assert.That(saved!.CheckStatusId, Is.EqualTo(1)); // Should not change
     }
 
