@@ -25,9 +25,8 @@
 
 namespace Logibooks.Core.Constants
 {
-    public static class Placeholders
+    public class Limits
     {
-        public const string NotSet = "Не задано";
-        public const string ParcelWoNumber = "Посылка_без_номера_";
+        public const int MaxStreetAddressLength = 45;
     }
 }
