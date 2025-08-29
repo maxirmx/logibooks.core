@@ -25,7 +25,7 @@
 
 namespace Logibooks.Core.Constants
 {
-    public class Limits
+    public static class Limits
     {
         public const int MaxStreetAddressLength = 45;
     }
