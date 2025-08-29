@@ -23,7 +23,6 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-using DocumentFormat.OpenXml.Office2010.Excel;
 using Logibooks.Core.Authorization;
 using Logibooks.Core.Constants;
 using Logibooks.Core.Data;
