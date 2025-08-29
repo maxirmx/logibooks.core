@@ -1,6 +1,7 @@
 using Logibooks.Core.Data;
 using Logibooks.Core.Models;
 using Logibooks.Core.Services;
+using Logibooks.Core.Constants; // Add this for Placeholders
 using Microsoft.EntityFrameworkCore;
 using NUnit.Framework;
 using System;
@@ -8,6 +9,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Threading.Tasks;
 using System.Xml.Linq;
+using System.Linq; // Add this for FirstOrDefault
 
 namespace Logibooks.Core.Tests.Services;
 
@@ -943,4 +945,373 @@ public class ParcelIndPostGeneratorTests
         }
     }
 
+    [Test]
+    public async Task GenerateXML_StreetAddressTruncation_BothCustomsProcedureTypes()
+    {
+        // Arrange - Test truncation behavior for both customs procedure types (10 and 60)
+        var longAddress = new string('T', 80); // 80 chars
+        var expectedTruncated = new string('T', Limits.MaxStreetAddressLength); // 45 chars
+        
+        // Test Customs Procedure 10 (Export)
+        var register10 = new Register
+        {
+            Id = 1020,
+            CompanyId = 2,
+            TransportationTypeId = 1,
+            CustomsProcedureId = 1, // Code 10
+            FileName = "customs_10.xlsx",
+            DTime = DateTime.Now,
+            InvoiceNumber = "CUST10-001",
+            InvoiceDate = new DateOnly(2024, 6, 1),
+            TheOtherCountryCode = 860
+        };
+        _dbContext.Registers.Add(register10);
+
+        var order10 = new WbrParcel
+        {
+            Id = 1021,
+            RegisterId = 1020,
+            StatusId = 1,
+            CountryCode = 643,
+            Shk = "WBR-CUST10-1",
+            RecipientAddress = $"Country,City,{longAddress},Building",
+            CheckStatusId = (int)ParcelCheckStatusCode.NoIssues
+        };
+        _dbContext.WbrOrders.Add(order10);
+
+        // Test Customs Procedure 60 (Reimport)
+        var register60 = new Register
+        {
+            Id = 1022,
+            CompanyId = 2,
+            TransportationTypeId = 1,
+            CustomsProcedureId = 2, // Code 60
+            FileName = "customs_60.xlsx",
+            DTime = DateTime.Now,
+            InvoiceNumber = "CUST60-001",
+            InvoiceDate = new DateOnly(2024, 6, 1),
+            TheOtherCountryCode = 860
+        };
+        _dbContext.Registers.Add(register60);
+
+        var order60 = new WbrParcel
+        {
+            Id = 1023,
+            RegisterId = 1022,
+            StatusId = 1,
+            CountryCode = 643,
+            Shk = "WBR-CUST60-1",
+            RecipientAddress = $"Country,City,{longAddress},Building",
+            CheckStatusId = (int)ParcelCheckStatusCode.NoIssues
+        };
+        _dbContext.WbrOrders.Add(order60);
+        _dbContext.SaveChanges();
+
+        var svc = new ParcelIndPostGenerator(_dbContext, new IndPostXmlService());
+
+        // Act & Assert for Customs Procedure 10 (Export)
+        // For procedure 10, the truncated street goes to "STREETHOUSE" field (consignee address)
+        var (filename10, xml10) = await svc.GenerateXML(1021);
+        var doc10 = XDocument.Parse(xml10);
+        var streetHouse10 = doc10.Root?.Elements("STREETHOUSE").FirstOrDefault();
+        Assert.That(streetHouse10?.Value, Is.EqualTo(expectedTruncated));
+        Assert.That(streetHouse10?.Value.Length, Is.EqualTo(Limits.MaxStreetAddressLength));
+
+        // Act & Assert for Customs Procedure 60 (Reimport)
+        // For procedure 60, the truncated street goes to "CONSIGNOR_ADDRESS_STREETHOUSE" field (consignor address)
+        var (filename60, xml60) = await svc.GenerateXML(1023);
+        var doc60 = XDocument.Parse(xml60);
+        var streetHouse60 = doc60.Root?.Elements("CONSIGNOR_ADDRESS_STREETHOUSE").FirstOrDefault();
+        Assert.That(streetHouse60?.Value, Is.EqualTo(expectedTruncated));
+        Assert.That(streetHouse60?.Value.Length, Is.EqualTo(Limits.MaxStreetAddressLength));
+    }
+
+    [Test]
+    public async Task GenerateXML_WbrOrder_StreetAddressTruncation_ExactLimit()
+    {
+        // Arrange - Create address exactly at the limit (45 characters)
+        // We need to account for how WbrParcel.GetStreet() works: it joins parts from index 2 onwards
+        // So we need: streetPart + "," + additionalPart = 45 chars total
+        var streetPart = "123456789012345678901234567890123456789"; // 39 chars
+        var additionalPart = "01234"; // 5 chars, so total will be 39 + 1 + 5 = 45 chars
+        var expectedStreet = $"{streetPart},{additionalPart}"; // Exactly 45 chars
+        
+        var register = new Register
+        {
+            Id = 1000,
+            CompanyId = 2,
+            TransportationTypeId = 1,
+            CustomsProcedureId = 1,
+            FileName = "exact_limit.xlsx",
+            DTime = DateTime.Now,
+            InvoiceNumber = "EXACT-001",
+            InvoiceDate = new DateOnly(2024, 6, 1),
+            TheOtherCountryCode = 860
+        };
+        _dbContext.Registers.Add(register);
+
+        var order = new WbrParcel
+        {
+            Id = 1001,
+            RegisterId = 1000,
+            StatusId = 1,
+            CountryCode = 643,
+            Shk = "WBR-EXACT-1",
+            RecipientAddress = $"Country,City,{streetPart},{additionalPart}",
+            CheckStatusId = (int)ParcelCheckStatusCode.NoIssues
+        };
+        _dbContext.WbrOrders.Add(order);
+        _dbContext.SaveChanges();
+
+        // Act
+        var svc = new ParcelIndPostGenerator(_dbContext, new IndPostXmlService());
+        var (filename, xml) = await svc.GenerateXML(1001);
+
+        // Assert - Should not be truncated as it's exactly at the limit
+        Assert.That(xml, Does.Contain(expectedStreet));
+        Assert.That(xml, Does.Contain("STREETHOUSE"));
+        
+        var doc = XDocument.Parse(xml);
+        var streetHouseElement = doc.Root?.Elements("STREETHOUSE").FirstOrDefault();
+        Assert.That(streetHouseElement?.Value, Is.EqualTo(expectedStreet));
+        Assert.That(streetHouseElement?.Value.Length, Is.EqualTo(Limits.MaxStreetAddressLength));
+    }
+
+    [Test]
+    public async Task GenerateXML_WbrOrder_StreetAddressTruncation_ExceedsLimit()
+    {
+        // Arrange - Create address that exceeds the limit when joined
+        var streetPart = "1234567890123456789012345678901234567890"; // 40 chars
+        var additionalPart = "123456"; // 6 chars, so total will be 40 + 1 + 6 = 47 chars (exceeds 45)
+        var fullStreet = $"{streetPart},{additionalPart}"; // 47 chars
+        var expectedTruncated = fullStreet[..Limits.MaxStreetAddressLength]; // First 45 chars: "1234567890123456789012345678901234567890,12345"
+        
+        var register = new Register
+        {
+            Id = 1002,
+            CompanyId = 2,
+            TransportationTypeId = 1,
+            CustomsProcedureId = 1,
+            FileName = "exceeds_limit.xlsx",
+            DTime = DateTime.Now,
+            InvoiceNumber = "EXCEED-001",
+            InvoiceDate = new DateOnly(2024, 6, 1),
+            TheOtherCountryCode = 860
+        };
+        _dbContext.Registers.Add(register);
+
+        var order = new WbrParcel
+        {
+            Id = 1003,
+            RegisterId = 1002,
+            StatusId = 1,
+            CountryCode = 643,
+            Shk = "WBR-EXCEED-1",
+            RecipientAddress = $"Country,City,{streetPart},{additionalPart}",
+            CheckStatusId = (int)ParcelCheckStatusCode.NoIssues
+        };
+        _dbContext.WbrOrders.Add(order);
+        _dbContext.SaveChanges();
+
+        // Act
+        var svc = new ParcelIndPostGenerator(_dbContext, new IndPostXmlService());
+        var (filename, xml) = await svc.GenerateXML(1003);
+
+        // Assert - Should be truncated to 45 characters
+        Assert.That(xml, Does.Not.Contain(fullStreet));
+        Assert.That(xml, Does.Contain(expectedTruncated));
+        
+        var doc = XDocument.Parse(xml);
+        var streetHouseElement = doc.Root?.Elements("STREETHOUSE").FirstOrDefault();
+        Assert.That(streetHouseElement?.Value, Is.EqualTo(expectedTruncated));
+        Assert.That(streetHouseElement?.Value.Length, Is.EqualTo(Limits.MaxStreetAddressLength));
+    }
+
+
+    [Test]
+    public async Task GenerateXML_OzonOrder_StreetAddressTruncation_ExceedsLimit()
+    {
+        // Arrange - Create Ozon order with long address that exceeds the limit
+        var longAddress = "Very Long Street Name That Exceeds Maximum Length Allowed By System"; // 68 chars
+        var expectedTruncated = "Very Long Street Name That Exceeds Maximum Le"; // 45 chars
+        
+        var register = new Register
+        {
+            Id = 1008,
+            CompanyId = 1,
+            TransportationTypeId = 1,
+            CustomsProcedureId = 1,
+            FileName = "ozon_long.xlsx",
+            DTime = DateTime.Now,
+            InvoiceNumber = "OZON-LONG-001",
+            InvoiceDate = new DateOnly(2024, 6, 1),
+            TheOtherCountryCode = 860
+        };
+        _dbContext.Registers.Add(register);
+
+        var order = new OzonParcel
+        {
+            Id = 1009,
+            RegisterId = 1008,
+            StatusId = 1,
+            CountryCode = 643,
+            PostingNumber = "OZON-LONG-1",
+            Address = $"Country,City,{longAddress},Building",
+            CheckStatusId = (int)ParcelCheckStatusCode.NoIssues
+        };
+        _dbContext.OzonOrders.Add(order);
+        _dbContext.SaveChanges();
+
+        // Act
+        var svc = new ParcelIndPostGenerator(_dbContext, new IndPostXmlService());
+        var (filename, xml) = await svc.GenerateXML(1009);
+
+        // Assert - Should be truncated to 45 characters
+        Assert.That(xml, Does.Not.Contain(longAddress));
+        Assert.That(xml, Does.Contain(expectedTruncated));
+        
+        var doc = XDocument.Parse(xml);
+        var streetHouseElement = doc.Root?.Elements("STREETHOUSE").FirstOrDefault();
+        Assert.That(streetHouseElement?.Value, Is.EqualTo(expectedTruncated));
+        Assert.That(streetHouseElement?.Value.Length, Is.EqualTo(Limits.MaxStreetAddressLength));
+    }
+
+    [Test]
+    public async Task GenerateXML_OzonOrder_StreetAddressTruncation_WithSpecialCharacters()
+    {
+        // Arrange - Create address with special characters and Unicode that exceeds limit
+        var longAddressWithSpecialChars = "Улица Пушкина дом Колотушкина квартира номер тридцать семь"; // 58 chars
+        var expectedTruncated = "Улица Пушкина дом Колотушкина квартира номер"; // 45 chars and -1 after Trim
+        
+        var register = new Register
+        {
+            Id = 1010,
+            CompanyId = 1,
+            TransportationTypeId = 1,
+            CustomsProcedureId = 1,
+            FileName = "ozon_special.xlsx",
+            DTime = DateTime.Now,
+            InvoiceNumber = "OZON-SPEC-001",
+            InvoiceDate = new DateOnly(2024, 6, 1),
+            TheOtherCountryCode = 860
+        };
+        _dbContext.Registers.Add(register);
+
+        var order = new OzonParcel
+        {
+            Id = 1011,
+            RegisterId = 1010,
+            StatusId = 1,
+            CountryCode = 643,
+            PostingNumber = "OZON-SPEC-1",
+            Address = $"Россия,Москва,{longAddressWithSpecialChars},Подъезд 1",
+            CheckStatusId = (int)ParcelCheckStatusCode.NoIssues
+        };
+        _dbContext.OzonOrders.Add(order);
+        _dbContext.SaveChanges();
+
+        // Act
+        var svc = new ParcelIndPostGenerator(_dbContext, new IndPostXmlService());
+        var (filename, xml) = await svc.GenerateXML(1011);
+
+        // Assert - Should be truncated to 45 characters while preserving Unicode
+        var doc = XDocument.Parse(xml);
+        var streetHouseElement = doc.Root?.Elements("STREETHOUSE").FirstOrDefault();
+        Assert.That(streetHouseElement?.Value, Is.EqualTo(expectedTruncated));
+        Assert.That(streetHouseElement?.Value.Length, Is.EqualTo(Limits.MaxStreetAddressLength - 1));
+        Assert.That(streetHouseElement?.Value, Does.StartWith("Улица"));
+    }
+
+    [Test]
+    public async Task GenerateXML_WbrOrder_StreetAddressTruncation_EdgeCaseEmptyAddress()
+    {
+        // Arrange - Test edge case with empty/null address
+        var register = new Register
+        {
+            Id = 1012,
+            CompanyId = 2,
+            TransportationTypeId = 1,
+            CustomsProcedureId = 1,
+            FileName = "empty_address.xlsx",
+            DTime = DateTime.Now,
+            InvoiceNumber = "EMPTY-001",
+            InvoiceDate = new DateOnly(2024, 6, 1),
+            TheOtherCountryCode = 860
+        };
+        _dbContext.Registers.Add(register);
+
+        var order = new WbrParcel
+        {
+            Id = 1013,
+            RegisterId = 1012,
+            StatusId = 1,
+            CountryCode = 643,
+            Shk = "WBR-EMPTY-1",
+            RecipientAddress = null, // Empty address
+            CheckStatusId = (int)ParcelCheckStatusCode.NoIssues
+        };
+        _dbContext.WbrOrders.Add(order);
+        _dbContext.SaveChanges();
+
+        // Act
+        var svc = new ParcelIndPostGenerator(_dbContext, new IndPostXmlService());
+        var (filename, xml) = await svc.GenerateXML(1013);
+
+        // Assert - Should use placeholder and not cause truncation issues
+        var doc = XDocument.Parse(xml);
+        var streetHouseElement = doc.Root?.Elements("STREETHOUSE").FirstOrDefault();
+        Assert.That(streetHouseElement?.Value, Is.EqualTo(Placeholders.NotSet));
+    }
+
+    [Test]
+    public async Task GenerateXML_WbrOrder_StreetAddressTruncation_WithCommasInAddress()
+    {
+        // Arrange - Test address parsing with commas that results in long street portion
+        var countryPart = "Узбекистан";
+        var cityPart = "Ташкент";
+        var streetPart = "Улица имени Героев Независимости дом номер сто двадцать три квартира номер сорок пять"; // 85 chars
+        var buildingPart = "Подъезд 2";
+        
+        // WbrParcel.GetStreet() returns string.Join(",", parts.Skip(2).Select(p => p.Trim())) when parts.Length >= 4
+        // So the street will be: streetPart + "," + buildingPart = "Улица имени Героев Независимости дом номер сто двадцать три квартира номер сорок пять,Подъезд 2"
+        var fullStreetResult = $"{streetPart},{buildingPart}"; // This will be the result from GetStreet()
+        var expectedTruncated = fullStreetResult[..45]; // First 45 chars: "Улица имени Героев Независимости дом номер ст"
+        
+        var register = new Register
+        {
+            Id = 1014,
+            CompanyId = 2,
+            TransportationTypeId = 1,
+            CustomsProcedureId = 1,
+            FileName = "comma_address.xlsx",
+            DTime = DateTime.Now,
+            InvoiceNumber = "COMMA-001",
+            InvoiceDate = new DateOnly(2024, 6, 1),
+            TheOtherCountryCode = 860
+        };
+        _dbContext.Registers.Add(register);
+
+        var order = new WbrParcel
+        {
+            Id = 1015,
+            RegisterId = 1014,
+            StatusId = 1,
+            CountryCode = 643,
+            Shk = "WBR-COMMA-1",
+            RecipientAddress = $"{countryPart},{cityPart},{streetPart},{buildingPart}",
+            CheckStatusId = (int)ParcelCheckStatusCode.NoIssues
+        };
+        _dbContext.WbrOrders.Add(order);
+        _dbContext.SaveChanges();
+
+        // Act
+        var svc = new ParcelIndPostGenerator(_dbContext, new IndPostXmlService());
+        var (filename, xml) = await svc.GenerateXML(1015);
+
+        // Assert - Street part should be truncated to 45 characters
+        var doc = XDocument.Parse(xml);
+        var streetHouseElement = doc.Root?.Elements("STREETHOUSE").FirstOrDefault();
+        Assert.That(streetHouseElement?.Value, Is.EqualTo(expectedTruncated));
+        Assert.That(streetHouseElement?.Value.Length, Is.EqualTo(Limits.MaxStreetAddressLength));
+    }
 }

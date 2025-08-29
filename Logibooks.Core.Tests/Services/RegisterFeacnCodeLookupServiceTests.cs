@@ -220,15 +220,15 @@ public class RegisterFeacnCodeLookupServiceTests
         }
         sw.Stop();
 
-        var order1 = await ctx.Orders.Include(o => o.BaseOrderKeyWords).FirstAsync(o => o.Id == 101);
-        var order2 = await ctx.Orders.Include(o => o.BaseOrderKeyWords).FirstAsync(o => o.Id == 102);
+        var order1 = await ctx.Orders.Include(o => o.BaseParcelKeyWords).FirstAsync(o => o.Id == 101);
+        var order2 = await ctx.Orders.Include(o => o.BaseParcelKeyWords).FirstAsync(o => o.Id == 102);
 
-        var keyWordIds1 = order1.BaseOrderKeyWords.Select(l => l.KeyWordId).ToList();
+        var keyWordIds1 = order1.BaseParcelKeyWords.Select(l => l.KeyWordId).ToList();
         Assert.That(keyWordIds1, Does.Contain(201));
         Assert.That(keyWordIds1, Does.Contain(202));
         Assert.That(keyWordIds1.Count, Is.EqualTo(2));
 
-        Assert.That(order2.BaseOrderKeyWords, Is.Empty);
+        Assert.That(order2.BaseParcelKeyWords, Is.Empty);
     }
 
     [Test]

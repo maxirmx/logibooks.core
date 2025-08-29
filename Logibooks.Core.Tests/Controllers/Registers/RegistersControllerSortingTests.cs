@@ -112,7 +112,7 @@ public class RegistersControllerSortingTests : RegistersControllerTestsBase
         Assert.That(items[1].DealNumber, Is.EqualTo("DEAL-A"));
     }
 
-    // Sorting by OrdersTotal across pages
+    // Sorting by ParcelsTotal across pages
     [Test]
     public async Task GetRegisters_SortsByOrdersTotalAcrossPages()
     {
@@ -181,9 +181,9 @@ public class RegistersControllerSortingTests : RegistersControllerTestsBase
         Assert.That(items[1].CustomsProcedureId, Is.EqualTo(2));  // Реимпорт
     }
 
-    // Sorting by InvoiceNumber descending
+    // Sorting by InvoiceNumber descending (now uses composite "invoice" sort)
     [Test]
-    public async Task GetRegisters_SortsByInvoiceNumber_Descending()
+    public async Task GetRegisters_SortsByInvoice_Descending()
     {
         SetCurrentUserId(1);
         _dbContext.Registers.AddRange(
@@ -191,7 +191,7 @@ public class RegistersControllerSortingTests : RegistersControllerTestsBase
             new Register { Id = 2, FileName = "r2.xlsx", CompanyId = 2, TheOtherCompanyId = 3, InvoiceNumber = "INV-002" }
         );
         await _dbContext.SaveChangesAsync();
-        var result = await _controller.GetRegisters(sortBy: "invoicenumber", sortOrder: "desc");
+        var result = await _controller.GetRegisters(sortBy: "invoice", sortOrder: "desc");
         var ok = result.Result as OkObjectResult;
         var pr = ok!.Value as PagedResult<RegisterViewItem>;
         var items = pr!.Items.ToArray();
@@ -199,24 +199,36 @@ public class RegistersControllerSortingTests : RegistersControllerTestsBase
         Assert.That(items[1].InvoiceNumber, Is.EqualTo("INV-001"));
     }
 
-    // Sorting by InvoiceDate descending
+    // Test composite sorting by InvoiceNumber + InvoiceDate
     [Test]
-    public async Task GetRegisters_SortsByInvoiceDate_Descending()
+    public async Task GetRegisters_SortsByInvoice_CompositeSorting()
     {
         SetCurrentUserId(1);
         var earlierDate = DateOnly.FromDateTime(DateTime.Today.AddDays(-1));
         var laterDate = DateOnly.FromDateTime(DateTime.Today);
+        
         _dbContext.Registers.AddRange(
-            new Register { Id = 1, FileName = "r1.xlsx", CompanyId = 2, TheOtherCompanyId = 3, InvoiceDate = earlierDate },
-            new Register { Id = 2, FileName = "r2.xlsx", CompanyId = 2, TheOtherCompanyId = 3, InvoiceDate = laterDate }
+            // Same invoice number, different dates
+            new Register { Id = 1, FileName = "r1.xlsx", CompanyId = 2, TheOtherCompanyId = 3, InvoiceNumber = "INV-001", InvoiceDate = laterDate },
+            new Register { Id = 2, FileName = "r2.xlsx", CompanyId = 2, TheOtherCompanyId = 3, InvoiceNumber = "INV-001", InvoiceDate = earlierDate },
+            // Different invoice number
+            new Register { Id = 3, FileName = "r3.xlsx", CompanyId = 2, TheOtherCompanyId = 3, InvoiceNumber = "INV-002", InvoiceDate = earlierDate }
         );
         await _dbContext.SaveChangesAsync();
-        var result = await _controller.GetRegisters(sortBy: "invoicedate", sortOrder: "desc");
+        
+        var result = await _controller.GetRegisters(sortBy: "invoice", sortOrder: "asc");
         var ok = result.Result as OkObjectResult;
         var pr = ok!.Value as PagedResult<RegisterViewItem>;
         var items = pr!.Items.ToArray();
-        Assert.That(items[0].Id, Is.EqualTo(2)); // Later invoice date comes first in desc order
-        Assert.That(items[1].Id, Is.EqualTo(1)); // Earlier invoice date comes second
+        
+        // Should sort by InvoiceNumber first, then by InvoiceDate
+        // INV-001 (earlier date), INV-001 (later date), INV-002 (earlier date)
+        Assert.That(items[0].InvoiceNumber, Is.EqualTo("INV-001"));
+        Assert.That(items[0].Id, Is.EqualTo(2)); // Earlier date first
+        Assert.That(items[1].InvoiceNumber, Is.EqualTo("INV-001"));
+        Assert.That(items[1].Id, Is.EqualTo(1)); // Later date second
+        Assert.That(items[2].InvoiceNumber, Is.EqualTo("INV-002"));
+        Assert.That(items[2].Id, Is.EqualTo(3));
     }
 
     // Sorting by RecipientId ascending
@@ -304,6 +316,28 @@ public class RegistersControllerSortingTests : RegistersControllerTestsBase
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
     }
 
+    // Test for previously valid but now invalid sort fields
+    [Test]
+    public async Task GetRegisters_ReturnsBadRequest_WhenSortByIsObsolete()
+    {
+        SetCurrentUserId(1);
+        _dbContext.Registers.Add(new Register { Id = 1, FileName = "test.xlsx", CompanyId = 2, TheOtherCompanyId = 3 });
+        await _dbContext.SaveChangesAsync();
+
+        // These were valid before but are no longer accepted
+        var obsoleteSortFields = new[] { "invoicenumber", "invoicedate" };
+        
+        foreach (var sortBy in obsoleteSortFields)
+        {
+            var result = await _controller.GetRegisters(sortBy: sortBy);
+            Assert.That(result.Result, Is.TypeOf<ObjectResult>(),
+                $"sortBy '{sortBy}' should now be invalid");
+            var obj = result.Result as ObjectResult;
+            Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest),
+                $"sortBy '{sortBy}' should return 400 Bad Request");
+        }
+    }
+
     // Test that all allowed sort fields are accepted
     [Test]
     public async Task GetRegisters_AcceptsAllValidSortByValues()
@@ -323,8 +357,7 @@ public class RegistersControllerSortingTests : RegistersControllerTestsBase
             "origcountrycode",
             "transportationtypeid",
             "customsprocedureid",
-            "invoicenumber",
-            "invoicedate",
+            "invoice",
             "dealnumber"
         ];
 
@@ -346,7 +379,7 @@ public class RegistersControllerSortingTests : RegistersControllerTestsBase
             new Register { Id = 2, FileName = "r2.xlsx", CompanyId = 2, TheOtherCompanyId = 3, InvoiceNumber = null }
         );
         await _dbContext.SaveChangesAsync();
-        var result = await _controller.GetRegisters(sortBy: "invoiceNumber", sortOrder: "asc");
+        var result = await _controller.GetRegisters(sortBy: "invoice", sortOrder: "asc");
         var ok = result.Result as OkObjectResult;
         var pr = ok!.Value as PagedResult<RegisterViewItem>;
         Assert.That(pr!.Items.Count(), Is.EqualTo(2));

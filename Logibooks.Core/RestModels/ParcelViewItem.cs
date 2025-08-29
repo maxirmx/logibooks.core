@@ -103,17 +103,17 @@ public class ParcelViewItem
             Patronymic = ozon.Patronymic;
         }
 
-        StopWordIds = order.BaseOrderStopWords?
+        StopWordIds = order.BaseParcelStopWords?
             .Select(bosw => bosw.StopWordId)
-            .ToList() ?? new List<int>();
-        KeyWordIds = order.BaseOrderKeyWords?
+            .ToList() ?? [];
+        KeyWordIds = order.BaseParcelKeyWords?
             .Select(bokw => bokw.KeyWordId)
-            .ToList() ?? new List<int>();
-        FeacnOrderIds = order.BaseOrderFeacnPrefixes?
+            .ToList() ?? [];
+        FeacnOrderIds = order.BaseParcelFeacnPrefixes?
             .Where(bofp => bofp.FeacnPrefix?.FeacnOrderId != null)
             .Select(bofp => bofp.FeacnPrefix?.FeacnOrderId ?? 0)
             .Distinct()
-            .ToList() ?? new List<int>();
+            .ToList() ?? [];
     }
 
     public override string ToString()

@@ -85,7 +85,13 @@ public class ParcelIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServi
         var originCountryCode = register.CustomsProcedure?.Code == 10
             ? "RU"
             : register.TheOtherCountry?.IsoAlpha2 ?? Placeholders.NotSet;
-        
+
+        string streetAddress = order.GetStreet();
+        if (streetAddress.Length > Limits.MaxStreetAddressLength)
+        {
+            streetAddress = streetAddress[..Limits.MaxStreetAddressLength].Trim();
+        }
+
         var fields = new Dictionary<string, string?>
         {
             { "NUM", order.GetParcelNumber() },
@@ -120,7 +126,7 @@ public class ParcelIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServi
             fields["IDENTITYCARDNUMBER"] = order.GetNumber();
             fields["CONSIGNEE_IDENTITYCARD_COUNTRYCODE"] = SetOrDefault(register?.TheOtherCountry?.IsoAlpha2);
             fields["CITY"] = order.GetCity();
-            fields["STREETHOUSE"] = order.GetStreet();
+            fields["STREETHOUSE"] = streetAddress;
 
             fields["CONSIGNOR_CHOICE"] = "2";
             fields["SENDER"] = SetOrDefault(register?.Company?.ShortName);
@@ -154,7 +160,7 @@ public class ParcelIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServi
             fields["CONSIGNOR_IDENTITYCARD_IDENTITYCARDNUMBER"] = order.GetNumber();
             fields["CONSIGNOR_IDENTITYCARD_COUNTRYCODE"] = SetOrDefault(register?.TheOtherCountry?.IsoAlpha2);
             fields["CONSIGNOR_ADDRESS_CITY"] = order.GetCity();
-            fields["CONSIGNOR_ADDRESS_STREETHOUSE"] = order.GetStreet();
+            fields["CONSIGNOR_ADDRESS_STREETHOUSE"] = streetAddress;
             fields["COUNTRYCODE"] = SetOrDefault(register?.TheOtherCountry?.IsoAlpha2);
             fields["COUNTRYNAME"] = SetOrDefault(register?.TheOtherCountry?.NameRuShort);
 
@@ -186,7 +192,7 @@ public class ParcelIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServi
             var tnVedCodes = ordersForGoods.Select(o => o.TnVed).Where(tnVed => !string.IsNullOrEmpty(tnVed)).Distinct().ToList();
             feacnInsertItems = await _db.FeacnInsertItems.AsNoTracking()
                 .Where(fii => tnVedCodes.Contains(fii.Code))
-                .ToDictionaryAsync(fii => fii.Code, fii => fii);
+                .ToDictionaryAsync(fii => fii.Code, sii => sii);
         }
 
         decimal totalCost = 0m;

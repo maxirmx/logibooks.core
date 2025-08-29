@@ -78,9 +78,9 @@ public abstract class BaseParcel
         set => PartnerColor = (uint)value.Color.ToArgb();
     }
 
-    public ICollection<BaseParcelStopWord> BaseOrderStopWords { get; set; } = [];
-    public ICollection<BaseParcelFeacnPrefix> BaseOrderFeacnPrefixes { get; set; } = [];
-    public ICollection<BaseParcelKeyWord> BaseOrderKeyWords { get; set; } = [];
+    public ICollection<BaseParcelStopWord> BaseParcelStopWords { get; set; } = [];
+    public ICollection<BaseParcelFeacnPrefix> BaseParcelFeacnPrefixes { get; set; } = [];
+    public ICollection<BaseParcelKeyWord> BaseParcelKeyWords { get; set; } = [];
 
     // IndPost generation API
     public abstract string GetParcelNumber();

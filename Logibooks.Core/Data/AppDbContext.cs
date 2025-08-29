@@ -48,7 +48,7 @@ namespace Logibooks.Core.Data
         public DbSet<FeacnPrefix> FeacnPrefixes => Set<FeacnPrefix>();
         public DbSet<FeacnPrefixException> FeacnPrefixExceptions => Set<FeacnPrefixException>();
         public DbSet<CustomsProcedure> CustomsProcedures => Set<CustomsProcedure>();
-        public DbSet<BaseParcelFeacnPrefix> BaseOrderFeacnPrefixes => Set<BaseParcelFeacnPrefix>();
+        public DbSet<BaseParcelFeacnPrefix> BaseParcelFeacnPrefixes => Set<BaseParcelFeacnPrefix>();
         public DbSet<TransportationType> TransportationTypes => Set<TransportationType>();
         public DbSet<ParcelView> ParcelViews => Set<ParcelView>();
         public DbSet<KeyWord> KeyWords => Set<KeyWord>();
@@ -175,7 +175,7 @@ namespace Logibooks.Core.Data
 
             modelBuilder.Entity<BaseParcelStopWord>()
                 .HasOne(bosw => bosw.BaseParcel)
-                .WithMany(bo => bo.BaseOrderStopWords)
+                .WithMany(bo => bo.BaseParcelStopWords)
                 .HasForeignKey(bosw => bosw.BaseParcelId);
 
             modelBuilder.Entity<BaseParcelStopWord>()
@@ -188,12 +188,12 @@ namespace Logibooks.Core.Data
 
             modelBuilder.Entity<BaseParcelFeacnPrefix>()
                 .HasOne(bofp => bofp.BaseParcel)
-                .WithMany(bo => bo.BaseOrderFeacnPrefixes)
+                .WithMany(bo => bo.BaseParcelFeacnPrefixes)
                 .HasForeignKey(bofp => bofp.BaseParcelId);
 
             modelBuilder.Entity<BaseParcelFeacnPrefix>()
                 .HasOne(bofp => bofp.FeacnPrefix)
-                .WithMany(fp => fp.BaseOrderFeacnPrefixes)
+                .WithMany(fp => fp.BaseParcelFeacnPrefixes)
                 .HasForeignKey(bofp => bofp.FeacnPrefixId);
 
             modelBuilder.Entity<FeacnPrefix>()
@@ -226,12 +226,12 @@ namespace Logibooks.Core.Data
 
             modelBuilder.Entity<BaseParcelKeyWord>()
                 .HasOne(bokw => bokw.BaseParcel)
-                .WithMany(bo => bo.BaseOrderKeyWords)
+                .WithMany(bo => bo.BaseParcelKeyWords)
                 .HasForeignKey(bokw => bokw.BaseParcelId);
 
             modelBuilder.Entity<BaseParcelKeyWord>()
                 .HasOne(bokw => bokw.KeyWord)
-                .WithMany(kw => kw.BaseOrderKeyWords)
+                .WithMany(kw => kw.BaseParcelKeyWords)
                 .HasForeignKey(bokw => bokw.KeyWordId);
 
             modelBuilder.Entity<FeacnCode>()
