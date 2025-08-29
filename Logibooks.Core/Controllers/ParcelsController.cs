@@ -105,9 +105,9 @@ public class ParcelsController(
         {
             order = await _db.WbrOrders.AsNoTracking()
                 .Include(o => o.Register)
-                .Include(o => o.BaseOrderStopWords)
-                .Include(o => o.BaseOrderKeyWords)
-                .Include(o => o.BaseOrderFeacnPrefixes)
+                .Include(o => o.BaseParcelStopWords)
+                .Include(o => o.BaseParcelKeyWords)
+                .Include(o => o.BaseParcelFeacnPrefixes)
                     .ThenInclude(bofp => bofp.FeacnPrefix)
                         .ThenInclude(fp => fp.FeacnOrder)
                 .FirstOrDefaultAsync(o => o.Id == id && o.CheckStatusId != (int)ParcelCheckStatusCode.MarkedByPartner);
@@ -116,9 +116,9 @@ public class ParcelsController(
         {
             order = await _db.OzonOrders.AsNoTracking()
                 .Include(o => o.Register)
-                .Include(o => o.BaseOrderStopWords)
-                .Include(o => o.BaseOrderKeyWords)
-                .Include(o => o.BaseOrderFeacnPrefixes)
+                .Include(o => o.BaseParcelStopWords)
+                .Include(o => o.BaseParcelKeyWords)
+                .Include(o => o.BaseParcelFeacnPrefixes)
                     .ThenInclude(bofp => bofp.FeacnPrefix)
                         .ThenInclude(fp => fp.FeacnOrder)
                 .FirstOrDefaultAsync(o => o.Id == id && o.CheckStatusId != (int)ParcelCheckStatusCode.MarkedByPartner);
@@ -313,9 +313,9 @@ public class ParcelsController(
             }
 
             var query = _db.WbrOrders.AsNoTracking()
-                .Include(o => o.BaseOrderStopWords)
-                .Include(o => o.BaseOrderKeyWords)
-                .Include(o => o.BaseOrderFeacnPrefixes)
+                .Include(o => o.BaseParcelStopWords)
+                .Include(o => o.BaseParcelKeyWords)
+                .Include(o => o.BaseParcelFeacnPrefixes)
                     .ThenInclude(bofp => bofp.FeacnPrefix)
                         .ThenInclude(fp => fp.FeacnOrder)
                 .Where(o => o.RegisterId == registerId && o.CheckStatusId != (int)ParcelCheckStatusCode.MarkedByPartner);
@@ -371,9 +371,9 @@ public class ParcelsController(
             }
 
             var query = _db.OzonOrders.AsNoTracking()
-                .Include(o => o.BaseOrderStopWords)
-                .Include(o => o.BaseOrderKeyWords)
-                .Include(o => o.BaseOrderFeacnPrefixes)
+                .Include(o => o.BaseParcelStopWords)
+                .Include(o => o.BaseParcelKeyWords)
+                .Include(o => o.BaseParcelFeacnPrefixes)
                     .ThenInclude(bofp => bofp.FeacnPrefix)
                         .ThenInclude(fp => fp.FeacnOrder)
                 .Where(o => o.RegisterId == registerId && o.CheckStatusId != (int)ParcelCheckStatusCode.MarkedByPartner);

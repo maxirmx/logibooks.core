@@ -891,8 +891,8 @@ public class RegistersControllerTests : RegistersControllerTestsBase
             await Task.Delay(50);
         }
 
-        var orderReloaded = await _dbContext.Orders.Include(o => o.BaseOrderFeacnPrefixes).FirstAsync(o => o.Id == 201);
-        Assert.That(orderReloaded.BaseOrderFeacnPrefixes.Any(l => l.FeacnPrefixId == 400), Is.True);
+        var orderReloaded = await _dbContext.Orders.Include(o => o.BaseParcelFeacnPrefixes).FirstAsync(o => o.Id == 201);
+        Assert.That(orderReloaded.BaseParcelFeacnPrefixes.Any(l => l.FeacnPrefixId == 400), Is.True);
     }
 
     [Test]
@@ -1046,8 +1046,8 @@ public class RegistersControllerTests : RegistersControllerTestsBase
             await Task.Delay(50);
         }
 
-        var orderReloaded = await _dbContext.Orders.Include(o => o.BaseOrderKeyWords).FirstAsync(o => o.Id == 301);
-        Assert.That(orderReloaded.BaseOrderKeyWords.Any(l => l.KeyWordId == 401), Is.True);
+        var orderReloaded = await _dbContext.Orders.Include(o => o.BaseParcelKeyWords).FirstAsync(o => o.Id == 301);
+        Assert.That(orderReloaded.BaseParcelKeyWords.Any(l => l.KeyWordId == 401), Is.True);
     }
 
     [Test]

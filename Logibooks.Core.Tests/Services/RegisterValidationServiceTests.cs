@@ -251,17 +251,17 @@ public class RegisterValidationServiceTests
 
 
         // Reload orders and check stop word links
-        var order1 = await ctx.Orders.Include(o => o.BaseOrderStopWords).FirstAsync(o => o.Id == 101);
-        var order2 = await ctx.Orders.Include(o => o.BaseOrderStopWords).FirstAsync(o => o.Id == 102);
+        var order1 = await ctx.Orders.Include(o => o.BaseParcelStopWords).FirstAsync(o => o.Id == 101);
+        var order2 = await ctx.Orders.Include(o => o.BaseParcelStopWords).FirstAsync(o => o.Id == 102);
 
         // Order 1 should have links to both "spam" and "malware"
-        var stopWordIds1 = order1.BaseOrderStopWords.Select(l => l.StopWordId).ToList();
+        var stopWordIds1 = order1.BaseParcelStopWords.Select(l => l.StopWordId).ToList();
         Assert.That(stopWordIds1, Does.Contain(201));
         Assert.That(stopWordIds1, Does.Contain(202));
         Assert.That(stopWordIds1.Count, Is.EqualTo(2));
 
         // Order 2 should have no stop word links
-        Assert.That(order2.BaseOrderStopWords, Is.Empty);
+        Assert.That(order2.BaseParcelStopWords, Is.Empty);
     }
 
     [Test]

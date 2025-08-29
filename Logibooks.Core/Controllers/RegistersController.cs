@@ -877,8 +877,8 @@ public class RegistersController(
     {
         return query
             .Include(o => o.Register)
-            .Include(o => o.BaseOrderStopWords)
-            .Include(o => o.BaseOrderFeacnPrefixes)
+            .Include(o => o.BaseParcelStopWords)
+            .Include(o => o.BaseParcelFeacnPrefixes)
                 .ThenInclude(bofp => bofp.FeacnPrefix)
                     .ThenInclude(fp => fp.FeacnOrder);
     }

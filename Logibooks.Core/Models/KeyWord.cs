@@ -32,6 +32,6 @@ namespace Logibooks.Core.Models;
 [Index(nameof(Word), IsUnique = true, Name = "IX_key_words_word")]
 public class KeyWord : WordBase
 {
-    public ICollection<BaseParcelKeyWord> BaseOrderKeyWords { get; set; } = [];
+    public ICollection<BaseParcelKeyWord> BaseParcelKeyWords { get; set; } = [];
     public ICollection<KeyWordFeacnCode> KeyWordFeacnCodes { get; set; } = [];
 }
