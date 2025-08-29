@@ -53,7 +53,7 @@ public class RegistersControllerCrudTests : RegistersControllerTestsBase
 
 
     [Test]
-    public async Task GetRegisters_ReturnsZeroOrders_WhenNoOrders()
+    public async Task GetRegisters_ReturnsZeroParcels_WhenNoParcels()
     {
         SetCurrentUserId(1);
         _dbContext.Registers.AddRange(
@@ -68,10 +68,10 @@ public class RegistersControllerCrudTests : RegistersControllerTestsBase
         var items = pr!.Items.OrderBy(i => i.Id).ToArray();
 
         Assert.That(items.Length, Is.EqualTo(2));
-        Assert.That(items[0].OrdersTotal, Is.EqualTo(0));
-        Assert.That(items[0].OrdersByCheckStatus.Count, Is.EqualTo(0));
-        Assert.That(items[1].OrdersTotal, Is.EqualTo(0));
-        Assert.That(items[1].OrdersByCheckStatus.Count, Is.EqualTo(0));
+        Assert.That(items[0].ParcelsTotal, Is.EqualTo(0));
+        Assert.That(items[0].ParcelsByCheckStatus.Count, Is.EqualTo(0));
+        Assert.That(items[1].ParcelsTotal, Is.EqualTo(0));
+        Assert.That(items[1].ParcelsByCheckStatus.Count, Is.EqualTo(0));
     }
 
     [Test]
@@ -98,12 +98,12 @@ public class RegistersControllerCrudTests : RegistersControllerTestsBase
         Assert.That(result.Value, Is.Not.Null);
         Assert.That(result.Value!.Id, Is.EqualTo(1));
         Assert.That(result.Value.FileName, Is.EqualTo("reg.xlsx"));
-        Assert.That(result.Value.OrdersTotal, Is.EqualTo(0));
-        Assert.That(result.Value.OrdersByCheckStatus.Count, Is.EqualTo(0));
+        Assert.That(result.Value.ParcelsTotal, Is.EqualTo(0));
+        Assert.That(result.Value.ParcelsByCheckStatus.Count, Is.EqualTo(0));
     }
 
     [Test]
-    public async Task GetRegister_ReturnsOrderCounts()
+    public async Task GetRegister_ReturnsParcelsCounts()
     {
         SetCurrentUserId(1);
         // Use real seeded check statuses
@@ -123,13 +123,13 @@ public class RegistersControllerCrudTests : RegistersControllerTestsBase
         var result = await _controller.GetRegister(1);
 
         Assert.That(result.Value, Is.Not.Null);
-        Assert.That(result.Value!.OrdersTotal, Is.EqualTo(3));
-        Assert.That(result.Value.OrdersByCheckStatus[1], Is.EqualTo(2));
-        Assert.That(result.Value.OrdersByCheckStatus[2], Is.EqualTo(1));
+        Assert.That(result.Value!.ParcelsTotal, Is.EqualTo(3));
+        Assert.That(result.Value.ParcelsByCheckStatus[1], Is.EqualTo(2));
+        Assert.That(result.Value.ParcelsByCheckStatus[2], Is.EqualTo(1));
     }
 
     [Test]
-    public async Task GetRegister_ReturnsOrderCounts_WithMultipleStatusGroups()
+    public async Task GetRegister_ReturnsParcelsCounts_WithMultipleStatusGroups()
     {
         SetCurrentUserId(1);
         _dbContext.CheckStatuses.AddRange(
@@ -150,10 +150,10 @@ public class RegistersControllerCrudTests : RegistersControllerTestsBase
         var result = await _controller.GetRegister(1);
 
         Assert.That(result.Value, Is.Not.Null);
-        Assert.That(result.Value!.OrdersTotal, Is.EqualTo(4));
-        Assert.That(result.Value.OrdersByCheckStatus[1], Is.EqualTo(1));
-        Assert.That(result.Value.OrdersByCheckStatus[2], Is.EqualTo(1));
-        Assert.That(result.Value.OrdersByCheckStatus[3], Is.EqualTo(2));
+        Assert.That(result.Value!.ParcelsTotal, Is.EqualTo(4));
+        Assert.That(result.Value.ParcelsByCheckStatus[1], Is.EqualTo(1));
+        Assert.That(result.Value.ParcelsByCheckStatus[2], Is.EqualTo(1));
+        Assert.That(result.Value.ParcelsByCheckStatus[3], Is.EqualTo(2));
     }
 
     [Test]

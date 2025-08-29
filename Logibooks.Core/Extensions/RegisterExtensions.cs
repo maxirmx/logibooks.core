@@ -49,7 +49,7 @@ public static class RegisterExtensions
 
     }
 
-    public static RegisterViewItem ToViewItem(this Register register, Dictionary<int, int> ordersByCheckStatus)
+    public static RegisterViewItem ToViewItem(this Register register, Dictionary<int, int> parcelsByCheckStatus, int placesTotal)
     {
         return new RegisterViewItem
         {
@@ -64,8 +64,9 @@ public static class RegisterExtensions
             TheOtherCountryCode = register.TheOtherCountryCode ?? 0,
             TransportationTypeId = register.TransportationTypeId,
             CustomsProcedureId = register.CustomsProcedureId,
-            OrdersTotal = ordersByCheckStatus?.Values.Sum() ?? 0,
-            OrdersByCheckStatus = ordersByCheckStatus ?? new Dictionary<int, int>()
+            ParcelsTotal = parcelsByCheckStatus?.Values.Sum() ?? 0,
+            PlacesTotal = placesTotal,
+            ParcelsByCheckStatus = parcelsByCheckStatus ?? []
         };
     }
 }

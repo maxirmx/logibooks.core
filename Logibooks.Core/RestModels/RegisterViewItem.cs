@@ -40,8 +40,9 @@ public class RegisterViewItem
     public short? TheOtherCountryCode { get; set; }
     public int TransportationTypeId { get; set; }
     public int CustomsProcedureId { get; set; }
-    public int OrdersTotal { get; set; }
-    public Dictionary<int, int> OrdersByCheckStatus { get; set; } = new();
+    public int ParcelsTotal { get; set; }
+    public int PlacesTotal { get; set; }
+    public Dictionary<int, int> ParcelsByCheckStatus { get; set; } = new();
 
     [JsonIgnore]
     public string CompanyShortName { get; set; } = string.Empty;

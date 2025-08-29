@@ -23,18 +23,18 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+using DocumentFormat.OpenXml.Office2010.Excel;
+using Logibooks.Core.Authorization;
+using Logibooks.Core.Constants;
+using Logibooks.Core.Data;
+using Logibooks.Core.Extensions;
+using Logibooks.Core.Interfaces;
+using Logibooks.Core.Models;
+using Logibooks.Core.RestModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SharpCompress.Archives;
 using System.Linq.Expressions;
-
-using Logibooks.Core.Authorization;
-using Logibooks.Core.Constants;
-using Logibooks.Core.Data;
-using Logibooks.Core.Models;
-using Logibooks.Core.RestModels;
-using Logibooks.Core.Extensions;
-using Logibooks.Core.Interfaces;
 
 namespace Logibooks.Core.Controllers;
 
@@ -66,8 +66,7 @@ public class RegistersController(
         "origcountrycode",
         "transportationtypeid", 
         "customsprocedureid", 
-        "invoicenumber", 
-        "invoicedate",
+        "invoice", 
         "dealnumber"
     ];
 
@@ -134,12 +133,13 @@ public class RegistersController(
             return _404Register(id);
         }
 
-        var ordersStats = await FetchOrdersStatsAsync([id]);
-        var ordersByStatus = ordersStats.GetValueOrDefault(id, new Dictionary<int, int>());
+        var parcelsStats = await FetchOrdersStatsAsync([id]);
+        var parcelsByStatus = parcelsStats.GetValueOrDefault(id, []);
+        var placesTotal = await FetchUniqueIdentifiersCountAsync([id]);
 
-        var view = register.ToViewItem(ordersByStatus);
+        var view = register.ToViewItem(parcelsByStatus, placesTotal[id]);
 
-        _logger.LogDebug("GetRegister returning register with {count} orders", view.OrdersTotal);
+        _logger.LogDebug("GetRegister returning register with {count} parcels", view.ParcelsTotal);
         return view;
     }
 
@@ -241,10 +241,8 @@ public class RegistersController(
             ("transportationtypeid", "desc") => query.OrderByDescending(r => r.TransportationType != null ? r.TransportationType.Name : string.Empty),
             ("customsprocedureid", "asc") => query.OrderBy(r => r.CustomsProcedure != null ? r.CustomsProcedure.Name : string.Empty),
             ("customsprocedureid", "desc") => query.OrderByDescending(r => r.CustomsProcedure != null ? r.CustomsProcedure.Name : string.Empty),
-            ("invoicenumber", "asc") => query.OrderBy(r => r.InvoiceNumber),
-            ("invoicenumber", "desc") => query.OrderByDescending(r => r.InvoiceNumber),
-            ("invoicedate", "asc") => query.OrderBy(r => r.InvoiceDate),
-            ("invoicedate", "desc") => query.OrderByDescending(r => r.InvoiceDate),
+            ("invoice", "asc") => query.OrderBy(r => r.InvoiceNumber).ThenBy(r => r.InvoiceDate),
+            ("invoice", "desc") => query.OrderByDescending(r => r.InvoiceNumber).ThenByDescending(r => r.InvoiceDate),
             ("id", "desc") => query.OrderByDescending(r => r.Id),
             _ => query.OrderBy(r => r.Id)
         };
@@ -268,8 +266,9 @@ public class RegistersController(
 
         var ids = items.Select(r => r.Id).ToList();
         var stats = await FetchOrdersStatsAsync(ids);
+        var placesTotal = await FetchUniqueIdentifiersCountAsync(ids);
 
-        var viewItems = items.Select(r => r.ToViewItem(stats.GetValueOrDefault(r.Id, new Dictionary<int, int>()))).ToList();
+        var viewItems = items.Select(r => r.ToViewItem(stats.GetValueOrDefault(r.Id, []), placesTotal[r.Id])).ToList();
 
         var result = new PagedResult<RegisterViewItem>
         {
@@ -871,6 +870,56 @@ public class RegistersController(
             .ToDictionary(
                 g => g.Key,
                 g => g.Where(x => x.Count > 0).ToDictionary(x => x.CheckStatusId, x => x.Count));
+    }
+
+    private async Task<Dictionary<int, int>> FetchUniqueIdentifiersCountAsync(IEnumerable<int> registerIds)
+    {
+        var registerIdsList = registerIds.ToList();
+        var result = new Dictionary<int, int>();
+
+        if (registerIdsList.Count == 0)
+        {
+            return result;
+        }
+
+        // Single query to get both WBR and Ozon unique identifier counts
+        // Uses a union to combine both register types in one database call
+        var combinedCounts = await (
+            // WBR registers - unique SHK counts
+            from r in _db.Registers
+            join o in _db.WbrOrders on r.Id equals o.RegisterId
+            where registerIdsList.Contains(r.Id) && 
+                  r.CompanyId == IRegisterProcessingService.GetWBRId() && 
+                  o.Shk != null
+            group o.Shk by r.Id into g
+            select new { RegisterId = g.Key, UniqueCount = g.Distinct().Count() }
+        ).Union(
+            // Ozon registers - unique PostingNumber counts  
+            from r in _db.Registers
+            join o in _db.OzonOrders on r.Id equals o.RegisterId
+            where registerIdsList.Contains(r.Id) && 
+                  r.CompanyId == IRegisterProcessingService.GetOzonId() && 
+                  o.PostingNumber != null
+            group o.PostingNumber by r.Id into g
+            select new { RegisterId = g.Key, UniqueCount = g.Distinct().Count() }
+        ).ToListAsync();
+
+        // Populate result dictionary
+        foreach (var count in combinedCounts)
+        {
+            result[count.RegisterId] = count.UniqueCount;
+        }
+
+        // Ensure all requested register IDs are present in result (with 0 for registers with no unique identifiers)
+        foreach (var registerId in registerIdsList)
+        {
+            if (!result.ContainsKey(registerId))
+            {
+                result[registerId] = 0;
+            }
+        }
+
+        return result;
     }
 
     private static IQueryable<TOrder> ApplyOrderIncludes<TOrder>(IQueryable<TOrder> query) where TOrder : BaseParcel
