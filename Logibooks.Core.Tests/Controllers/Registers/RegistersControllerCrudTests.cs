@@ -113,7 +113,7 @@ public class RegistersControllerCrudTests : RegistersControllerTestsBase
 
         var register = new Register { Id = 1, FileName = "reg.xlsx", CompanyId = 2, TheOtherCompanyId = 3 };
         _dbContext.Registers.Add(register);
-        _dbContext.Orders.AddRange(
+        _dbContext.Parcels.AddRange(
             new WbrParcel { Id = 1, RegisterId = 1, StatusId = 1, CheckStatusId = 1 },
             new WbrParcel { Id = 2, RegisterId = 1, StatusId = 2, CheckStatusId = 2 },
             new WbrParcel { Id = 3, RegisterId = 1, StatusId = 1, CheckStatusId = 1 }
@@ -139,7 +139,7 @@ public class RegistersControllerCrudTests : RegistersControllerTestsBase
         );
         var register = new Register { Id = 1, FileName = "reg.xlsx", CompanyId = 2, TheOtherCompanyId = 3 };
         _dbContext.Registers.Add(register);
-        _dbContext.Orders.AddRange(
+        _dbContext.Parcels.AddRange(
             new WbrParcel { Id = 1, RegisterId = 1, StatusId = 1, CheckStatusId = 1 },
             new WbrParcel { Id = 2, RegisterId = 1, StatusId = 2, CheckStatusId = 2 },
             new WbrParcel { Id = 3, RegisterId = 1, StatusId = 3, CheckStatusId = 3 },
@@ -452,7 +452,7 @@ public class RegistersControllerCrudTests : RegistersControllerTestsBase
 
         Assert.That(result, Is.TypeOf<NoContentResult>());
         Assert.That(await _dbContext.Registers.FindAsync(1), Is.Null);
-        Assert.That(_dbContext.Orders.Any(o => o.RegisterId == 1), Is.False);
+        Assert.That(_dbContext.Parcels.Any(o => o.RegisterId == 1), Is.False);
     }
 
     [Test]
@@ -464,14 +464,14 @@ public class RegistersControllerCrudTests : RegistersControllerTestsBase
         var order1 = new WbrParcel { Id = 1, RegisterId = 1, StatusId = 1 };
         var order2 = new WbrParcel { Id = 2, RegisterId = 1, StatusId = 1 };
         _dbContext.Registers.Add(register);
-        _dbContext.Orders.AddRange(order1, order2);
+        _dbContext.Parcels.AddRange(order1, order2);
         await _dbContext.SaveChangesAsync();
 
         var result = await _controller.DeleteRegister(1);
 
         Assert.That(result, Is.TypeOf<NoContentResult>());
         Assert.That(await _dbContext.Registers.FindAsync(1), Is.Null);
-        Assert.That(_dbContext.Orders.Any(o => o.RegisterId == 1), Is.False);
+        Assert.That(_dbContext.Parcels.Any(o => o.RegisterId == 1), Is.False);
     }
 
     [Test]

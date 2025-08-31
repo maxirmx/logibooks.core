@@ -123,7 +123,7 @@ public class ParcelIndPostGeneratorTests
             CheckStatusId = (int)ParcelCheckStatusCode.NoIssues
         };
 
-        _dbContext.Orders.Add(order);
+        _dbContext.Parcels.Add(order);
         _dbContext.SaveChanges();
 
         var svc = new ParcelIndPostGenerator(_dbContext, new IndPostXmlService());
@@ -159,7 +159,7 @@ public class ParcelIndPostGeneratorTests
             TnVed = "12345678",
             CheckStatusId = (int)ParcelCheckStatusCode.NoIssues
         };
-        _dbContext.WbrOrders.Add(order);
+        _dbContext.WbrParcels.Add(order);
         _dbContext.SaveChanges();
         var svc = new ParcelIndPostGenerator(_dbContext, new IndPostXmlService());
         var (filename, xml) = await svc.GenerateXML(101);
@@ -196,7 +196,7 @@ public class ParcelIndPostGeneratorTests
             TnVed = "87654321",
             CheckStatusId = (int)ParcelCheckStatusCode.NoIssues
         };
-        _dbContext.OzonOrders.Add(order);
+        _dbContext.OzonParcels.Add(order);
         _dbContext.SaveChanges();
         var svc = new ParcelIndPostGenerator(_dbContext, new IndPostXmlService());
         var (filename, xml) = await svc.GenerateXML(201);
@@ -244,7 +244,7 @@ public class ParcelIndPostGeneratorTests
             .Include(r => r.TheOtherCountry)
             .FirstAsync(r => r.Id == 300);
 
-        _dbContext.WbrOrders.AddRange(
+        _dbContext.WbrParcels.AddRange(
             new WbrParcel 
             { 
                 Id = 301, 
@@ -330,7 +330,7 @@ public class ParcelIndPostGeneratorTests
             .Include(r => r.TheOtherCountry)
             .FirstAsync(r => r.Id == 400);
 
-        _dbContext.OzonOrders.AddRange(
+        _dbContext.OzonParcels.AddRange(
             new OzonParcel { 
                 Id = 401, 
                 RegisterId = 400, 
@@ -400,7 +400,7 @@ public class ParcelIndPostGeneratorTests
             Register = register,
             StatusId = 1
         };
-        _dbContext.Orders.Add(dummyOrder);
+        _dbContext.Parcels.Add(dummyOrder);
         await _dbContext.SaveChangesAsync();
 
         var svc = new ParcelIndPostGenerator(_dbContext, new IndPostXmlService());
@@ -450,7 +450,7 @@ public class ParcelIndPostGeneratorTests
             CheckStatusId = (int)ParcelCheckStatusCode.MarkedByPartner
         };
 
-        _dbContext.Orders.Add(order);
+        _dbContext.Parcels.Add(order);
         _dbContext.SaveChanges();
 
         var svc = new ParcelIndPostGenerator(_dbContext, new IndPostXmlService());
@@ -488,7 +488,7 @@ public class ParcelIndPostGeneratorTests
         _dbContext.Registers.Add(register);
         await _dbContext.SaveChangesAsync();
         var loadedRegister = await _dbContext.Registers.FirstAsync(r => r.Id == 600);
-        _dbContext.OzonOrders.AddRange(
+        _dbContext.OzonParcels.AddRange(
             new OzonParcel 
             { 
                 Id = 601, 
@@ -548,7 +548,7 @@ public class ParcelIndPostGeneratorTests
             .Include(r => r.TheOtherCountry)
             .FirstAsync(r => r.Id == 800);
 
-        _dbContext.OzonOrders.AddRange(
+        _dbContext.OzonParcels.AddRange(
             new OzonParcel { 
                 Id = 801, 
                 RegisterId = 800, 
@@ -603,7 +603,7 @@ public class ParcelIndPostGeneratorTests
             CountryCode = 643,
             CheckStatusId = (int)ParcelCheckStatusCode.HasIssues // Below NoIssues
         };
-        _dbContext.Orders.Add(order);
+        _dbContext.Parcels.Add(order);
         await _dbContext.SaveChangesAsync();
         var svc = new ParcelIndPostGenerator(_dbContext, new IndPostXmlService());
         var ex = Assert.ThrowsAsync<InvalidOperationException>(async () => await svc.GenerateXML(31));
@@ -644,7 +644,7 @@ public class ParcelIndPostGeneratorTests
             Shk = "B",
             CheckStatusId = (int)ParcelCheckStatusCode.NotChecked // Should be included
         };
-        _dbContext.WbrOrders.AddRange(order1, order2);
+        _dbContext.WbrParcels.AddRange(order1, order2);
         _dbContext.SaveChanges();
         var svc = new ParcelIndPostGenerator(_dbContext, new IndPostXmlService());
         var (fileName, zipData) = await svc.GenerateXML4R(32);
@@ -678,7 +678,7 @@ public class ParcelIndPostGeneratorTests
             CountryCode = 643,
             CheckStatusId = (int)ParcelCheckStatusCode.HasIssues // In range
         };
-        _dbContext.Orders.Add(order);
+        _dbContext.Parcels.Add(order);
         await _dbContext.SaveChangesAsync();
         var svc = new ParcelIndPostGenerator(_dbContext, new IndPostXmlService());
         var ex = Assert.ThrowsAsync<InvalidOperationException>(async () => await svc.GenerateXML(36));
@@ -719,7 +719,7 @@ public class ParcelIndPostGeneratorTests
             Shk = "B",
             CheckStatusId = (int)ParcelCheckStatusCode.NoIssues // Should be included
         };
-        _dbContext.WbrOrders.AddRange(order1, order2);
+        _dbContext.WbrParcels.AddRange(order1, order2);
         await _dbContext.SaveChangesAsync();
         var svc = new ParcelIndPostGenerator(_dbContext, new IndPostXmlService());
         var (fileName, zipData) = await svc.GenerateXML4R(37);
@@ -773,7 +773,7 @@ public class ParcelIndPostGeneratorTests
         _dbContext.Registers.Add(register);
 
         // Add WBR orders with different TN VED codes
-        _dbContext.WbrOrders.AddRange(
+        _dbContext.WbrParcels.AddRange(
             new WbrParcel
             {
                 Id = 901,
@@ -876,7 +876,7 @@ public class ParcelIndPostGeneratorTests
         _dbContext.Registers.Add(register);
 
         // Add WBR orders that share the same TN VED code
-        _dbContext.WbrOrders.AddRange(
+        _dbContext.WbrParcels.AddRange(
             new WbrParcel
             {
                 Id = 951,
@@ -977,7 +977,7 @@ public class ParcelIndPostGeneratorTests
             RecipientAddress = $"Country,City,{longAddress},Building",
             CheckStatusId = (int)ParcelCheckStatusCode.NoIssues
         };
-        _dbContext.WbrOrders.Add(order10);
+        _dbContext.WbrParcels.Add(order10);
 
         // Test Customs Procedure 60 (Reimport)
         var register60 = new Register
@@ -1004,7 +1004,7 @@ public class ParcelIndPostGeneratorTests
             RecipientAddress = $"Country,City,{longAddress},Building",
             CheckStatusId = (int)ParcelCheckStatusCode.NoIssues
         };
-        _dbContext.WbrOrders.Add(order60);
+        _dbContext.WbrParcels.Add(order60);
         _dbContext.SaveChanges();
 
         var svc = new ParcelIndPostGenerator(_dbContext, new IndPostXmlService());
@@ -1060,7 +1060,7 @@ public class ParcelIndPostGeneratorTests
             RecipientAddress = $"Country,City,{streetPart},{additionalPart}",
             CheckStatusId = (int)ParcelCheckStatusCode.NoIssues
         };
-        _dbContext.WbrOrders.Add(order);
+        _dbContext.WbrParcels.Add(order);
         _dbContext.SaveChanges();
 
         // Act
@@ -1110,7 +1110,7 @@ public class ParcelIndPostGeneratorTests
             RecipientAddress = $"Country,City,{streetPart},{additionalPart}",
             CheckStatusId = (int)ParcelCheckStatusCode.NoIssues
         };
-        _dbContext.WbrOrders.Add(order);
+        _dbContext.WbrParcels.Add(order);
         _dbContext.SaveChanges();
 
         // Act
@@ -1159,7 +1159,7 @@ public class ParcelIndPostGeneratorTests
             Address = $"Country,City,{longAddress},Building",
             CheckStatusId = (int)ParcelCheckStatusCode.NoIssues
         };
-        _dbContext.OzonOrders.Add(order);
+        _dbContext.OzonParcels.Add(order);
         _dbContext.SaveChanges();
 
         // Act
@@ -1207,7 +1207,7 @@ public class ParcelIndPostGeneratorTests
             Address = $"Россия,Москва,{longAddressWithSpecialChars},Подъезд 1",
             CheckStatusId = (int)ParcelCheckStatusCode.NoIssues
         };
-        _dbContext.OzonOrders.Add(order);
+        _dbContext.OzonParcels.Add(order);
         _dbContext.SaveChanges();
 
         // Act
@@ -1250,7 +1250,7 @@ public class ParcelIndPostGeneratorTests
             RecipientAddress = null, // Empty address
             CheckStatusId = (int)ParcelCheckStatusCode.NoIssues
         };
-        _dbContext.WbrOrders.Add(order);
+        _dbContext.WbrParcels.Add(order);
         _dbContext.SaveChanges();
 
         // Act
@@ -1301,7 +1301,7 @@ public class ParcelIndPostGeneratorTests
             RecipientAddress = $"{countryPart},{cityPart},{streetPart},{buildingPart}",
             CheckStatusId = (int)ParcelCheckStatusCode.NoIssues
         };
-        _dbContext.WbrOrders.Add(order);
+        _dbContext.WbrParcels.Add(order);
         _dbContext.SaveChanges();
 
         // Act

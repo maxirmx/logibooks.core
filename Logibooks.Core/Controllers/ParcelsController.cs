@@ -135,7 +135,7 @@ public class ParcelsController(
         }
 
         // First, get the order with its register to determine the company type
-        var orderWithRegister = await _db.Orders.AsNoTracking()
+        var orderWithRegister = await _db.Parcels.AsNoTracking()
             .Include(o => o.Register)
             .FirstOrDefaultAsync(o => o.Id == id && o.CheckStatusId != (int)ParcelCheckStatusCode.MarkedByPartner);
 
@@ -158,7 +158,7 @@ public class ParcelsController(
 
         if (companyId == IRegisterProcessingService.GetWBRId())
         {
-            order = await _db.WbrOrders.AsNoTracking()
+            order = await _db.WbrParcels.AsNoTracking()
                 .Include(o => o.Register)
                 .Include(o => o.BaseParcelStopWords)
                 .Include(o => o.BaseParcelKeyWords)
@@ -169,7 +169,7 @@ public class ParcelsController(
         }
         else if (companyId == IRegisterProcessingService.GetOzonId())
         {
-            order = await _db.OzonOrders.AsNoTracking()
+            order = await _db.OzonParcels.AsNoTracking()
                 .Include(o => o.Register)
                 .Include(o => o.BaseParcelStopWords)
                 .Include(o => o.BaseParcelKeyWords)
@@ -217,7 +217,7 @@ public class ParcelsController(
         }
 
         // First, get the order with its register to determine the company type
-        var orderWithRegister = await _db.Orders
+        var orderWithRegister = await _db.Parcels
             .Include(o => o.Register)
             .FirstOrDefaultAsync(o => o.Id == id && o.CheckStatusId != (int)ParcelCheckStatusCode.MarkedByPartner);
 
@@ -240,13 +240,13 @@ public class ParcelsController(
 
         if (companyId == IRegisterProcessingService.GetWBRId())
         {
-            order = await _db.WbrOrders
+            order = await _db.WbrParcels
                 .Include(o => o.Register)
                 .FirstOrDefaultAsync(o => o.Id == id && o.CheckStatusId != (int)ParcelCheckStatusCode.MarkedByPartner);
         }
         else if (companyId == IRegisterProcessingService.GetOzonId())
         {
-            order = await _db.OzonOrders
+            order = await _db.OzonParcels
                 .Include(o => o.Register)
                 .FirstOrDefaultAsync(o => o.Id == id && o.CheckStatusId != (int)ParcelCheckStatusCode.MarkedByPartner);
         }
@@ -288,7 +288,7 @@ public class ParcelsController(
         }
 
         // First, get the order with its register to determine the company type
-        var orderWithRegister = await _db.Orders
+        var orderWithRegister = await _db.Parcels
             .Include(o => o.Register)
             .FirstOrDefaultAsync(o => o.Id == id && o.CheckStatusId != (int)ParcelCheckStatusCode.MarkedByPartner);
 
@@ -371,7 +371,7 @@ public class ParcelsController(
                 return _400();
             }
 
-            var query = _db.WbrOrders.AsNoTracking()
+            var query = _db.WbrParcels.AsNoTracking()
                 .Include(o => o.BaseParcelStopWords)
                 .Include(o => o.BaseParcelKeyWords)
                     .ThenInclude(bkw => bkw.KeyWord)
@@ -432,7 +432,7 @@ public class ParcelsController(
                 return _400();
             }
 
-            var query = _db.OzonOrders.AsNoTracking()
+            var query = _db.OzonParcels.AsNoTracking()
                 .Include(o => o.BaseParcelStopWords)
                 .Include(o => o.BaseParcelKeyWords)
                     .ThenInclude(bkw => bkw.KeyWord)
@@ -525,7 +525,7 @@ public class ParcelsController(
             return _403();
         }
 
-        var parcel = await _db.Orders
+        var parcel = await _db.Parcels
             .FirstOrDefaultAsync(o => o.Id == id && o.CheckStatusId != (int)ParcelCheckStatusCode.MarkedByPartner);
         if (parcel == null)
         {
@@ -558,7 +558,7 @@ public class ParcelsController(
             return _403();
         }
 
-        var order = await _db.Orders
+        var order = await _db.Parcels
             .FirstOrDefaultAsync(o => o.Id == id && o.CheckStatusId != (int)ParcelCheckStatusCode.MarkedByPartner);
         if (order == null)
         {
@@ -591,7 +591,7 @@ public class ParcelsController(
             return _403();
         }
 
-        var order = await _db.Orders.AsNoTracking()
+        var order = await _db.Parcels.AsNoTracking()
             .FirstOrDefaultAsync(o => o.Id == id && o.CheckStatusId != (int)ParcelCheckStatusCode.MarkedByPartner);
         if (order == null)
         {
@@ -619,7 +619,7 @@ public class ParcelsController(
             return _403();
         }
 
-        var parcel = await _db.Orders
+        var parcel = await _db.Parcels
             .FirstOrDefaultAsync(o => o.Id == id && o.CheckStatusId != (int)ParcelCheckStatusCode.MarkedByPartner);
         if (parcel == null)
         {
@@ -647,7 +647,7 @@ public class ParcelsController(
     {
         _logger.LogDebug("GetOrderStatus for shk={orderNumber}", orderNumber);
 
-        var statusTitle = await _db.WbrOrders.AsNoTracking()
+        var statusTitle = await _db.WbrParcels.AsNoTracking()
             .Where(o => o.Shk == orderNumber && o.CheckStatusId != (int)ParcelCheckStatusCode.MarkedByPartner)
             .Select(o => o.Status.Title)
             .FirstOrDefaultAsync();

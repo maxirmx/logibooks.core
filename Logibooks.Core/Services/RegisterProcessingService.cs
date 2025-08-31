@@ -113,13 +113,13 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
         if (isWbr)
         {
             var orders = CreateWbrOrders(table, register.Id, columnMap, worksheet);
-            _db.Orders.AddRange(orders);
+            _db.Parcels.AddRange(orders);
             count = orders.Count;
         }
         else // Ozon
         {
             var orders = CreateOzonOrders(table, register.Id, columnMap, worksheet);
-            _db.Orders.AddRange(orders);
+            _db.Parcels.AddRange(orders);
             count = orders.Count;
         }
 
@@ -155,7 +155,7 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
         List<BaseParcel> orders;
         if (isWbr)
         {
-            orders = await _db.WbrOrders.AsNoTracking()
+            orders = await _db.WbrParcels.AsNoTracking()
                 .Where(o => o.RegisterId == registerId)
                 .OrderBy(o => o.Id)
                 .Cast<BaseParcel>()
@@ -163,7 +163,7 @@ public class RegisterProcessingService(AppDbContext db, ILogger<RegisterProcessi
         }
         else
         {
-            orders = await _db.OzonOrders.AsNoTracking()
+            orders = await _db.OzonParcels.AsNoTracking()
                 .Where(o => o.RegisterId == registerId)
                 .OrderBy(o => o.Id)
                 .Cast<BaseParcel>()

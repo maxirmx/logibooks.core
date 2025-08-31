@@ -71,7 +71,7 @@ public class RegisterValidationServiceTests
     {
         using var ctx = CreateContext();
         ctx.Registers.Add(new Register { Id = 1, FileName = "r.xlsx" });
-        ctx.Orders.AddRange(
+        ctx.Parcels.AddRange(
             new WbrParcel { Id = 1, RegisterId = 1, StatusId = 1 },
             new WbrParcel { Id = 2, RegisterId = 1, StatusId = 1 });
         await ctx.SaveChangesAsync();
@@ -110,7 +110,7 @@ public class RegisterValidationServiceTests
     {
         using var ctx = CreateContext();
         ctx.Registers.Add(new Register { Id = 2, FileName = "r.xlsx" });
-        ctx.Orders.AddRange(
+        ctx.Parcels.AddRange(
             new WbrParcel { Id = 3, RegisterId = 2, StatusId = 1 },
             new WbrParcel { Id = 4, RegisterId = 2, StatusId = 1 });
         await ctx.SaveChangesAsync();
@@ -204,7 +204,7 @@ public class RegisterValidationServiceTests
         using var ctx = CreateContext();
         // Add a register and two orders with product names containing stop words
         ctx.Registers.Add(new Register { Id = 100, FileName = "test.xlsx" });
-        ctx.Orders.AddRange(
+        ctx.Parcels.AddRange(
             new WbrParcel { Id = 101, RegisterId = 100, ProductName = "This is SPAM and malware", TnVed = "1234567890" },
             new WbrParcel { Id = 102, RegisterId = 100, ProductName = "Clean product", TnVed = "1234567890" }
         );
@@ -251,8 +251,8 @@ public class RegisterValidationServiceTests
 
 
         // Reload orders and check stop word links
-        var order1 = await ctx.Orders.Include(o => o.BaseParcelStopWords).FirstAsync(o => o.Id == 101);
-        var order2 = await ctx.Orders.Include(o => o.BaseParcelStopWords).FirstAsync(o => o.Id == 102);
+        var order1 = await ctx.Parcels.Include(o => o.BaseParcelStopWords).FirstAsync(o => o.Id == 101);
+        var order2 = await ctx.Parcels.Include(o => o.BaseParcelStopWords).FirstAsync(o => o.Id == 102);
 
         // Order 1 should have links to both "spam" and "malware"
         var stopWordIds1 = order1.BaseParcelStopWords.Select(l => l.StopWordId).ToList();
@@ -269,7 +269,7 @@ public class RegisterValidationServiceTests
     {
         using var ctx = CreateContext();
         ctx.Registers.Add(new Register { Id = 200, FileName = "r.xlsx" });
-        ctx.Orders.AddRange(
+        ctx.Parcels.AddRange(
             new WbrParcel { Id = 201, RegisterId = 200, StatusId = 1, CheckStatusId = 1 },   // should be validated
             new WbrParcel { Id = 202, RegisterId = 200, StatusId = 1, CheckStatusId = 200 }, // marked by partner, should be skipped
             new WbrParcel { Id = 203, RegisterId = 200, StatusId = 1, CheckStatusId = 301 }, // approved, should be skipped

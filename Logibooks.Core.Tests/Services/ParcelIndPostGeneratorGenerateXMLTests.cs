@@ -158,7 +158,7 @@ namespace Logibooks.Core.Tests.Services
                 };
             }
 
-            _dbContext.OzonOrders.Add((OzonParcel)order);
+            _dbContext.OzonParcels.Add((OzonParcel)order);
             _dbContext.SaveChanges();
 
             _xmlServiceMock.Setup(x => x.CreateXml(It.IsAny<IDictionary<string, string?>>(), It.IsAny<IEnumerable<IDictionary<string, string?>>>()))
@@ -235,7 +235,7 @@ namespace Logibooks.Core.Tests.Services
                 CheckStatusId = (int)ParcelCheckStatusCode.NoIssues
             };
 
-            _dbContext.WbrOrders.Add(order);
+            _dbContext.WbrParcels.Add(order);
             _dbContext.SaveChanges();
 
             _xmlServiceMock.Setup(x => x.CreateXml(It.IsAny<IDictionary<string, string?>>(), It.IsAny<IEnumerable<IDictionary<string, string?>>>()))
@@ -283,7 +283,7 @@ namespace Logibooks.Core.Tests.Services
                 CheckStatusId = (int)ParcelCheckStatusCode.NoIssues
             };
 
-            _dbContext.OzonOrders.Add(order);
+            _dbContext.OzonParcels.Add(order);
             _dbContext.SaveChanges();
 
             _xmlServiceMock.Setup(x => x.CreateXml(It.IsAny<IDictionary<string, string?>>(), It.IsAny<IEnumerable<IDictionary<string, string?>>>()))

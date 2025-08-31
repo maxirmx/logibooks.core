@@ -152,7 +152,7 @@ public class ParcelsControllerSortingTests
         SetCurrentUserId(1);
         var register = new Register { Id = 1, CompanyId = 2, FileName = "wbr_test.xlsx" }; // WBR
         _dbContext.Registers.Add(register);
-        _dbContext.Orders.AddRange(
+        _dbContext.Parcels.AddRange(
             new WbrParcel { Id = 3, RegisterId = 1, StatusId = 1, TnVed = "A" },
             new WbrParcel { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "B" },
             new WbrParcel { Id = 2, RegisterId = 1, StatusId = 1, TnVed = "C" }
@@ -180,7 +180,7 @@ public class ParcelsControllerSortingTests
         SetCurrentUserId(1);
         var register = new Register { Id = 1, CompanyId = 2, FileName = "wbr_test.xlsx" }; // WBR
         _dbContext.Registers.Add(register);
-        _dbContext.Orders.AddRange(
+        _dbContext.Parcels.AddRange(
             new WbrParcel { Id = 3, RegisterId = 1, StatusId = 1, TnVed = "A" },
             new WbrParcel { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "B" },
             new WbrParcel { Id = 2, RegisterId = 1, StatusId = 1, TnVed = "C" }
@@ -208,7 +208,7 @@ public class ParcelsControllerSortingTests
         SetCurrentUserId(1);
         var register = new Register { Id = 1, CompanyId = 2, FileName = "wbr_test.xlsx" }; // WBR
         _dbContext.Registers.Add(register);
-        _dbContext.Orders.AddRange(
+        _dbContext.Parcels.AddRange(
             new WbrParcel { Id = 1, RegisterId = 1, StatusId = 3, TnVed = "A" },
             new WbrParcel { Id = 2, RegisterId = 1, StatusId = 1, TnVed = "B" },
             new WbrParcel { Id = 3, RegisterId = 1, StatusId = 2, TnVed = "C" }
@@ -236,7 +236,7 @@ public class ParcelsControllerSortingTests
         SetCurrentUserId(1);
         var register = new Register { Id = 1, CompanyId = 2, FileName = "wbr_test.xlsx" }; // WBR
         _dbContext.Registers.Add(register);
-        _dbContext.Orders.AddRange(
+        _dbContext.Parcels.AddRange(
             new WbrParcel { Id = 1, RegisterId = 1, StatusId = 1, CheckStatusId = 101, TnVed = "A" },
             new WbrParcel { Id = 2, RegisterId = 1, StatusId = 1, CheckStatusId = 201, TnVed = "B" },
             new WbrParcel { Id = 3, RegisterId = 1, StatusId = 1, CheckStatusId = 1, TnVed = "C" }
@@ -264,7 +264,7 @@ public class ParcelsControllerSortingTests
         SetCurrentUserId(1);
         var register = new Register { Id = 1, CompanyId = 2, FileName = "wbr_test.xlsx" }; // WBR
         _dbContext.Registers.Add(register);
-        _dbContext.Orders.AddRange(
+        _dbContext.Parcels.AddRange(
             new WbrParcel { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "XYZ" },
             new WbrParcel { Id = 2, RegisterId = 1, StatusId = 1, TnVed = "ABC" },
             new WbrParcel { Id = 3, RegisterId = 1, StatusId = 1, TnVed = "MNO" }
@@ -292,7 +292,7 @@ public class ParcelsControllerSortingTests
         SetCurrentUserId(1);
         var register = new Register { Id = 1, CompanyId = 2, FileName = "wbr_test.xlsx" }; // WBR
         _dbContext.Registers.Add(register);
-        _dbContext.Orders.AddRange(
+        _dbContext.Parcels.AddRange(
             new WbrParcel { Id = 1, RegisterId = 1, StatusId = 1, Shk = "C123" },
             new WbrParcel { Id = 2, RegisterId = 1, StatusId = 1, Shk = "A456" },
             new WbrParcel { Id = 3, RegisterId = 1, StatusId = 1, Shk = "B789" }
@@ -324,7 +324,7 @@ public class ParcelsControllerSortingTests
         SetCurrentUserId(1);
         var register = new Register { Id = 1, CompanyId = 1, FileName = "ozon_test.xlsx" }; // Ozon
         _dbContext.Registers.Add(register);
-        _dbContext.Orders.AddRange(
+        _dbContext.Parcels.AddRange(
             new OzonParcel { Id = 3, RegisterId = 1, StatusId = 1, TnVed = "A" },
             new OzonParcel { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "B" },
             new OzonParcel { Id = 2, RegisterId = 1, StatusId = 1, TnVed = "C" }
@@ -352,7 +352,7 @@ public class ParcelsControllerSortingTests
         SetCurrentUserId(1);
         var register = new Register { Id = 1, CompanyId = 1, FileName = "ozon_test.xlsx" }; // Ozon
         _dbContext.Registers.Add(register);
-        _dbContext.Orders.AddRange(
+        _dbContext.Parcels.AddRange(
             new OzonParcel { Id = 1, RegisterId = 1, StatusId = 3, TnVed = "A" },
             new OzonParcel { Id = 2, RegisterId = 1, StatusId = 1, TnVed = "B" },
             new OzonParcel { Id = 3, RegisterId = 1, StatusId = 2, TnVed = "C" }
@@ -380,7 +380,7 @@ public class ParcelsControllerSortingTests
         SetCurrentUserId(1);
         var register = new Register { Id = 1, CompanyId = 1, FileName = "ozon_test.xlsx" }; // Ozon
         _dbContext.Registers.Add(register);
-        _dbContext.Orders.AddRange(
+        _dbContext.Parcels.AddRange(
             new OzonParcel { Id = 1, RegisterId = 1, StatusId = 1, PostingNumber = "C123" },
             new OzonParcel { Id = 2, RegisterId = 1, StatusId = 1, PostingNumber = "A456" },
             new OzonParcel { Id = 3, RegisterId = 1, StatusId = 1, PostingNumber = "B789" }
@@ -412,7 +412,7 @@ public class ParcelsControllerSortingTests
         SetCurrentUserId(1);
         var register = new Register { Id = 1, CompanyId = 2, FileName = "filter_test.xlsx" }; // WBR
         _dbContext.Registers.Add(register);
-        _dbContext.Orders.AddRange(
+        _dbContext.Parcels.AddRange(
             new WbrParcel { Id = 1, RegisterId = 1, StatusId = 3, TnVed = "A" },
             new WbrParcel { Id = 2, RegisterId = 1, StatusId = 2, TnVed = "B" },
             new WbrParcel { Id = 3, RegisterId = 1, StatusId = 2, TnVed = "C" },
@@ -441,7 +441,7 @@ public class ParcelsControllerSortingTests
         SetCurrentUserId(1);
         var register = new Register { Id = 1, CompanyId = 2, FileName = "filter_test.xlsx" }; // WBR
         _dbContext.Registers.Add(register);
-        _dbContext.Orders.AddRange(
+        _dbContext.Parcels.AddRange(
             new WbrParcel { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "123456" },
             new WbrParcel { Id = 2, RegisterId = 1, StatusId = 1, TnVed = "123ABC" },
             new WbrParcel { Id = 3, RegisterId = 1, StatusId = 1, TnVed = "456DEF" },
@@ -470,7 +470,7 @@ public class ParcelsControllerSortingTests
         SetCurrentUserId(1);
         var register = new Register { Id = 1, CompanyId = 2, FileName = "combined_test.xlsx" }; // WBR
         _dbContext.Registers.Add(register);
-        _dbContext.Orders.AddRange(
+        _dbContext.Parcels.AddRange(
             new WbrParcel { Id = 1, RegisterId = 1, StatusId = 2, TnVed = "123ABC" },
             new WbrParcel { Id = 2, RegisterId = 1, StatusId = 2, TnVed = "123XYZ" },
             new WbrParcel { Id = 3, RegisterId = 1, StatusId = 1, TnVed = "123DEF" },
@@ -512,7 +512,7 @@ public class ParcelsControllerSortingTests
         // Add 15 orders
         for (int i = 1; i <= 15; i++)
         {
-            _dbContext.Orders.Add(new WbrParcel 
+            _dbContext.Parcels.Add(new WbrParcel 
             { 
                 Id = i, 
                 RegisterId = 1, 
@@ -553,7 +553,7 @@ public class ParcelsControllerSortingTests
         // Add 20 orders
         for (int i = 1; i <= 20; i++)
         {
-            _dbContext.Orders.Add(new WbrParcel 
+            _dbContext.Parcels.Add(new WbrParcel 
             { 
                 Id = i, 
                 RegisterId = 1, 
@@ -587,7 +587,7 @@ public class ParcelsControllerSortingTests
         // Add 10 orders
         for (int i = 1; i <= 10; i++)
         {
-            _dbContext.Orders.Add(new WbrParcel 
+            _dbContext.Parcels.Add(new WbrParcel 
             { 
                 Id = i, 
                 RegisterId = 1, 
@@ -744,7 +744,7 @@ public class ParcelsControllerSortingTests
             // Priority 6: No keywords and TnVed not in FeacnCodes (worst match)
             new WbrParcel { Id = 106, RegisterId = 1, StatusId = 1, TnVed = "0000000000" }
         };
-        _dbContext.Orders.AddRange(parcels);
+        _dbContext.Parcels.AddRange(parcels);
 
         // Create BaseParcelKeyWord relationships
         var bpkw1 = new BaseParcelKeyWord { BaseParcelId = 101, KeyWordId = 101, BaseParcel = parcels[0], KeyWord = keyword1 }; // Priority 1
@@ -810,7 +810,7 @@ public class ParcelsControllerSortingTests
             // Priority 6: No keywords and TnVed not in FeacnCodes (worst match)
             new OzonParcel { Id = 206, RegisterId = 2, StatusId = 1, TnVed = "9999999999" }
         };
-        _dbContext.Orders.AddRange(parcels);
+        _dbContext.Parcels.AddRange(parcels);
 
         // Create BaseParcelKeyWord relationships
         var bpkw1 = new BaseParcelKeyWord { BaseParcelId = 201, KeyWordId = 201, BaseParcel = parcels[0], KeyWord = keyword1 };
@@ -865,7 +865,7 @@ public class ParcelsControllerSortingTests
             // Should be Priority 4: Has keywords but multiple FeacnCodes (not matching TnVed)
             new WbrParcel { Id = 302, RegisterId = 3, StatusId = 1, TnVed = "8888888888" }
         };
-        _dbContext.Orders.AddRange(parcels);
+        _dbContext.Parcels.AddRange(parcels);
 
         // Create BaseParcelKeyWord relationships
         var bpkw1 = new BaseParcelKeyWord { BaseParcelId = 301, KeyWordId = 301, BaseParcel = parcels[0], KeyWord = singleFeacnKeyword };
@@ -932,7 +932,7 @@ public class ParcelsControllerSortingTests
         // Create multiple parcels to test pagination
         for (int i = 1; i <= 5; i++)
         {
-            _dbContext.Orders.Add(new WbrParcel
+            _dbContext.Parcels.Add(new WbrParcel
             {
                 Id = 300 + i,
                 RegisterId = 3,

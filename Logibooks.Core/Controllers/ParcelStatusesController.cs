@@ -104,7 +104,7 @@ public class ParcelStatusesController(
         var status = await _db.Statuses.FindAsync(id);
         if (status == null) return _404Object(id);
 
-        bool hasOrders = await _db.Orders.AnyAsync(r => r.StatusId == id);
+        bool hasOrders = await _db.Parcels.AnyAsync(r => r.StatusId == id);
         if (hasOrders)
         {
             return _409OrderStatus();

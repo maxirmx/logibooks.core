@@ -860,7 +860,7 @@ public class RegistersControllerTests : RegistersControllerTestsBase
         _dbContext.Registers.Add(register);
         _dbContext.FeacnOrders.Add(feacnOrder);
         _dbContext.FeacnPrefixes.Add(prefix);
-        _dbContext.Orders.Add(order);
+        _dbContext.Parcels.Add(order);
         await _dbContext.SaveChangesAsync();
 
         var orderValidationService = new ParcelValidationService(_dbContext, new MorphologySearchService(), new FeacnPrefixCheckService(_dbContext));
@@ -891,7 +891,7 @@ public class RegistersControllerTests : RegistersControllerTestsBase
             await Task.Delay(50);
         }
 
-        var orderReloaded = await _dbContext.Orders.Include(o => o.BaseParcelFeacnPrefixes).FirstAsync(o => o.Id == 201);
+        var orderReloaded = await _dbContext.Parcels.Include(o => o.BaseParcelFeacnPrefixes).FirstAsync(o => o.Id == 201);
         Assert.That(orderReloaded.BaseParcelFeacnPrefixes.Any(l => l.FeacnPrefixId == 400), Is.True);
     }
 
@@ -1017,7 +1017,7 @@ public class RegistersControllerTests : RegistersControllerTestsBase
         var register = new Register { Id = 300, FileName = "r.xlsx", TheOtherCompanyId = 3 };
         var order = new WbrParcel { Id = 301, RegisterId = 300, StatusId = 1, ProductName = "malware item" };
         _dbContext.Registers.Add(register);
-        _dbContext.Orders.Add(order);
+        _dbContext.Parcels.Add(order);
         _dbContext.KeyWords.Add(new KeyWord { Id = 401, Word = "malware", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols });
         await _dbContext.SaveChangesAsync();
 
@@ -1046,7 +1046,7 @@ public class RegistersControllerTests : RegistersControllerTestsBase
             await Task.Delay(50);
         }
 
-        var orderReloaded = await _dbContext.Orders.Include(o => o.BaseParcelKeyWords).FirstAsync(o => o.Id == 301);
+        var orderReloaded = await _dbContext.Parcels.Include(o => o.BaseParcelKeyWords).FirstAsync(o => o.Id == 301);
         Assert.That(orderReloaded.BaseParcelKeyWords.Any(l => l.KeyWordId == 401), Is.True);
     }
 
@@ -1059,7 +1059,7 @@ public class RegistersControllerTests : RegistersControllerTestsBase
             new ParcelCheckStatus { Id = 201, Title = "Ok" });
         var reg = new Register { Id = 1, FileName = "r.xlsx", CompanyId = 2, TheOtherCompanyId = 3 };
         _dbContext.Registers.Add(reg);
-        _dbContext.Orders.AddRange(
+        _dbContext.Parcels.AddRange(
             new WbrParcel { Id = 10, RegisterId = 1, StatusId = 1, CheckStatusId = 101 },
             new WbrParcel { Id = 20, RegisterId = 1, StatusId = 1, CheckStatusId = 101 },
             new WbrParcel { Id = 30, RegisterId = 1, StatusId = 1, CheckStatusId = 201 }
@@ -1079,7 +1079,7 @@ public class RegistersControllerTests : RegistersControllerTestsBase
         _dbContext.CheckStatuses.Add(new ParcelCheckStatus { Id = 201, Title = "Ok" });
         var reg = new Register { Id = 1, FileName = "r.xlsx", CompanyId = 2 };
         _dbContext.Registers.Add(reg);
-        _dbContext.Orders.Add(new WbrParcel { Id = 1, RegisterId = 1, StatusId = 1, CheckStatusId = 201 });
+        _dbContext.Parcels.Add(new WbrParcel { Id = 1, RegisterId = 1, StatusId = 1, CheckStatusId = 201 });
         await _dbContext.SaveChangesAsync();
 
         var result = await _controller.NextParcel(1);
@@ -1218,7 +1218,7 @@ public class RegistersControllerTests : RegistersControllerTestsBase
         );
         var reg = new Register { Id = 1, FileName = "r.xlsx", CompanyId = 2, TheOtherCompanyId = 3 };
         _dbContext.Registers.Add(reg);
-        _dbContext.Orders.AddRange(
+        _dbContext.Parcels.AddRange(
             new WbrParcel { Id = 10, RegisterId = 1, StatusId = 1, CheckStatusId = 101 },
             new WbrParcel { Id = 20, RegisterId = 1, StatusId = 1, CheckStatusId = 200 }, // MarkedByPartner
             new WbrParcel { Id = 30, RegisterId = 1, StatusId = 1, CheckStatusId = 101 }
@@ -1241,15 +1241,15 @@ public class RegistersControllerTests : RegistersControllerTestsBase
         _dbContext.Statuses.Add(new ParcelStatus { Id = 99, Title = "TestStatus" });
         var reg = new Register { Id = 2, FileName = "r.xlsx", CompanyId = 2, TheOtherCompanyId = 3 };
         _dbContext.Registers.Add(reg);
-        _dbContext.Orders.AddRange(
+        _dbContext.Parcels.AddRange(
             new WbrParcel { Id = 1, RegisterId = 2, StatusId = 1, CheckStatusId = 101 },
             new WbrParcel { Id = 2, RegisterId = 2, StatusId = 1, CheckStatusId = 200 }
         );
         await _dbContext.SaveChangesAsync();
 
         await _controller.SetParcelStatuses(2, 99);
-        var order1 = await _dbContext.Orders.FindAsync(1);
-        var order2 = await _dbContext.Orders.FindAsync(2);
+        var order1 = await _dbContext.Parcels.FindAsync(1);
+        var order2 = await _dbContext.Parcels.FindAsync(2);
         Assert.That(order1!.StatusId, Is.EqualTo(99)); // Updated
         Assert.That(order2!.StatusId, Is.EqualTo(1));  // Not updated
     }

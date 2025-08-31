@@ -50,7 +50,7 @@ public class ParcelFeacnCodeLookupServiceTests
     {
         using var ctx = CreateContext();
         var order = new WbrParcel { Id = 1, RegisterId = 1, CheckStatusId = 1, ProductName = "This is SPAM" };
-        ctx.Orders.Add(order);
+        ctx.Parcels.Add(order);
         var kw1 = new KeyWord { Id = 2, Word = "spam", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols };
         kw1.KeyWordFeacnCodes = new[] { new KeyWordFeacnCode { KeyWordId = 2, FeacnCode = "1", KeyWord = kw1 } };
         var kw2 = new KeyWord { Id = 3, Word = "other", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols };
@@ -67,7 +67,7 @@ public class ParcelFeacnCodeLookupServiceTests
         var links = ctx.Set<BaseParcelKeyWord>().ToList();
         Assert.That(links.Count, Is.EqualTo(1));
         Assert.That(links.Single().KeyWordId, Is.EqualTo(2));
-        Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo(1));
+        Assert.That(ctx.Parcels.Find(1)!.CheckStatusId, Is.EqualTo(1));
     }
 
     [Test]
@@ -75,7 +75,7 @@ public class ParcelFeacnCodeLookupServiceTests
     {
         using var ctx = CreateContext();
         var order = new WbrParcel { Id = 1, RegisterId = 1, CheckStatusId = 1, ProductName = "clean" };
-        ctx.Orders.Add(order);
+        ctx.Parcels.Add(order);
         var kw = new KeyWord { Id = 2, Word = "spam", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols };
         kw.KeyWordFeacnCodes = [new KeyWordFeacnCode { KeyWordId = 2, FeacnCode = "1", KeyWord = kw }];
         ctx.KeyWords.Add(kw);
@@ -87,7 +87,7 @@ public class ParcelFeacnCodeLookupServiceTests
         await svc.LookupAsync(order, morphologyContext, wordsLookupContext);
 
         Assert.That(ctx.Set<BaseParcelKeyWord>().Any(), Is.False);
-        Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo(1));
+        Assert.That(ctx.Parcels.Find(1)!.CheckStatusId, Is.EqualTo(1));
     }
 
     [Test]
@@ -95,7 +95,7 @@ public class ParcelFeacnCodeLookupServiceTests
     {
         using var ctx = CreateContext();
         var order = new WbrParcel { Id = 1, RegisterId = 1, CheckStatusId = 1, ProductName = "This is SPAM with золотой браслет" };
-        ctx.Orders.Add(order);
+        ctx.Parcels.Add(order);
 
         var kw1 = new KeyWord { Id = 10, Word = "spam", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols };
         kw1.KeyWordFeacnCodes = [new KeyWordFeacnCode { KeyWordId = 10, FeacnCode = "1", KeyWord = kw1 }];
@@ -132,7 +132,7 @@ public class ParcelFeacnCodeLookupServiceTests
             CheckStatusId = (int)ParcelCheckStatusCode.MarkedByPartner,
             ProductName = "spam"
         };
-        ctx.Orders.Add(order);
+        ctx.Parcels.Add(order);
         var kw = new KeyWord { Id = 2, Word = "spam", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols };
         kw.KeyWordFeacnCodes = [new KeyWordFeacnCode { KeyWordId = 2, FeacnCode = "1", KeyWord = kw }];
         ctx.KeyWords.Add(kw);
@@ -147,6 +147,6 @@ public class ParcelFeacnCodeLookupServiceTests
         var links = ctx.Set<BaseParcelKeyWord>().ToList();
         Assert.That(links.Count, Is.EqualTo(1));
         Assert.That(links.Single().KeyWordId, Is.EqualTo(99));
-        Assert.That(ctx.Orders.Find(1)!.CheckStatusId, Is.EqualTo((int)ParcelCheckStatusCode.MarkedByPartner));
+        Assert.That(ctx.Parcels.Find(1)!.CheckStatusId, Is.EqualTo((int)ParcelCheckStatusCode.MarkedByPartner));
     }
 }

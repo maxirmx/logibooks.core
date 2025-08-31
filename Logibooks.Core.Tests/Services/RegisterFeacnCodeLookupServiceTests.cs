@@ -72,7 +72,7 @@ public class RegisterFeacnCodeLookupServiceTests
     {
         using var ctx = CreateContext();
         ctx.Registers.Add(new Register { Id = 1, FileName = "r.xlsx" });
-        ctx.Orders.AddRange(
+        ctx.Parcels.AddRange(
             new WbrParcel { Id = 1, RegisterId = 1, StatusId = 1 },
             new WbrParcel { Id = 2, RegisterId = 1, StatusId = 1 });
         await ctx.SaveChangesAsync();
@@ -108,7 +108,7 @@ public class RegisterFeacnCodeLookupServiceTests
     {
         using var ctx = CreateContext();
         ctx.Registers.Add(new Register { Id = 2, FileName = "r.xlsx" });
-        ctx.Orders.AddRange(
+        ctx.Parcels.AddRange(
             new WbrParcel { Id = 3, RegisterId = 2, StatusId = 1 },
             new WbrParcel { Id = 4, RegisterId = 2, StatusId = 1 });
         await ctx.SaveChangesAsync();
@@ -182,7 +182,7 @@ public class RegisterFeacnCodeLookupServiceTests
     {
         using var ctx = CreateContext();
         ctx.Registers.Add(new Register { Id = 100, FileName = "test.xlsx" });
-        ctx.Orders.AddRange(
+        ctx.Parcels.AddRange(
             new WbrParcel { Id = 101, RegisterId = 100, ProductName = "This is SPAM and malware" },
             new WbrParcel { Id = 102, RegisterId = 100, ProductName = "Clean product" }
         );
@@ -220,8 +220,8 @@ public class RegisterFeacnCodeLookupServiceTests
         }
         sw.Stop();
 
-        var order1 = await ctx.Orders.Include(o => o.BaseParcelKeyWords).FirstAsync(o => o.Id == 101);
-        var order2 = await ctx.Orders.Include(o => o.BaseParcelKeyWords).FirstAsync(o => o.Id == 102);
+        var order1 = await ctx.Parcels.Include(o => o.BaseParcelKeyWords).FirstAsync(o => o.Id == 101);
+        var order2 = await ctx.Parcels.Include(o => o.BaseParcelKeyWords).FirstAsync(o => o.Id == 102);
 
         var keyWordIds1 = order1.BaseParcelKeyWords.Select(l => l.KeyWordId).ToList();
         Assert.That(keyWordIds1, Does.Contain(201));
@@ -236,7 +236,7 @@ public class RegisterFeacnCodeLookupServiceTests
     {
         using var ctx = CreateContext();
         ctx.Registers.Add(new Register { Id = 200, FileName = "r.xlsx" });
-        ctx.Orders.AddRange(
+        ctx.Parcels.AddRange(
             new WbrParcel { Id = 201, RegisterId = 200, StatusId = 1, CheckStatusId = 1 },
             new WbrParcel { Id = 202, RegisterId = 200, StatusId = 1, CheckStatusId = 200 },
             new WbrParcel { Id = 203, RegisterId = 200, StatusId = 1, CheckStatusId = 301 },

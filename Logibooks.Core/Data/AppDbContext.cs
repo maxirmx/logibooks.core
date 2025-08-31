@@ -37,9 +37,9 @@ namespace Logibooks.Core.Data
         public DbSet<Register> Registers => Set<Register>();
         public DbSet<ParcelStatus> Statuses => Set<ParcelStatus>();
         public DbSet<ParcelCheckStatus> CheckStatuses => Set<ParcelCheckStatus>();
-        public DbSet<BaseParcel> Orders => Set<BaseParcel>();
-        public DbSet<WbrParcel> WbrOrders => Set<WbrParcel>();
-        public DbSet<OzonParcel> OzonOrders => Set<OzonParcel>();
+        public DbSet<BaseParcel> Parcels => Set<BaseParcel>();
+        public DbSet<WbrParcel> WbrParcels => Set<WbrParcel>();
+        public DbSet<OzonParcel> OzonParcels => Set<OzonParcel>();
         public DbSet<Country> Countries => Set<Country>();
         public DbSet<Company> Companies => Set<Company>();
         public DbSet<WordMatchType> WordMatchTypes => Set<WordMatchType>();

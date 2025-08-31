@@ -123,7 +123,7 @@ public class RegistersControllerSortingTests : RegistersControllerTestsBase
             new Register { Id = 3, FileName = "r3.xlsx" , CompanyId = 2, TheOtherCompanyId = 3 },
             new Register { Id = 4, FileName = "r4.xlsx" , CompanyId = 2, TheOtherCompanyId = 3 }
         );
-        _dbContext.Orders.AddRange(
+        _dbContext.Parcels.AddRange(
             new WbrParcel { RegisterId = 1, StatusId = 1 },
             new WbrParcel { RegisterId = 2, StatusId = 1 },
             new WbrParcel { RegisterId = 2, StatusId = 1 },

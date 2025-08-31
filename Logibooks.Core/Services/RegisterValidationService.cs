@@ -95,7 +95,7 @@ public class RegisterValidationService(
 
             try
             {
-                var orders = await scopedDb.Orders
+                var orders = await scopedDb.Parcels
                     .Where(o => o.RegisterId == registerId &&
                                 o.CheckStatusId < (int)ParcelCheckStatusCode.Approved &&
                                 o.CheckStatusId != (int)ParcelCheckStatusCode.MarkedByPartner)
@@ -114,7 +114,7 @@ public class RegisterValidationService(
                         process.Finished = true;
                         break;
                     }
-                    var order = await scopedDb.Orders.FindAsync([id], cancellationToken: process.Cts.Token);
+                    var order = await scopedDb.Parcels.FindAsync([id], cancellationToken: process.Cts.Token);
                     if (order != null)
                     {
                         await scopedOrderSvc.ValidateAsync(order, morphologyContext, stopWordsContext, feacnContext, process.Cts.Token);
