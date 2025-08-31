@@ -64,7 +64,7 @@ namespace Logibooks.Core.Tests.Services
             
             _generator = new ParcelIndPostGenerator(_dbContext, _xmlServiceMock.Object);
 
-            _transportationType = new TransportationType { Id = 1, Code = TransportationTypeCode.Avia, Name = "Авиа" };
+            _transportationType = new TransportationType { Id = 1, Code = TransportationTypeCode.Avia, Name = "Авиа", Document = "AWB" };
             _customsProcedure = new CustomsProcedure { Id = 1, Code = 10, Name = "Экспорт" };
             _customsProcedure60 = new CustomsProcedure { Id = 2, Code = 60, Name = "Реимпорт" };
             
@@ -158,7 +158,7 @@ namespace Logibooks.Core.Tests.Services
                 };
             }
 
-            _dbContext.OzonOrders.Add((OzonParcel)order);
+            _dbContext.OzonParcels.Add((OzonParcel)order);
             _dbContext.SaveChanges();
 
             _xmlServiceMock.Setup(x => x.CreateXml(It.IsAny<IDictionary<string, string?>>(), It.IsAny<IEnumerable<IDictionary<string, string?>>>()))
@@ -235,7 +235,7 @@ namespace Logibooks.Core.Tests.Services
                 CheckStatusId = (int)ParcelCheckStatusCode.NoIssues
             };
 
-            _dbContext.WbrOrders.Add(order);
+            _dbContext.WbrParcels.Add(order);
             _dbContext.SaveChanges();
 
             _xmlServiceMock.Setup(x => x.CreateXml(It.IsAny<IDictionary<string, string?>>(), It.IsAny<IEnumerable<IDictionary<string, string?>>>()))
@@ -283,7 +283,7 @@ namespace Logibooks.Core.Tests.Services
                 CheckStatusId = (int)ParcelCheckStatusCode.NoIssues
             };
 
-            _dbContext.OzonOrders.Add(order);
+            _dbContext.OzonParcels.Add(order);
             _dbContext.SaveChanges();
 
             _xmlServiceMock.Setup(x => x.CreateXml(It.IsAny<IDictionary<string, string?>>(), It.IsAny<IEnumerable<IDictionary<string, string?>>>()))

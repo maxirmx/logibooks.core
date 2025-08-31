@@ -184,5 +184,56 @@ public class FeacnCodesController(
         await _processingService.UploadFeacnCodesAsync(excelContent, excelFileName, HttpContext.RequestAborted);
         return NoContent();
     }
+
+    [HttpPost("bulk-lookup")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(BulkFeacnCodeLookupDto))]
+    [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(ErrMessage))]
+    public async Task<ActionResult<BulkFeacnCodeLookupDto>> BulkLookup([FromBody] BulkFeacnCodeRequestDto request)
+    {
+        if (request?.Codes == null)
+        {
+            return new BulkFeacnCodeLookupDto();
+        }
+
+        var result = new Dictionary<string, FeacnCodeDto?>();
+        
+        // Validate codes and initialize result dictionary
+        var validCodes = new List<string>();
+        foreach (var code in request.Codes)
+        {
+            if (string.IsNullOrWhiteSpace(code))
+            {
+                continue; // Skip null/empty codes silently
+            }
+            
+            if (code.Length != FeacnCode.FeacnCodeLength || !code.All(char.IsDigit))
+            {
+                return _400MustBe10Digits(code);
+            }
+            
+            result[code] = null; // Initialize with null
+            validCodes.Add(code);
+        }
+
+        if (validCodes.Count == 0)
+        {
+            return new BulkFeacnCodeLookupDto(result);
+        }
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        
+        // Bulk query to get all matching codes
+        var foundCodes = await _db.FeacnCodes.AsNoTracking()
+            .Where(c => validCodes.Contains(c.Code) && (c.FromDate == null || c.FromDate <= today))
+            .ToListAsync();
+
+        // Populate result dictionary with found codes
+        foreach (var feacnCode in foundCodes)
+        {
+            result[feacnCode.Code] = new FeacnCodeDto(feacnCode);
+        }
+
+        return new BulkFeacnCodeLookupDto(result);
+    }
 }
 

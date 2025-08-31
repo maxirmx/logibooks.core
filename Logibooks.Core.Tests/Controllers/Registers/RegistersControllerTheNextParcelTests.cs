@@ -48,8 +48,8 @@ public class RegistersControllerTheNextParcelTests : RegistersControllerTestsBas
         var wbrParcel2 = new WbrParcel { Id = 20, RegisterId = 1, StatusId = 1, CheckStatusId = 1 };
         var wbrParcel3 = new WbrParcel { Id = 30, RegisterId = 1, StatusId = 1, CheckStatusId = 1 };
         
-        _dbContext.Orders.AddRange(wbrParcel1, wbrParcel2, wbrParcel3);
-        _dbContext.WbrOrders.AddRange(wbrParcel1, wbrParcel2, wbrParcel3);
+        _dbContext.Parcels.AddRange(wbrParcel1, wbrParcel2, wbrParcel3);
+        _dbContext.WbrParcels.AddRange(wbrParcel1, wbrParcel2, wbrParcel3);
         await _dbContext.SaveChangesAsync();
 
         // Act
@@ -73,8 +73,8 @@ public class RegistersControllerTheNextParcelTests : RegistersControllerTestsBas
         var ozonParcel2 = new OzonParcel { Id = 25, RegisterId = 1, StatusId = 1, CheckStatusId = 1 };
         var ozonParcel3 = new OzonParcel { Id = 35, RegisterId = 1, StatusId = 1, CheckStatusId = 1 };
         
-        _dbContext.Orders.AddRange(ozonParcel1, ozonParcel2, ozonParcel3);
-        _dbContext.OzonOrders.AddRange(ozonParcel1, ozonParcel2, ozonParcel3);
+        _dbContext.Parcels.AddRange(ozonParcel1, ozonParcel2, ozonParcel3);
+        _dbContext.OzonParcels.AddRange(ozonParcel1, ozonParcel2, ozonParcel3);
         await _dbContext.SaveChangesAsync();
 
         // Act
@@ -99,8 +99,8 @@ public class RegistersControllerTheNextParcelTests : RegistersControllerTestsBas
         var wbrParcel2 = new WbrParcel { Id = 20, RegisterId = 1, StatusId = 1, CheckStatusId = 1 };
         var wbrParcel3 = new WbrParcel { Id = 30, RegisterId = 1, StatusId = 1, CheckStatusId = 1 };
         
-        _dbContext.Orders.AddRange(wbrParcel1, wbrParcel2, wbrParcel3);
-        _dbContext.WbrOrders.AddRange(wbrParcel1, wbrParcel2, wbrParcel3);
+        _dbContext.Parcels.AddRange(wbrParcel1, wbrParcel2, wbrParcel3);
+        _dbContext.WbrParcels.AddRange(wbrParcel1, wbrParcel2, wbrParcel3);
         await _dbContext.SaveChangesAsync();
 
         // Act - Request next parcel after the last one (ID 30)
@@ -135,8 +135,8 @@ public class RegistersControllerTheNextParcelTests : RegistersControllerTestsBas
         _dbContext.Registers.Add(register);
 
         var wbrParcel = new WbrParcel { Id = 10, RegisterId = 1, StatusId = 1, CheckStatusId = 1 };
-        _dbContext.Orders.Add(wbrParcel);
-        _dbContext.WbrOrders.Add(wbrParcel);
+        _dbContext.Parcels.Add(wbrParcel);
+        _dbContext.WbrParcels.Add(wbrParcel);
         await _dbContext.SaveChangesAsync();
 
         // Act
@@ -161,12 +161,12 @@ public class RegistersControllerTheNextParcelTests : RegistersControllerTestsBas
         var wbrParcel2 = new WbrParcel { Id = 20, RegisterId = 1, StatusId = 1, CheckStatusId = 1 };
         
         // Add both parcels to base Orders table and WbrOrders table
-        _dbContext.Orders.AddRange(wbrParcel1, wbrParcel2);
-        _dbContext.WbrOrders.AddRange(wbrParcel1, wbrParcel2);
+        _dbContext.Parcels.AddRange(wbrParcel1, wbrParcel2);
+        _dbContext.WbrParcels.AddRange(wbrParcel1, wbrParcel2);
         await _dbContext.SaveChangesAsync();
 
         // Now manually remove parcel 20 from WbrOrders to simulate derived parcel not found
-        _dbContext.WbrOrders.Remove(wbrParcel2);
+        _dbContext.WbrParcels.Remove(wbrParcel2);
         await _dbContext.SaveChangesAsync();
 
         // Act
@@ -188,8 +188,8 @@ public class RegistersControllerTheNextParcelTests : RegistersControllerTestsBas
 
         var ozonParcel = new OzonParcel { Id = 42, RegisterId = 1, StatusId = 1, CheckStatusId = 1 };
         
-        _dbContext.Orders.Add(ozonParcel);
-        _dbContext.OzonOrders.Add(ozonParcel);
+        _dbContext.Parcels.Add(ozonParcel);
+        _dbContext.OzonParcels.Add(ozonParcel);
         await _dbContext.SaveChangesAsync();
 
         // Act
@@ -218,8 +218,8 @@ public class RegistersControllerTheNextParcelTests : RegistersControllerTestsBas
             UnitPrice = 99.99m
         };
         
-        _dbContext.Orders.AddRange(wbrParcel1, wbrParcel2);
-        _dbContext.WbrOrders.AddRange(wbrParcel1, wbrParcel2);
+        _dbContext.Parcels.AddRange(wbrParcel1, wbrParcel2);
+        _dbContext.WbrParcels.AddRange(wbrParcel1, wbrParcel2);
         await _dbContext.SaveChangesAsync();
 
         // Act

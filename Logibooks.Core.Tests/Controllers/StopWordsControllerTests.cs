@@ -182,7 +182,7 @@ public class StopWordsControllerTests
         var link = new BaseParcelStopWord { BaseParcelId = 1, StopWordId = 5, BaseParcel = order, StopWord = word };
         _dbContext.StopWords.Add(word);
         _dbContext.Registers.Add(reg);
-        _dbContext.Orders.Add(order);
+        _dbContext.Parcels.Add(order);
         _dbContext.Add(link);
         await _dbContext.SaveChangesAsync();
 

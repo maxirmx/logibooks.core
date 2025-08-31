@@ -1,4 +1,4 @@
-// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
+﻿// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
 // All rights reserved.
 // This file is a part of Logibooks Core application
 //
@@ -26,6 +26,7 @@
 using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 using System.Text;
 
 using Logibooks.Core.Authorization;
@@ -64,6 +65,74 @@ public class ParcelsController(
     private readonly IRegisterProcessingService _processingService = processingService;
     private readonly IParcelIndPostGenerator _indPostGenerator = indPostGenerator;
 
+    /// <summary>
+    /// Calculate match priority for sorting: 1 = best match, 8 = worst match
+    /// (1) Parcels with keywords that have exactly one FeacnCode (total distinct sum = 1) and it matches parcel TnVed 
+    /// (2) Parcels with keywords that have multiple FeacnCodes (total distinct sum > 1) and one of them matches parcel TnVed 
+    /// (3) Parcels with keywords that have exactly one FeacnCode (total distinct sum = 1) and it does not match parcel TnVed and TnVed exists in FeacnCodes
+    /// (4) Parcels with keywords that have multiple FeacnCodes (total distinct sum > 1) and none of them matches parcel TnVed and TnVed exists in FeacnCodes
+    /// (5) Parcels with keywords that have exactly one FeacnCode (total distinct sum = 1) and it does not match parcel TnVed and TnVed not in FeacnCodes
+    /// (6) Parcels with keywords that have multiple FeacnCodes (total distinct sum > 1) and none of them matches parcel TnVed and TnVed not in FeacnCodes
+    /// (7) Parcels without keywords but TnVed exists in FeacnCodes
+    /// (8) Parcels without keywords and TnVed not in FeacnCodes
+    /// </summary>
+    private IQueryable<T> ApplyMatchSorting<T>(IQueryable<T> query, string sortOrder) where T : BaseParcel
+    {
+        // Define the priority calculation expression once
+        Expression<Func<T, int>> priorityExpression = o => 
+            // Priority 1: Has keywords with exactly one distinct FeacnCode and it matches TnVed
+            o.BaseParcelKeyWords.Any() && 
+            o.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Select(fc => fc.FeacnCode).Distinct().Count() == 1 &&
+            o.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Any(fc => fc.FeacnCode == o.TnVed) ? 1 :
+            
+            // Priority 2: Has keywords with multiple distinct FeacnCodes and one of them matches TnVed
+            o.BaseParcelKeyWords.Any() && 
+            o.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Select(fc => fc.FeacnCode).Distinct().Count() > 1 &&
+            o.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Any(fc => fc.FeacnCode == o.TnVed) ? 2 :
+            
+            // Priority 3: Has keywords with exactly one distinct FeacnCode, doesn't match TnVed, but TnVed exists in FeacnCodes
+            o.BaseParcelKeyWords.Any() && 
+            o.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Select(fc => fc.FeacnCode).Distinct().Count() == 1 &&
+            !o.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Any(fc => fc.FeacnCode == o.TnVed) &&
+            _db.FeacnCodes.Any(fc => fc.Code == o.TnVed) ? 3 :
+            
+            // Priority 4: Has keywords with multiple distinct FeacnCodes, none match TnVed, but TnVed exists in FeacnCodes
+            o.BaseParcelKeyWords.Any() && 
+            o.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Select(fc => fc.FeacnCode).Distinct().Count() > 1 &&
+            !o.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Any(fc => fc.FeacnCode == o.TnVed) &&
+            _db.FeacnCodes.Any(fc => fc.Code == o.TnVed) ? 4 :
+            
+            // Priority 5: Has keywords with exactly one distinct FeacnCode, doesn't match TnVed, and TnVed not in FeacnCodes
+            o.BaseParcelKeyWords.Any() && 
+            o.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Select(fc => fc.FeacnCode).Distinct().Count() == 1 &&
+            !o.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Any(fc => fc.FeacnCode == o.TnVed) &&
+            !_db.FeacnCodes.Any(fc => fc.Code == o.TnVed) ? 5 :
+            
+            // Priority 6: Has keywords with multiple distinct FeacnCodes, none match TnVed, and TnVed not in FeacnCodes
+            o.BaseParcelKeyWords.Any() && 
+            o.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Select(fc => fc.FeacnCode).Distinct().Count() > 1 &&
+            !o.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Any(fc => fc.FeacnCode == o.TnVed) &&
+            !_db.FeacnCodes.Any(fc => fc.Code == o.TnVed) ? 6 :
+            
+            // Priority 7: No keywords but TnVed exists in FeacnCodes table
+            !o.BaseParcelKeyWords.Any() && 
+            _db.FeacnCodes.Any(fc => fc.Code == o.TnVed) ? 7 :
+            
+            // Priority 8: No keywords and TnVed not in FeacnCodes table
+            8;
+
+        if (sortOrder.ToLower() == "desc")
+        {
+            return query.OrderByDescending(priorityExpression)
+                .ThenByDescending(o => o.Id);
+        }
+        else
+        {
+            return query.OrderBy(priorityExpression)
+                .ThenBy(o => o.Id);
+        }
+    }
+
     [HttpGet("{id}")]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ParcelViewItem))]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
@@ -80,7 +149,7 @@ public class ParcelsController(
         }
 
         // First, get the order with its register to determine the company type
-        var orderWithRegister = await _db.Orders.AsNoTracking()
+        var orderWithRegister = await _db.Parcels.AsNoTracking()
             .Include(o => o.Register)
             .FirstOrDefaultAsync(o => o.Id == id && o.CheckStatusId != (int)ParcelCheckStatusCode.MarkedByPartner);
 
@@ -103,7 +172,7 @@ public class ParcelsController(
 
         if (companyId == IRegisterProcessingService.GetWBRId())
         {
-            order = await _db.WbrOrders.AsNoTracking()
+            order = await _db.WbrParcels.AsNoTracking()
                 .Include(o => o.Register)
                 .Include(o => o.BaseParcelStopWords)
                 .Include(o => o.BaseParcelKeyWords)
@@ -114,7 +183,7 @@ public class ParcelsController(
         }
         else if (companyId == IRegisterProcessingService.GetOzonId())
         {
-            order = await _db.OzonOrders.AsNoTracking()
+            order = await _db.OzonParcels.AsNoTracking()
                 .Include(o => o.Register)
                 .Include(o => o.BaseParcelStopWords)
                 .Include(o => o.BaseParcelKeyWords)
@@ -134,8 +203,12 @@ public class ParcelsController(
             .Where(v => v.UserId == _curUserId && v.BaseOrderId == order.Id)
             .OrderByDescending(v => v.DTime)
             .FirstOrDefaultAsync();
-        var viewItem = new ParcelViewItem(order);
-        viewItem.DTime = lastView?.DTime;
+
+        var viewItem = new ParcelViewItem(order)
+        {
+            DTime = lastView?.DTime
+        };
+
         _logger.LogDebug("GetOrder returning {orderType} order for companyId={cid}",
             order.GetType().Name, companyId);
 
@@ -158,7 +231,7 @@ public class ParcelsController(
         }
 
         // First, get the order with its register to determine the company type
-        var orderWithRegister = await _db.Orders
+        var orderWithRegister = await _db.Parcels
             .Include(o => o.Register)
             .FirstOrDefaultAsync(o => o.Id == id && o.CheckStatusId != (int)ParcelCheckStatusCode.MarkedByPartner);
 
@@ -181,13 +254,13 @@ public class ParcelsController(
 
         if (companyId == IRegisterProcessingService.GetWBRId())
         {
-            order = await _db.WbrOrders
+            order = await _db.WbrParcels
                 .Include(o => o.Register)
                 .FirstOrDefaultAsync(o => o.Id == id && o.CheckStatusId != (int)ParcelCheckStatusCode.MarkedByPartner);
         }
         else if (companyId == IRegisterProcessingService.GetOzonId())
         {
-            order = await _db.OzonOrders
+            order = await _db.OzonParcels
                 .Include(o => o.Register)
                 .FirstOrDefaultAsync(o => o.Id == id && o.CheckStatusId != (int)ParcelCheckStatusCode.MarkedByPartner);
         }
@@ -229,7 +302,7 @@ public class ParcelsController(
         }
 
         // First, get the order with its register to determine the company type
-        var orderWithRegister = await _db.Orders
+        var orderWithRegister = await _db.Parcels
             .Include(o => o.Register)
             .FirstOrDefaultAsync(o => o.Id == id && o.CheckStatusId != (int)ParcelCheckStatusCode.MarkedByPartner);
 
@@ -257,22 +330,23 @@ public class ParcelsController(
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(PagedResult<ParcelViewItem>))]
     [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
-    public async Task<ActionResult<PagedResult<ParcelViewItem>>> GetOrders(
+    public async Task<ActionResult<PagedResult<ParcelViewItem>>> GetParcels(
         int registerId,
         int? statusId = null,
+        int? checkStatusId = null,
         string? tnVed = null,
         int page = 1,
         int pageSize = 100,
         string? sortBy = null,
         string sortOrder = "asc")
     {
-        _logger.LogDebug("GetOrders for register={reg} status={st} tnVed={tnVed} page={page} size={size} sortBy={sortBy} sortOrder={sortOrder}",
-            registerId, statusId, tnVed, page, pageSize, sortBy, sortOrder);
+        _logger.LogDebug("GetParcels for register={reg} status={st} checkStatus={cs} tnVed={tnVed} page={page} size={size} sortBy={sortBy} sortOrder={sortOrder}",
+            registerId, statusId, checkStatusId, tnVed, page, pageSize, sortBy, sortOrder);
 
         if (page <= 0 ||
             (pageSize != -1 && (pageSize <= 0 || pageSize > MaxPageSize)))
         {
-            _logger.LogDebug("GetOrders returning '400 Bad Request' - invalid pagination");
+            _logger.LogDebug("GetParcels returning '400 Bad Request' - invalid pagination");
             return _400();
         }
 
@@ -282,7 +356,7 @@ public class ParcelsController(
         var ok = await _userService.CheckLogist(_curUserId);
         if (!ok)
         {
-            _logger.LogDebug("GetOrders returning '403 Forbidden'");
+            _logger.LogDebug("GetParcels returning '403 Forbidden'");
             return _403();
         }
 
@@ -292,7 +366,7 @@ public class ParcelsController(
         
         if (register == null)
         {
-            _logger.LogDebug("GetOrders returning '404 Not Found' - register not found");
+            _logger.LogDebug("GetParcels returning '404 Not Found' - register not found");
             return _404Register(registerId);
         }
 
@@ -305,16 +379,18 @@ public class ParcelsController(
         // Create a typed query based on the register company type
         if (register.CompanyId == IRegisterProcessingService.GetWBRId())
         {
-            var allowedSortBy = new[] { "id", "statusid", "checkstatusid", "tnved", "shk" };
+            var allowedSortBy = new[] { "id", "statusid", "checkstatusid", "tnved", "shk", "feacnlookup" };
             if (!allowedSortBy.Contains(sortBy.ToLower()))
             {
                 _logger.LogDebug("GetOrders returning '400 Bad Request' - invalid sortBy for WBR");
                 return _400();
             }
 
-            var query = _db.WbrOrders.AsNoTracking()
+            var query = _db.WbrParcels.AsNoTracking()
                 .Include(o => o.BaseParcelStopWords)
                 .Include(o => o.BaseParcelKeyWords)
+                    .ThenInclude(bkw => bkw.KeyWord)
+                        .ThenInclude(kw => kw.KeyWordFeacnCodes)
                 .Include(o => o.BaseParcelFeacnPrefixes)
                     .ThenInclude(bofp => bofp.FeacnPrefix)
                         .ThenInclude(fp => fp.FeacnOrder)
@@ -323,6 +399,11 @@ public class ParcelsController(
             if (statusId != null)
             {
                 query = query.Where(o => o.StatusId == statusId);
+            }
+
+            if (checkStatusId != null)
+            {
+                query = query.Where(o => o.CheckStatusId == checkStatusId);
             }
 
             if (!string.IsNullOrWhiteSpace(tnVed))
@@ -339,7 +420,8 @@ public class ParcelsController(
                 ("tnved", "asc") => query.OrderBy(o => o.TnVed),
                 ("tnved", "desc") => query.OrderByDescending(o => o.TnVed),
                 ("shk", "asc") => query.OrderBy(o => o.Shk), 
-                ("shk", "desc") => query.OrderByDescending(o => o.Shk), 
+                ("shk", "desc") => query.OrderByDescending(o => o.Shk),
+                ("feacnlookup", _) => ApplyMatchSorting(query, sortOrder),
                 ("id", "desc") => query.OrderByDescending(o => o.Id),
                 _ => query.OrderBy(o => o.Id)
             };
@@ -363,16 +445,18 @@ public class ParcelsController(
         else if (register.CompanyId == IRegisterProcessingService.GetOzonId())
         {
             // Use Ozon-specific allowed sort fields
-            var allowedSortBy = new[] { "id", "statusid", "checkstatusid", "tnved", "postingnumber" };
+            var allowedSortBy = new[] { "id", "statusid", "checkstatusid", "tnved", "postingnumber", "feacnlookup" };
             if (!allowedSortBy.Contains(sortBy.ToLower()))
             {
                 _logger.LogDebug("GetOrders returning '400 Bad Request' - invalid sortBy for Ozon");
                 return _400();
             }
 
-            var query = _db.OzonOrders.AsNoTracking()
+            var query = _db.OzonParcels.AsNoTracking()
                 .Include(o => o.BaseParcelStopWords)
                 .Include(o => o.BaseParcelKeyWords)
+                    .ThenInclude(bkw => bkw.KeyWord)
+                        .ThenInclude(kw => kw.KeyWordFeacnCodes)
                 .Include(o => o.BaseParcelFeacnPrefixes)
                     .ThenInclude(bofp => bofp.FeacnPrefix)
                         .ThenInclude(fp => fp.FeacnOrder)
@@ -381,6 +465,11 @@ public class ParcelsController(
             if (statusId != null)
             {
                 query = query.Where(o => o.StatusId == statusId);
+            }
+
+            if (checkStatusId != null)
+            {
+                query = query.Where(o => o.CheckStatusId == checkStatusId);
             }
 
             if (!string.IsNullOrWhiteSpace(tnVed))
@@ -397,7 +486,8 @@ public class ParcelsController(
                 ("tnved", "asc") => query.OrderBy(o => o.TnVed),
                 ("tnved", "desc") => query.OrderByDescending(o => o.TnVed),
                 ("postingnumber", "asc") => query.OrderBy(o => o.PostingNumber), 
-                ("postingnumber", "desc") => query.OrderByDescending(o => o.PostingNumber), 
+                ("postingnumber", "desc") => query.OrderByDescending(o => o.PostingNumber),
+                ("feacnlookup", _) => ApplyMatchSorting(query, sortOrder),
                 ("id", "desc") => query.OrderByDescending(o => o.Id),
                 _ => query.OrderBy(o => o.Id)
             };
@@ -421,7 +511,7 @@ public class ParcelsController(
         else
         {
             // For non-WBR, non-Ozon registers, return error
-            _logger.LogDebug("GetOrders returning '400 Bad Request' - unsupported register company type");
+            _logger.LogDebug("GetParcels returning '400 Bad Request' - unsupported register company type");
             return _400CompanyId(register.CompanyId);
         }
 
@@ -442,7 +532,7 @@ public class ParcelsController(
             Sorting = new SortingInfo { SortBy = sortBy, SortOrder = sortOrder }
         };
 
-        _logger.LogDebug("GetOrders returning {count} items", items.Count);
+        _logger.LogDebug("GetParcels returning {count} items", items.Count);
         return Ok(result);
     }
 
@@ -460,7 +550,7 @@ public class ParcelsController(
             return _403();
         }
 
-        var parcel = await _db.Orders
+        var parcel = await _db.Parcels
             .FirstOrDefaultAsync(o => o.Id == id && o.CheckStatusId != (int)ParcelCheckStatusCode.MarkedByPartner);
         if (parcel == null)
         {
@@ -493,7 +583,7 @@ public class ParcelsController(
             return _403();
         }
 
-        var order = await _db.Orders
+        var order = await _db.Parcels
             .FirstOrDefaultAsync(o => o.Id == id && o.CheckStatusId != (int)ParcelCheckStatusCode.MarkedByPartner);
         if (order == null)
         {
@@ -526,7 +616,7 @@ public class ParcelsController(
             return _403();
         }
 
-        var order = await _db.Orders.AsNoTracking()
+        var order = await _db.Parcels.AsNoTracking()
             .FirstOrDefaultAsync(o => o.Id == id && o.CheckStatusId != (int)ParcelCheckStatusCode.MarkedByPartner);
         if (order == null)
         {
@@ -554,7 +644,7 @@ public class ParcelsController(
             return _403();
         }
 
-        var parcel = await _db.Orders
+        var parcel = await _db.Parcels
             .FirstOrDefaultAsync(o => o.Id == id && o.CheckStatusId != (int)ParcelCheckStatusCode.MarkedByPartner);
         if (parcel == null)
         {
@@ -582,7 +672,7 @@ public class ParcelsController(
     {
         _logger.LogDebug("GetOrderStatus for shk={orderNumber}", orderNumber);
 
-        var statusTitle = await _db.WbrOrders.AsNoTracking()
+        var statusTitle = await _db.WbrParcels.AsNoTracking()
             .Where(o => o.Shk == orderNumber && o.CheckStatusId != (int)ParcelCheckStatusCode.MarkedByPartner)
             .Select(o => o.Status.Title)
             .FirstOrDefaultAsync();

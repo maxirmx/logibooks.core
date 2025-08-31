@@ -57,7 +57,7 @@ public class ParcelViewsControllerTests
         // Arrange
         SetCurrentUserId(5);
         var order = new WbrParcel { Id = 42, RegisterId = 1, StatusId = 1 };
-        _dbContext.Orders.Add(order);
+        _dbContext.Parcels.Add(order);
         await _dbContext.SaveChangesAsync();
         
         // Act
@@ -95,7 +95,7 @@ public class ParcelViewsControllerTests
         var order1 = new WbrParcel { Id = 1, RegisterId = 1, StatusId = 1 };
         var order2 = new WbrParcel { Id = 2, RegisterId = 1, StatusId = 1 };
         var order3 = new WbrParcel { Id = 3, RegisterId = 1, StatusId = 1 };
-        _dbContext.Orders.AddRange(order1, order2, order3);
+        _dbContext.Parcels.AddRange(order1, order2, order3);
         _dbContext.ParcelViews.AddRange(
             new ParcelView { UserId = 7, BaseOrderId = 1, DTime = System.DateTime.UtcNow.AddMinutes(-10) },
             new ParcelView { UserId = 7, BaseOrderId = 2, DTime = System.DateTime.UtcNow.AddMinutes(-5) },
@@ -140,7 +140,7 @@ public class ParcelViewsControllerTests
     {
         SetCurrentUserId(11);
         var order = new WbrParcel { Id = 100, RegisterId = 1, StatusId = 1 };
-        _dbContext.Orders.Add(order);
+        _dbContext.Parcels.Add(order);
         await _dbContext.SaveChangesAsync();
         _dbContext.ParcelViews.Add(new ParcelView { UserId = 11, BaseOrderId = 100, DTime = System.DateTime.UtcNow });
         await _dbContext.SaveChangesAsync();
@@ -153,7 +153,7 @@ public class ParcelViewsControllerTests
     {
         SetCurrentUserId(12);
         var order = new WbrParcel { Id = 200, RegisterId = 1, StatusId = 1 };
-        _dbContext.Orders.Add(order);
+        _dbContext.Parcels.Add(order);
         await _dbContext.SaveChangesAsync();
         _dbContext.ParcelViews.AddRange(
             new ParcelView { UserId = 12, BaseOrderId = 200, DTime = System.DateTime.UtcNow.AddMinutes(-5) },

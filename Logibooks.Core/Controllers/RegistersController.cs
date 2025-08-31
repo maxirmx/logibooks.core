@@ -63,7 +63,6 @@ public class RegistersController(
         "senderid", 
         "destcountrycode",
         "origcountrycode",
-        "transportationtypeid", 
         "customsprocedureid", 
         "invoice", 
         "dealnumber"
@@ -236,12 +235,10 @@ public class RegistersController(
             ("origcountrycode", "desc") => query.OrderByDescending(CountrySortSelector(false)),
             ("theothercountrycode", "asc") => query.OrderBy(r => r.TheOtherCountry != null ? r.TheOtherCountry.NameRuShort : string.Empty),
             ("theothercountrycode", "desc") => query.OrderByDescending(r => r.TheOtherCountry != null ? r.TheOtherCountry.NameRuShort : string.Empty),
-            ("transportationtypeid", "asc") => query.OrderBy(r => r.TransportationType != null ? r.TransportationType.Name : string.Empty),
-            ("transportationtypeid", "desc") => query.OrderByDescending(r => r.TransportationType != null ? r.TransportationType.Name : string.Empty),
             ("customsprocedureid", "asc") => query.OrderBy(r => r.CustomsProcedure != null ? r.CustomsProcedure.Name : string.Empty),
             ("customsprocedureid", "desc") => query.OrderByDescending(r => r.CustomsProcedure != null ? r.CustomsProcedure.Name : string.Empty),
-            ("invoice", "asc") => query.OrderBy(r => r.InvoiceNumber).ThenBy(r => r.InvoiceDate),
-            ("invoice", "desc") => query.OrderByDescending(r => r.InvoiceNumber).ThenByDescending(r => r.InvoiceDate),
+            ("invoice", "asc") => query.OrderBy(r => r.TransportationType != null ? r.TransportationType.Document : string.Empty).ThenBy(r => r.InvoiceNumber).ThenBy(r => r.InvoiceDate),
+            ("invoice", "desc") => query.OrderByDescending(r => r.TransportationType != null ? r.TransportationType.Document : string.Empty).ThenByDescending(r => r.InvoiceNumber).ThenByDescending(r => r.InvoiceDate),
             ("id", "desc") => query.OrderByDescending(r => r.Id),
             _ => query.OrderBy(r => r.Id)
         };
@@ -515,7 +512,7 @@ public class RegistersController(
         }
 
         // Update orders in memory instead of using ExecuteUpdateAsync
-        var parcelsToUpdate = await _db.Orders
+        var parcelsToUpdate = await _db.Parcels
             .Where(o => o.RegisterId == id && o.CheckStatusId != (int)ParcelCheckStatusCode.MarkedByPartner)
             .ToListAsync();
         foreach (var parcel in parcelsToUpdate)
@@ -595,7 +592,7 @@ public class RegistersController(
             return _403();
         }
 
-        var current = await _db.Orders.AsNoTracking()
+        var current = await _db.Parcels.AsNoTracking()
             .Include(o => o.Register)
             .FirstOrDefaultAsync(o => o.Id == parcelId);
 
@@ -609,7 +606,7 @@ public class RegistersController(
         int companyId = current.Register.CompanyId;
 
         // Find the next parcel with issues after the current one (no rollover)
-        var next = await _db.Orders.AsNoTracking()
+        var next = await _db.Parcels.AsNoTracking()
             .Where(o => o.RegisterId == registerId &&
                         o.CheckStatusId >= (int)ParcelCheckStatusCode.HasIssues && 
                         o.CheckStatusId < (int)ParcelCheckStatusCode.MarkedByPartner &&
@@ -627,12 +624,12 @@ public class RegistersController(
 
         if (companyId == IRegisterProcessingService.GetWBRId())
         {
-            parcel = await ApplyOrderIncludes(_db.WbrOrders.AsNoTracking())
+            parcel = await ApplyOrderIncludes(_db.WbrParcels.AsNoTracking())
                 .FirstOrDefaultAsync(o => o.Id == next.Id);
         }
         else if (companyId == IRegisterProcessingService.GetOzonId())
         {
-            parcel = await ApplyOrderIncludes(_db.OzonOrders.AsNoTracking())
+            parcel = await ApplyOrderIncludes(_db.OzonParcels.AsNoTracking())
                 .FirstOrDefaultAsync(o => o.Id == next.Id);
         }
 
@@ -661,7 +658,7 @@ public class RegistersController(
             return _403();
         }
 
-        var current = await _db.Orders.AsNoTracking()
+        var current = await _db.Parcels.AsNoTracking()
             .Include(o => o.Register)
             .FirstOrDefaultAsync(o => o.Id == parcelId);
 
@@ -675,7 +672,7 @@ public class RegistersController(
         int companyId = current.Register.CompanyId;
 
         // Find the next parcel after the current one (no rollover)
-        var next = await _db.Orders.AsNoTracking()
+        var next = await _db.Parcels.AsNoTracking()
             .Where(o => o.RegisterId == registerId && o.Id > parcelId && 
                    o.CheckStatusId != (int)ParcelCheckStatusCode.MarkedByPartner)
             .OrderBy(o => o.Id)
@@ -692,12 +689,12 @@ public class RegistersController(
 
         if (companyId == IRegisterProcessingService.GetWBRId())
         {
-            parcel = await ApplyOrderIncludes(_db.WbrOrders.AsNoTracking())
+            parcel = await ApplyOrderIncludes(_db.WbrParcels.AsNoTracking())
                 .FirstOrDefaultAsync(o => o.Id == next.Id);
         }
         else if (companyId == IRegisterProcessingService.GetOzonId())
         {
-            parcel = await ApplyOrderIncludes(_db.OzonOrders.AsNoTracking())
+            parcel = await ApplyOrderIncludes(_db.OzonParcels.AsNoTracking())
                 .FirstOrDefaultAsync(o => o.Id == next.Id);
         }
 
@@ -857,7 +854,7 @@ public class RegistersController(
 
     private async Task<Dictionary<int, Dictionary<int, int>>> FetchOrdersStatsAsync(IEnumerable<int> registerIds)
     {
-        var grouped = await _db.Orders
+        var grouped = await _db.Parcels
             .AsNoTracking()
             .Where(o => registerIds.Contains(o.RegisterId))
             .GroupBy(o => new { o.RegisterId, o.CheckStatusId })
@@ -886,7 +883,7 @@ public class RegistersController(
         var combinedCounts = await (
             // WBR registers - unique SHK counts
             from r in _db.Registers
-            join o in _db.WbrOrders on r.Id equals o.RegisterId
+            join o in _db.WbrParcels on r.Id equals o.RegisterId
             where registerIdsList.Contains(r.Id) && 
                   r.CompanyId == IRegisterProcessingService.GetWBRId() && 
                   o.Shk != null
@@ -895,7 +892,7 @@ public class RegistersController(
         ).Union(
             // Ozon registers - unique PostingNumber counts  
             from r in _db.Registers
-            join o in _db.OzonOrders on r.Id equals o.RegisterId
+            join o in _db.OzonParcels on r.Id equals o.RegisterId
             where registerIdsList.Contains(r.Id) && 
                   r.CompanyId == IRegisterProcessingService.GetOzonId() && 
                   o.PostingNumber != null

@@ -43,7 +43,7 @@ public class ParcelIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServi
 
     public async Task<(string, string)> GenerateXML(int orderId)
     {
-        var order = await _db.Orders.AsNoTracking()
+        var order = await _db.Parcels.AsNoTracking()
             .Include(o => o.Country)
             .Include(o => o.Register)
                 .ThenInclude(r => r.TheOtherCountry)
@@ -172,13 +172,13 @@ public class ParcelIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServi
         if (order is OzonParcel ozonOrder)
         {
             ordersForGoods = 
-                [.. _db.OzonOrders.AsNoTracking().Where(o => o.PostingNumber == ozonOrder.PostingNumber && 
+                [.. _db.OzonParcels.AsNoTracking().Where(o => o.PostingNumber == ozonOrder.PostingNumber && 
                                                         o.RegisterId == ozonOrder.RegisterId)];
         }
         else if (order is WbrParcel wbrOrder)
         {
             ordersForGoods = 
-                [.. _db.WbrOrders.AsNoTracking().Where(o => o.Shk == wbrOrder.Shk && 
+                [.. _db.WbrParcels.AsNoTracking().Where(o => o.Shk == wbrOrder.Shk && 
                                                                          o.RegisterId == wbrOrder.RegisterId)];
         }
         else
@@ -241,7 +241,7 @@ public class ParcelIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServi
         List<BaseParcel> orders;
         if (register.CompanyId == IRegisterProcessingService.GetWBRId())
         {
-            orders = await _db.WbrOrders.AsNoTracking()
+            orders = await _db.WbrParcels.AsNoTracking()
                 .Include(o => o.Country)
                 .Include(o => o.Register).ThenInclude(r => r.TheOtherCountry)
                 .Include(o => o.Register).ThenInclude(r => r.TransportationType)
@@ -256,7 +256,7 @@ public class ParcelIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServi
         }
         else if (register.CompanyId == IRegisterProcessingService.GetOzonId())
         {
-            orders = await _db.OzonOrders.AsNoTracking()
+            orders = await _db.OzonParcels.AsNoTracking()
                 .Include(o => o.Country)
                 .Include(o => o.Register).ThenInclude(r => r.TheOtherCountry)
                 .Include(o => o.Register).ThenInclude(r => r.TransportationType)
@@ -287,13 +287,13 @@ public class ParcelIndPostGenerator(AppDbContext db, IIndPostXmlService xmlServi
                 IEnumerable<BaseParcel> ordersForGoods;
                 if (order is OzonParcel ozonOrder)
                 {
-                    ordersForGoods = _db.OzonOrders.AsNoTracking()
+                    ordersForGoods = _db.OzonParcels.AsNoTracking()
                         .Where(o => o.PostingNumber == ozonOrder.PostingNumber && o.RegisterId == ozonOrder.RegisterId)
                         .ToList();
                 }
                 else if (order is WbrParcel wbrOrder)
                 {
-                    ordersForGoods = _db.WbrOrders.AsNoTracking()
+                    ordersForGoods = _db.WbrParcels.AsNoTracking()
                         .Where(o => o.Shk == wbrOrder.Shk && o.RegisterId == wbrOrder.RegisterId)
                         .ToList();
                 }

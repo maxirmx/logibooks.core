@@ -136,7 +136,7 @@ public class ParcelStatusesControllerTests
         var order = new WbrParcel { Id = 1, RegisterId = 1, StatusId = 5 };
         _dbContext.Statuses.Add(status);
         _dbContext.Registers.Add(reg);
-        _dbContext.Orders.Add(order);
+        _dbContext.Parcels.Add(order);
         await _dbContext.SaveChangesAsync();
 
         var result = await _controller.DeleteStatus(5);

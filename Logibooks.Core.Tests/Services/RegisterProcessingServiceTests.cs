@@ -57,8 +57,8 @@ public class UploadOzonRegisterTests
         var register = ctx.Registers.FirstOrDefault(r => r.Id == reference.Id);
         Assert.That(reference.Id, Is.GreaterThan(0));
         Assert.That(ctx.Registers.Count(), Is.EqualTo(1));
-        Assert.That(ctx.OzonOrders.Count(), Is.EqualTo(3));
-        Assert.That(ctx.OzonOrders.OrderBy(o => o.Id).First().PostingNumber, Is.EqualTo("0180993146-0049-7"));
+        Assert.That(ctx.OzonParcels.Count(), Is.EqualTo(3));
+        Assert.That(ctx.OzonParcels.OrderBy(o => o.Id).First().PostingNumber, Is.EqualTo("0180993146-0049-7"));
         Assert.That(register, Is.Not.Null);
         Assert.That(register!.TheOtherCountryCode, Is.EqualTo(860));
     }
@@ -91,7 +91,7 @@ public class UploadOzonRegisterTests
             .GetField("_db", BindingFlags.NonPublic | BindingFlags.Instance)!
             .GetValue(_service)!;
 
-        var first = ctx.OzonOrders.OrderBy(o => o.Id).First();
+        var first = ctx.OzonParcels.OrderBy(o => o.Id).First();
         Assert.That(first.CheckStatusId, Is.EqualTo((int)ParcelCheckStatusCode.MarkedByPartner));
         Assert.That(first.PartnerColor, Is.Not.EqualTo(0));
     }
@@ -145,8 +145,8 @@ public class UploadWbrRegisterTests
         var register = ctx.Registers.FirstOrDefault(r => r.Id == reference.Id);
         Assert.That(reference.Id, Is.GreaterThan(0));
         Assert.That(ctx.Registers.Count(), Is.EqualTo(1));
-        Assert.That(ctx.WbrOrders.Count(), Is.EqualTo(3));
-        Assert.That(ctx.WbrOrders.OrderBy(o => o.Id).First().RowNumber, Is.EqualTo(3101));
+        Assert.That(ctx.WbrParcels.Count(), Is.EqualTo(3));
+        Assert.That(ctx.WbrParcels.OrderBy(o => o.Id).First().RowNumber, Is.EqualTo(3101));
         Assert.That(register, Is.Not.Null);
         Assert.That(register!.TheOtherCountryCode, Is.EqualTo(860));
     }
@@ -179,8 +179,8 @@ public class UploadWbrRegisterTests
             .GetField("_db", BindingFlags.NonPublic | BindingFlags.Instance)! 
             .GetValue(_service)!;
 
-        Assert.That(ctx.WbrOrders.Any(o => o.CheckStatusId == (int)ParcelCheckStatusCode.MarkedByPartner && o.PartnerColor != 0));
-        Assert.That(ctx.WbrOrders.Any(o => o.CheckStatusId == (int)ParcelCheckStatusCode.NotChecked && o.PartnerColor == 0));
+        Assert.That(ctx.WbrParcels.Any(o => o.CheckStatusId == (int)ParcelCheckStatusCode.MarkedByPartner && o.PartnerColor != 0));
+        Assert.That(ctx.WbrParcels.Any(o => o.CheckStatusId == (int)ParcelCheckStatusCode.NotChecked && o.PartnerColor == 0));
     }
 }
 
@@ -276,7 +276,7 @@ public class DownloadRegisterTests
         var content = await File.ReadAllBytesAsync(Path.Combine("test.data", "Реестр_207730349.xlsx"));
         var reference = await _service.UploadRegisterFromExcelAsync(_service.GetWBRId(), content, "Реестр_207730349.xlsx");
 
-        var first = _dbContext.WbrOrders.OrderBy(o => o.Id).First();
+        var first = _dbContext.WbrParcels.OrderBy(o => o.Id).First();
         first.CheckStatusId = (int)ParcelCheckStatusCode.HasIssues;
         await _dbContext.SaveChangesAsync();
 
@@ -297,7 +297,7 @@ public class DownloadRegisterTests
         var content = await File.ReadAllBytesAsync(Path.Combine("test.data", "Озон_Short.xlsx"));
         var reference = await _service.UploadRegisterFromExcelAsync(_service.GetOzonId(), content, "Озон_Short.xlsx");
 
-        var first = _dbContext.OzonOrders.OrderBy(o => o.Id).First();
+        var first = _dbContext.OzonParcels.OrderBy(o => o.Id).First();
         first.CheckStatusId = (int)ParcelCheckStatusCode.HasIssues;
         await _dbContext.SaveChangesAsync();
 
@@ -324,7 +324,7 @@ public class DownloadRegisterTests
         var content = await File.ReadAllBytesAsync(Path.Combine("test.data", "Озон_Short.xlsx"));
         var reference = await _service.UploadRegisterFromExcelAsync(_service.GetOzonId(), content, "Озон_Short.xlsx");
 
-        var first = _dbContext.OzonOrders.OrderBy(o => o.Id).First();
+        var first = _dbContext.OzonParcels.OrderBy(o => o.Id).First();
         first.CheckStatusId = (int)ParcelCheckStatusCode.MarkedByPartner;
         first.PartnerColorXL = XLColor.FromArgb(0, 255, 0);
         await _dbContext.SaveChangesAsync();
@@ -346,7 +346,7 @@ public class DownloadRegisterTests
         var content = await File.ReadAllBytesAsync(Path.Combine("test.data", "Озон_Short.xlsx"));
         var reference = await _service.UploadRegisterFromExcelAsync(_service.GetOzonId(), content, "Озон_Short.xlsx");
 
-        var first = _dbContext.OzonOrders.OrderBy(o => o.Id).First();
+        var first = _dbContext.OzonParcels.OrderBy(o => o.Id).First();
         first.CheckStatusId = (int)ParcelCheckStatusCode.ApprovedWithExcise;
         await _dbContext.SaveChangesAsync();
 
@@ -372,7 +372,7 @@ public class DownloadRegisterTests
         var content = await File.ReadAllBytesAsync(Path.Combine("test.data", "Реестр_207730349.xlsx"));
         var reference = await _service.UploadRegisterFromExcelAsync(_service.GetWBRId(), content, "Реестр_207730349.xlsx");
 
-        var first = _dbContext.WbrOrders.OrderBy(o => o.Id).First();
+        var first = _dbContext.WbrParcels.OrderBy(o => o.Id).First();
         first.CheckStatusId = (int)ParcelCheckStatusCode.ApprovedWithExcise;
         await _dbContext.SaveChangesAsync();
 
@@ -399,7 +399,7 @@ public class DownloadRegisterTests
         var content = await File.ReadAllBytesAsync(Path.Combine("test.data", "Озон_Short.xlsx"));
         var reference = await _service.UploadRegisterFromExcelAsync(_service.GetOzonId(), content, "Озон_Short.xlsx");
 
-        var orders = _dbContext.OzonOrders.OrderBy(o => o.Id).ToList();
+        var orders = _dbContext.OzonParcels.OrderBy(o => o.Id).ToList();
         
         // Set different HasIssues status codes
         orders[0].CheckStatusId = (int)ParcelCheckStatusCode.HasIssues; // 101
@@ -431,7 +431,7 @@ public class DownloadRegisterTests
         var content = await File.ReadAllBytesAsync(Path.Combine("test.data", "Озон_Short.xlsx"));
         var reference = await _service.UploadRegisterFromExcelAsync(_service.GetOzonId(), content, "Озон_Short.xlsx");
 
-        var first = _dbContext.OzonOrders.OrderBy(o => o.Id).First();
+        var first = _dbContext.OzonParcels.OrderBy(o => o.Id).First();
         first.CheckStatusId = (int)ParcelCheckStatusCode.NoIssues;
         await _dbContext.SaveChangesAsync();
 
@@ -458,7 +458,7 @@ public class DownloadRegisterTests
         var content = await File.ReadAllBytesAsync(Path.Combine("test.data", "Озон_Short.xlsx"));
         var reference = await _service.UploadRegisterFromExcelAsync(_service.GetOzonId(), content, "Озон_Short.xlsx");
 
-        var first = _dbContext.OzonOrders.OrderBy(o => o.Id).First();
+        var first = _dbContext.OzonParcels.OrderBy(o => o.Id).First();
         first.CheckStatusId = (int)ParcelCheckStatusCode.MarkedByPartner;
         first.PartnerColor = 0; // No partner color set
         await _dbContext.SaveChangesAsync();
@@ -527,7 +527,7 @@ public class DownloadRegisterTests
             StatusId = 1,
             CheckStatusId = 1
         };
-        _dbContext.WbrOrders.Add(wOrder);
+        _dbContext.WbrParcels.Add(wOrder);
 
         var oOrder = new OzonParcel
         {
@@ -538,7 +538,7 @@ public class DownloadRegisterTests
             StatusId = 1,
             CheckStatusId = 1
         };
-        _dbContext.OzonOrders.Add(oOrder);
+        _dbContext.OzonParcels.Add(oOrder);
 
         await _dbContext.SaveChangesAsync();
 

@@ -34,7 +34,21 @@ public static class RegisterExtensions
     {
         if (update == null) return;
         if (update.InvoiceNumber != null) register.InvoiceNumber = update.InvoiceNumber;
-        if (update.InvoiceDate != null) register.InvoiceDate = update.InvoiceDate;
+        if (update.InvoiceDate != null) 
+        {
+            if (string.IsNullOrWhiteSpace(update.InvoiceDate))
+            {
+                register.InvoiceDate = null;
+            }
+            else if (DateOnly.TryParse(update.InvoiceDate, out DateOnly parsedDate))
+            {
+                register.InvoiceDate = parsedDate;
+            }
+            else
+            {
+                register.InvoiceDate = null;
+            }
+        }
         if (update.TheOtherCountryCode != null)
         {
             register.TheOtherCountryCode = update.TheOtherCountryCode != 0 ? update.TheOtherCountryCode : null;

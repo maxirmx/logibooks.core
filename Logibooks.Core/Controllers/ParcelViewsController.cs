@@ -49,7 +49,7 @@ public class ParcelViewsController(
     public async Task<IActionResult> Add(Reference dto)
     {
         // Validate that the BaseOrderId exists in the database
-        var orderExists = await _db.Orders.AnyAsync(o => o.Id == dto.Id);
+        var orderExists = await _db.Parcels.AnyAsync(o => o.Id == dto.Id);
         if (!orderExists)
         {
             return _404Order(dto.Id);

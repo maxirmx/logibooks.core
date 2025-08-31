@@ -123,7 +123,7 @@ public class RegistersControllerSortingTests : RegistersControllerTestsBase
             new Register { Id = 3, FileName = "r3.xlsx" , CompanyId = 2, TheOtherCompanyId = 3 },
             new Register { Id = 4, FileName = "r4.xlsx" , CompanyId = 2, TheOtherCompanyId = 3 }
         );
-        _dbContext.Orders.AddRange(
+        _dbContext.Parcels.AddRange(
             new WbrParcel { RegisterId = 1, StatusId = 1 },
             new WbrParcel { RegisterId = 2, StatusId = 1 },
             new WbrParcel { RegisterId = 2, StatusId = 1 },
@@ -140,25 +140,6 @@ public class RegistersControllerSortingTests : RegistersControllerTestsBase
         var ok2 = r2.Result as OkObjectResult;
         var pr2 = ok2!.Value as PagedResult<RegisterViewItem>;
         Assert.That(pr2!.Items.First().Id, Is.EqualTo(1));
-    }
-
-    // Sorting by TransportationType.Name descending
-    [Test]
-    public async Task GetRegisters_SortsByTransportationTypeId_Descending()
-    {
-        SetCurrentUserId(1);
-        await _dbContext.SaveChangesAsync();
-        _dbContext.Registers.AddRange(
-            new Register { Id = 1, FileName = "r1.xlsx", CompanyId = 2, TheOtherCompanyId = 3, TransportationTypeId = 1 }, // Авиа
-            new Register { Id = 2, FileName = "r2.xlsx", CompanyId = 2, TheOtherCompanyId = 3, TransportationTypeId = 2 }  // Авто
-        );
-        await _dbContext.SaveChangesAsync();
-        var result = await _controller.GetRegisters(sortBy: "transportationtypeid", sortOrder: "desc");
-        var ok = result.Result as OkObjectResult;
-        var pr = ok!.Value as PagedResult<RegisterViewItem>;
-        var items = pr!.Items.ToArray();
-        Assert.That(items[0].TransportationTypeId, Is.EqualTo(2));  // Авто
-        Assert.That(items[1].TransportationTypeId, Is.EqualTo(1));  // Авиа
     }
 
     // Sorting by CustomsProcedure.Name descending
@@ -199,7 +180,7 @@ public class RegistersControllerSortingTests : RegistersControllerTestsBase
         Assert.That(items[1].InvoiceNumber, Is.EqualTo("INV-001"));
     }
 
-    // Test composite sorting by InvoiceNumber + InvoiceDate
+    // Test composite sorting by TransportationType.Document + InvoiceNumber + InvoiceDate
     [Test]
     public async Task GetRegisters_SortsByInvoice_CompositeSorting()
     {
@@ -207,12 +188,20 @@ public class RegistersControllerSortingTests : RegistersControllerTestsBase
         var earlierDate = DateOnly.FromDateTime(DateTime.Today.AddDays(-1));
         var laterDate = DateOnly.FromDateTime(DateTime.Today);
         
+        // Add transportation types with different document names
+        _dbContext.TransportationTypes.AddRange(
+            new TransportationType { Id = 3, Code = TransportationTypeCode.Avia, Name = "Авиа", Document = "AWB" },
+            new TransportationType { Id = 4, Code = TransportationTypeCode.Auto, Name = "Авто", Document = "CMR" }
+        );
+        
         _dbContext.Registers.AddRange(
-            // Same invoice number, different dates
-            new Register { Id = 1, FileName = "r1.xlsx", CompanyId = 2, TheOtherCompanyId = 3, InvoiceNumber = "INV-001", InvoiceDate = laterDate },
-            new Register { Id = 2, FileName = "r2.xlsx", CompanyId = 2, TheOtherCompanyId = 3, InvoiceNumber = "INV-001", InvoiceDate = earlierDate },
-            // Different invoice number
-            new Register { Id = 3, FileName = "r3.xlsx", CompanyId = 2, TheOtherCompanyId = 3, InvoiceNumber = "INV-002", InvoiceDate = earlierDate }
+            // Same document type and invoice number, different dates
+            new Register { Id = 1, FileName = "r1.xlsx", CompanyId = 2, TheOtherCompanyId = 3, TransportationTypeId = 3, InvoiceNumber = "INV-001", InvoiceDate = laterDate },
+            new Register { Id = 2, FileName = "r2.xlsx", CompanyId = 2, TheOtherCompanyId = 3, TransportationTypeId = 3, InvoiceNumber = "INV-001", InvoiceDate = earlierDate },
+            // Same document type, different invoice number
+            new Register { Id = 3, FileName = "r3.xlsx", CompanyId = 2, TheOtherCompanyId = 3, TransportationTypeId = 3, InvoiceNumber = "INV-002", InvoiceDate = earlierDate },
+            // Different document type
+            new Register { Id = 4, FileName = "r4.xlsx", CompanyId = 2, TheOtherCompanyId = 3, TransportationTypeId = 4, InvoiceNumber = "INV-001", InvoiceDate = earlierDate }
         );
         await _dbContext.SaveChangesAsync();
         
@@ -221,14 +210,13 @@ public class RegistersControllerSortingTests : RegistersControllerTestsBase
         var pr = ok!.Value as PagedResult<RegisterViewItem>;
         var items = pr!.Items.ToArray();
         
-        // Should sort by InvoiceNumber first, then by InvoiceDate
-        // INV-001 (earlier date), INV-001 (later date), INV-002 (earlier date)
-        Assert.That(items[0].InvoiceNumber, Is.EqualTo("INV-001"));
-        Assert.That(items[0].Id, Is.EqualTo(2)); // Earlier date first
-        Assert.That(items[1].InvoiceNumber, Is.EqualTo("INV-001"));
-        Assert.That(items[1].Id, Is.EqualTo(1)); // Later date second
-        Assert.That(items[2].InvoiceNumber, Is.EqualTo("INV-002"));
-        Assert.That(items[2].Id, Is.EqualTo(3));
+        // Should sort by TransportationType.Document first (AWB < CMR), then by InvoiceNumber, then by InvoiceDate
+        // AWB: INV-001 (earlier date), INV-001 (later date), INV-002 (earlier date)
+        // CMR: INV-001 (earlier date)
+        Assert.That(items[0].Id, Is.EqualTo(2)); // AWB, INV-001, earlier date
+        Assert.That(items[1].Id, Is.EqualTo(1)); // AWB, INV-001, later date  
+        Assert.That(items[2].Id, Is.EqualTo(3)); // AWB, INV-002, earlier date
+        Assert.That(items[3].Id, Is.EqualTo(4)); // CMR, INV-001, earlier date
     }
 
     // Sorting by RecipientId ascending
@@ -325,7 +313,7 @@ public class RegistersControllerSortingTests : RegistersControllerTestsBase
         await _dbContext.SaveChangesAsync();
 
         // These were valid before but are no longer accepted
-        var obsoleteSortFields = new[] { "invoicenumber", "invoicedate" };
+        var obsoleteSortFields = new[] { "invoicenumber", "invoicedate", "transportationtypeid" };
         
         foreach (var sortBy in obsoleteSortFields)
         {
@@ -355,7 +343,6 @@ public class RegistersControllerSortingTests : RegistersControllerTestsBase
             "senderid",
             "destcountrycode",
             "origcountrycode",
-            "transportationtypeid",
             "customsprocedureid",
             "invoice",
             "dealnumber"

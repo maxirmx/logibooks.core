@@ -23,23 +23,18 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-using System.Text.Json;
-using Logibooks.Core.Settings;
-
 namespace Logibooks.Core.RestModels;
 
-public class RegisterUpdateItem
+public class BulkFeacnCodeLookupDto
 {
-    public string? DealNumber { get; set; }
-    public int? TheOtherCompanyId { get; set; }
-    public string? InvoiceNumber { get; set; }
-    public string? InvoiceDate { get; set; }
-    public short? TheOtherCountryCode { get; set; }
-    public int? TransportationTypeId { get; set; }
-    public int? CustomsProcedureId { get; set; }
+    public Dictionary<string, FeacnCodeDto?> Results { get; set; } = new Dictionary<string, FeacnCodeDto?>();
 
-    public override string ToString()
+    public BulkFeacnCodeLookupDto()
     {
-        return JsonSerializer.Serialize(this, JOptions.DefaultOptions);
+    }
+
+    public BulkFeacnCodeLookupDto(Dictionary<string, FeacnCodeDto?> results)
+    {
+        Results = results;
     }
 }

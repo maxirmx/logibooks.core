@@ -113,7 +113,7 @@ public class RegistersControllerCrudTests : RegistersControllerTestsBase
 
         var register = new Register { Id = 1, FileName = "reg.xlsx", CompanyId = 2, TheOtherCompanyId = 3 };
         _dbContext.Registers.Add(register);
-        _dbContext.Orders.AddRange(
+        _dbContext.Parcels.AddRange(
             new WbrParcel { Id = 1, RegisterId = 1, StatusId = 1, CheckStatusId = 1 },
             new WbrParcel { Id = 2, RegisterId = 1, StatusId = 2, CheckStatusId = 2 },
             new WbrParcel { Id = 3, RegisterId = 1, StatusId = 1, CheckStatusId = 1 }
@@ -139,7 +139,7 @@ public class RegistersControllerCrudTests : RegistersControllerTestsBase
         );
         var register = new Register { Id = 1, FileName = "reg.xlsx", CompanyId = 2, TheOtherCompanyId = 3 };
         _dbContext.Registers.Add(register);
-        _dbContext.Orders.AddRange(
+        _dbContext.Parcels.AddRange(
             new WbrParcel { Id = 1, RegisterId = 1, StatusId = 1, CheckStatusId = 1 },
             new WbrParcel { Id = 2, RegisterId = 1, StatusId = 2, CheckStatusId = 2 },
             new WbrParcel { Id = 3, RegisterId = 1, StatusId = 3, CheckStatusId = 3 },
@@ -195,7 +195,7 @@ public class RegistersControllerCrudTests : RegistersControllerTestsBase
         var update = new RegisterUpdateItem
         {
             InvoiceNumber = "INV",
-            InvoiceDate = new DateOnly(2025, 1, 2),
+            InvoiceDate = "2025-01-02",
             TheOtherCountryCode = 100,
             TransportationTypeId = 1,
             CustomsProcedureId = 1
@@ -236,7 +236,7 @@ public class RegistersControllerCrudTests : RegistersControllerTestsBase
             DealNumber = "NEWDEAL",
             TheOtherCompanyId = 2, 
             InvoiceNumber = "NEWINV",
-            InvoiceDate = new DateOnly(2025, 2, 3),
+            InvoiceDate = "2025-02-03",
             TheOtherCountryCode = 643, 
             TransportationTypeId = 2, 
             CustomsProcedureId = 2 
@@ -391,6 +391,52 @@ public class RegistersControllerCrudTests : RegistersControllerTestsBase
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
     }
 
+    [Test]
+    public async Task UpdateRegister_SetsInvoiceDateToNull_WhenEmptyString()
+    {
+        SetCurrentUserId(1);
+        var register = new Register
+        {
+            Id = 1,
+            FileName = "r.xlsx",
+            TheOtherCompanyId = 3,
+            InvoiceDate = new DateOnly(2024, 1, 1) // Initially has a date
+        };
+        _dbContext.Registers.Add(register);
+        await _dbContext.SaveChangesAsync();
+
+        var update = new RegisterUpdateItem { InvoiceDate = "" }; // Empty string
+
+        var result = await _controller.UpdateRegister(1, update);
+
+        Assert.That(result, Is.TypeOf<NoContentResult>());
+        var saved = await _dbContext.Registers.FindAsync(1);
+        Assert.That(saved!.InvoiceDate, Is.Null);
+    }
+
+    [Test]
+    public async Task UpdateRegister_SetsInvoiceDateToNull_WhenInvalidDateFormat()
+    {
+        SetCurrentUserId(1);
+        var register = new Register
+        {
+            Id = 1,
+            FileName = "r.xlsx",
+            TheOtherCompanyId = 3,
+            InvoiceDate = new DateOnly(2024, 1, 1) // Initially has a date
+        };
+        _dbContext.Registers.Add(register);
+        await _dbContext.SaveChangesAsync();
+
+        var update = new RegisterUpdateItem { InvoiceDate = "invalid-date-format" }; // Invalid format
+
+        var result = await _controller.UpdateRegister(1, update);
+
+        Assert.That(result, Is.TypeOf<NoContentResult>());
+        var saved = await _dbContext.Registers.FindAsync(1);
+        Assert.That(saved!.InvoiceDate, Is.Null);
+    }
+
     // --- DELETE REGISTER ---
     [Test]
     public async Task DeleteRegister_DeletesEmptyRegister_WhenUserIsLogist()
@@ -406,7 +452,7 @@ public class RegistersControllerCrudTests : RegistersControllerTestsBase
 
         Assert.That(result, Is.TypeOf<NoContentResult>());
         Assert.That(await _dbContext.Registers.FindAsync(1), Is.Null);
-        Assert.That(_dbContext.Orders.Any(o => o.RegisterId == 1), Is.False);
+        Assert.That(_dbContext.Parcels.Any(o => o.RegisterId == 1), Is.False);
     }
 
     [Test]
@@ -418,14 +464,14 @@ public class RegistersControllerCrudTests : RegistersControllerTestsBase
         var order1 = new WbrParcel { Id = 1, RegisterId = 1, StatusId = 1 };
         var order2 = new WbrParcel { Id = 2, RegisterId = 1, StatusId = 1 };
         _dbContext.Registers.Add(register);
-        _dbContext.Orders.AddRange(order1, order2);
+        _dbContext.Parcels.AddRange(order1, order2);
         await _dbContext.SaveChangesAsync();
 
         var result = await _controller.DeleteRegister(1);
 
         Assert.That(result, Is.TypeOf<NoContentResult>());
         Assert.That(await _dbContext.Registers.FindAsync(1), Is.Null);
-        Assert.That(_dbContext.Orders.Any(o => o.RegisterId == 1), Is.False);
+        Assert.That(_dbContext.Parcels.Any(o => o.RegisterId == 1), Is.False);
     }
 
     [Test]
