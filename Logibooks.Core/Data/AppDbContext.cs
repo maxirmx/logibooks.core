@@ -340,8 +340,10 @@ namespace Logibooks.Core.Data
             );
 
             modelBuilder.Entity<TransportationType>().HasData(
-                new TransportationType { Id = 1, Code = TransportationTypeCode.Avia, Name = "Авиа" },
-                new TransportationType { Id = 2, Code = TransportationTypeCode.Auto, Name = "Авто" }
+                // Airway Bill
+                new TransportationType { Id = 1, Code = TransportationTypeCode.Avia, Name = "Авиа", Document = "AWB" },
+                // Convention on the Contract for the INternational Carriage of Goods by Road 
+                new TransportationType { Id = 2, Code = TransportationTypeCode.Auto, Name = "Авто", Document = "CMR" }
             );
 
             modelBuilder.Entity<UserRole>().HasData(

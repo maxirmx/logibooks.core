@@ -106,8 +106,8 @@ public class TransportationTypesControllerTests
     {
         SetCurrentUserId(2);
         _dbContext.TransportationTypes.AddRange(
-            new TransportationType { Id = 1, Code = TransportationTypeCode.Avia, Name = "A" },
-            new TransportationType { Id = 2, Code = TransportationTypeCode.Auto, Name = "B" }
+            new TransportationType { Id = 1, Code = TransportationTypeCode.Avia, Name = "A", Document = "AWB" },
+            new TransportationType { Id = 2, Code = TransportationTypeCode.Auto, Name = "B", Document = "CMR" }
         );
         await _dbContext.SaveChangesAsync();
 
@@ -121,7 +121,7 @@ public class TransportationTypesControllerTests
     public async Task GetType_ReturnsRecord_WhenExists()
     {
         SetCurrentUserId(2);
-        var tt = new TransportationType { Id = 10, Code = TransportationTypeCode.Auto, Name = "Auto" };
+        var tt = new TransportationType { Id = 10, Code = TransportationTypeCode.Auto, Name = "Auto", Document = "CMR" };
         _dbContext.TransportationTypes.Add(tt);
         await _dbContext.SaveChangesAsync();
 

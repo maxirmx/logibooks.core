@@ -80,8 +80,8 @@ public class ParcelIndPostGeneratorTests
             }
         );
         _dbContext.TransportationTypes.AddRange(
-            new TransportationType { Id = 1, Code = TransportationTypeCode.Avia, Name = "Авиа" },
-            new TransportationType { Id = 2, Code = TransportationTypeCode.Auto, Name = "Авто" }
+            new TransportationType { Id = 1, Code = TransportationTypeCode.Avia, Name = "Авиа", Document = "AWB" },
+            new TransportationType { Id = 2, Code = TransportationTypeCode.Auto, Name = "Авто", Document = "CMR" }
         );
         _dbContext.CustomsProcedures.AddRange(
             new CustomsProcedure { Id = 1, Code = 10, Name = "Экспорт" },

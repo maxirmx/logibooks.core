@@ -28,7 +28,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace Logibooks.Core.Models;
 
 [Table("transportation_types")]
-public class TransportationType
+public sealed class TransportationType
 {
     [Column("id")]
     public int Id { get; set; }
@@ -38,4 +38,7 @@ public class TransportationType
 
     [Column("name")]
     public required string Name { get; set; }
+
+    [Column("document")]
+    public required string Document { get; set; }
 }

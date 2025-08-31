@@ -64,7 +64,7 @@ namespace Logibooks.Core.Tests.Services
             
             _generator = new ParcelIndPostGenerator(_dbContext, _xmlServiceMock.Object);
 
-            _transportationType = new TransportationType { Id = 1, Code = TransportationTypeCode.Avia, Name = "Авиа" };
+            _transportationType = new TransportationType { Id = 1, Code = TransportationTypeCode.Avia, Name = "Авиа", Document = "AWB" };
             _customsProcedure = new CustomsProcedure { Id = 1, Code = 10, Name = "Экспорт" };
             _customsProcedure60 = new CustomsProcedure { Id = 2, Code = 60, Name = "Реимпорт" };
             

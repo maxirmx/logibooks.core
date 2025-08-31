@@ -63,7 +63,6 @@ public class RegistersController(
         "senderid", 
         "destcountrycode",
         "origcountrycode",
-        "transportationtypeid", 
         "customsprocedureid", 
         "invoice", 
         "dealnumber"
@@ -236,12 +235,10 @@ public class RegistersController(
             ("origcountrycode", "desc") => query.OrderByDescending(CountrySortSelector(false)),
             ("theothercountrycode", "asc") => query.OrderBy(r => r.TheOtherCountry != null ? r.TheOtherCountry.NameRuShort : string.Empty),
             ("theothercountrycode", "desc") => query.OrderByDescending(r => r.TheOtherCountry != null ? r.TheOtherCountry.NameRuShort : string.Empty),
-            ("transportationtypeid", "asc") => query.OrderBy(r => r.TransportationType != null ? r.TransportationType.Name : string.Empty),
-            ("transportationtypeid", "desc") => query.OrderByDescending(r => r.TransportationType != null ? r.TransportationType.Name : string.Empty),
             ("customsprocedureid", "asc") => query.OrderBy(r => r.CustomsProcedure != null ? r.CustomsProcedure.Name : string.Empty),
             ("customsprocedureid", "desc") => query.OrderByDescending(r => r.CustomsProcedure != null ? r.CustomsProcedure.Name : string.Empty),
-            ("invoice", "asc") => query.OrderBy(r => r.InvoiceNumber).ThenBy(r => r.InvoiceDate),
-            ("invoice", "desc") => query.OrderByDescending(r => r.InvoiceNumber).ThenByDescending(r => r.InvoiceDate),
+            ("invoice", "asc") => query.OrderBy(r => r.TransportationType != null ? r.TransportationType.Document : string.Empty).ThenBy(r => r.InvoiceNumber).ThenBy(r => r.InvoiceDate),
+            ("invoice", "desc") => query.OrderByDescending(r => r.TransportationType != null ? r.TransportationType.Document : string.Empty).ThenByDescending(r => r.InvoiceNumber).ThenByDescending(r => r.InvoiceDate),
             ("id", "desc") => query.OrderByDescending(r => r.Id),
             _ => query.OrderBy(r => r.Id)
         };
