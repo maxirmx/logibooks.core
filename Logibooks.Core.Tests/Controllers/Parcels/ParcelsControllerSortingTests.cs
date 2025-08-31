@@ -406,7 +406,7 @@ public class ParcelsControllerSortingTests
     #region Filtering Tests
 
     [Test]
-    public async Task GetOrders_FiltersByStatusId()
+    public async Task GetParcels_FiltersByStatusId()
     {
         // Arrange
         SetCurrentUserId(1);
@@ -435,7 +435,7 @@ public class ParcelsControllerSortingTests
     }
 
     [Test]
-    public async Task GetOrders_FiltersByTnVed()
+    public async Task GetParcels_FiltersByTnVed()
     {
         // Arrange
         SetCurrentUserId(1);
@@ -464,24 +464,83 @@ public class ParcelsControllerSortingTests
     }
 
     [Test]
-    public async Task GetOrders_CombinesFiltersAndSorting()
+    public async Task GetParcels_FiltersByCheckStatusId()
+    {
+        // Arrange
+        SetCurrentUserId(1);
+        var register = new Register { Id = 1, CompanyId = 2, FileName = "filter_test.xlsx" }; // WBR
+        _dbContext.Registers.Add(register);
+        _dbContext.Parcels.AddRange(
+            new WbrParcel { Id = 1, RegisterId = 1, StatusId = 1, CheckStatusId = 101, TnVed = "A" },
+            new WbrParcel { Id = 2, RegisterId = 1, StatusId = 1, CheckStatusId = 102, TnVed = "B" },
+            new WbrParcel { Id = 3, RegisterId = 1, StatusId = 1, CheckStatusId = 102, TnVed = "C" },
+            new WbrParcel { Id = 4, RegisterId = 1, StatusId = 1, CheckStatusId = 103, TnVed = "D" }
+        );
+        await _dbContext.SaveChangesAsync();
+
+        // Act
+        var result = await _controller.GetParcels(registerId: 1, checkStatusId: 102);
+        
+        // Assert
+        var okResult = result.Result as OkObjectResult;
+        var pagedResult = okResult!.Value as PagedResult<ParcelViewItem>;
+        var items = pagedResult!.Items.ToArray();
+        
+        Assert.That(items.Length, Is.EqualTo(2));
+        Assert.That(items[0].Id, Is.EqualTo(2));
+        Assert.That(items[1].Id, Is.EqualTo(3));
+        Assert.That(items.All(i => i.CheckStatusId == 102), Is.True);
+    }
+
+    [Test]
+    public async Task GetParcels_FiltersByCheckStatusId_ForOzonParcels()
+    {
+        // Arrange
+        SetCurrentUserId(1);
+        var register = new Register { Id = 1, CompanyId = 1, FileName = "filter_test.xlsx" }; // Ozon
+        _dbContext.Registers.Add(register);
+        _dbContext.Parcels.AddRange(
+            new OzonParcel { Id = 1, RegisterId = 1, StatusId = 1, CheckStatusId = 201, TnVed = "A" },
+            new OzonParcel { Id = 2, RegisterId = 1, StatusId = 1, CheckStatusId = 202, TnVed = "B" },
+            new OzonParcel { Id = 3, RegisterId = 1, StatusId = 1, CheckStatusId = 201, TnVed = "C" }
+        );
+        await _dbContext.SaveChangesAsync();
+
+        // Act
+        var result = await _controller.GetParcels(registerId: 1, checkStatusId: 201);
+        
+        // Assert
+        var okResult = result.Result as OkObjectResult;
+        var pagedResult = okResult!.Value as PagedResult<ParcelViewItem>;
+        var items = pagedResult!.Items.ToArray();
+        
+        Assert.That(items.Length, Is.EqualTo(2));
+        Assert.That(items[0].Id, Is.EqualTo(1));
+        Assert.That(items[1].Id, Is.EqualTo(3));
+        Assert.That(items.All(i => i.CheckStatusId == 201), Is.True);
+    }
+
+    [Test]
+    public async Task GetParcels_CombinesFiltersAndSorting()
     {
         // Arrange
         SetCurrentUserId(1);
         var register = new Register { Id = 1, CompanyId = 2, FileName = "combined_test.xlsx" }; // WBR
         _dbContext.Registers.Add(register);
         _dbContext.Parcels.AddRange(
-            new WbrParcel { Id = 1, RegisterId = 1, StatusId = 2, TnVed = "123ABC" },
-            new WbrParcel { Id = 2, RegisterId = 1, StatusId = 2, TnVed = "123XYZ" },
-            new WbrParcel { Id = 3, RegisterId = 1, StatusId = 1, TnVed = "123DEF" },
-            new WbrParcel { Id = 4, RegisterId = 1, StatusId = 2, TnVed = "456ABC" }
+            new WbrParcel { Id = 1, RegisterId = 1, StatusId = 2, CheckStatusId = 102, TnVed = "123ABC" },
+            new WbrParcel { Id = 2, RegisterId = 1, StatusId = 2, CheckStatusId = 102, TnVed = "123XYZ" },
+            new WbrParcel { Id = 3, RegisterId = 1, StatusId = 1, CheckStatusId = 102, TnVed = "123DEF" },
+            new WbrParcel { Id = 4, RegisterId = 1, StatusId = 2, CheckStatusId = 103, TnVed = "123GHI" },
+            new WbrParcel { Id = 5, RegisterId = 1, StatusId = 2, CheckStatusId = 102, TnVed = "456JKL" }
         );
         await _dbContext.SaveChangesAsync();
 
-        // Act - Filter by statusId=2 and tnVed=123, sort by tnVed desc
+        // Act - Filter by statusId=2, checkStatusId=102, tnVed=123, sort by tnVed desc
         var result = await _controller.GetParcels(
             registerId: 1, 
             statusId: 2, 
+            checkStatusId: 102,
             tnVed: "123", 
             sortBy: "tnVed", 
             sortOrder: "desc");
@@ -494,7 +553,72 @@ public class ParcelsControllerSortingTests
         Assert.That(items.Length, Is.EqualTo(2));
         Assert.That(items[0].Id, Is.EqualTo(2)); // TnVed = "123XYZ" comes first when sorting desc
         Assert.That(items[1].Id, Is.EqualTo(1)); // TnVed = "123ABC" comes second
-        Assert.That(items.All(i => i.StatusId == 2 && i.TnVed!.Contains("123")), Is.True);
+        Assert.That(items.All(i => i.StatusId == 2 && i.CheckStatusId == 102 && i.TnVed!.Contains("123")), Is.True);
+    }
+
+    [Test]
+    public async Task GetParcels_CombinesStatusIdAndCheckStatusIdFilters()
+    {
+        // Arrange
+        SetCurrentUserId(1);
+        var register = new Register { Id = 1, CompanyId = 2, FileName = "combined_filter_test.xlsx" }; // WBR
+        _dbContext.Registers.Add(register);
+        _dbContext.Parcels.AddRange(
+            new WbrParcel { Id = 1, RegisterId = 1, StatusId = 2, CheckStatusId = 102, TnVed = "A" },
+            new WbrParcel { Id = 2, RegisterId = 1, StatusId = 2, CheckStatusId = 103, TnVed = "B" },
+            new WbrParcel { Id = 3, RegisterId = 1, StatusId = 1, CheckStatusId = 102, TnVed = "C" },
+            new WbrParcel { Id = 4, RegisterId = 1, StatusId = 2, CheckStatusId = 102, TnVed = "D" }
+        );
+        await _dbContext.SaveChangesAsync();
+
+        // Act - Filter by statusId=2 and checkStatusId=102
+        var result = await _controller.GetParcels(registerId: 1, statusId: 2, checkStatusId: 102);
+        
+        // Assert
+        var okResult = result.Result as OkObjectResult;
+        var pagedResult = okResult!.Value as PagedResult<ParcelViewItem>;
+        var items = pagedResult!.Items.ToArray();
+        
+        Assert.That(items.Length, Is.EqualTo(2));
+        Assert.That(items[0].Id, Is.EqualTo(1));
+        Assert.That(items[1].Id, Is.EqualTo(4));
+        Assert.That(items.All(i => i.StatusId == 2 && i.CheckStatusId == 102), Is.True);
+    }
+
+    [Test]
+    public async Task GetParcels_CombinesAllFiltersWithSorting()
+    {
+        // Arrange
+        SetCurrentUserId(1);
+        var register = new Register { Id = 1, CompanyId = 2, FileName = "all_filters_test.xlsx" }; // WBR
+        _dbContext.Registers.Add(register);
+        _dbContext.Parcels.AddRange(
+            new WbrParcel { Id = 1, RegisterId = 1, StatusId = 2, CheckStatusId = 102, TnVed = "123ABC" },
+            new WbrParcel { Id = 2, RegisterId = 1, StatusId = 2, CheckStatusId = 102, TnVed = "123XYZ" },
+            new WbrParcel { Id = 3, RegisterId = 1, StatusId = 1, CheckStatusId = 102, TnVed = "123DEF" },
+            new WbrParcel { Id = 4, RegisterId = 1, StatusId = 2, CheckStatusId = 103, TnVed = "123GHI" },
+            new WbrParcel { Id = 5, RegisterId = 1, StatusId = 2, CheckStatusId = 102, TnVed = "456JKL" }
+        );
+        await _dbContext.SaveChangesAsync();
+
+        // Act - Filter by statusId=2, checkStatusId=102, tnVed=123, sort by tnVed desc
+        var result = await _controller.GetParcels(
+            registerId: 1, 
+            statusId: 2, 
+            checkStatusId: 102,
+            tnVed: "123", 
+            sortBy: "tnVed", 
+            sortOrder: "desc");
+        
+        // Assert
+        var okResult = result.Result as OkObjectResult;
+        var pagedResult = okResult!.Value as PagedResult<ParcelViewItem>;
+        var items = pagedResult!.Items.ToArray();
+        
+        Assert.That(items.Length, Is.EqualTo(2));
+        Assert.That(items[0].Id, Is.EqualTo(2)); // TnVed = "123XYZ" comes first when sorting desc
+        Assert.That(items[1].Id, Is.EqualTo(1)); // TnVed = "123ABC" comes second
+        Assert.That(items.All(i => i.StatusId == 2 && i.CheckStatusId == 102 && i.TnVed!.Contains("123")), Is.True);
     }
 
     #endregion
@@ -502,7 +626,7 @@ public class ParcelsControllerSortingTests
     #region Pagination Tests
 
     [Test]
-    public async Task GetOrders_PaginatesResults()
+    public async Task GetParcels_PaginatesResults()
     {
         // Arrange
         SetCurrentUserId(1);
@@ -543,7 +667,7 @@ public class ParcelsControllerSortingTests
     }
 
     [Test]
-    public async Task GetOrders_ReturnsAllItems_WhenPageSizeIsMinusOne()
+    public async Task GetParcels_ReturnsAllItems_WhenPageSizeIsMinusOne()
     {
         // Arrange
         SetCurrentUserId(1);
@@ -577,7 +701,7 @@ public class ParcelsControllerSortingTests
     }
 
     [Test]
-    public async Task GetOrders_ResetsToFirstPage_WhenPageExceedsTotalPages()
+    public async Task GetParcels_ResetsToFirstPage_WhenPageExceedsTotalPages()
     {
         // Arrange
         SetCurrentUserId(1);
@@ -614,7 +738,7 @@ public class ParcelsControllerSortingTests
     #region Error Handling Tests
 
     [Test]
-    public async Task GetOrders_ReturnsBadRequest_WhenInvalidPagination()
+    public async Task GetParcels_ReturnsBadRequest_WhenInvalidPagination()
     {
         // Arrange
         SetCurrentUserId(1);
@@ -632,7 +756,7 @@ public class ParcelsControllerSortingTests
     }
 
     [Test]
-    public async Task GetOrders_ReturnsBadRequest_WhenInvalidSortBy()
+    public async Task GetParcels_ReturnsBadRequest_WhenInvalidSortBy()
     {
         // Arrange
         SetCurrentUserId(1);
@@ -650,7 +774,7 @@ public class ParcelsControllerSortingTests
     }
 
     [Test]
-    public async Task GetOrders_ReturnsNotFound_WhenRegisterNotFound()
+    public async Task GetParcels_ReturnsNotFound_WhenRegisterNotFound()
     {
         // Arrange
         SetCurrentUserId(1);
@@ -665,7 +789,7 @@ public class ParcelsControllerSortingTests
     }
 
     [Test]
-    public async Task GetOrders_ReturnsForbidden_WhenUserNotLogist()
+    public async Task GetParcels_ReturnsForbidden_WhenUserNotLogist()
     {
         // Arrange
         SetCurrentUserId(99); // Non-logist user
@@ -687,7 +811,7 @@ public class ParcelsControllerSortingTests
     #region Sort by Match Tests
 
     [Test]
-    public async Task GetOrders_SortsByMatch_Ascending_WithCorrectSixPriorities()
+    public async Task GetParcels_SortsByMatch_Ascending_WithCorrectSixPriorities()
     {
         SetCurrentUserId(1);
         var register = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
@@ -732,10 +856,10 @@ public class ParcelsControllerSortingTests
             // Priority 2: Has keywords with multiple matching FeacnCodes for TnVed
             new WbrParcel { Id = 102, RegisterId = 1, StatusId = 1, TnVed = "2222222222" },
             
-            // Priority 3: Has keywords but exactly one FeacnCode (not matching TnVed)
+            // Priority 3: Has keywords but exactly one FeacnCode (not matching)
             new WbrParcel { Id = 103, RegisterId = 1, StatusId = 1, TnVed = "5555555555" },
             
-            // Priority 4: Has keywords but multiple FeacnCodes (not matching TnVed)
+            // Priority 4: Has keywords but multiple FeacnCodes (not matching)
             new WbrParcel { Id = 104, RegisterId = 1, StatusId = 1, TnVed = "4444444444" },
             
             // Priority 5: No keywords but TnVed exists in FeacnCodes
@@ -776,7 +900,7 @@ public class ParcelsControllerSortingTests
     }
 
     [Test]
-    public async Task GetOrders_SortsByMatch_Descending_WithCorrectSixPriorities()
+    public async Task GetParcels_SortsByMatch_Descending_WithCorrectSixPriorities()
     {
         SetCurrentUserId(1);
         var register = new Register { Id = 2, CompanyId = 1, FileName = "r.xlsx" }; // Ozon register
@@ -835,7 +959,7 @@ public class ParcelsControllerSortingTests
     }
 
     [Test]
-    public async Task GetOrders_SortsByMatch_CorrectlyDistinguishesSingleVsMultipleFeacnCodes()
+    public async Task GetParcels_SortsByMatch_CorrectlyDistinguishesSingleVsMultipleFeacnCodes()
     {
         SetCurrentUserId(1);
         var register = new Register { Id = 3, CompanyId = 2, FileName = "r.xlsx" };
@@ -859,10 +983,10 @@ public class ParcelsControllerSortingTests
         // Create parcels with non-matching TnVeds (to test priority 3 vs 4)
         var parcels = new List<WbrParcel>
         {
-            // Should be Priority 3: Has keywords but exactly one FeacnCode (not matching TnVed)
+            // Should be Priority 3: Has keywords but exactly one FeacnCode (not matching)
             new WbrParcel { Id = 301, RegisterId = 3, StatusId = 1, TnVed = "9999999999" },
             
-            // Should be Priority 4: Has keywords but multiple FeacnCodes (not matching TnVed)
+            // Should be Priority 4: Has keywords but multiple FeacnCodes (not matching)
             new WbrParcel { Id = 302, RegisterId = 3, StatusId = 1, TnVed = "8888888888" }
         };
         _dbContext.Parcels.AddRange(parcels);
@@ -889,7 +1013,7 @@ public class ParcelsControllerSortingTests
     }
 
     [Test]
-    public async Task GetOrders_ValidatesFeacnLookupSortBy_ForWBR()
+    public async Task GetParcels_ValidatesFeacnLookupSortBy_ForWBR()
     {
         SetCurrentUserId(1);
         var register = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" }; // WBR
@@ -906,7 +1030,7 @@ public class ParcelsControllerSortingTests
     }
 
     [Test]
-    public async Task GetOrders_ValidatesFeacnLookupSortBy_ForOzon()
+    public async Task GetParcels_ValidatesFeacnLookupSortBy_ForOzon()
     {
         SetCurrentUserId(1);
         var register = new Register { Id = 2, CompanyId = 1, FileName = "r.xlsx" }; // Ozon
@@ -923,7 +1047,7 @@ public class ParcelsControllerSortingTests
     }
 
     [Test]
-    public async Task GetOrders_FeacnLookupSort_WorksWithPagination()
+    public async Task GetParcels_FeacnLookupSort_WorksWithPagination()
     {
         SetCurrentUserId(1);
         var register = new Register { Id = 3, CompanyId = 2, FileName = "r.xlsx" };

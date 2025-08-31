@@ -370,7 +370,7 @@ public class ParcelsControllerTests
     }
 
      [Test]
-    public async Task GetOrders_FiltersAndSorts()
+    public async Task GetParcels_FiltersAndSorts()
     {
         SetCurrentUserId(1);
         var reg = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
@@ -391,7 +391,7 @@ public class ParcelsControllerTests
     }
 
     [Test]
-    public async Task GetOrders_ReturnsStopWords()
+    public async Task GetParcels_ReturnsStopWords()
     {
         SetCurrentUserId(1);
         var reg = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
@@ -413,7 +413,7 @@ public class ParcelsControllerTests
     }
 
     [Test]
-    public async Task GetOrders_SkipsMarkedByPartner()
+    public async Task GetParcels_SkipsMarkedByPartner()
     {
         SetCurrentUserId(1);
         var reg = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
@@ -433,7 +433,7 @@ public class ParcelsControllerTests
     }
 
     [Test]
-    public async Task GetOrders_ReturnsForbidden_ForNonLogist()
+    public async Task GetParcels_ReturnsForbidden_ForNonLogist()
     {
         SetCurrentUserId(99); // unknown user
         var reg = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
@@ -509,7 +509,7 @@ public class ParcelsControllerTests
     }
 
     [Test]
-    public async Task GetOrders_InvalidPagination_ReturnsBadRequest()
+    public async Task GetParcels_InvalidPagination_ReturnsBadRequest()
     {
         SetCurrentUserId(1);
         var result = await _controller.GetParcels(registerId: 1, page: 0);
@@ -520,7 +520,7 @@ public class ParcelsControllerTests
     }
 
     [Test]
-    public async Task GetOrders_InvalidSortBy_ReturnsBadRequest()
+    public async Task GetParcels_InvalidSortBy_ReturnsBadRequest()
     {
         SetCurrentUserId(1);
         // Add a register with ID=1 and company ID=2 (WBR) to the database
@@ -536,7 +536,7 @@ public class ParcelsControllerTests
     }
 
     [Test]
-    public async Task GetOrders_InvalidSortOrder_ReturnsBadRequest()
+    public async Task GetParcels_InvalidSortOrder_ReturnsBadRequest()
     {
         SetCurrentUserId(1);
         // Add a register with ID=1 and company ID=2 (WBR) to the database
@@ -559,7 +559,7 @@ public class ParcelsControllerTests
     }
 
     [Test]
-    public async Task GetOrders_ReturnsAll_WhenPageSizeIsMinusOne()
+    public async Task GetParcels_ReturnsAll_WhenPageSizeIsMinusOne()
     {
         SetCurrentUserId(1);
         var reg = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
@@ -580,7 +580,7 @@ public class ParcelsControllerTests
     }
 
     [Test]
-    public async Task GetOrders_PageExceedsTotalPages_ResetsToFirstPage()
+    public async Task GetParcels_PageExceedsTotalPages_ResetsToFirstPage()
     {
         SetCurrentUserId(1);
         var reg = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
@@ -1090,7 +1090,7 @@ public class ParcelsControllerTests
     }
 
     [Test]
-    public async Task GetOrders_ReturnsFeacnOrderIds()
+    public async Task GetParcels_ReturnsFeacnOrderIds()
     {
         SetCurrentUserId(1);
         var reg = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
@@ -1422,5 +1422,94 @@ public class ParcelsControllerTests
         var result = await _controller.GetOrder(1);
         Assert.That(result.Value, Is.Not.Null);
         Assert.That(result.Value!.DTime, Is.Null);
+    }
+
+    [Test]
+    public async Task GetParcels_FiltersByCheckStatusId_ReturnsCorrectParcels()
+    {
+        // Arrange
+        SetCurrentUserId(1);
+        var register = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" }; // WBR company
+        _dbContext.Registers.Add(register);
+
+        var parcel1 = new WbrParcel { Id = 1, RegisterId = 1, StatusId = 1, CheckStatusId = (int)ParcelCheckStatusCode.NotChecked };
+        var parcel2 = new WbrParcel { Id = 2, RegisterId = 1, StatusId = 1, CheckStatusId = (int)ParcelCheckStatusCode.HasIssues };
+        var parcel3 = new WbrParcel { Id = 3, RegisterId = 1, StatusId = 1, CheckStatusId = (int)ParcelCheckStatusCode.NoIssues };
+        var parcel4 = new WbrParcel { Id = 4, RegisterId = 1, StatusId = 1, CheckStatusId = (int)ParcelCheckStatusCode.HasIssues };
+
+        _dbContext.Parcels.AddRange(parcel1, parcel2, parcel3, parcel4);
+        await _dbContext.SaveChangesAsync();
+
+        // Act - Filter by HasIssues check status
+        var result = await _controller.GetParcels(registerId: 1, checkStatusId: (int)ParcelCheckStatusCode.HasIssues);
+
+        // Assert
+        Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
+        var okResult = result.Result as OkObjectResult;
+        var pagedResult = okResult!.Value as PagedResult<ParcelViewItem>;
+
+        Assert.That(pagedResult!.Items.Count(), Is.EqualTo(2));
+        Assert.That(pagedResult.Items.All(p => p.CheckStatusId == (int)ParcelCheckStatusCode.HasIssues), Is.True);
+        
+        var itemIds = pagedResult.Items.Select(p => p.Id).ToArray();
+        Assert.That(itemIds, Contains.Item(2));
+        Assert.That(itemIds, Contains.Item(4));
+    }
+
+    [Test]
+    public async Task GetParcels_FiltersByCheckStatusId_WithNoMatches_ReturnsEmptyResult()
+    {
+        // Arrange
+        SetCurrentUserId(1);
+        var register = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" }; // WBR company
+        _dbContext.Registers.Add(register);
+
+        var parcel1 = new WbrParcel { Id = 1, RegisterId = 1, StatusId = 1, CheckStatusId = (int)ParcelCheckStatusCode.NotChecked };
+        var parcel2 = new WbrParcel { Id = 2, RegisterId = 1, StatusId = 1, CheckStatusId = (int)ParcelCheckStatusCode.HasIssues };
+
+        _dbContext.Parcels.AddRange(parcel1, parcel2);
+        await _dbContext.SaveChangesAsync();
+
+        // Act - Filter by Approved check status (which doesn't exist in our test data)
+        var result = await _controller.GetParcels(registerId: 1, checkStatusId: (int)ParcelCheckStatusCode.Approved);
+
+        // Assert
+        Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
+        var okResult = result.Result as OkObjectResult;
+        var pagedResult = okResult!.Value as PagedResult<ParcelViewItem>;
+
+        Assert.That(pagedResult!.Items.Count(), Is.EqualTo(0));
+        Assert.That(pagedResult.Pagination.TotalCount, Is.EqualTo(0));
+    }
+
+    [Test]
+    public async Task GetParcels_CombinesStatusIdAndCheckStatusIdFilters_ReturnsCorrectParcels()
+    {
+        // Arrange
+        SetCurrentUserId(1);
+        var register = new Register { Id = 1, CompanyId = 1, FileName = "r.xlsx" }; // Ozon company
+        _dbContext.Registers.Add(register);
+
+        var parcel1 = new OzonParcel { Id = 1, RegisterId = 1, StatusId = 1, CheckStatusId = (int)ParcelCheckStatusCode.NotChecked };
+        var parcel2 = new OzonParcel { Id = 2, RegisterId = 1, StatusId = 2, CheckStatusId = (int)ParcelCheckStatusCode.HasIssues };
+        var parcel3 = new OzonParcel { Id = 3, RegisterId = 1, StatusId = 1, CheckStatusId = (int)ParcelCheckStatusCode.HasIssues };
+        var parcel4 = new OzonParcel { Id = 4, RegisterId = 1, StatusId = 2, CheckStatusId = (int)ParcelCheckStatusCode.NoIssues };
+
+        _dbContext.Parcels.AddRange(parcel1, parcel2, parcel3, parcel4);
+        await _dbContext.SaveChangesAsync();
+
+        // Act - Filter by statusId=1 AND checkStatusId=HasIssues
+        var result = await _controller.GetParcels(registerId: 1, statusId: 1, checkStatusId: (int)ParcelCheckStatusCode.HasIssues);
+
+        // Assert
+        Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
+        var okResult = result.Result as OkObjectResult;
+        var pagedResult = okResult!.Value as PagedResult<ParcelViewItem>;
+
+        Assert.That(pagedResult!.Items.Count(), Is.EqualTo(1));
+        var item = pagedResult.Items.First();
+        Assert.That(item.Id, Is.EqualTo(3));
+        Assert.That(item.StatusId, Is.EqualTo(1));
+        Assert.That(item.CheckStatusId, Is.EqualTo((int)ParcelCheckStatusCode.HasIssues));
     }
 }

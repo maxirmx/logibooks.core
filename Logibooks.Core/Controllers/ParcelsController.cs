@@ -319,14 +319,15 @@ public class ParcelsController(
     public async Task<ActionResult<PagedResult<ParcelViewItem>>> GetParcels(
         int registerId,
         int? statusId = null,
+        int? checkStatusId = null,
         string? tnVed = null,
         int page = 1,
         int pageSize = 100,
         string? sortBy = null,
         string sortOrder = "asc")
     {
-        _logger.LogDebug("GetParcels for register={reg} status={st} tnVed={tnVed} page={page} size={size} sortBy={sortBy} sortOrder={sortOrder}",
-            registerId, statusId, tnVed, page, pageSize, sortBy, sortOrder);
+        _logger.LogDebug("GetParcels for register={reg} status={st} checkStatus={cs} tnVed={tnVed} page={page} size={size} sortBy={sortBy} sortOrder={sortOrder}",
+            registerId, statusId, checkStatusId, tnVed, page, pageSize, sortBy, sortOrder);
 
         if (page <= 0 ||
             (pageSize != -1 && (pageSize <= 0 || pageSize > MaxPageSize)))
@@ -384,6 +385,11 @@ public class ParcelsController(
             if (statusId != null)
             {
                 query = query.Where(o => o.StatusId == statusId);
+            }
+
+            if (checkStatusId != null)
+            {
+                query = query.Where(o => o.CheckStatusId == checkStatusId);
             }
 
             if (!string.IsNullOrWhiteSpace(tnVed))
@@ -445,6 +451,11 @@ public class ParcelsController(
             if (statusId != null)
             {
                 query = query.Where(o => o.StatusId == statusId);
+            }
+
+            if (checkStatusId != null)
+            {
+                query = query.Where(o => o.CheckStatusId == checkStatusId);
             }
 
             if (!string.IsNullOrWhiteSpace(tnVed))
