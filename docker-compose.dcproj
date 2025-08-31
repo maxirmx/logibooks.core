@@ -12,5 +12,6 @@
     </None>
     <None Include="docker-compose.yml" />
     <None Include=".dockerignore" />
+    <None Include="docs\bulk-feacncode-lookup-api.md" />
   </ItemGroup>
 </Project>

@@ -288,4 +288,199 @@ public class FeacnCodesControllerTests
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    [Test]
+    public async Task BulkLookup_ReturnsEmpty_ForNullOrEmptyRequest()
+    {
+        var resultNull = await _controller.BulkLookup(null!);
+        Assert.That(resultNull.Value, Is.Not.Null);
+        Assert.That(resultNull.Value!.Results, Is.Empty);
+
+        var requestEmpty = new BulkFeacnCodeRequestDto();
+        var resultEmpty = await _controller.BulkLookup(requestEmpty);
+        Assert.That(resultEmpty.Value, Is.Not.Null);
+        Assert.That(resultEmpty.Value!.Results, Is.Empty);
+
+        var requestEmptyArray = new BulkFeacnCodeRequestDto(Array.Empty<string>());
+        var resultEmptyArray = await _controller.BulkLookup(requestEmptyArray);
+        Assert.That(resultEmptyArray.Value, Is.Not.Null);
+        Assert.That(resultEmptyArray.Value!.Results, Is.Empty);
+    }
+
+    [Test]
+    public async Task BulkLookup_SkipsNullAndWhitespaceCodesAndReturnsEmptyForValid()
+    {
+        var request = new BulkFeacnCodeRequestDto(new[] { null!, "", "   ", "\t" });
+        var result = await _controller.BulkLookup(request);
+        
+        Assert.That(result.Value, Is.Not.Null);
+        Assert.That(result.Value!.Results, Is.Empty);
+    }
+
+    [Test]
+    public async Task BulkLookup_ReturnsBadRequest_ForInvalidCodeFormat()
+    {
+        var request = new BulkFeacnCodeRequestDto(new[] { "123456789" }); // 9 digits instead of 10
+        var result = await _controller.BulkLookup(request);
+        
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
+    }
+
+    [Test]
+    public async Task BulkLookup_ReturnsBadRequest_ForNonDigitCode()
+    {
+        var request = new BulkFeacnCodeRequestDto(new[] { "123456789A" }); // Contains letter
+        var result = await _controller.BulkLookup(request);
+        
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
+    }
+
+    [Test]
+    public async Task BulkLookup_ReturnsFoundAndNotFoundCodes()
+    {
+        // Setup test data
+        var existingCode1 = CreateCode(1, "1234567890", "Test Product 1");
+        var existingCode2 = CreateCode(2, "0987654321", "Test Product 2");
+        _dbContext.FeacnCodes.AddRange(existingCode1, existingCode2);
+        await _dbContext.SaveChangesAsync();
+
+        var request = new BulkFeacnCodeRequestDto(new[] 
+        { 
+            "1234567890", // exists
+            "0987654321", // exists  
+            "1111111111"  // doesn't exist
+        });
+
+        var result = await _controller.BulkLookup(request);
+        
+        Assert.That(result.Value, Is.Not.Null);
+        var results = result.Value!.Results;
+        Assert.That(results.Count, Is.EqualTo(3));
+        
+        // Check found codes
+        Assert.That(results["1234567890"], Is.Not.Null);
+        Assert.That(results["1234567890"]!.Code, Is.EqualTo("1234567890"));
+        Assert.That(results["1234567890"]!.Name, Is.EqualTo("Test Product 1"));
+        
+        Assert.That(results["0987654321"], Is.Not.Null);
+        Assert.That(results["0987654321"]!.Code, Is.EqualTo("0987654321"));
+        Assert.That(results["0987654321"]!.Name, Is.EqualTo("Test Product 2"));
+        
+        // Check not found code
+        Assert.That(results["1111111111"], Is.Null);
+    }
+
+    [Test]
+    public async Task BulkLookup_RespectsDateFiltering()
+    {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var futureCode = CreateCode(1, "1234567890", "Future Code", fromDate: today.AddDays(1));
+        var activeCode = CreateCode(2, "0987654321", "Active Code");
+        
+        _dbContext.FeacnCodes.AddRange(futureCode, activeCode);
+        await _dbContext.SaveChangesAsync();
+
+        var request = new BulkFeacnCodeRequestDto(new[] { "1234567890", "0987654321" });
+        var result = await _controller.BulkLookup(request);
+        
+        Assert.That(result.Value, Is.Not.Null);
+        var results = result.Value!.Results;
+        Assert.That(results.Count, Is.EqualTo(2));
+        
+        // Future code should not be found (null)
+        Assert.That(results["1234567890"], Is.Null);
+        
+        // Active code should be found
+        Assert.That(results["0987654321"], Is.Not.Null);
+        Assert.That(results["0987654321"]!.Name, Is.EqualTo("Active Code"));
+    }
+
+    [Test]
+    public async Task BulkLookup_HandlesDuplicateCodes()
+    {
+        var existingCode = CreateCode(1, "1234567890", "Test Product");
+        _dbContext.FeacnCodes.Add(existingCode);
+        await _dbContext.SaveChangesAsync();
+
+        var request = new BulkFeacnCodeRequestDto(new[] 
+        { 
+            "1234567890", 
+            "1234567890" // duplicate
+        });
+
+        var result = await _controller.BulkLookup(request);
+        
+        Assert.That(result.Value, Is.Not.Null);
+        var results = result.Value!.Results;
+        
+        // Should only have one entry in the dictionary
+        Assert.That(results.Count, Is.EqualTo(1));
+        Assert.That(results["1234567890"], Is.Not.Null);
+        Assert.That(results["1234567890"]!.Name, Is.EqualTo("Test Product"));
+    }
+
+    [Test]
+    public async Task BulkLookup_HandlesLargeNumberOfCodes()
+    {
+        // Create 100 test codes
+        var testCodes = new List<FeacnCode>();
+        for (int i = 0; i < 100; i++)
+        {
+            var code = i.ToString("D10"); // Pad with zeros to make 10 digits
+            testCodes.Add(CreateCode(i + 1, code, $"Product {i}"));
+        }
+        
+        _dbContext.FeacnCodes.AddRange(testCodes);
+        await _dbContext.SaveChangesAsync();
+
+        // Request all 100 codes plus some non-existent ones
+        var requestCodes = testCodes.Select(c => c.Code).ToList();
+        requestCodes.AddRange(new[] { "9999999990", "9999999991", "9999999992" });
+        
+        var request = new BulkFeacnCodeRequestDto(requestCodes.ToArray());
+        var result = await _controller.BulkLookup(request);
+        
+        Assert.That(result.Value, Is.Not.Null);
+        var results = result.Value!.Results;
+        Assert.That(results.Count, Is.EqualTo(103)); // 100 existing + 3 non-existing
+        
+        // Check that all existing codes are found
+        for (int i = 0; i < 100; i++)
+        {
+            var code = i.ToString("D10");
+            Assert.That(results[code], Is.Not.Null);
+            Assert.That(results[code]!.Name, Is.EqualTo($"Product {i}"));
+        }
+        
+        // Check that non-existing codes are null
+        Assert.That(results["9999999990"], Is.Null);
+        Assert.That(results["9999999991"], Is.Null);
+        Assert.That(results["9999999992"], Is.Null);
+    }
+
+    [Test]
+    public async Task BulkLookup_MixesValidAndInvalidCodes_ReturnsErrorOnFirstInvalid()
+    {
+        var existingCode = CreateCode(1, "1234567890", "Test Product");
+        _dbContext.FeacnCodes.Add(existingCode);
+        await _dbContext.SaveChangesAsync();
+
+        var request = new BulkFeacnCodeRequestDto(new[] 
+        { 
+            "1234567890", // valid existing
+            "invalid",    // invalid format
+            "0987654321"  // valid but non-existing
+        });
+
+        var result = await _controller.BulkLookup(request);
+        
+        // Should return 400 Bad Request due to invalid code
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
+    }
+
 }
