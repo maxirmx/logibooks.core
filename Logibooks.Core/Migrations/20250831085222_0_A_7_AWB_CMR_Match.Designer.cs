@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Logibooks.Core.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250831084316_AddPerformanceIndexesForMatchSorting")]
-    partial class AddPerformanceIndexesForMatchSorting
+    [Migration("20250831085222_0_A_7_AWB_CMR_Match")]
+    partial class _0_A_7_AWB_CMR_Match
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

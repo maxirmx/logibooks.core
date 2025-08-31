@@ -1,4 +1,4 @@
-// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
+﻿// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
 // All rights reserved.
 // This file is a part of Logibooks Core application
 //
@@ -26,6 +26,7 @@
 using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 using System.Text;
 
 using Logibooks.Core.Authorization;
@@ -65,51 +66,56 @@ public class ParcelsController(
     private readonly IParcelIndPostGenerator _indPostGenerator = indPostGenerator;
 
     /// <summary>
-    /// Calculate match priority for sorting: 1 = best match, 4 = worst match
-    /// (1) Parcels with keywords that have matching FeacnCodes for parcel TnVed
-    /// (2) Parcels with keywords but no matching FeacnCodes for parcel TnVed  
-    /// (3) Parcels without keywords but TnVed exists in FeacnCodes
-    /// (4) Parcels without keywords and TnVed not in FeacnCodes
+    /// Calculate match priority for sorting: 1 = best match, 6 = worst match
+    /// (1) Parcels with keywords that have exactly one matching FeacnCode for parcel TnVed
+    /// (2) Parcels with keywords that have multiple matching FeacnCodes for parcel TnVed
+    /// (3) Parcels with keywords but exactly one FeacnCode (not matching parcel TnVed)
+    /// (4) Parcels with keywords but multiple FeacnCodes (not matching parcel TnVed)
+    /// (5) Parcels without keywords but TnVed exists in FeacnCodes
+    /// (6) Parcels without keywords and TnVed not in FeacnCodes
     /// </summary>
     private IQueryable<T> ApplyMatchSorting<T>(IQueryable<T> query, string sortOrder) where T : BaseParcel
     {
+        // Define the priority calculation expression once
+        Expression<Func<T, int>> priorityExpression = o => 
+            // Priority 1: Has keywords with exactly one matching FeacnCode for TnVed
+            o.BaseParcelKeyWords.Any() && 
+            o.BaseParcelKeyWords.Any(kw => kw.KeyWord.KeyWordFeacnCodes.Any(fc => fc.FeacnCode == o.TnVed)) &&
+            o.BaseParcelKeyWords.Where(kw => kw.KeyWord.KeyWordFeacnCodes.Any(fc => fc.FeacnCode == o.TnVed))
+                .All(kw => kw.KeyWord.KeyWordFeacnCodes.Count() == 1) ? 1 :
+            
+            // Priority 2: Has keywords with multiple matching FeacnCodes for TnVed
+            o.BaseParcelKeyWords.Any() && 
+            o.BaseParcelKeyWords.Any(kw => kw.KeyWord.KeyWordFeacnCodes.Any(fc => fc.FeacnCode == o.TnVed)) &&
+            o.BaseParcelKeyWords.Where(kw => kw.KeyWord.KeyWordFeacnCodes.Any(fc => fc.FeacnCode == o.TnVed))
+                .Any(kw => kw.KeyWord.KeyWordFeacnCodes.Count() > 1) ? 2 :
+            
+            // Priority 3: Has keywords but exactly one FeacnCode (not matching TnVed)
+            o.BaseParcelKeyWords.Any() && 
+            !o.BaseParcelKeyWords.Any(kw => kw.KeyWord.KeyWordFeacnCodes.Any(fc => fc.FeacnCode == o.TnVed)) &&
+            o.BaseParcelKeyWords.All(kw => kw.KeyWord.KeyWordFeacnCodes.Count() == 1) ? 3 :
+            
+            // Priority 4: Has keywords but multiple FeacnCodes (not matching TnVed)
+            o.BaseParcelKeyWords.Any() && 
+            !o.BaseParcelKeyWords.Any(kw => kw.KeyWord.KeyWordFeacnCodes.Any(fc => fc.FeacnCode == o.TnVed)) &&
+            o.BaseParcelKeyWords.Any(kw => kw.KeyWord.KeyWordFeacnCodes.Count() > 1) ? 4 :
+            
+            // Priority 5: No keywords but TnVed exists in FeacnCodes table
+            !o.BaseParcelKeyWords.Any() && 
+            _db.FeacnCodes.Any(fc => fc.Code == o.TnVed) ? 5 :
+            
+            // Priority 6: No keywords and TnVed not in FeacnCodes table
+            6;
+
         if (sortOrder.ToLower() == "desc")
         {
-            return query.OrderByDescending(o => 
-                // Priority 1: Has keywords with matching FeacnCodes for TnVed
-                o.BaseParcelKeyWords.Any() && 
-                o.BaseParcelKeyWords.Any(kw => kw.KeyWord.KeyWordFeacnCodes.Any(fc => fc.FeacnCode == o.TnVed)) ? 1 :
-                
-                // Priority 2: Has keywords but no matching FeacnCodes for TnVed
-                o.BaseParcelKeyWords.Any() && 
-                !o.BaseParcelKeyWords.Any(kw => kw.KeyWord.KeyWordFeacnCodes.Any(fc => fc.FeacnCode == o.TnVed)) ? 2 :
-                
-                // Priority 3: No keywords but TnVed exists in FeacnCodes table
-                !o.BaseParcelKeyWords.Any() && 
-                _db.FeacnCodes.Any(fc => fc.Code == o.TnVed) ? 3 :
-                
-                // Priority 4: No keywords and TnVed not in FeacnCodes table
-                4)
-            .ThenByDescending(o => o.Id);
+            return query.OrderByDescending(priorityExpression)
+                .ThenByDescending(o => o.Id);
         }
         else
         {
-            return query.OrderBy(o => 
-                // Priority 1: Has keywords with matching FeacnCodes for TnVed
-                o.BaseParcelKeyWords.Any() && 
-                o.BaseParcelKeyWords.Any(kw => kw.KeyWord.KeyWordFeacnCodes.Any(fc => fc.FeacnCode == o.TnVed)) ? 1 :
-                
-                // Priority 2: Has keywords but no matching FeacnCodes for TnVed
-                o.BaseParcelKeyWords.Any() && 
-                !o.BaseParcelKeyWords.Any(kw => kw.KeyWord.KeyWordFeacnCodes.Any(fc => fc.FeacnCode == o.TnVed)) ? 2 :
-                
-                // Priority 3: No keywords but TnVed exists in FeacnCodes table
-                !o.BaseParcelKeyWords.Any() && 
-                _db.FeacnCodes.Any(fc => fc.Code == o.TnVed) ? 3 :
-                
-                // Priority 4: No keywords and TnVed not in FeacnCodes table
-                4)
-            .ThenBy(o => o.Id);
+            return query.OrderBy(priorityExpression)
+                .ThenBy(o => o.Id);
         }
     }
 

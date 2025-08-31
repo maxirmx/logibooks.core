@@ -687,7 +687,7 @@ public class ParcelsControllerSortingTests
     #region Sort by Match Tests
 
     [Test]
-    public async Task GetOrders_SortsByMatch_Ascending_WithCorrectPriority()
+    public async Task GetOrders_SortsByMatch_Ascending_WithCorrectSixPriorities()
     {
         SetCurrentUserId(1);
         var register = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
@@ -696,43 +696,64 @@ public class ParcelsControllerSortingTests
         // Create test FeacnCodes
         var feacnCode1 = new FeacnCode { Id = 1, Code = "1111111111", CodeEx = "", Name = "", NormalizedName = "" };
         var feacnCode2 = new FeacnCode { Id = 2, Code = "2222222222", CodeEx = "", Name = "", NormalizedName = "" };
-        _dbContext.FeacnCodes.AddRange(feacnCode1, feacnCode2);
+        var feacnCode3 = new FeacnCode { Id = 3, Code = "3333333333", CodeEx = "", Name = "", NormalizedName = "" };
+        _dbContext.FeacnCodes.AddRange(feacnCode1, feacnCode2, feacnCode3);
 
         // Create Keywords
-        var keyword1 = new KeyWord { Id = 101, Word = "gold", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols };
-        var keyword2 = new KeyWord { Id = 102, Word = "silver", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols };
-        _dbContext.KeyWords.AddRange(keyword1, keyword2);
+        var keyword1 = new KeyWord { Id = 101, Word = "gold", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols }; // Single FeacnCode, matches TnVed
+        var keyword2 = new KeyWord { Id = 102, Word = "silver", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols }; // Multiple FeacnCodes, matches TnVed
+        var keyword3 = new KeyWord { Id = 103, Word = "bronze", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols }; // Single FeacnCode, no TnVed match
+        var keyword4 = new KeyWord { Id = 104, Word = "copper", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols }; // Multiple FeacnCodes, no TnVed match
+        _dbContext.KeyWords.AddRange(keyword1, keyword2, keyword3, keyword4);
 
-        // Create KeyWordFeacnCodes - keyword1 matches TnVed "1111111111"
+        // Create KeyWordFeacnCodes
+        // keyword1: single FeacnCode that matches TnVed "1111111111" -> Priority 1
         var kwfc1 = new KeyWordFeacnCode { KeyWordId = 101, FeacnCode = "1111111111", KeyWord = keyword1 };
-        var kwfc2 = new KeyWordFeacnCode { KeyWordId = 102, FeacnCode = "9999999999", KeyWord = keyword2 }; // Different FeacnCode
-        _dbContext.KeyWordFeacnCodes.AddRange(kwfc1, kwfc2);
+        
+        // keyword2: multiple FeacnCodes, one matches TnVed "2222222222" -> Priority 2
+        var kwfc2a = new KeyWordFeacnCode { KeyWordId = 102, FeacnCode = "2222222222", KeyWord = keyword2 };
+        var kwfc2b = new KeyWordFeacnCode { KeyWordId = 102, FeacnCode = "9999999999", KeyWord = keyword2 };
+        
+        // keyword3: single FeacnCode that doesn't match any TnVed in our parcels -> Priority 3
+        var kwfc3 = new KeyWordFeacnCode { KeyWordId = 103, FeacnCode = "8888888888", KeyWord = keyword3 };
+        
+        // keyword4: multiple FeacnCodes that don't match any TnVed in our parcels -> Priority 4
+        var kwfc4a = new KeyWordFeacnCode { KeyWordId = 104, FeacnCode = "7777777777", KeyWord = keyword4 };
+        var kwfc4b = new KeyWordFeacnCode { KeyWordId = 104, FeacnCode = "6666666666", KeyWord = keyword4 };
+        
+        _dbContext.KeyWordFeacnCodes.AddRange(kwfc1, kwfc2a, kwfc2b, kwfc3, kwfc4a, kwfc4b);
 
-        // Create test parcels representing all 4 priority levels
+        // Create test parcels representing all 6 priority levels
         var parcels = new List<WbrParcel>
         {
-            // Priority 4: No keywords, TnVed not in FeacnCodes (worst match)
-            new WbrParcel { Id = 104, RegisterId = 1, StatusId = 1, TnVed = "8888888888" },
+            // Priority 1: Has keywords with exactly one matching FeacnCode for TnVed (best match)
+            new WbrParcel { Id = 101, RegisterId = 1, StatusId = 1, TnVed = "1111111111" },
             
-            // Priority 3: No keywords, but TnVed exists in FeacnCodes
-            new WbrParcel { Id = 103, RegisterId = 1, StatusId = 1, TnVed = "1111111111" },
+            // Priority 2: Has keywords with multiple matching FeacnCodes for TnVed
+            new WbrParcel { Id = 102, RegisterId = 1, StatusId = 1, TnVed = "2222222222" },
             
-            // Priority 2: Has keywords but no matching FeacnCodes for TnVed
-            new WbrParcel { Id = 102, RegisterId = 1, StatusId = 1, TnVed = "7777777777" },
+            // Priority 3: Has keywords but exactly one FeacnCode (not matching TnVed)
+            new WbrParcel { Id = 103, RegisterId = 1, StatusId = 1, TnVed = "5555555555" },
             
-            // Priority 1: Has keywords with matching FeacnCodes for TnVed (best match)
-            new WbrParcel { Id = 101, RegisterId = 1, StatusId = 1, TnVed = "1111111111" }
+            // Priority 4: Has keywords but multiple FeacnCodes (not matching TnVed)
+            new WbrParcel { Id = 104, RegisterId = 1, StatusId = 1, TnVed = "4444444444" },
+            
+            // Priority 5: No keywords but TnVed exists in FeacnCodes
+            new WbrParcel { Id = 105, RegisterId = 1, StatusId = 1, TnVed = "3333333333" },
+            
+            // Priority 6: No keywords and TnVed not in FeacnCodes (worst match)
+            new WbrParcel { Id = 106, RegisterId = 1, StatusId = 1, TnVed = "0000000000" }
         };
         _dbContext.Orders.AddRange(parcels);
 
         // Create BaseParcelKeyWord relationships
-        // Parcel 102 has keyword2 (silver) - no match with its TnVed "7777777777"
-        var bpkw1 = new BaseParcelKeyWord { BaseParcelId = 102, KeyWordId = 102, BaseParcel = parcels[2], KeyWord = keyword2 };
+        var bpkw1 = new BaseParcelKeyWord { BaseParcelId = 101, KeyWordId = 101, BaseParcel = parcels[0], KeyWord = keyword1 }; // Priority 1
+        var bpkw2 = new BaseParcelKeyWord { BaseParcelId = 102, KeyWordId = 102, BaseParcel = parcels[1], KeyWord = keyword2 }; // Priority 2
+        var bpkw3 = new BaseParcelKeyWord { BaseParcelId = 103, KeyWordId = 103, BaseParcel = parcels[2], KeyWord = keyword3 }; // Priority 3
+        var bpkw4 = new BaseParcelKeyWord { BaseParcelId = 104, KeyWordId = 104, BaseParcel = parcels[3], KeyWord = keyword4 }; // Priority 4
+        // Parcels 105 and 106 have no keywords
 
-        // Parcel 101 has keyword1 (gold) - matches with its TnVed "1111111111"
-        var bpkw2 = new BaseParcelKeyWord { BaseParcelId = 101, KeyWordId = 101, BaseParcel = parcels[3], KeyWord = keyword1 };
-
-        _dbContext.Set<BaseParcelKeyWord>().AddRange(bpkw1, bpkw2);
+        _dbContext.Set<BaseParcelKeyWord>().AddRange(bpkw1, bpkw2, bpkw3, bpkw4);
         await _dbContext.SaveChangesAsync();
 
         // Test ascending sort (best matches first)
@@ -741,50 +762,60 @@ public class ParcelsControllerSortingTests
         var pagedResult = okResult!.Value as PagedResult<ParcelViewItem>;
 
         Assert.That(pagedResult, Is.Not.Null);
-        Assert.That(pagedResult!.Items.Count, Is.EqualTo(4));
+        Assert.That(pagedResult!.Items.Count, Is.EqualTo(6));
 
         var items = pagedResult.Items.ToList();
 
         // Verify correct priority order (ascending = best to worst)
-        Assert.That(items[0].Id, Is.EqualTo(101)); // Priority 1: Keywords with matching FeacnCodes
-        Assert.That(items[1].Id, Is.EqualTo(102)); // Priority 2: Keywords but no matching FeacnCodes
-        Assert.That(items[2].Id, Is.EqualTo(103)); // Priority 3: No keywords but TnVed in FeacnCodes
-        Assert.That(items[3].Id, Is.EqualTo(104)); // Priority 4: No keywords and TnVed not in FeacnCodes
+        Assert.That(items[0].Id, Is.EqualTo(101)); // Priority 1: Keywords with exactly one matching FeacnCode
+        Assert.That(items[1].Id, Is.EqualTo(102)); // Priority 2: Keywords with multiple matching FeacnCodes
+        Assert.That(items[2].Id, Is.EqualTo(103)); // Priority 3: Keywords but exactly one FeacnCode (non-matching)
+        Assert.That(items[3].Id, Is.EqualTo(104)); // Priority 4: Keywords but multiple FeacnCodes (non-matching)
+        Assert.That(items[4].Id, Is.EqualTo(105)); // Priority 5: No keywords but TnVed in FeacnCodes
+        Assert.That(items[5].Id, Is.EqualTo(106)); // Priority 6: No keywords and TnVed not in FeacnCodes
     }
 
     [Test]
-    public async Task GetOrders_SortsByMatch_Descending_WithCorrectPriority()
+    public async Task GetOrders_SortsByMatch_Descending_WithCorrectSixPriorities()
     {
         SetCurrentUserId(1);
         var register = new Register { Id = 2, CompanyId = 1, FileName = "r.xlsx" }; // Ozon register
         _dbContext.Registers.Add(register);
 
         // Create test FeacnCodes
-        var feacnCode = new FeacnCode { Id = 10, Code = "5555555555", CodeEx = "", Name = "", NormalizedName = "" };
-        _dbContext.FeacnCodes.Add(feacnCode);
+        var feacnCode1 = new FeacnCode { Id = 10, Code = "1111111111", CodeEx = "", Name = "", NormalizedName = "" };
+        var feacnCode2 = new FeacnCode { Id = 11, Code = "2222222222", CodeEx = "", Name = "", NormalizedName = "" };
+        _dbContext.FeacnCodes.AddRange(feacnCode1, feacnCode2);
 
         // Create Keywords
-        var keyword = new KeyWord { Id = 201, Word = "diamond", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols };
-        _dbContext.KeyWords.Add(keyword);
+        var keyword1 = new KeyWord { Id = 201, Word = "diamond", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols }; // Single FeacnCode
+        var keyword2 = new KeyWord { Id = 202, Word = "platinum", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols }; // Multiple FeacnCodes
+        _dbContext.KeyWords.AddRange(keyword1, keyword2);
 
-        // Create KeyWordFeacnCode
-        var kwfc = new KeyWordFeacnCode { KeyWordId = 201, FeacnCode = "5555555555", KeyWord = keyword };
-        _dbContext.KeyWordFeacnCodes.Add(kwfc);
+        // Create KeyWordFeacnCodes
+        var kwfc1 = new KeyWordFeacnCode { KeyWordId = 201, FeacnCode = "1111111111", KeyWord = keyword1 }; // Single
+        var kwfc2a = new KeyWordFeacnCode { KeyWordId = 202, FeacnCode = "2222222222", KeyWord = keyword2 }; // Multiple
+        var kwfc2b = new KeyWordFeacnCode { KeyWordId = 202, FeacnCode = "3333333333", KeyWord = keyword2 };
+        _dbContext.KeyWordFeacnCodes.AddRange(kwfc1, kwfc2a, kwfc2b);
 
-        // Create test parcels for Ozon (different order for desc test)
+        // Create test parcels for different priorities
         var parcels = new List<OzonParcel>
         {
-            // Priority 1: Has keywords with matching FeacnCodes for TnVed (best match)
-            new OzonParcel { Id = 201, RegisterId = 2, StatusId = 1, TnVed = "5555555555" },
+            // Priority 1: Has keywords with exactly one matching FeacnCode for TnVed (best match)
+            new OzonParcel { Id = 201, RegisterId = 2, StatusId = 1, TnVed = "1111111111" },
             
-            // Priority 4: No keywords, TnVed not in FeacnCodes (worst match)
-            new OzonParcel { Id = 204, RegisterId = 2, StatusId = 1, TnVed = "9999999999" }
+            // Priority 2: Has keywords with multiple matching FeacnCodes for TnVed
+            new OzonParcel { Id = 202, RegisterId = 2, StatusId = 1, TnVed = "2222222222" },
+            
+            // Priority 6: No keywords and TnVed not in FeacnCodes (worst match)
+            new OzonParcel { Id = 206, RegisterId = 2, StatusId = 1, TnVed = "9999999999" }
         };
         _dbContext.Orders.AddRange(parcels);
 
-        // Create BaseParcelKeyWord relationship
-        var bpkw = new BaseParcelKeyWord { BaseParcelId = 201, KeyWordId = 201, BaseParcel = parcels[0], KeyWord = keyword };
-        _dbContext.Set<BaseParcelKeyWord>().Add(bpkw);
+        // Create BaseParcelKeyWord relationships
+        var bpkw1 = new BaseParcelKeyWord { BaseParcelId = 201, KeyWordId = 201, BaseParcel = parcels[0], KeyWord = keyword1 };
+        var bpkw2 = new BaseParcelKeyWord { BaseParcelId = 202, KeyWordId = 202, BaseParcel = parcels[1], KeyWord = keyword2 };
+        _dbContext.Set<BaseParcelKeyWord>().AddRange(bpkw1, bpkw2);
         await _dbContext.SaveChangesAsync();
 
         // Test descending sort (worst matches first)
@@ -793,13 +824,68 @@ public class ParcelsControllerSortingTests
         var pagedResult = okResult!.Value as PagedResult<ParcelViewItem>;
 
         Assert.That(pagedResult, Is.Not.Null);
-        Assert.That(pagedResult!.Items.Count, Is.EqualTo(2));
+        Assert.That(pagedResult!.Items.Count, Is.EqualTo(3));
 
         var items = pagedResult.Items.ToList();
 
         // Verify correct priority order (descending = worst to best)
-        Assert.That(items[0].Id, Is.EqualTo(204)); // Priority 4: No keywords and TnVed not in FeacnCodes
-        Assert.That(items[1].Id, Is.EqualTo(201)); // Priority 1: Keywords with matching FeacnCodes
+        Assert.That(items[0].Id, Is.EqualTo(206)); // Priority 6: No keywords and TnVed not in FeacnCodes
+        Assert.That(items[1].Id, Is.EqualTo(202)); // Priority 2: Keywords with multiple matching FeacnCodes
+        Assert.That(items[2].Id, Is.EqualTo(201)); // Priority 1: Keywords with exactly one matching FeacnCode
+    }
+
+    [Test]
+    public async Task GetOrders_SortsByMatch_CorrectlyDistinguishesSingleVsMultipleFeacnCodes()
+    {
+        SetCurrentUserId(1);
+        var register = new Register { Id = 3, CompanyId = 2, FileName = "r.xlsx" };
+        _dbContext.Registers.Add(register);
+
+        // Create Keywords with different FeacnCode counts
+        var singleFeacnKeyword = new KeyWord { Id = 301, Word = "unique", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols };
+        var multipleFeacnKeyword = new KeyWord { Id = 302, Word = "common", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols };
+        _dbContext.KeyWords.AddRange(singleFeacnKeyword, multipleFeacnKeyword);
+
+        // Single FeacnCode for first keyword
+        var kwfc1 = new KeyWordFeacnCode { KeyWordId = 301, FeacnCode = "1111111111", KeyWord = singleFeacnKeyword };
+        
+        // Multiple FeacnCodes for second keyword
+        var kwfc2a = new KeyWordFeacnCode { KeyWordId = 302, FeacnCode = "2222222222", KeyWord = multipleFeacnKeyword };
+        var kwfc2b = new KeyWordFeacnCode { KeyWordId = 302, FeacnCode = "3333333333", KeyWord = multipleFeacnKeyword };
+        var kwfc2c = new KeyWordFeacnCode { KeyWordId = 302, FeacnCode = "4444444444", KeyWord = multipleFeacnKeyword };
+        
+        _dbContext.KeyWordFeacnCodes.AddRange(kwfc1, kwfc2a, kwfc2b, kwfc2c);
+
+        // Create parcels with non-matching TnVeds (to test priority 3 vs 4)
+        var parcels = new List<WbrParcel>
+        {
+            // Should be Priority 3: Has keywords but exactly one FeacnCode (not matching TnVed)
+            new WbrParcel { Id = 301, RegisterId = 3, StatusId = 1, TnVed = "9999999999" },
+            
+            // Should be Priority 4: Has keywords but multiple FeacnCodes (not matching TnVed)
+            new WbrParcel { Id = 302, RegisterId = 3, StatusId = 1, TnVed = "8888888888" }
+        };
+        _dbContext.Orders.AddRange(parcels);
+
+        // Create BaseParcelKeyWord relationships
+        var bpkw1 = new BaseParcelKeyWord { BaseParcelId = 301, KeyWordId = 301, BaseParcel = parcels[0], KeyWord = singleFeacnKeyword };
+        var bpkw2 = new BaseParcelKeyWord { BaseParcelId = 302, KeyWordId = 302, BaseParcel = parcels[1], KeyWord = multipleFeacnKeyword };
+        _dbContext.Set<BaseParcelKeyWord>().AddRange(bpkw1, bpkw2);
+        await _dbContext.SaveChangesAsync();
+
+        // Test ascending sort
+        var result = await _controller.GetOrders(registerId: 3, sortBy: "feacnlookup", sortOrder: "asc");
+        var okResult = result.Result as OkObjectResult;
+        var pagedResult = okResult!.Value as PagedResult<ParcelViewItem>;
+
+        Assert.That(pagedResult, Is.Not.Null);
+        Assert.That(pagedResult!.Items.Count, Is.EqualTo(2));
+
+        var items = pagedResult.Items.ToList();
+
+        // Priority 3 should come before Priority 4
+        Assert.That(items[0].Id, Is.EqualTo(301)); // Priority 3: Single FeacnCode
+        Assert.That(items[1].Id, Is.EqualTo(302)); // Priority 4: Multiple FeacnCodes
     }
 
     [Test]
