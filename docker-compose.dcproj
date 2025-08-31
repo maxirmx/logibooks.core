@@ -13,5 +13,7 @@
     <None Include="docker-compose.yml" />
     <None Include=".dockerignore" />
     <None Include="docs\bulk-feacncode-lookup-api.md" />
+    <None Include="docs\parcel-match-priority-system-ru.md" />
+    <None Include="docs\parcel-match-priority-system.md" />
   </ItemGroup>
 </Project>
