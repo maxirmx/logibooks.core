@@ -316,7 +316,7 @@ public class ParcelsController(
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(PagedResult<ParcelViewItem>))]
     [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
-    public async Task<ActionResult<PagedResult<ParcelViewItem>>> GetOrders(
+    public async Task<ActionResult<PagedResult<ParcelViewItem>>> GetParcels(
         int registerId,
         int? statusId = null,
         string? tnVed = null,
@@ -325,13 +325,13 @@ public class ParcelsController(
         string? sortBy = null,
         string sortOrder = "asc")
     {
-        _logger.LogDebug("GetOrders for register={reg} status={st} tnVed={tnVed} page={page} size={size} sortBy={sortBy} sortOrder={sortOrder}",
+        _logger.LogDebug("GetParcels for register={reg} status={st} tnVed={tnVed} page={page} size={size} sortBy={sortBy} sortOrder={sortOrder}",
             registerId, statusId, tnVed, page, pageSize, sortBy, sortOrder);
 
         if (page <= 0 ||
             (pageSize != -1 && (pageSize <= 0 || pageSize > MaxPageSize)))
         {
-            _logger.LogDebug("GetOrders returning '400 Bad Request' - invalid pagination");
+            _logger.LogDebug("GetParcels returning '400 Bad Request' - invalid pagination");
             return _400();
         }
 
@@ -341,7 +341,7 @@ public class ParcelsController(
         var ok = await _userService.CheckLogist(_curUserId);
         if (!ok)
         {
-            _logger.LogDebug("GetOrders returning '403 Forbidden'");
+            _logger.LogDebug("GetParcels returning '403 Forbidden'");
             return _403();
         }
 
@@ -351,7 +351,7 @@ public class ParcelsController(
         
         if (register == null)
         {
-            _logger.LogDebug("GetOrders returning '404 Not Found' - register not found");
+            _logger.LogDebug("GetParcels returning '404 Not Found' - register not found");
             return _404Register(registerId);
         }
 
@@ -486,7 +486,7 @@ public class ParcelsController(
         else
         {
             // For non-WBR, non-Ozon registers, return error
-            _logger.LogDebug("GetOrders returning '400 Bad Request' - unsupported register company type");
+            _logger.LogDebug("GetParcels returning '400 Bad Request' - unsupported register company type");
             return _400CompanyId(register.CompanyId);
         }
 
@@ -507,7 +507,7 @@ public class ParcelsController(
             Sorting = new SortingInfo { SortBy = sortBy, SortOrder = sortOrder }
         };
 
-        _logger.LogDebug("GetOrders returning {count} items", items.Count);
+        _logger.LogDebug("GetParcels returning {count} items", items.Count);
         return Ok(result);
     }
 

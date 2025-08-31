@@ -160,7 +160,7 @@ public class ParcelsControllerSortingTests
         await _dbContext.SaveChangesAsync();
 
         // Act
-        var result = await _controller.GetOrders(registerId: 1, sortBy: "id", sortOrder: "asc");
+        var result = await _controller.GetParcels(registerId: 1, sortBy: "id", sortOrder: "asc");
         
         // Assert
         var okResult = result.Result as OkObjectResult;
@@ -188,7 +188,7 @@ public class ParcelsControllerSortingTests
         await _dbContext.SaveChangesAsync();
 
         // Act
-        var result = await _controller.GetOrders(registerId: 1, sortBy: "id", sortOrder: "desc");
+        var result = await _controller.GetParcels(registerId: 1, sortBy: "id", sortOrder: "desc");
         
         // Assert
         var okResult = result.Result as OkObjectResult;
@@ -216,7 +216,7 @@ public class ParcelsControllerSortingTests
         await _dbContext.SaveChangesAsync();
 
         // Act
-        var result = await _controller.GetOrders(registerId: 1, sortBy: "statusId", sortOrder: "asc");
+        var result = await _controller.GetParcels(registerId: 1, sortBy: "statusId", sortOrder: "asc");
         
         // Assert
         var okResult = result.Result as OkObjectResult;
@@ -244,7 +244,7 @@ public class ParcelsControllerSortingTests
         await _dbContext.SaveChangesAsync();
 
         // Act
-        var result = await _controller.GetOrders(registerId: 1, sortBy: "checkStatusId", sortOrder: "desc");
+        var result = await _controller.GetParcels(registerId: 1, sortBy: "checkStatusId", sortOrder: "desc");
         
         // Assert
         var okResult = result.Result as OkObjectResult;
@@ -272,7 +272,7 @@ public class ParcelsControllerSortingTests
         await _dbContext.SaveChangesAsync();
 
         // Act
-        var result = await _controller.GetOrders(registerId: 1, sortBy: "tnVed", sortOrder: "asc");
+        var result = await _controller.GetParcels(registerId: 1, sortBy: "tnVed", sortOrder: "asc");
         
         // Assert
         var okResult = result.Result as OkObjectResult;
@@ -300,7 +300,7 @@ public class ParcelsControllerSortingTests
         await _dbContext.SaveChangesAsync();
 
         // Act
-        var result = await _controller.GetOrders(registerId: 1, sortBy: "shk", sortOrder: "asc");
+        var result = await _controller.GetParcels(registerId: 1, sortBy: "shk", sortOrder: "asc");
         
         // Assert
         var okResult = result.Result as OkObjectResult;
@@ -332,7 +332,7 @@ public class ParcelsControllerSortingTests
         await _dbContext.SaveChangesAsync();
 
         // Act
-        var result = await _controller.GetOrders(registerId: 1, sortBy: "id", sortOrder: "asc");
+        var result = await _controller.GetParcels(registerId: 1, sortBy: "id", sortOrder: "asc");
         
         // Assert
         var okResult = result.Result as OkObjectResult;
@@ -360,7 +360,7 @@ public class ParcelsControllerSortingTests
         await _dbContext.SaveChangesAsync();
 
         // Act
-        var result = await _controller.GetOrders(registerId: 1, sortBy: "statusId", sortOrder: "desc");
+        var result = await _controller.GetParcels(registerId: 1, sortBy: "statusId", sortOrder: "desc");
         
         // Assert
         var okResult = result.Result as OkObjectResult;
@@ -388,7 +388,7 @@ public class ParcelsControllerSortingTests
         await _dbContext.SaveChangesAsync();
 
         // Act
-        var result = await _controller.GetOrders(registerId: 1, sortBy: "postingNumber", sortOrder: "asc");
+        var result = await _controller.GetParcels(registerId: 1, sortBy: "postingNumber", sortOrder: "asc");
         
         // Assert
         var okResult = result.Result as OkObjectResult;
@@ -421,7 +421,7 @@ public class ParcelsControllerSortingTests
         await _dbContext.SaveChangesAsync();
 
         // Act
-        var result = await _controller.GetOrders(registerId: 1, statusId: 2);
+        var result = await _controller.GetParcels(registerId: 1, statusId: 2);
         
         // Assert
         var okResult = result.Result as OkObjectResult;
@@ -450,7 +450,7 @@ public class ParcelsControllerSortingTests
         await _dbContext.SaveChangesAsync();
 
         // Act
-        var result = await _controller.GetOrders(registerId: 1, tnVed: "123");
+        var result = await _controller.GetParcels(registerId: 1, tnVed: "123");
         
         // Assert
         var okResult = result.Result as OkObjectResult;
@@ -479,7 +479,7 @@ public class ParcelsControllerSortingTests
         await _dbContext.SaveChangesAsync();
 
         // Act - Filter by statusId=2 and tnVed=123, sort by tnVed desc
-        var result = await _controller.GetOrders(
+        var result = await _controller.GetParcels(
             registerId: 1, 
             statusId: 2, 
             tnVed: "123", 
@@ -523,7 +523,7 @@ public class ParcelsControllerSortingTests
         await _dbContext.SaveChangesAsync();
 
         // Act - Get page 2 with page size 5
-        var result = await _controller.GetOrders(registerId: 1, page: 2, pageSize: 5);
+        var result = await _controller.GetParcels(registerId: 1, page: 2, pageSize: 5);
         
         // Assert
         var okResult = result.Result as OkObjectResult;
@@ -564,7 +564,7 @@ public class ParcelsControllerSortingTests
         await _dbContext.SaveChangesAsync();
 
         // Act - Get all items with pageSize = -1
-        var result = await _controller.GetOrders(registerId: 1, pageSize: -1);
+        var result = await _controller.GetParcels(registerId: 1, pageSize: -1);
         
         // Assert
         var okResult = result.Result as OkObjectResult;
@@ -598,7 +598,7 @@ public class ParcelsControllerSortingTests
         await _dbContext.SaveChangesAsync();
 
         // Act - Request page 5 when there are only 2 pages (pageSize = 5)
-        var result = await _controller.GetOrders(registerId: 1, page: 5, pageSize: 5);
+        var result = await _controller.GetParcels(registerId: 1, page: 5, pageSize: 5);
         
         // Assert
         var okResult = result.Result as OkObjectResult;
@@ -623,7 +623,7 @@ public class ParcelsControllerSortingTests
         await _dbContext.SaveChangesAsync();
 
         // Act - Try with page = 0 (invalid)
-        var result = await _controller.GetOrders(registerId: 1, page: 0);
+        var result = await _controller.GetParcels(registerId: 1, page: 0);
         
         // Assert
         Assert.That(result.Result, Is.TypeOf<ObjectResult>());
@@ -641,7 +641,7 @@ public class ParcelsControllerSortingTests
         await _dbContext.SaveChangesAsync();
 
         // Act - Try with invalid sortBy field
-        var result = await _controller.GetOrders(registerId: 1, sortBy: "nonExistentField");
+        var result = await _controller.GetParcels(registerId: 1, sortBy: "nonExistentField");
         
         // Assert
         Assert.That(result.Result, Is.TypeOf<ObjectResult>());
@@ -656,7 +656,7 @@ public class ParcelsControllerSortingTests
         SetCurrentUserId(1);
         
         // Act - Try with non-existent register ID
-        var result = await _controller.GetOrders(registerId: 999);
+        var result = await _controller.GetParcels(registerId: 999);
         
         // Assert
         Assert.That(result.Result, Is.TypeOf<ObjectResult>());
@@ -674,7 +674,7 @@ public class ParcelsControllerSortingTests
         await _dbContext.SaveChangesAsync();
 
         // Act
-        var result = await _controller.GetOrders(registerId: 1);
+        var result = await _controller.GetParcels(registerId: 1);
         
         // Assert
         Assert.That(result.Result, Is.TypeOf<ObjectResult>());
@@ -757,7 +757,7 @@ public class ParcelsControllerSortingTests
         await _dbContext.SaveChangesAsync();
 
         // Test ascending sort (best matches first)
-        var result = await _controller.GetOrders(registerId: 1, sortBy: "feacnlookup", sortOrder: "asc");
+        var result = await _controller.GetParcels(registerId: 1, sortBy: "feacnlookup", sortOrder: "asc");
         var okResult = result.Result as OkObjectResult;
         var pagedResult = okResult!.Value as PagedResult<ParcelViewItem>;
 
@@ -819,7 +819,7 @@ public class ParcelsControllerSortingTests
         await _dbContext.SaveChangesAsync();
 
         // Test descending sort (worst matches first)
-        var result = await _controller.GetOrders(registerId: 2, sortBy: "feacnlookup", sortOrder: "desc");
+        var result = await _controller.GetParcels(registerId: 2, sortBy: "feacnlookup", sortOrder: "desc");
         var okResult = result.Result as OkObjectResult;
         var pagedResult = okResult!.Value as PagedResult<ParcelViewItem>;
 
@@ -874,7 +874,7 @@ public class ParcelsControllerSortingTests
         await _dbContext.SaveChangesAsync();
 
         // Test ascending sort
-        var result = await _controller.GetOrders(registerId: 3, sortBy: "feacnlookup", sortOrder: "asc");
+        var result = await _controller.GetParcels(registerId: 3, sortBy: "feacnlookup", sortOrder: "asc");
         var okResult = result.Result as OkObjectResult;
         var pagedResult = okResult!.Value as PagedResult<ParcelViewItem>;
 
@@ -896,7 +896,7 @@ public class ParcelsControllerSortingTests
         _dbContext.Registers.Add(register);
         await _dbContext.SaveChangesAsync();
 
-        var result = await _controller.GetOrders(registerId: 1, sortBy: "feacnlookup", sortOrder: "asc");
+        var result = await _controller.GetParcels(registerId: 1, sortBy: "feacnlookup", sortOrder: "asc");
 
         Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
         var okResult = result.Result as OkObjectResult;
@@ -913,7 +913,7 @@ public class ParcelsControllerSortingTests
         _dbContext.Registers.Add(register);
         await _dbContext.SaveChangesAsync();
 
-        var result = await _controller.GetOrders(registerId: 2, sortBy: "feacnlookup", sortOrder: "desc");
+        var result = await _controller.GetParcels(registerId: 2, sortBy: "feacnlookup", sortOrder: "desc");
 
         Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
         var okResult = result.Result as OkObjectResult;
@@ -943,7 +943,7 @@ public class ParcelsControllerSortingTests
         await _dbContext.SaveChangesAsync();
 
         // Test with pagination
-        var result = await _controller.GetOrders(
+        var result = await _controller.GetParcels(
             registerId: 3,
             sortBy: "feacnlookup",
             sortOrder: "asc",

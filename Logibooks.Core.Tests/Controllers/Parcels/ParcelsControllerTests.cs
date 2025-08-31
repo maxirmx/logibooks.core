@@ -382,7 +382,7 @@ public class ParcelsControllerTests
         );
         await _dbContext.SaveChangesAsync();
 
-        var result = await _controller.GetOrders(registerId: 1, statusId: 2, tnVed: "B", sortBy: "tnVed", sortOrder: "desc");
+        var result = await _controller.GetParcels(registerId: 1, statusId: 2, tnVed: "B", sortBy: "tnVed", sortOrder: "desc");
         var ok = result.Result as OkObjectResult;
         var pr = ok!.Value as PagedResult<ParcelViewItem>;
 
@@ -404,7 +404,7 @@ public class ParcelsControllerTests
         _dbContext.Add(link);
         await _dbContext.SaveChangesAsync();
 
-        var result = await _controller.GetOrders(registerId: 1);
+        var result = await _controller.GetParcels(registerId: 1);
         var ok = result.Result as OkObjectResult;
         var pr = ok!.Value as PagedResult<ParcelViewItem>;
 
@@ -424,7 +424,7 @@ public class ParcelsControllerTests
         );
         await _dbContext.SaveChangesAsync();
 
-        var result = await _controller.GetOrders(registerId: 1);
+        var result = await _controller.GetParcels(registerId: 1);
         var ok = result.Result as OkObjectResult;
         var pr = ok!.Value as PagedResult<ParcelViewItem>;
 
@@ -440,7 +440,7 @@ public class ParcelsControllerTests
         _dbContext.Registers.Add(reg);
         _dbContext.SaveChanges();
 
-        var result = await _controller.GetOrders(registerId: 1);
+        var result = await _controller.GetParcels(registerId: 1);
 
         Assert.That(result.Result, Is.TypeOf<ObjectResult>());
         var obj = result.Result as ObjectResult;
@@ -512,7 +512,7 @@ public class ParcelsControllerTests
     public async Task GetOrders_InvalidPagination_ReturnsBadRequest()
     {
         SetCurrentUserId(1);
-        var result = await _controller.GetOrders(registerId: 1, page: 0);
+        var result = await _controller.GetParcels(registerId: 1, page: 0);
 
         Assert.That(result.Result, Is.TypeOf<ObjectResult>());
         var obj = result.Result as ObjectResult;
@@ -528,7 +528,7 @@ public class ParcelsControllerTests
         _dbContext.Registers.Add(register);
         await _dbContext.SaveChangesAsync();
         
-        var result = await _controller.GetOrders(registerId: 1, sortBy: "foo");
+        var result = await _controller.GetParcels(registerId: 1, sortBy: "foo");
 
         Assert.That(result.Result, Is.TypeOf<ObjectResult>());
         var obj = result.Result as ObjectResult;
@@ -544,11 +544,11 @@ public class ParcelsControllerTests
         _dbContext.Registers.Add(register);
         await _dbContext.SaveChangesAsync();
         
-        // Note: The current implementation of ParcelsController.GetOrders does not 
+        // Note: The current implementation of ParcelsController.GetParcels does not 
         // validate sortOrder at the top level anymore. It accepts any sortOrder value 
         // and defaults to "asc" for invalid values. This test now verifies that 
         // behavior by checking that a successful response is returned.
-        var result = await _controller.GetOrders(registerId: 1, sortOrder: "bad");
+        var result = await _controller.GetParcels(registerId: 1, sortOrder: "bad");
 
         // Should return OK since sortOrder validation was removed in the controller
         Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
@@ -570,7 +570,7 @@ public class ParcelsControllerTests
         );
         await _dbContext.SaveChangesAsync();
 
-        var result = await _controller.GetOrders(registerId: 1, pageSize: -1);
+        var result = await _controller.GetParcels(registerId: 1, pageSize: -1);
         Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
         var ok = result.Result as OkObjectResult;
         var pr = ok!.Value as PagedResult<ParcelViewItem>;
@@ -591,7 +591,7 @@ public class ParcelsControllerTests
         }
         await _dbContext.SaveChangesAsync();
 
-        var result = await _controller.GetOrders(registerId: 1, page: 3, pageSize: 5);
+        var result = await _controller.GetParcels(registerId: 1, page: 3, pageSize: 5);
         Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
         var ok = result.Result as OkObjectResult;
         var pr = ok!.Value as PagedResult<ParcelViewItem>;
@@ -1106,7 +1106,7 @@ public class ParcelsControllerTests
         _dbContext.Set<BaseParcelFeacnPrefix>().Add(link);
         await _dbContext.SaveChangesAsync();
 
-        var result = await _controller.GetOrders(registerId: 1);
+        var result = await _controller.GetParcels(registerId: 1);
         var ok = result.Result as OkObjectResult;
         var pr = ok!.Value as PagedResult<ParcelViewItem>;
 
