@@ -195,7 +195,7 @@ public class RegistersControllerCrudTests : RegistersControllerTestsBase
         var update = new RegisterUpdateItem
         {
             InvoiceNumber = "INV",
-            InvoiceDate = new DateOnly(2025, 1, 2),
+            InvoiceDate = "2025-01-02",
             TheOtherCountryCode = 100,
             TransportationTypeId = 1,
             CustomsProcedureId = 1
@@ -236,7 +236,7 @@ public class RegistersControllerCrudTests : RegistersControllerTestsBase
             DealNumber = "NEWDEAL",
             TheOtherCompanyId = 2, 
             InvoiceNumber = "NEWINV",
-            InvoiceDate = new DateOnly(2025, 2, 3),
+            InvoiceDate = "2025-02-03",
             TheOtherCountryCode = 643, 
             TransportationTypeId = 2, 
             CustomsProcedureId = 2 
@@ -389,6 +389,52 @@ public class RegistersControllerCrudTests : RegistersControllerTestsBase
         Assert.That(result, Is.TypeOf<ObjectResult>());
         var obj = result as ObjectResult;
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+    }
+
+    [Test]
+    public async Task UpdateRegister_SetsInvoiceDateToNull_WhenEmptyString()
+    {
+        SetCurrentUserId(1);
+        var register = new Register
+        {
+            Id = 1,
+            FileName = "r.xlsx",
+            TheOtherCompanyId = 3,
+            InvoiceDate = new DateOnly(2024, 1, 1) // Initially has a date
+        };
+        _dbContext.Registers.Add(register);
+        await _dbContext.SaveChangesAsync();
+
+        var update = new RegisterUpdateItem { InvoiceDate = "" }; // Empty string
+
+        var result = await _controller.UpdateRegister(1, update);
+
+        Assert.That(result, Is.TypeOf<NoContentResult>());
+        var saved = await _dbContext.Registers.FindAsync(1);
+        Assert.That(saved!.InvoiceDate, Is.Null);
+    }
+
+    [Test]
+    public async Task UpdateRegister_SetsInvoiceDateToNull_WhenInvalidDateFormat()
+    {
+        SetCurrentUserId(1);
+        var register = new Register
+        {
+            Id = 1,
+            FileName = "r.xlsx",
+            TheOtherCompanyId = 3,
+            InvoiceDate = new DateOnly(2024, 1, 1) // Initially has a date
+        };
+        _dbContext.Registers.Add(register);
+        await _dbContext.SaveChangesAsync();
+
+        var update = new RegisterUpdateItem { InvoiceDate = "invalid-date-format" }; // Invalid format
+
+        var result = await _controller.UpdateRegister(1, update);
+
+        Assert.That(result, Is.TypeOf<NoContentResult>());
+        var saved = await _dbContext.Registers.FindAsync(1);
+        Assert.That(saved!.InvoiceDate, Is.Null);
     }
 
     // --- DELETE REGISTER ---
