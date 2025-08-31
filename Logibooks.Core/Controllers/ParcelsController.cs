@@ -64,6 +64,55 @@ public class ParcelsController(
     private readonly IRegisterProcessingService _processingService = processingService;
     private readonly IParcelIndPostGenerator _indPostGenerator = indPostGenerator;
 
+    /// <summary>
+    /// Calculate match priority for sorting: 1 = best match, 4 = worst match
+    /// (1) Parcels with keywords that have matching FeacnCodes for parcel TnVed
+    /// (2) Parcels with keywords but no matching FeacnCodes for parcel TnVed  
+    /// (3) Parcels without keywords but TnVed exists in FeacnCodes
+    /// (4) Parcels without keywords and TnVed not in FeacnCodes
+    /// </summary>
+    private IQueryable<T> ApplyMatchSorting<T>(IQueryable<T> query, string sortOrder) where T : BaseParcel
+    {
+        if (sortOrder.ToLower() == "desc")
+        {
+            return query.OrderByDescending(o => 
+                // Priority 1: Has keywords with matching FeacnCodes for TnVed
+                o.BaseParcelKeyWords.Any() && 
+                o.BaseParcelKeyWords.Any(kw => kw.KeyWord.KeyWordFeacnCodes.Any(fc => fc.FeacnCode == o.TnVed)) ? 1 :
+                
+                // Priority 2: Has keywords but no matching FeacnCodes for TnVed
+                o.BaseParcelKeyWords.Any() && 
+                !o.BaseParcelKeyWords.Any(kw => kw.KeyWord.KeyWordFeacnCodes.Any(fc => fc.FeacnCode == o.TnVed)) ? 2 :
+                
+                // Priority 3: No keywords but TnVed exists in FeacnCodes table
+                !o.BaseParcelKeyWords.Any() && 
+                _db.FeacnCodes.Any(fc => fc.Code == o.TnVed) ? 3 :
+                
+                // Priority 4: No keywords and TnVed not in FeacnCodes table
+                4)
+            .ThenByDescending(o => o.Id);
+        }
+        else
+        {
+            return query.OrderBy(o => 
+                // Priority 1: Has keywords with matching FeacnCodes for TnVed
+                o.BaseParcelKeyWords.Any() && 
+                o.BaseParcelKeyWords.Any(kw => kw.KeyWord.KeyWordFeacnCodes.Any(fc => fc.FeacnCode == o.TnVed)) ? 1 :
+                
+                // Priority 2: Has keywords but no matching FeacnCodes for TnVed
+                o.BaseParcelKeyWords.Any() && 
+                !o.BaseParcelKeyWords.Any(kw => kw.KeyWord.KeyWordFeacnCodes.Any(fc => fc.FeacnCode == o.TnVed)) ? 2 :
+                
+                // Priority 3: No keywords but TnVed exists in FeacnCodes table
+                !o.BaseParcelKeyWords.Any() && 
+                _db.FeacnCodes.Any(fc => fc.Code == o.TnVed) ? 3 :
+                
+                // Priority 4: No keywords and TnVed not in FeacnCodes table
+                4)
+            .ThenBy(o => o.Id);
+        }
+    }
+
     [HttpGet("{id}")]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ParcelViewItem))]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
@@ -134,8 +183,12 @@ public class ParcelsController(
             .Where(v => v.UserId == _curUserId && v.BaseOrderId == order.Id)
             .OrderByDescending(v => v.DTime)
             .FirstOrDefaultAsync();
-        var viewItem = new ParcelViewItem(order);
-        viewItem.DTime = lastView?.DTime;
+
+        var viewItem = new ParcelViewItem(order)
+        {
+            DTime = lastView?.DTime
+        };
+
         _logger.LogDebug("GetOrder returning {orderType} order for companyId={cid}",
             order.GetType().Name, companyId);
 
@@ -305,7 +358,7 @@ public class ParcelsController(
         // Create a typed query based on the register company type
         if (register.CompanyId == IRegisterProcessingService.GetWBRId())
         {
-            var allowedSortBy = new[] { "id", "statusid", "checkstatusid", "tnved", "shk" };
+            var allowedSortBy = new[] { "id", "statusid", "checkstatusid", "tnved", "shk", "feacnlookup" };
             if (!allowedSortBy.Contains(sortBy.ToLower()))
             {
                 _logger.LogDebug("GetOrders returning '400 Bad Request' - invalid sortBy for WBR");
@@ -315,6 +368,8 @@ public class ParcelsController(
             var query = _db.WbrOrders.AsNoTracking()
                 .Include(o => o.BaseParcelStopWords)
                 .Include(o => o.BaseParcelKeyWords)
+                    .ThenInclude(bkw => bkw.KeyWord)
+                        .ThenInclude(kw => kw.KeyWordFeacnCodes)
                 .Include(o => o.BaseParcelFeacnPrefixes)
                     .ThenInclude(bofp => bofp.FeacnPrefix)
                         .ThenInclude(fp => fp.FeacnOrder)
@@ -339,7 +394,8 @@ public class ParcelsController(
                 ("tnved", "asc") => query.OrderBy(o => o.TnVed),
                 ("tnved", "desc") => query.OrderByDescending(o => o.TnVed),
                 ("shk", "asc") => query.OrderBy(o => o.Shk), 
-                ("shk", "desc") => query.OrderByDescending(o => o.Shk), 
+                ("shk", "desc") => query.OrderByDescending(o => o.Shk),
+                ("feacnlookup", _) => ApplyMatchSorting(query, sortOrder),
                 ("id", "desc") => query.OrderByDescending(o => o.Id),
                 _ => query.OrderBy(o => o.Id)
             };
@@ -363,7 +419,7 @@ public class ParcelsController(
         else if (register.CompanyId == IRegisterProcessingService.GetOzonId())
         {
             // Use Ozon-specific allowed sort fields
-            var allowedSortBy = new[] { "id", "statusid", "checkstatusid", "tnved", "postingnumber" };
+            var allowedSortBy = new[] { "id", "statusid", "checkstatusid", "tnved", "postingnumber", "feacnlookup" };
             if (!allowedSortBy.Contains(sortBy.ToLower()))
             {
                 _logger.LogDebug("GetOrders returning '400 Bad Request' - invalid sortBy for Ozon");
@@ -373,6 +429,8 @@ public class ParcelsController(
             var query = _db.OzonOrders.AsNoTracking()
                 .Include(o => o.BaseParcelStopWords)
                 .Include(o => o.BaseParcelKeyWords)
+                    .ThenInclude(bkw => bkw.KeyWord)
+                        .ThenInclude(kw => kw.KeyWordFeacnCodes)
                 .Include(o => o.BaseParcelFeacnPrefixes)
                     .ThenInclude(bofp => bofp.FeacnPrefix)
                         .ThenInclude(fp => fp.FeacnOrder)
@@ -397,7 +455,8 @@ public class ParcelsController(
                 ("tnved", "asc") => query.OrderBy(o => o.TnVed),
                 ("tnved", "desc") => query.OrderByDescending(o => o.TnVed),
                 ("postingnumber", "asc") => query.OrderBy(o => o.PostingNumber), 
-                ("postingnumber", "desc") => query.OrderByDescending(o => o.PostingNumber), 
+                ("postingnumber", "desc") => query.OrderByDescending(o => o.PostingNumber),
+                ("feacnlookup", _) => ApplyMatchSorting(query, sortOrder),
                 ("id", "desc") => query.OrderByDescending(o => o.Id),
                 _ => query.OrderBy(o => o.Id)
             };

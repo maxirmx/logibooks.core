@@ -683,4 +683,196 @@ public class ParcelsControllerSortingTests
     }
 
     #endregion
+
+    #region Sort by Match Tests
+
+    [Test]
+    public async Task GetOrders_SortsByMatch_Ascending_WithCorrectPriority()
+    {
+        SetCurrentUserId(1);
+        var register = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
+        _dbContext.Registers.Add(register);
+
+        // Create test FeacnCodes
+        var feacnCode1 = new FeacnCode { Id = 1, Code = "1111111111", CodeEx = "", Name = "", NormalizedName = "" };
+        var feacnCode2 = new FeacnCode { Id = 2, Code = "2222222222", CodeEx = "", Name = "", NormalizedName = "" };
+        _dbContext.FeacnCodes.AddRange(feacnCode1, feacnCode2);
+
+        // Create Keywords
+        var keyword1 = new KeyWord { Id = 101, Word = "gold", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols };
+        var keyword2 = new KeyWord { Id = 102, Word = "silver", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols };
+        _dbContext.KeyWords.AddRange(keyword1, keyword2);
+
+        // Create KeyWordFeacnCodes - keyword1 matches TnVed "1111111111"
+        var kwfc1 = new KeyWordFeacnCode { KeyWordId = 101, FeacnCode = "1111111111", KeyWord = keyword1 };
+        var kwfc2 = new KeyWordFeacnCode { KeyWordId = 102, FeacnCode = "9999999999", KeyWord = keyword2 }; // Different FeacnCode
+        _dbContext.KeyWordFeacnCodes.AddRange(kwfc1, kwfc2);
+
+        // Create test parcels representing all 4 priority levels
+        var parcels = new List<WbrParcel>
+        {
+            // Priority 4: No keywords, TnVed not in FeacnCodes (worst match)
+            new WbrParcel { Id = 104, RegisterId = 1, StatusId = 1, TnVed = "8888888888" },
+            
+            // Priority 3: No keywords, but TnVed exists in FeacnCodes
+            new WbrParcel { Id = 103, RegisterId = 1, StatusId = 1, TnVed = "1111111111" },
+            
+            // Priority 2: Has keywords but no matching FeacnCodes for TnVed
+            new WbrParcel { Id = 102, RegisterId = 1, StatusId = 1, TnVed = "7777777777" },
+            
+            // Priority 1: Has keywords with matching FeacnCodes for TnVed (best match)
+            new WbrParcel { Id = 101, RegisterId = 1, StatusId = 1, TnVed = "1111111111" }
+        };
+        _dbContext.Orders.AddRange(parcels);
+
+        // Create BaseParcelKeyWord relationships
+        // Parcel 102 has keyword2 (silver) - no match with its TnVed "7777777777"
+        var bpkw1 = new BaseParcelKeyWord { BaseParcelId = 102, KeyWordId = 102, BaseParcel = parcels[2], KeyWord = keyword2 };
+
+        // Parcel 101 has keyword1 (gold) - matches with its TnVed "1111111111"
+        var bpkw2 = new BaseParcelKeyWord { BaseParcelId = 101, KeyWordId = 101, BaseParcel = parcels[3], KeyWord = keyword1 };
+
+        _dbContext.Set<BaseParcelKeyWord>().AddRange(bpkw1, bpkw2);
+        await _dbContext.SaveChangesAsync();
+
+        // Test ascending sort (best matches first)
+        var result = await _controller.GetOrders(registerId: 1, sortBy: "feacnlookup", sortOrder: "asc");
+        var okResult = result.Result as OkObjectResult;
+        var pagedResult = okResult!.Value as PagedResult<ParcelViewItem>;
+
+        Assert.That(pagedResult, Is.Not.Null);
+        Assert.That(pagedResult!.Items.Count, Is.EqualTo(4));
+
+        var items = pagedResult.Items.ToList();
+
+        // Verify correct priority order (ascending = best to worst)
+        Assert.That(items[0].Id, Is.EqualTo(101)); // Priority 1: Keywords with matching FeacnCodes
+        Assert.That(items[1].Id, Is.EqualTo(102)); // Priority 2: Keywords but no matching FeacnCodes
+        Assert.That(items[2].Id, Is.EqualTo(103)); // Priority 3: No keywords but TnVed in FeacnCodes
+        Assert.That(items[3].Id, Is.EqualTo(104)); // Priority 4: No keywords and TnVed not in FeacnCodes
+    }
+
+    [Test]
+    public async Task GetOrders_SortsByMatch_Descending_WithCorrectPriority()
+    {
+        SetCurrentUserId(1);
+        var register = new Register { Id = 2, CompanyId = 1, FileName = "r.xlsx" }; // Ozon register
+        _dbContext.Registers.Add(register);
+
+        // Create test FeacnCodes
+        var feacnCode = new FeacnCode { Id = 10, Code = "5555555555", CodeEx = "", Name = "", NormalizedName = "" };
+        _dbContext.FeacnCodes.Add(feacnCode);
+
+        // Create Keywords
+        var keyword = new KeyWord { Id = 201, Word = "diamond", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols };
+        _dbContext.KeyWords.Add(keyword);
+
+        // Create KeyWordFeacnCode
+        var kwfc = new KeyWordFeacnCode { KeyWordId = 201, FeacnCode = "5555555555", KeyWord = keyword };
+        _dbContext.KeyWordFeacnCodes.Add(kwfc);
+
+        // Create test parcels for Ozon (different order for desc test)
+        var parcels = new List<OzonParcel>
+        {
+            // Priority 1: Has keywords with matching FeacnCodes for TnVed (best match)
+            new OzonParcel { Id = 201, RegisterId = 2, StatusId = 1, TnVed = "5555555555" },
+            
+            // Priority 4: No keywords, TnVed not in FeacnCodes (worst match)
+            new OzonParcel { Id = 204, RegisterId = 2, StatusId = 1, TnVed = "9999999999" }
+        };
+        _dbContext.Orders.AddRange(parcels);
+
+        // Create BaseParcelKeyWord relationship
+        var bpkw = new BaseParcelKeyWord { BaseParcelId = 201, KeyWordId = 201, BaseParcel = parcels[0], KeyWord = keyword };
+        _dbContext.Set<BaseParcelKeyWord>().Add(bpkw);
+        await _dbContext.SaveChangesAsync();
+
+        // Test descending sort (worst matches first)
+        var result = await _controller.GetOrders(registerId: 2, sortBy: "feacnlookup", sortOrder: "desc");
+        var okResult = result.Result as OkObjectResult;
+        var pagedResult = okResult!.Value as PagedResult<ParcelViewItem>;
+
+        Assert.That(pagedResult, Is.Not.Null);
+        Assert.That(pagedResult!.Items.Count, Is.EqualTo(2));
+
+        var items = pagedResult.Items.ToList();
+
+        // Verify correct priority order (descending = worst to best)
+        Assert.That(items[0].Id, Is.EqualTo(204)); // Priority 4: No keywords and TnVed not in FeacnCodes
+        Assert.That(items[1].Id, Is.EqualTo(201)); // Priority 1: Keywords with matching FeacnCodes
+    }
+
+    [Test]
+    public async Task GetOrders_ValidatesFeacnLookupSortBy_ForWBR()
+    {
+        SetCurrentUserId(1);
+        var register = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" }; // WBR
+        _dbContext.Registers.Add(register);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.GetOrders(registerId: 1, sortBy: "feacnlookup", sortOrder: "asc");
+
+        Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
+        var okResult = result.Result as OkObjectResult;
+        var pagedResult = okResult!.Value as PagedResult<ParcelViewItem>;
+        Assert.That(pagedResult!.Sorting.SortBy, Is.EqualTo("feacnlookup"));
+        Assert.That(pagedResult.Sorting.SortOrder, Is.EqualTo("asc"));
+    }
+
+    [Test]
+    public async Task GetOrders_ValidatesFeacnLookupSortBy_ForOzon()
+    {
+        SetCurrentUserId(1);
+        var register = new Register { Id = 2, CompanyId = 1, FileName = "r.xlsx" }; // Ozon
+        _dbContext.Registers.Add(register);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.GetOrders(registerId: 2, sortBy: "feacnlookup", sortOrder: "desc");
+
+        Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
+        var okResult = result.Result as OkObjectResult;
+        var pagedResult = okResult!.Value as PagedResult<ParcelViewItem>;
+        Assert.That(pagedResult!.Sorting.SortBy, Is.EqualTo("feacnlookup"));
+        Assert.That(pagedResult.Sorting.SortOrder, Is.EqualTo("desc"));
+    }
+
+    [Test]
+    public async Task GetOrders_FeacnLookupSort_WorksWithPagination()
+    {
+        SetCurrentUserId(1);
+        var register = new Register { Id = 3, CompanyId = 2, FileName = "r.xlsx" };
+        _dbContext.Registers.Add(register);
+
+        // Create multiple parcels to test pagination
+        for (int i = 1; i <= 5; i++)
+        {
+            _dbContext.Orders.Add(new WbrParcel
+            {
+                Id = 300 + i,
+                RegisterId = 3,
+                StatusId = 1,
+                TnVed = $"{i}{i}{i}{i}{i}{i}{i}{i}{i}{i}"
+            });
+        }
+        await _dbContext.SaveChangesAsync();
+
+        // Test with pagination
+        var result = await _controller.GetOrders(
+            registerId: 3,
+            sortBy: "feacnlookup",
+            sortOrder: "asc",
+            page: 1,
+            pageSize: 3);
+
+        var okResult = result.Result as OkObjectResult;
+        var pagedResult = okResult!.Value as PagedResult<ParcelViewItem>;
+
+        Assert.That(pagedResult, Is.Not.Null);
+        Assert.That(pagedResult!.Items.Count, Is.EqualTo(3));
+        Assert.That(pagedResult.Pagination.CurrentPage, Is.EqualTo(1));
+        Assert.That(pagedResult.Pagination.PageSize, Is.EqualTo(3));
+        Assert.That(pagedResult.Pagination.TotalCount, Is.EqualTo(5));
+        Assert.That(pagedResult.Sorting.SortBy, Is.EqualTo("feacnlookup"));
+    }
+    #endregion
 }

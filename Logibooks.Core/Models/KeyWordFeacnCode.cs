@@ -25,10 +25,13 @@
 
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
 
 namespace Logibooks.Core.Models;
 
 [Table("key_word_feacn_codes")]
+[Index(nameof(FeacnCode), Name = "IX_key_word_feacn_codes_feacn_code")]
+[Index(nameof(KeyWordId), Name = "IX_key_word_feacn_codes_key_word_id")]
 public class KeyWordFeacnCode
 {
     [Column("key_word_id")]
