@@ -188,4 +188,132 @@ public class FeacnPrefixesControllerTests
         var obj = result as ObjectResult;
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
     }
+
+    [Test]
+    public async Task GetPrefix_ReturnsItem_ForLogist()
+    {
+        SetCurrentUserId(2);
+        var prefix = new FeacnPrefix { Id = 6, Code = "60" };
+        var ex = new FeacnPrefixException { Id = 7, Code = "6001", FeacnPrefixId = 6, FeacnPrefix = prefix };
+        _dbContext.FeacnPrefixes.Add(prefix);
+        _dbContext.FeacnPrefixExceptions.Add(ex);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.GetPrefix(6);
+
+        Assert.That(result.Value, Is.Not.Null);
+        Assert.That(result.Value!.Id, Is.EqualTo(6));
+        Assert.That(result.Value!.Exceptions.Count, Is.EqualTo(1));
+    }
+
+    [Test]
+    public async Task GetPrefix_Returns403_ForNonLogist()
+    {
+        SetCurrentUserId(1); // admin but not logist
+        var prefix = new FeacnPrefix { Id = 8, Code = "80" };
+        _dbContext.FeacnPrefixes.Add(prefix);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.GetPrefix(8);
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
+    }
+
+    [Test]
+    public async Task GetPrefix_Returns404_WhenNotFound()
+    {
+        SetCurrentUserId(2);
+        var result = await _controller.GetPrefix(999);
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+    }
+
+    [Test]
+    public async Task GetPrefix_Returns403_WhenHasOrder()
+    {
+        SetCurrentUserId(2);
+        var prefix = new FeacnPrefix { Id = 9, Code = "90", FeacnOrderId = 2 };
+        _dbContext.FeacnPrefixes.Add(prefix);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.GetPrefix(9);
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
+    }
+
+    [Test]
+    public async Task UpdatePrefix_Returns403_ForNonAdmin()
+    {
+        SetCurrentUserId(2); // logist only
+        var prefix = new FeacnPrefix { Id = 10, Code = "100" };
+        _dbContext.FeacnPrefixes.Add(prefix);
+        await _dbContext.SaveChangesAsync();
+
+        var dto = new FeacnPrefixCreateDto { Id = 10, Code = "101" };
+        var result = await _controller.UpdatePrefix(10, dto);
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
+    }
+
+    [Test]
+    public async Task UpdatePrefix_Returns404_WhenNotFound()
+    {
+        SetCurrentUserId(1);
+        var dto = new FeacnPrefixCreateDto { Id = 11, Code = "110" };
+        var result = await _controller.UpdatePrefix(11, dto);
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+    }
+
+    [Test]
+    public async Task UpdatePrefix_Returns400_WhenIdMismatch()
+    {
+        SetCurrentUserId(1);
+        var dto = new FeacnPrefixCreateDto { Id = 12, Code = "120" };
+        var result = await _controller.UpdatePrefix(13, dto);
+        Assert.That(result, Is.TypeOf<BadRequestResult>());
+    }
+
+    [Test]
+    public async Task DeletePrefix_Returns403_ForNonAdmin()
+    {
+        SetCurrentUserId(2);
+        var prefix = new FeacnPrefix { Id = 14, Code = "140" };
+        _dbContext.FeacnPrefixes.Add(prefix);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.DeletePrefix(14);
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
+    }
+
+    [Test]
+    public async Task DeletePrefix_Returns404_WhenNotFound()
+    {
+        SetCurrentUserId(1);
+        var result = await _controller.DeletePrefix(999);
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+    }
+
+    [Test]
+    public async Task DeletePrefix_Returns403_WhenHasOrder()
+    {
+        SetCurrentUserId(1);
+        var prefix = new FeacnPrefix { Id = 15, Code = "150", FeacnOrderId = 3 };
+        _dbContext.FeacnPrefixes.Add(prefix);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.DeletePrefix(15);
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
+    }
 }
