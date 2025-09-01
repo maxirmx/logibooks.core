@@ -206,7 +206,7 @@ public class FeacnCodesController(
                 continue; // Skip null/empty codes silently
             }
             
-            if (code.Length != FeacnCode.FeacnCodeLength || !code.All(char.IsDigit))
+            if (/*code.Length != FeacnCode.FeacnCodeLength ||*/ !code.All(char.IsDigit))
             {
                 return _400MustBe10Digits(code);
             }

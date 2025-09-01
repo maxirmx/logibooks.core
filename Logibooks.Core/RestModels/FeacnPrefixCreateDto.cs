@@ -46,9 +46,7 @@ public class FeacnPrefixCreateDto
             Description = Description,
             Comment = Comment,
             FeacnOrderId = null,
-            FeacnPrefixExceptions = Exceptions
-                .Select(e => new FeacnPrefixException { Code = e })
-                .ToList()
+            FeacnPrefixExceptions = [.. Exceptions.Select(e => new FeacnPrefixException { Code = e })]
         };
     }
 }

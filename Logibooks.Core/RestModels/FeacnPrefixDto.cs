@@ -42,9 +42,8 @@ public class FeacnPrefixDto
         Description = p.Description;
         Comment = p.Comment;
         FeacnOrderId = p.FeacnOrderId;
-        Exceptions = p.FeacnPrefixExceptions
+        Exceptions = [.. p.FeacnPrefixExceptions
             .OrderBy(e => e.Id)
-            .Select(e => new FeacnPrefixExceptionDto(e))
-            .ToList();
+            .Select(e => new FeacnPrefixExceptionDto(e))];
     }
 }

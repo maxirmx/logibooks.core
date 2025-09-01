@@ -271,15 +271,6 @@ public class FeacnPrefixesControllerTests
     }
 
     [Test]
-    public async Task UpdatePrefix_Returns400_WhenIdMismatch()
-    {
-        SetCurrentUserId(1);
-        var dto = new FeacnPrefixCreateDto { Id = 12, Code = "120" };
-        var result = await _controller.UpdatePrefix(13, dto);
-        Assert.That(result, Is.TypeOf<BadRequestResult>());
-    }
-
-    [Test]
     public async Task DeletePrefix_Returns403_ForNonAdmin()
     {
         SetCurrentUserId(2);
@@ -315,5 +306,283 @@ public class FeacnPrefixesControllerTests
         Assert.That(result, Is.TypeOf<ObjectResult>());
         var obj = result as ObjectResult;
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
+    }
+
+    // New tests for exception code deduplication (silent handling)
+
+    [Test]
+    public async Task CreatePrefix_SilentlyDeduplicatesExceptionCodes()
+    {
+        SetCurrentUserId(1);
+        
+        // Create prefix with duplicate exception codes - should silently deduplicate
+        var dto = new FeacnPrefixCreateDto 
+        { 
+            Code = "UNIQUE001", 
+            Exceptions = ["EXC001", "EXC002", "EXC001", "EXC003"] // EXC001 is duplicated
+        };
+        var result = await _controller.CreatePrefix(dto);
+
+        Assert.That(result.Result, Is.TypeOf<CreatedAtActionResult>());
+        var created = result.Result as CreatedAtActionResult;
+        Assert.That(created, Is.Not.Null);
+        
+        var refId = ((Reference)created!.Value!).Id;
+        var createdPrefix = await _dbContext.FeacnPrefixes
+            .Include(p => p.FeacnPrefixExceptions)
+            .FirstAsync(p => p.Id == refId);
+        
+        // Should only have unique exception codes
+        Assert.That(createdPrefix.FeacnPrefixExceptions.Count, Is.EqualTo(3));
+        var exceptionCodes = createdPrefix.FeacnPrefixExceptions.Select(e => e.Code).OrderBy(c => c).ToList();
+        Assert.That(exceptionCodes, Is.EqualTo(new[] { "EXC001", "EXC002", "EXC003" }));
+    }
+
+    [Test]
+    public async Task CreatePrefix_SilentlyDeduplicatesExceptionCodes_CaseInsensitive()
+    {
+        SetCurrentUserId(1);
+        
+        // Create prefix with case-insensitive duplicate exception codes - should silently deduplicate
+        var dto = new FeacnPrefixCreateDto 
+        { 
+            Code = "UNIQUE002", 
+            Exceptions = ["exc001", "EXC002", "EXC001", "exc002"] // Case-insensitive duplicates
+        };
+        var result = await _controller.CreatePrefix(dto);
+
+        Assert.That(result.Result, Is.TypeOf<CreatedAtActionResult>());
+        var created = result.Result as CreatedAtActionResult;
+        Assert.That(created, Is.Not.Null);
+        
+        var refId = ((Reference)created!.Value!).Id;
+        var createdPrefix = await _dbContext.FeacnPrefixes
+            .Include(p => p.FeacnPrefixExceptions)
+            .FirstAsync(p => p.Id == refId);
+        
+        // Should keep first occurrence of each unique code in original order
+        Assert.That(createdPrefix.FeacnPrefixExceptions.Count, Is.EqualTo(2));
+        var exceptionCodes = createdPrefix.FeacnPrefixExceptions.Select(e => e.Code).ToList();
+        Assert.That(exceptionCodes, Is.EqualTo(new[] { "exc001", "EXC002" })); // First occurrence kept in original order
+    }
+
+    [Test]
+    public async Task CreatePrefix_SilentlyDeduplicatesExceptionCodes_WithWhitespace()
+    {
+        SetCurrentUserId(1);
+        
+        // Create prefix with whitespace-trimmed duplicate exception codes - should silently deduplicate
+        var dto = new FeacnPrefixCreateDto 
+        { 
+            Code = "UNIQUE003", 
+            Exceptions = ["EXC001", " EXC002 ", "EXC001 ", " ", "", "EXC003"] // Whitespace and empty codes
+        };
+        var result = await _controller.CreatePrefix(dto);
+
+        Assert.That(result.Result, Is.TypeOf<CreatedAtActionResult>());
+        var created = result.Result as CreatedAtActionResult;
+        Assert.That(created, Is.Not.Null);
+        
+        var refId = ((Reference)created!.Value!).Id;
+        var createdPrefix = await _dbContext.FeacnPrefixes
+            .Include(p => p.FeacnPrefixExceptions)
+            .FirstAsync(p => p.Id == refId);
+        
+        // Should have trimmed, unique, non-empty codes
+        Assert.That(createdPrefix.FeacnPrefixExceptions.Count, Is.EqualTo(3));
+        var exceptionCodes = createdPrefix.FeacnPrefixExceptions.Select(e => e.Code).OrderBy(c => c).ToList();
+        Assert.That(exceptionCodes, Is.EqualTo(new[] { "EXC001", "EXC002", "EXC003" }));
+    }
+
+    [Test]
+    public async Task CreatePrefix_AllowsEmptyAndNullExceptionCodes()
+    {
+        SetCurrentUserId(1);
+        
+        // Create prefix with empty/null exception codes (should be filtered out)
+        var dto = new FeacnPrefixCreateDto 
+        { 
+            Code = "UNIQUE004", 
+            Exceptions = ["EXC001", "", " ", "EXC002"] // Empty and whitespace-only codes should be ignored
+        };
+        var result = await _controller.CreatePrefix(dto);
+
+        Assert.That(result.Result, Is.TypeOf<CreatedAtActionResult>());
+        var created = result.Result as CreatedAtActionResult;
+        Assert.That(created, Is.Not.Null);
+        
+        var refId = ((Reference)created!.Value!).Id;
+        var createdPrefix = await _dbContext.FeacnPrefixes
+            .Include(p => p.FeacnPrefixExceptions)
+            .FirstAsync(p => p.Id == refId);
+        
+        // Should only have non-empty exception codes
+        Assert.That(createdPrefix.FeacnPrefixExceptions.Count, Is.EqualTo(2));
+        var exceptionCodes = createdPrefix.FeacnPrefixExceptions.Select(e => e.Code).OrderBy(c => c).ToList();
+        Assert.That(exceptionCodes, Is.EqualTo(new[] { "EXC001", "EXC002" }));
+    }
+
+    [Test]
+    public async Task UpdatePrefix_SilentlyDeduplicatesExceptionCodes()
+    {
+        SetCurrentUserId(1);
+        
+        // Create prefix first
+        var prefix = new FeacnPrefix { Id = 200, Code = "UPDATE001", FeacnOrderId = null };
+        _dbContext.FeacnPrefixes.Add(prefix);
+        await _dbContext.SaveChangesAsync();
+
+        // Update with duplicate exception codes - should silently deduplicate
+        var dto = new FeacnPrefixCreateDto 
+        { 
+            Id = 200, 
+            Code = "UPDATE001", 
+            Exceptions = ["UPD001", "UPD002", "upd001", "UPD003", "UPD002"] // Multiple duplicates
+        };
+        var result = await _controller.UpdatePrefix(200, dto);
+
+        Assert.That(result, Is.TypeOf<NoContentResult>());
+        
+        var updatedPrefix = await _dbContext.FeacnPrefixes
+            .Include(p => p.FeacnPrefixExceptions)
+            .FirstAsync(p => p.Id == 200);
+        
+        // Should have deduplicated codes, keeping first occurrence
+        Assert.That(updatedPrefix.FeacnPrefixExceptions.Count, Is.EqualTo(3));
+        var exceptionCodes = updatedPrefix.FeacnPrefixExceptions.Select(e => e.Code).OrderBy(c => c).ToList();
+        Assert.That(exceptionCodes, Is.EqualTo(new[] { "UPD001", "UPD002", "UPD003" }));
+    }
+
+    [Test]
+    public async Task UpdatePrefix_AllowsUniqueExceptionCodes()
+    {
+        SetCurrentUserId(1);
+        
+        // Create prefix with some exceptions
+        var prefix = new FeacnPrefix { Id = 201, Code = "UPDATE002", FeacnOrderId = null };
+        var ex1 = new FeacnPrefixException { Id = 301, Code = "OLD001", FeacnPrefixId = 201, FeacnPrefix = prefix };
+        var ex2 = new FeacnPrefixException { Id = 302, Code = "OLD002", FeacnPrefixId = 201, FeacnPrefix = prefix };
+        _dbContext.FeacnPrefixes.Add(prefix);
+        _dbContext.FeacnPrefixExceptions.AddRange(ex1, ex2);
+        await _dbContext.SaveChangesAsync();
+
+        // Update with new unique exception codes
+        var dto = new FeacnPrefixCreateDto 
+        { 
+            Id = 201, 
+            Code = "UPDATE002", 
+            Exceptions = ["NEW001", "NEW002", "NEW003"] // All unique codes
+        };
+        var result = await _controller.UpdatePrefix(201, dto);
+
+        Assert.That(result, Is.TypeOf<NoContentResult>());
+        
+        var updatedPrefix = await _dbContext.FeacnPrefixes
+            .Include(p => p.FeacnPrefixExceptions)
+            .FirstAsync(p => p.Id == 201);
+        
+        Assert.That(updatedPrefix.FeacnPrefixExceptions.Count, Is.EqualTo(3));
+        var exceptionCodes = updatedPrefix.FeacnPrefixExceptions.Select(e => e.Code).OrderBy(c => c).ToList();
+        Assert.That(exceptionCodes, Is.EqualTo(new[] { "NEW001", "NEW002", "NEW003" }));
+    }
+
+    [Test]
+    public async Task CreatePrefix_PreservesOrderForUniqueExceptionCodes()
+    {
+        SetCurrentUserId(1);
+        
+        // Test that the first occurrence of each unique code is preserved
+        var dto = new FeacnPrefixCreateDto 
+        { 
+            Code = "ORDER001", 
+            Exceptions = ["FIRST", "SECOND", "first", "THIRD", "second", "FOURTH"] // Mixed case duplicates
+        };
+        var result = await _controller.CreatePrefix(dto);
+
+        Assert.That(result.Result, Is.TypeOf<CreatedAtActionResult>());
+        var created = result.Result as CreatedAtActionResult;
+        Assert.That(created, Is.Not.Null);
+        
+        var refId = ((Reference)created!.Value!).Id;
+        var createdPrefix = await _dbContext.FeacnPrefixes
+            .Include(p => p.FeacnPrefixExceptions)
+            .FirstAsync(p => p.Id == refId);
+        
+        // Should preserve the order of first occurrences
+        Assert.That(createdPrefix.FeacnPrefixExceptions.Count, Is.EqualTo(4));
+        var exceptionCodes = createdPrefix.FeacnPrefixExceptions.Select(e => e.Code).ToList();
+        Assert.That(exceptionCodes, Is.EqualTo(new[] { "FIRST", "SECOND", "THIRD", "FOURTH" }));
+    }
+
+    [Test]
+    public async Task CreatePrefix_AllowsDuplicateExceptionCodes_ForAutoGeneratedPrefixes()
+    {
+        SetCurrentUserId(1);
+        
+        // This test ensures that our deduplication only applies to user-created prefixes
+        // Auto-generated prefixes (FeacnOrderId != null) are not subject to our deduplication logic
+        
+        // Create an auto-generated prefix with duplicate exception codes (should be allowed by the system)
+        var autoPrefix = new FeacnPrefix 
+        { 
+            Id = 300, 
+            Code = "AUTO001", 
+            FeacnOrderId = 5 // Auto-generated 
+        };
+        var ex1 = new FeacnPrefixException { Id = 401, Code = "DUP001", FeacnPrefixId = 300, FeacnPrefix = autoPrefix };
+        var ex2 = new FeacnPrefixException { Id = 402, Code = "DUP001", FeacnPrefixId = 300, FeacnPrefix = autoPrefix }; // Duplicate code
+        _dbContext.FeacnPrefixes.Add(autoPrefix);
+        _dbContext.FeacnPrefixExceptions.AddRange(ex1, ex2);
+        await _dbContext.SaveChangesAsync();
+
+        // Now create a user prefix - our deduplication should apply to this one
+        var dto = new FeacnPrefixCreateDto 
+        { 
+            Code = "USER001", 
+            Exceptions = ["USER_EXC001", "USER_EXC002", "user_exc001"] // Should be deduplicated
+        };
+        var result = await _controller.CreatePrefix(dto);
+
+        Assert.That(result.Result, Is.TypeOf<CreatedAtActionResult>());
+        
+        var created = result.Result as CreatedAtActionResult;
+        var refId = ((Reference)created!.Value!).Id;
+        var userPrefix = await _dbContext.FeacnPrefixes
+            .Include(p => p.FeacnPrefixExceptions)
+            .FirstAsync(p => p.Id == refId);
+        
+        // User prefix should have deduplicated codes
+        Assert.That(userPrefix.FeacnPrefixExceptions.Count, Is.EqualTo(2));
+        var userExceptionCodes = userPrefix.FeacnPrefixExceptions.Select(e => e.Code).OrderBy(c => c).ToList();
+        Assert.That(userExceptionCodes, Is.EqualTo(new[] { "USER_EXC001", "USER_EXC002" }));
+        
+        // Verify that auto-generated prefix still exists with duplicate exception codes
+        var existingAutoPrefix = await _dbContext.FeacnPrefixes
+            .Include(p => p.FeacnPrefixExceptions)
+            .FirstAsync(p => p.Id == 300);
+        Assert.That(existingAutoPrefix.FeacnPrefixExceptions.Count, Is.EqualTo(2));
+        Assert.That(existingAutoPrefix.FeacnPrefixExceptions.All(e => e.Code == "DUP001"), Is.True);
+    }
+
+    [Test]
+    public async Task CreatePrefix_HandlesEdgeCases_ForUniqueness()
+    {
+        SetCurrentUserId(1);
+        
+        // Test case sensitivity and whitespace handling
+        var prefix1 = new FeacnPrefix { Id = 107, Code = "testcode", FeacnOrderId = null };
+        _dbContext.FeacnPrefixes.Add(prefix1);
+        await _dbContext.SaveChangesAsync();
+
+        // Try to create with exact same code (should fail)
+        var dto1 = new FeacnPrefixCreateDto { Code = "testcode" };
+        var result1 = await _controller.CreatePrefix(dto1);
+        Assert.That(result1.Result, Is.TypeOf<ObjectResult>());
+        Assert.That(((ObjectResult)result1.Result!).StatusCode, Is.EqualTo(StatusCodes.Status409Conflict));
+
+        // Create with different case (should succeed - EF Core is case-sensitive for string comparisons)
+        var dto2 = new FeacnPrefixCreateDto { Code = "TESTCODE" };
+        var result2 = await _controller.CreatePrefix(dto2);
+        Assert.That(result2.Result, Is.TypeOf<CreatedAtActionResult>());
     }
 }

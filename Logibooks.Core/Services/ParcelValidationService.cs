@@ -89,8 +89,8 @@ public class ParcelValidationService(
         }
 
         var links2 = feacnContext != null
-            ? _feacnPrefixCheckService.CheckOrder(order, feacnContext)
-            : await _feacnPrefixCheckService.CheckOrderAsync(order, cancellationToken);
+            ? _feacnPrefixCheckService.CheckParcel(order, feacnContext)
+            : await _feacnPrefixCheckService.CheckParcelAsync(order, cancellationToken);
 
         if (links1.Count > 0)
         {

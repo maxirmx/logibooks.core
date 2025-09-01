@@ -82,10 +82,24 @@ public class FeacnPrefixesController(
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(Reference))]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
+    [ProducesResponseType(StatusCodes.Status409Conflict, Type = typeof(ErrMessage))]
     public async Task<ActionResult<Reference>> CreatePrefix(FeacnPrefixCreateDto dto)
     {
         if (!await _userService.CheckAdmin(_curUserId)) return _403();
+        
+        // Check for duplicate code among user-created prefixes (FeacnOrderId == null)
+        if (await IsCodeDuplicateAsync(dto.Code, null))
+        {
+            return _409DuplicateFeacnPrefixCode(dto.Code);
+        }
+        
         var prefix = dto.ToModel();
+        
+        // Silently deduplicate exception codes (case-insensitive) and filter out empty/whitespace codes
+        prefix.FeacnPrefixExceptions = DeduplicateExceptionCodes(dto.Exceptions)
+            .Select(e => new FeacnPrefixException { Code = e })
+            .ToList();
+            
         _db.FeacnPrefixes.Add(prefix);
         await _db.SaveChangesAsync();
         return CreatedAtAction(nameof(GetPrefix), new { id = prefix.Id }, new Reference { Id = prefix.Id });
@@ -95,15 +109,22 @@ public class FeacnPrefixesController(
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
+    [ProducesResponseType(StatusCodes.Status409Conflict, Type = typeof(ErrMessage))]
     public async Task<IActionResult> UpdatePrefix(int id, FeacnPrefixCreateDto dto)
     {
         if (!await _userService.CheckAdmin(_curUserId)) return _403();
-        if (id != dto.Id) return BadRequest();
+
         var prefix = await _db.FeacnPrefixes
             .Include(p => p.FeacnPrefixExceptions)
             .FirstOrDefaultAsync(p => p.Id == id);
         if (prefix == null) return _404FeacnPrefix(id);
         if (prefix.FeacnOrderId != null) return _403FeacnPrefix(id);
+
+        // Check for duplicate code among user-created prefixes (excluding current prefix)
+        if (await IsCodeDuplicateAsync(dto.Code, id))
+        {
+            return _409DuplicateFeacnPrefixCode(dto.Code);
+        }
 
         prefix.Code = dto.Code;
         prefix.IntervalCode = dto.IntervalCode;
@@ -111,7 +132,9 @@ public class FeacnPrefixesController(
         prefix.Comment = dto.Comment;
 
         _db.FeacnPrefixExceptions.RemoveRange(prefix.FeacnPrefixExceptions);
-        prefix.FeacnPrefixExceptions = dto.Exceptions
+        
+        // Silently deduplicate exception codes (case-insensitive) and filter out empty/whitespace codes
+        prefix.FeacnPrefixExceptions = DeduplicateExceptionCodes(dto.Exceptions)
             .Select(e => new FeacnPrefixException { Code = e, FeacnPrefixId = id })
             .ToList();
 
@@ -137,5 +160,53 @@ public class FeacnPrefixesController(
         await _db.SaveChangesAsync();
         return NoContent();
     }
+
+    /// <summary>
+    /// Checks if a given code already exists among user-created prefixes (FeacnOrderId == null)
+    /// </summary>
+    /// <param name="code">The code to check for duplicates</param>
+    /// <param name="excludeId">ID to exclude from the check (for updates)</param>
+    /// <returns>True if duplicate exists, false otherwise</returns>
+    private async Task<bool> IsCodeDuplicateAsync(string code, int? excludeId)
+    {
+        var query = _db.FeacnPrefixes
+            .Where(p => p.FeacnOrderId == null && p.Code == code);
+        
+        if (excludeId.HasValue)
+        {
+            query = query.Where(p => p.Id != excludeId.Value);
+        }
+        
+        return await query.AnyAsync();
+    }
+
+    /// <summary>
+    /// Deduplicates exception codes (case-insensitive) and filters out empty/whitespace codes
+    /// </summary>
+    /// <param name="exceptionCodes">List of exception codes to deduplicate</param>
+    /// <returns>List of unique, non-empty exception codes</returns>
+    private static List<string> DeduplicateExceptionCodes(List<string> exceptionCodes)
+    {
+        if (exceptionCodes == null || exceptionCodes.Count == 0)
+            return [];
+            
+        var uniqueCodes = new List<string>();
+        var seenCodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        
+        foreach (var code in exceptionCodes)
+        {
+            if (!string.IsNullOrWhiteSpace(code))
+            {
+                var trimmedCode = code.Trim();
+                if (seenCodes.Add(trimmedCode))
+                {
+                    uniqueCodes.Add(trimmedCode);
+                }
+            }
+        }
+        
+        return uniqueCodes;
+    }
+
 }
 

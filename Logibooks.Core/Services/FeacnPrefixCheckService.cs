@@ -45,7 +45,8 @@ public class FeacnPrefixCheckService(AppDbContext db) : IFeacnPrefixCheckService
         var twoDigitPrefix = tnVed[..2];
         
         var prefixes = await _db.FeacnPrefixes
-            .Where(p => p.Code.StartsWith(twoDigitPrefix) && p.FeacnOrder != null && p.FeacnOrder.Enabled)
+            .Where(p => p.Code.StartsWith(twoDigitPrefix) && 
+             ((p.FeacnOrder != null && p.FeacnOrder.Enabled) || p.FeacnOrder == null))
             .Include(p => p.FeacnPrefixExceptions)
             .Include(p => p.FeacnOrder)
             .AsNoTracking()
@@ -101,7 +102,8 @@ public class FeacnPrefixCheckService(AppDbContext db) : IFeacnPrefixCheckService
     public async Task<FeacnPrefixCheckContext> CreateContext(CancellationToken cancellationToken = default)
     {
         var prefixes = await _db.FeacnPrefixes
-            .Where(p => !string.IsNullOrEmpty(p.Code) && p.Code.Length >= 2 && p.FeacnOrder != null && p.FeacnOrder.Enabled)
+            .Where(p => !string.IsNullOrEmpty(p.Code) && p.Code.Length >= 2 && 
+                ((p.FeacnOrder != null && p.FeacnOrder.Enabled) || p.FeacnOrder == null))
             .Include(p => p.FeacnOrder)
             .Include(p => p.FeacnPrefixExceptions)
             .AsNoTracking()
