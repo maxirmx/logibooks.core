@@ -447,7 +447,7 @@ public class UpdateFeacnCodesService(
 
         // Group existing prefixes for easier comparison
         var existingPrefixesByKey = existingPrefixes
-            .GroupBy(p => new { FeacnOrderId = p.FeacnOrderId!.Value, p.Code, p.IntervalCode })
+            .GroupBy(p => new { FeacnOrderId = p.FeacnOrderId.Value, p.Code, p.IntervalCode })
             .ToDictionary(g => g.Key, g => g.First());
 
         // Use a transaction for atomicity and better performance
