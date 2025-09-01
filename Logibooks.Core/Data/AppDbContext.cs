@@ -199,7 +199,8 @@ namespace Logibooks.Core.Data
             modelBuilder.Entity<FeacnPrefix>()
                 .HasOne(fp => fp.FeacnOrder)
                 .WithMany(fo => fo.FeacnPrefixes)
-                .HasForeignKey(fp => fp.FeacnOrderId);
+                .HasForeignKey(fp => fp.FeacnOrderId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<FeacnPrefixException>()
                 .HasOne(e => e.FeacnPrefix)

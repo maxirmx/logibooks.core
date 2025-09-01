@@ -970,5 +970,36 @@ public class UpdateFeacnCodesServiceTests
         Assert.That(prefixes[2].IntervalCode, Is.EqualTo("12"));
     }
 
+    [Test]
+    public async Task RunAsync_IgnoresPrefixesWithNullFeacnOrderId()
+    {
+        await CreateTestOrder(1, "Test Order", "test-url");
+
+        _dbContext.FeacnPrefixes.Add(new FeacnPrefix
+        {
+            Id = 500,
+            Code = "9999",
+            Description = "No order"
+        });
+        await _dbContext.SaveChangesAsync();
+
+        var html = @"
+            <table>
+                <tr>
+                    <td>1234</td>
+                    <td>Name</td>
+                    <td>Comment</td>
+                </tr>
+            </table>";
+
+        SetupHttpResponse("https://www.alta.ru/tamdoc/test-url/", html);
+
+        await _service.RunAsync();
+
+        var nullPrefix = await _dbContext.FeacnPrefixes.SingleAsync(p => p.Id == 500);
+        Assert.That(nullPrefix.FeacnOrderId, Is.Null);
+        Assert.That(await _dbContext.FeacnPrefixes.CountAsync(), Is.EqualTo(2));
+    }
+
     #endregion
 }
