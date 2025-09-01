@@ -189,6 +189,18 @@ public class LogibooksControllerPreBase(AppDbContext db, ILogger logger) : Contr
                           new ErrMessage { Msg = $"Не удалось найти постановление (приказ, решение) [id={id}]" });
     }
 
+    protected ObjectResult _404FeacnPrefix(int id)
+    {
+        return StatusCode(StatusCodes.Status404NotFound,
+                          new ErrMessage { Msg = $"Не удалось найти префикс [id={id}]" });
+    }
+
+    protected ObjectResult _403FeacnPrefix(int id)
+    {
+        return StatusCode(StatusCodes.Status403Forbidden,
+                          new ErrMessage { Msg = $"Невозможно выполнить операцию с префиксом [id={id}], связанным с приказом" });
+    }
+
 }
 
 public class LogibooksControllerBase : LogibooksControllerPreBase
