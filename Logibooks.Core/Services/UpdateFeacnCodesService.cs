@@ -533,7 +533,7 @@ public class UpdateFeacnCodesService(
 
             // Find and remove obsolete prefixes that no longer exist in the extracted data
             var obsoletePrefixes = existingPrefixes
-                .Where(p => !processedKeys.Contains(new PrefixKey(p.FeacnOrderId!.Value, p.Code, p.IntervalCode)))
+                .Where(p => !processedKeys.Contains(new PrefixKey(p.FeacnOrderId.Value, p.Code, p.IntervalCode)))
                 .ToList();
 
             if (obsoletePrefixes.Count > 0)
