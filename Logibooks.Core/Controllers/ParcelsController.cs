@@ -200,7 +200,7 @@ public class ParcelsController(
         }
 
         var lastView = await _db.ParcelViews
-            .Where(v => v.UserId == _curUserId && v.BaseOrderId == order.Id)
+            .Where(v => v.UserId == _curUserId && v.BaseParcelId == order.Id)
             .OrderByDescending(v => v.DTime)
             .FirstOrDefaultAsync();
 

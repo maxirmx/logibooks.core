@@ -30,7 +30,7 @@ using System.Text.Json.Serialization;
 namespace Logibooks.Core.Models;
 
 [Table("parcel_views")]
-[Index(nameof(BaseOrderId), nameof(UserId), nameof(DTime),  Name = "IX_parcel_views_baseorderid_userid_dtime")]
+[Index(nameof(BaseParcelId), nameof(UserId), nameof(DTime),  Name = "IX_parcel_views_baseparcelid_userid_dtime")]
 public class ParcelView
 {
     [Column("id")]
@@ -46,10 +46,10 @@ public class ParcelView
     [JsonIgnore]
     public User User { get; set; } = null!;
 
-    [Column("base_order_id")]
-    public int BaseOrderId { get; set; }
+    [Column("base_parcel_id")]
+    public int BaseParcelId { get; set; }
 
-    [ForeignKey("BaseOrderId")]
+    [ForeignKey("BaseParcelId")]
     [JsonIgnore]
-    public BaseParcel BaseOrder { get; set; } = null!;
+    public BaseParcel BaseParcel { get; set; } = null!;
 }

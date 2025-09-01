@@ -29,8 +29,8 @@ namespace Logibooks.Core.Interfaces;
 
 public interface IFeacnPrefixCheckService
 {
-    Task<IEnumerable<BaseParcelFeacnPrefix>> CheckOrderAsync(BaseParcel order, CancellationToken cancellationToken = default);
-    IEnumerable<BaseParcelFeacnPrefix> CheckOrder(BaseParcel order, FeacnPrefixCheckContext context);
+    Task<IEnumerable<BaseParcelFeacnPrefix>> CheckParcelAsync(BaseParcel parcel, CancellationToken cancellationToken = default);
+    IEnumerable<BaseParcelFeacnPrefix> CheckParcel(BaseParcel parcel, FeacnPrefixCheckContext context);
     Task<FeacnPrefixCheckContext> CreateContext(CancellationToken cancellationToken = default);
 }
 

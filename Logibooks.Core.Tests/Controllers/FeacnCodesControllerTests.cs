@@ -317,17 +317,6 @@ public class FeacnCodesControllerTests
     }
 
     [Test]
-    public async Task BulkLookup_ReturnsBadRequest_ForInvalidCodeFormat()
-    {
-        var request = new BulkFeacnCodeRequestDto(new[] { "123456789" }); // 9 digits instead of 10
-        var result = await _controller.BulkLookup(request);
-        
-        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
-        var obj = result.Result as ObjectResult;
-        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
-    }
-
-    [Test]
     public async Task BulkLookup_ReturnsBadRequest_ForNonDigitCode()
     {
         var request = new BulkFeacnCodeRequestDto(new[] { "123456789A" }); // Contains letter

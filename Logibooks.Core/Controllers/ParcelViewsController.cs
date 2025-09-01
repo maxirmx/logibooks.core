@@ -58,7 +58,7 @@ public class ParcelViewsController(
         var pv = new ParcelView
         {
             UserId = _curUserId,
-            BaseOrderId = dto.Id,
+            BaseParcelId = dto.Id,
             DTime = DateTime.UtcNow
         };
         _db.ParcelViews.Add(pv);
@@ -75,7 +75,7 @@ public class ParcelViewsController(
             .Where(v => v.UserId == _curUserId)
             .OrderByDescending(v => v.DTime)
             .Take(2)
-            .Include(v => v.BaseOrder)
+            .Include(v => v.BaseParcel)
             .ToListAsync();
 
         if (items.Count == 0)
@@ -89,7 +89,7 @@ public class ParcelViewsController(
         }
 
         var appliedView = items[1];
-        var order = appliedView.BaseOrder;
+        var order = appliedView.BaseParcel;
         if (order == null)
         {
             await _db.SaveChangesAsync();

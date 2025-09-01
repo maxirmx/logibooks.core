@@ -34,18 +34,19 @@ public class FeacnPrefixCheckService(AppDbContext db) : IFeacnPrefixCheckService
 {
     private readonly AppDbContext _db = db;
 
-    public async Task<IEnumerable<BaseParcelFeacnPrefix>> CheckOrderAsync(BaseParcel order, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<BaseParcelFeacnPrefix>> CheckParcelAsync(BaseParcel parcel, CancellationToken cancellationToken = default)
     {
-        if (order.TnVed == null || order.TnVed.Length < 2)
+        if (parcel.TnVed == null || parcel.TnVed.Length < 2)
         {
             return [];
         }
 
-        string tnVed = order.TnVed;
+        string tnVed = parcel.TnVed;
         var twoDigitPrefix = tnVed[..2];
         
         var prefixes = await _db.FeacnPrefixes
-            .Where(p => p.Code.StartsWith(twoDigitPrefix) && p.FeacnOrder.Enabled)
+            .Where(p => p.Code.StartsWith(twoDigitPrefix) && 
+             ((p.FeacnOrder != null && p.FeacnOrder.Enabled) || p.FeacnOrder == null))
             .Include(p => p.FeacnPrefixExceptions)
             .Include(p => p.FeacnOrder)
             .AsNoTracking()
@@ -58,7 +59,7 @@ public class FeacnPrefixCheckService(AppDbContext db) : IFeacnPrefixCheckService
             {
                 links.Add(new BaseParcelFeacnPrefix
                 {
-                    BaseParcelId = order.Id,
+                    BaseParcelId = parcel.Id,
                     FeacnPrefixId = prefix.Id
                 });
             }
@@ -67,16 +68,14 @@ public class FeacnPrefixCheckService(AppDbContext db) : IFeacnPrefixCheckService
         return links;
     }
 
-    public IEnumerable<BaseParcelFeacnPrefix> CheckOrder(
-        BaseParcel order,
-        FeacnPrefixCheckContext context)
+    public IEnumerable<BaseParcelFeacnPrefix> CheckParcel(BaseParcel parcel, FeacnPrefixCheckContext context)
     {
-        if (order.TnVed == null || order.TnVed.Length < 2)
+        if (parcel.TnVed == null || parcel.TnVed.Length < 2)
         {
             return [];
         }
 
-        string tnVed = order.TnVed;
+        string tnVed = parcel.TnVed;
         var twoDigitPrefix = tnVed[..2];
 
         if (!context.Prefixes.TryGetValue(twoDigitPrefix, out var prefixes))
@@ -91,7 +90,7 @@ public class FeacnPrefixCheckService(AppDbContext db) : IFeacnPrefixCheckService
             {
                 links.Add(new BaseParcelFeacnPrefix
                 {
-                    BaseParcelId = order.Id,
+                    BaseParcelId = parcel.Id,
                     FeacnPrefixId = prefix.Id
                 });
             }
@@ -103,7 +102,8 @@ public class FeacnPrefixCheckService(AppDbContext db) : IFeacnPrefixCheckService
     public async Task<FeacnPrefixCheckContext> CreateContext(CancellationToken cancellationToken = default)
     {
         var prefixes = await _db.FeacnPrefixes
-            .Where(p => !string.IsNullOrEmpty(p.Code) && p.Code.Length >= 2 && p.FeacnOrder.Enabled)
+            .Where(p => !string.IsNullOrEmpty(p.Code) && p.Code.Length >= 2 && 
+                ((p.FeacnOrder != null && p.FeacnOrder.Enabled) || p.FeacnOrder == null))
             .Include(p => p.FeacnOrder)
             .Include(p => p.FeacnPrefixExceptions)
             .AsNoTracking()
@@ -115,7 +115,7 @@ public class FeacnPrefixCheckService(AppDbContext db) : IFeacnPrefixCheckService
             var key = prefix.Code[..2];
             if (!context.Prefixes.TryGetValue(key, out var list))
             {
-                list = new List<FeacnPrefix>();
+                list = [];
                 context.Prefixes[key] = list;
             }
             list.Add(prefix);

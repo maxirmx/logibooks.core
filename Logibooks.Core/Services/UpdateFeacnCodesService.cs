@@ -442,7 +442,7 @@ public class UpdateFeacnCodesService(
         var orderIds = extracted.Select(r => r.OrderId).Distinct().ToList();
         var existingPrefixes = await _db.FeacnPrefixes
             .Include(p => p.FeacnPrefixExceptions)
-            .Where(p => orderIds.Contains(p.FeacnOrderId))
+            .Where(p => p.FeacnOrderId.HasValue && orderIds.Contains(p.FeacnOrderId.Value))
             .ToListAsync(cancellationToken);
 
         // Group existing prefixes for easier comparison
@@ -464,7 +464,7 @@ public class UpdateFeacnCodesService(
 
             foreach (var row in extracted)
             {
-                var key = new { FeacnOrderId = row.OrderId, Code = row.Code, IntervalCode = row.IntervalCode };
+                var key = new { FeacnOrderId = (int?)row.OrderId, Code = row.Code, IntervalCode = row.IntervalCode };
                 processedKeys.Add(new PrefixKey(row.OrderId, row.Code, row.IntervalCode));
 
                 // Check if this prefix already exists
@@ -533,7 +533,7 @@ public class UpdateFeacnCodesService(
 
             // Find and remove obsolete prefixes that no longer exist in the extracted data
             var obsoletePrefixes = existingPrefixes
-                .Where(p => !processedKeys.Contains(new PrefixKey(p.FeacnOrderId, p.Code, p.IntervalCode)))
+                .Where(p => !processedKeys.Contains(new PrefixKey(p.FeacnOrderId == null ? 0 : p.FeacnOrderId.Value, p.Code, p.IntervalCode)))
                 .ToList();
 
             if (obsoletePrefixes.Count > 0)

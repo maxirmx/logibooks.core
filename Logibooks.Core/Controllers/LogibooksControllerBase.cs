@@ -158,6 +158,17 @@ public class LogibooksControllerPreBase(AppDbContext db, ILogger logger) : Contr
         return StatusCode(StatusCodes.Status409Conflict,
                           new ErrMessage { Msg = $"Ключевое слово уже существует [слово = {word}]" });
     }
+
+    /// <summary>
+    /// Returns a 409 Conflict response for duplicate FeacnPrefix code
+    /// </summary>
+    /// <param name="code">The duplicate code</param>
+    /// <returns>ObjectResult with 409 status</returns>
+    protected ObjectResult _409DuplicateFeacnPrefixCode(string code)
+    {
+        return StatusCode(StatusCodes.Status409Conflict,
+            new ErrMessage { Msg = $"Код префикса '{code}' уже существует" });
+    }
     protected ObjectResult _500Mapping(string fname)
     {
         return StatusCode(StatusCodes.Status500InternalServerError,
@@ -187,6 +198,18 @@ public class LogibooksControllerPreBase(AppDbContext db, ILogger logger) : Contr
     {
         return StatusCode(StatusCodes.Status404NotFound,
                           new ErrMessage { Msg = $"Не удалось найти постановление (приказ, решение) [id={id}]" });
+    }
+
+    protected ObjectResult _404FeacnPrefix(int id)
+    {
+        return StatusCode(StatusCodes.Status404NotFound,
+                          new ErrMessage { Msg = $"Не удалось найти префикс [id={id}]" });
+    }
+
+    protected ObjectResult _403FeacnPrefix(int id)
+    {
+        return StatusCode(StatusCodes.Status403Forbidden,
+                          new ErrMessage { Msg = $"Невозможно выполнить операцию с префиксом [id={id}], связанным с приказом" });
     }
 
 }

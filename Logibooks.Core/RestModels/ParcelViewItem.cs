@@ -59,20 +59,21 @@ public class ParcelViewItem
     public List<int> StopWordIds { get; set; } = [];
     public List<int> KeyWordIds { get; set; } = [];
     public List<int> FeacnOrderIds { get; set; } = [];
+    public List<int> FeacnPrefixIds { get; set; } = [];
     public DateTime? DTime { get; set; }
 
-    public ParcelViewItem(BaseParcel order)
+    public ParcelViewItem(BaseParcel parcel)
     {
-        Id = order.Id;
-        RegisterId = order.RegisterId;
-        StatusId = order.StatusId;
-        CheckStatusId = order.CheckStatusId;
-        ProductName = order.ProductName;
-        TnVed = order.TnVed;
+        Id = parcel.Id;
+        RegisterId = parcel.RegisterId;
+        StatusId = parcel.StatusId;
+        CheckStatusId = parcel.CheckStatusId;
+        ProductName = parcel.ProductName;
+        TnVed = parcel.TnVed;
 
-        CountryCode = order.CountryCode;
+        CountryCode = parcel.CountryCode;
 
-        if (order is WbrParcel wbr)
+        if (parcel is WbrParcel wbr)
         {
             OrderNumber = wbr.OrderNumber;
             Shk = wbr.Shk;
@@ -86,7 +87,7 @@ public class ParcelViewItem
             RecipientInn = wbr.RecipientInn;
             PassportNumber = wbr.PassportNumber;
         }
-        else if (order is OzonParcel ozon)
+        else if (parcel is OzonParcel ozon)
         {
             PostingNumber = ozon.PostingNumber;
             OzonId = ozon.OzonId;
@@ -103,15 +104,20 @@ public class ParcelViewItem
             Patronymic = ozon.Patronymic;
         }
 
-        StopWordIds = order.BaseParcelStopWords?
+        StopWordIds = parcel.BaseParcelStopWords?
             .Select(bosw => bosw.StopWordId)
             .ToList() ?? [];
-        KeyWordIds = order.BaseParcelKeyWords?
+        KeyWordIds = parcel.BaseParcelKeyWords?
             .Select(bokw => bokw.KeyWordId)
             .ToList() ?? [];
-        FeacnOrderIds = order.BaseParcelFeacnPrefixes?
+        FeacnOrderIds = parcel.BaseParcelFeacnPrefixes?
             .Where(bofp => bofp.FeacnPrefix?.FeacnOrderId != null)
-            .Select(bofp => bofp.FeacnPrefix?.FeacnOrderId ?? 0)
+            .Select(bofp => bofp.FeacnPrefix.FeacnOrderId!.Value)
+            .Distinct()
+            .ToList() ?? [];
+        FeacnPrefixIds = parcel.BaseParcelFeacnPrefixes?
+            .Where(bofp => bofp.FeacnPrefix?.FeacnOrderId == null)
+            .Select(bofp => bofp.FeacnPrefix.Id)
             .Distinct()
             .ToList() ?? [];
     }

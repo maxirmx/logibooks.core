@@ -37,9 +37,9 @@ public class FeacnPrefixException
     
    [Column("code")]
    [StringLength(FeacnCode.FeacnCodeLength)]
-    public required string Code { get; set; } = string.Empty;
+   public required string Code { get; set; } = string.Empty;
 
-    [Column("feacn_prefix_id")]
-    public int FeacnPrefixId { get; set; }
-    public FeacnPrefix FeacnPrefix { get; set; } = null!;
+   [Column("feacn_prefix_id")]
+   public int FeacnPrefixId { get; set; }
+   public FeacnPrefix FeacnPrefix { get; set; } = null!;
 }

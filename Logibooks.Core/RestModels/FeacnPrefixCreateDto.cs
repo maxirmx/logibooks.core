@@ -23,66 +23,30 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
+using Logibooks.Core.Models;
 
-namespace Logibooks.Core.Models;
+namespace Logibooks.Core.RestModels;
 
-[Table("feacn_prefixes")]
-public class FeacnPrefix
+public class FeacnPrefixCreateDto
 {
-    [Column("id")]
     public int Id { get; set; }
-
-    [Column("code")]
-    [StringLength(FeacnCode.FeacnCodeLength)]
-    public required string Code { get; set; } = string.Empty;
-
-    [Column("description")]
-    public string? Description { get; set; }
-
-    [Column("comment")]
-    public string? Comment { get; set; }
-
-    [Column("interval_code")]
+    public string Code { get; set; } = string.Empty;
     public string? IntervalCode { get; set; }
+    public string? Description { get; set; }
+    public string? Comment { get; set; }
+    public List<string> Exceptions { get; set; } = [];
 
-    [Column("feacn_order_id")]
-    public int? FeacnOrderId { get; set; }
-    public FeacnOrder? FeacnOrder { get; set; }
-
-    public ICollection<FeacnPrefixException> FeacnPrefixExceptions { get; set; } = [];
-    public ICollection<BaseParcelFeacnPrefix> BaseParcelFeacnPrefixes { get; set; } = [];
-
-    [NotMapped]
-    public long LeftValue
+    public FeacnPrefix ToModel()
     {
-        get
+        return new FeacnPrefix
         {
-            if (Code != null)
-            {
-                if (long.TryParse(Code.PadRight(FeacnCode.FeacnCodeLength, '0'), out var result))
-                {
-                    return result;
-                }
-            }
-            return 0;
-        }
-    }
-
-    [NotMapped]
-    public long RightValue
-    {
-        get
-        {
-            if (IntervalCode != null)
-            {
-                if (long.TryParse(IntervalCode.PadRight(FeacnCode.FeacnCodeLength, '0'), out var result))
-                {
-                    return result;
-                }
-            }
-            return 0;
-        }
+            Id = Id,
+            Code = Code,
+            IntervalCode = IntervalCode,
+            Description = Description,
+            Comment = Comment,
+            FeacnOrderId = null,
+            FeacnPrefixExceptions = [.. Exceptions.Select(e => new FeacnPrefixException { Code = e })]
+        };
     }
 }

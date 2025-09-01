@@ -99,9 +99,9 @@ namespace Logibooks.Core.Data
                 .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<ParcelView>()
-                .HasOne(pv => pv.BaseOrder)
+                .HasOne(pv => pv.BaseParcel)
                 .WithMany()
-                .HasForeignKey(pv => pv.BaseOrderId)
+                .HasForeignKey(pv => pv.BaseParcelId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<Register>()
@@ -199,7 +199,8 @@ namespace Logibooks.Core.Data
             modelBuilder.Entity<FeacnPrefix>()
                 .HasOne(fp => fp.FeacnOrder)
                 .WithMany(fo => fo.FeacnPrefixes)
-                .HasForeignKey(fp => fp.FeacnOrderId);
+                .HasForeignKey(fp => fp.FeacnOrderId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<FeacnPrefixException>()
                 .HasOne(e => e.FeacnPrefix)

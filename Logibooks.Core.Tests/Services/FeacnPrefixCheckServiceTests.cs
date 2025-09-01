@@ -66,7 +66,7 @@ public class FeacnPrefixCheckServiceTests
     }
 
     [Test]
-    public async Task CheckOrderAsync_MatchesPrefix_AddsLink()
+    public async Task CheckParcelAsync_MatchesPrefix_AddsLink()
     {
         var prefix = new FeacnPrefix { Id = 10, Code = "1234", FeacnOrderId = 1 };
         _context.FeacnPrefixes.Add(prefix);
@@ -75,7 +75,7 @@ public class FeacnPrefixCheckServiceTests
         await _context.SaveChangesAsync();
 
         var svc = new FeacnPrefixCheckService(_context);
-        var links = await svc.CheckOrderAsync(order);
+        var links = await svc.CheckParcelAsync(order);
 
         Assert.That(order.CheckStatusId, Is.EqualTo(1));
         Assert.That(links.Count(), Is.EqualTo(1));
@@ -86,7 +86,7 @@ public class FeacnPrefixCheckServiceTests
     }
 
     [Test]
-    public async Task CheckOrderAsync_NoMatch_SetsStatusNoIssuesAndReturnsEmptyList()
+    public async Task CheckParcelAsync_NoMatch_SetsStatusNoIssuesAndReturnsEmptyList()
     {
         _context.FeacnPrefixes.Add(new FeacnPrefix { Id = 10, Code = "9999", FeacnOrderId = 1 });
         var order = new WbrParcel { Id = 1, RegisterId = 1, CheckStatusId = 1, TnVed = "1234567890" };
@@ -94,7 +94,7 @@ public class FeacnPrefixCheckServiceTests
         await _context.SaveChangesAsync();
 
         var svc = new FeacnPrefixCheckService(_context);
-        var links = await svc.CheckOrderAsync(order);
+        var links = await svc.CheckParcelAsync(order);
 
         Assert.That(order.CheckStatusId, Is.EqualTo(1));
         Assert.That(links.Count(), Is.EqualTo(0));
@@ -102,7 +102,7 @@ public class FeacnPrefixCheckServiceTests
     }
 
     [Test]
-    public async Task CheckOrderAsync_ExceptionPreventsMatch_ReturnsEmptyList()
+    public async Task CheckParcelAsync_ExceptionPreventsMatch_ReturnsEmptyList()
     {
         var prefix = new FeacnPrefix { Id = 10, Code = "1234", IntervalCode = "56", FeacnOrderId = 1 };
         prefix.FeacnPrefixExceptions.Add(new FeacnPrefixException { Id = 20, Code = "123455" });
@@ -112,7 +112,7 @@ public class FeacnPrefixCheckServiceTests
         await _context.SaveChangesAsync();
 
         var svc = new FeacnPrefixCheckService(_context);
-        var links = await svc.CheckOrderAsync(order);
+        var links = await svc.CheckParcelAsync(order);
 
         Assert.That(order.CheckStatusId, Is.EqualTo(1));
         Assert.That(links.Count(), Is.EqualTo(0));
@@ -120,7 +120,7 @@ public class FeacnPrefixCheckServiceTests
     }
 
     [Test]
-    public async Task CheckOrderAsync_MultipleMatches_ReturnsAllLinks()
+    public async Task CheckParcelAsync_MultipleMatches_ReturnsAllLinks()
     {
         var prefix1 = new FeacnPrefix { Id = 10, Code = "12", FeacnOrderId = 1 };
         var prefix2 = new FeacnPrefix { Id = 11, Code = "1234", FeacnOrderId = 1 };
@@ -130,7 +130,7 @@ public class FeacnPrefixCheckServiceTests
         await _context.SaveChangesAsync();
 
         var svc = new FeacnPrefixCheckService(_context);
-        var links = await svc.CheckOrderAsync(order);
+        var links = await svc.CheckParcelAsync(order);
 
         Assert.That(order.CheckStatusId, Is.EqualTo(1));
         Assert.That(links.Count(), Is.EqualTo(2));
@@ -138,7 +138,7 @@ public class FeacnPrefixCheckServiceTests
     }
 
     [Test]
-    public async Task CheckOrderAsync_IntervalMatch_ReturnsLink()
+    public async Task CheckParcelAsync_IntervalMatch_ReturnsLink()
     {
         var prefix = new FeacnPrefix { Id = 10, Code = "1200000000", IntervalCode = "1299999999", FeacnOrderId = 1 };
         _context.FeacnPrefixes.Add(prefix);
@@ -147,7 +147,7 @@ public class FeacnPrefixCheckServiceTests
         await _context.SaveChangesAsync();
 
         var svc = new FeacnPrefixCheckService(_context);
-        var links = await svc.CheckOrderAsync(order);
+        var links = await svc.CheckParcelAsync(order);
 
         Assert.That(order.CheckStatusId, Is.EqualTo(1));
         Assert.That(links.Count(), Is.EqualTo(1));
@@ -156,7 +156,7 @@ public class FeacnPrefixCheckServiceTests
     }
 
     [Test]
-    public async Task CheckOrderAsync_IntervalNoMatch_ReturnsEmptyList()
+    public async Task CheckParcelAsync_IntervalNoMatch_ReturnsEmptyList()
     {
         var prefix = new FeacnPrefix { Id = 10, Code = "1300000000", IntervalCode = "1399999999", FeacnOrderId = 1 };
         _context.FeacnPrefixes.Add(prefix);
@@ -165,14 +165,14 @@ public class FeacnPrefixCheckServiceTests
         await _context.SaveChangesAsync();
 
         var svc = new FeacnPrefixCheckService(_context);
-        var links = await svc.CheckOrderAsync(order);
+        var links = await svc.CheckParcelAsync(order);
 
         Assert.That(order.CheckStatusId, Is.EqualTo(1));
         Assert.That(links.Count(), Is.EqualTo(0));
     }
 
     [Test]
-    public async Task CheckOrderAsync_TnVedTooShort_ReturnsEmptyList()
+    public async Task CheckParcelAsync_TnVedTooShort_ReturnsEmptyList()
     {
         var prefix = new FeacnPrefix { Id = 10, Code = "1234", FeacnOrderId = 1 };
         _context.FeacnPrefixes.Add(prefix);
@@ -181,14 +181,14 @@ public class FeacnPrefixCheckServiceTests
         await _context.SaveChangesAsync();
 
         var svc = new FeacnPrefixCheckService(_context);
-        var links = await svc.CheckOrderAsync(order);
+        var links = await svc.CheckParcelAsync(order);
 
         Assert.That(order.CheckStatusId, Is.EqualTo(1));
         Assert.That(links.Count(), Is.EqualTo(0));
     }
 
     [Test]
-    public async Task CheckOrderAsync_PrefixTooShort_ReturnsEmptyList()
+    public async Task CheckParcelAsync_PrefixTooShort_ReturnsEmptyList()
     {
         var prefix = new FeacnPrefix { Id = 10, Code = "1", FeacnOrderId = 1 };
         _context.FeacnPrefixes.Add(prefix);
@@ -197,14 +197,14 @@ public class FeacnPrefixCheckServiceTests
         await _context.SaveChangesAsync();
 
         var svc = new FeacnPrefixCheckService(_context);
-        var links = await svc.CheckOrderAsync(order);
+        var links = await svc.CheckParcelAsync(order);
 
         Assert.That(order.CheckStatusId, Is.EqualTo(1));
         Assert.That(links.Count(), Is.EqualTo(0));
     }
 
     [Test]
-    public async Task CheckOrderAsync_TnVedNotStartingWithPrefix_ReturnsEmptyList()
+    public async Task CheckParcelAsync_TnVedNotStartingWithPrefix_ReturnsEmptyList()
     {
         var prefix = new FeacnPrefix { Id = 10, Code = "99", FeacnOrderId = 1 };
         _context.FeacnPrefixes.Add(prefix);
@@ -213,14 +213,14 @@ public class FeacnPrefixCheckServiceTests
         await _context.SaveChangesAsync();
 
         var svc = new FeacnPrefixCheckService(_context);
-        var links = await svc.CheckOrderAsync(order);
+        var links = await svc.CheckParcelAsync(order);
 
         Assert.That(order.CheckStatusId, Is.EqualTo(1));
         Assert.That(links.Count(), Is.EqualTo(0));
     }
 
     [Test]
-    public async Task CheckOrderAsync_InvalidTnVedForInterval_ReturnsEmptyList()
+    public async Task CheckParcelAsync_InvalidTnVedForInterval_ReturnsEmptyList()
     {
         var prefix = new FeacnPrefix { Id = 10, Code = "1200000000", IntervalCode = "1299999999", FeacnOrderId = 1 };
         _context.FeacnPrefixes.Add(prefix);
@@ -229,14 +229,14 @@ public class FeacnPrefixCheckServiceTests
         await _context.SaveChangesAsync();
 
         var svc = new FeacnPrefixCheckService(_context);
-        var links = await svc.CheckOrderAsync(order);
+        var links = await svc.CheckParcelAsync(order);
 
         Assert.That(order.CheckStatusId, Is.EqualTo(1));
         Assert.That(links.Count(), Is.EqualTo(0));
     }
 
     [Test]
-    public async Task CheckOrderAsync_EmptyExceptionCode_DoesNotPreventMatch()
+    public async Task CheckParcelAsync_EmptyExceptionCode_DoesNotPreventMatch()
     {
         var prefix = new FeacnPrefix { Id = 10, Code = "1234", FeacnOrderId = 1 };
         // Use valid non-empty codes for the exceptions since Code is required
@@ -248,14 +248,14 @@ public class FeacnPrefixCheckServiceTests
         await _context.SaveChangesAsync();
 
         var svc = new FeacnPrefixCheckService(_context);
-        var links = await svc.CheckOrderAsync(order);
+        var links = await svc.CheckParcelAsync(order);
 
         Assert.That(order.CheckStatusId, Is.EqualTo(1));
         Assert.That(links.Count(), Is.EqualTo(1));
     }
 
     [Test]
-    public async Task CheckOrderAsync_NoPrefixesForTwoDigitPrefix_ReturnsEmptyList()
+    public async Task CheckParcelAsync_NoPrefixesForTwoDigitPrefix_ReturnsEmptyList()
     {
         var prefix = new FeacnPrefix { Id = 10, Code = "9999", FeacnOrderId = 1 };
         _context.FeacnPrefixes.Add(prefix);
@@ -264,7 +264,7 @@ public class FeacnPrefixCheckServiceTests
         await _context.SaveChangesAsync();
 
         var svc = new FeacnPrefixCheckService(_context);
-        var links = await svc.CheckOrderAsync(order);
+        var links = await svc.CheckParcelAsync(order);
 
         Assert.That(order.CheckStatusId, Is.EqualTo(1));
         Assert.That(links.Count(), Is.EqualTo(0));
