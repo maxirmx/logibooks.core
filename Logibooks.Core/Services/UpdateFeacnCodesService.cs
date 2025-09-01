@@ -469,7 +469,6 @@ public class UpdateFeacnCodesService(
 
                 // Check if this prefix already exists
                 if (existingPrefixesByKey.TryGetValue(key, out var existingPrefix))
-                    // Change this line:
                 {
                     bool needsUpdate = existingPrefix.Description != row.Name ||
                                        existingPrefix.Comment != row.Comment ||
