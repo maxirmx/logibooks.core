@@ -1398,9 +1398,9 @@ public class ParcelsControllerTests
         _dbContext.Parcels.Add(order);
         await _dbContext.SaveChangesAsync();
 
-        // Add two ParcelViews for this user and order, with different timestamps
-        var pv1 = new ParcelView { UserId = 1, BaseOrderId = 1, DTime = DateTime.UtcNow.AddMinutes(-10) };
-        var pv2 = new ParcelView { UserId = 1, BaseOrderId = 1, DTime = DateTime.UtcNow.AddMinutes(-5) };
+        // Add two ParcelViews for this user and parcel, with different timestamps
+        var pv1 = new ParcelView { UserId = 1, BaseParcelId = 1, DTime = DateTime.UtcNow.AddMinutes(-10) };
+        var pv2 = new ParcelView { UserId = 1, BaseParcelId = 1, DTime = DateTime.UtcNow.AddMinutes(-5) };
         _dbContext.ParcelViews.AddRange(pv1, pv2);
         await _dbContext.SaveChangesAsync();
 

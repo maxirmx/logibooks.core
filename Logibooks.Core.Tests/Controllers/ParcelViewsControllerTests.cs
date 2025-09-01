@@ -67,7 +67,7 @@ public class ParcelViewsControllerTests
         Assert.That(result, Is.TypeOf<NoContentResult>());
         var pv = _dbContext.ParcelViews.Single();
         Assert.That(pv.UserId, Is.EqualTo(5));
-        Assert.That(pv.BaseOrderId, Is.EqualTo(42));
+        Assert.That(pv.BaseParcelId, Is.EqualTo(42));
         Assert.That(pv.DTime, Is.Not.EqualTo(default(System.DateTime)));
     }
 
@@ -97,10 +97,10 @@ public class ParcelViewsControllerTests
         var order3 = new WbrParcel { Id = 3, RegisterId = 1, StatusId = 1 };
         _dbContext.Parcels.AddRange(order1, order2, order3);
         _dbContext.ParcelViews.AddRange(
-            new ParcelView { UserId = 7, BaseOrderId = 1, DTime = System.DateTime.UtcNow.AddMinutes(-10) },
-            new ParcelView { UserId = 7, BaseOrderId = 2, DTime = System.DateTime.UtcNow.AddMinutes(-5) },
-            new ParcelView { UserId = 7, BaseOrderId = 3, DTime = System.DateTime.UtcNow },
-            new ParcelView { UserId = 8, BaseOrderId = 4, DTime = System.DateTime.UtcNow }
+            new ParcelView { UserId = 7, BaseParcelId = 1, DTime = System.DateTime.UtcNow.AddMinutes(-10) },
+            new ParcelView { UserId = 7, BaseParcelId = 2, DTime = System.DateTime.UtcNow.AddMinutes(-5) },
+            new ParcelView { UserId = 7, BaseParcelId = 3, DTime = System.DateTime.UtcNow },
+            new ParcelView { UserId = 8, BaseParcelId = 4, DTime = System.DateTime.UtcNow }
         );
         await _dbContext.SaveChangesAsync();
 
@@ -113,9 +113,9 @@ public class ParcelViewsControllerTests
         Assert.That(item.DTime, Is.Not.Null);
 
         Assert.That(_dbContext.ParcelViews.Count(p => p.UserId == 7), Is.EqualTo(1));
-        Assert.That(_dbContext.ParcelViews.Any(p => p.UserId == 7 && p.BaseOrderId == 2), Is.False);
-        Assert.That(_dbContext.ParcelViews.Any(p => p.UserId == 7 && p.BaseOrderId == 3), Is.False);
-        Assert.That(_dbContext.ParcelViews.Any(p => p.UserId == 7 && p.BaseOrderId == 1), Is.True);
+        Assert.That(_dbContext.ParcelViews.Any(p => p.UserId == 7 && p.BaseParcelId == 2), Is.False);
+        Assert.That(_dbContext.ParcelViews.Any(p => p.UserId == 7 && p.BaseParcelId == 3), Is.False);
+        Assert.That(_dbContext.ParcelViews.Any(p => p.UserId == 7 && p.BaseParcelId == 1), Is.True);
     }
 
     [Test]
@@ -142,7 +142,7 @@ public class ParcelViewsControllerTests
         var order = new WbrParcel { Id = 100, RegisterId = 1, StatusId = 1 };
         _dbContext.Parcels.Add(order);
         await _dbContext.SaveChangesAsync();
-        _dbContext.ParcelViews.Add(new ParcelView { UserId = 11, BaseOrderId = 100, DTime = System.DateTime.UtcNow });
+        _dbContext.ParcelViews.Add(new ParcelView { UserId = 11, BaseParcelId = 100, DTime = System.DateTime.UtcNow });
         await _dbContext.SaveChangesAsync();
         var result = await _controller.Back();
         Assert.That(result.Result, Is.TypeOf<NoContentResult>());
@@ -156,8 +156,8 @@ public class ParcelViewsControllerTests
         _dbContext.Parcels.Add(order);
         await _dbContext.SaveChangesAsync();
         _dbContext.ParcelViews.AddRange(
-            new ParcelView { UserId = 12, BaseOrderId = 200, DTime = System.DateTime.UtcNow.AddMinutes(-5) },
-            new ParcelView { UserId = 12, BaseOrderId = 201, DTime = System.DateTime.UtcNow }
+            new ParcelView { UserId = 12, BaseParcelId = 200, DTime = System.DateTime.UtcNow.AddMinutes(-5) },
+            new ParcelView { UserId = 12, BaseParcelId = 201, DTime = System.DateTime.UtcNow }
         );
         await _dbContext.SaveChangesAsync();
         var result = await _controller.Back();

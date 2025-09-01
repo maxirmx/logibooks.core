@@ -99,9 +99,9 @@ namespace Logibooks.Core.Data
                 .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<ParcelView>()
-                .HasOne(pv => pv.BaseOrder)
+                .HasOne(pv => pv.BaseParcel)
                 .WithMany()
-                .HasForeignKey(pv => pv.BaseOrderId)
+                .HasForeignKey(pv => pv.BaseParcelId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<Register>()
