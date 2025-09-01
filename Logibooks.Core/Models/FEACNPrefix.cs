@@ -48,8 +48,8 @@ public class FeacnPrefix
     public string? IntervalCode { get; set; }
 
     [Column("feacn_order_id")]
-    public int FeacnOrderId { get; set; }
-    public FeacnOrder FeacnOrder { get; set; } = null!;
+    public int? FeacnOrderId { get; set; }
+    public FeacnOrder? FeacnOrder { get; set; }
 
     public ICollection<FeacnPrefixException> FeacnPrefixExceptions { get; set; } = [];
     public ICollection<BaseParcelFeacnPrefix> BaseParcelFeacnPrefixes { get; set; } = [];

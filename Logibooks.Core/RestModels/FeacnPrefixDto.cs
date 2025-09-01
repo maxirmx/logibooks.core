@@ -33,7 +33,7 @@ public class FeacnPrefixDto
     public string Code { get; set; } = string.Empty;
     public string? Description { get; set; }
     public string? Comment { get; set; }
-    public int FeacnOrderId { get; set; }
+    public int? FeacnOrderId { get; set; }
     public List<FeacnPrefixExceptionDto> Exceptions { get; set; } = [];
     public FeacnPrefixDto(FeacnPrefix p)
     {

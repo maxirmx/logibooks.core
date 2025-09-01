@@ -111,7 +111,7 @@ public class ParcelViewItem
             .ToList() ?? [];
         FeacnOrderIds = order.BaseParcelFeacnPrefixes?
             .Where(bofp => bofp.FeacnPrefix?.FeacnOrderId != null)
-            .Select(bofp => bofp.FeacnPrefix?.FeacnOrderId ?? 0)
+            .Select(bofp => bofp.FeacnPrefix!.FeacnOrderId!.Value)
             .Distinct()
             .ToList() ?? [];
     }
