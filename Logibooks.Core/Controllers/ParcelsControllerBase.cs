@@ -581,10 +581,10 @@ public abstract class ParcelsControllerBase(IHttpContextAccessor httpContextAcce
     /// Given the current parcel keys, return a query representing all rows that come
     /// after the current row according to the requested sortBy/sortOrder (keyset predicate).
     /// </summary>
-    private static IQueryable<BaseParcel> ApplyKeysetPredicate(IQueryable<BaseParcel> query, ParcelKeys currentKeys, string sortBy, string sortOrder)
+    private IQueryable<BaseParcel> ApplyKeysetPredicate(IQueryable<BaseParcel> query, ParcelKeys currentKeys, string sortBy, string sortOrder)
     {
         var isDescending = sortOrder.ToLower() == "desc";
-        
+
         return sortBy.ToLower() switch
         {
             "statusid" => ApplyStatusIdKeysetPredicate(query, currentKeys, isDescending),
@@ -712,31 +712,65 @@ public abstract class ParcelsControllerBase(IHttpContextAccessor httpContextAcce
     }
 
     /// <summary>
-    /// Keyset predicate for FEACN lookup ordering. Currently this method performs a
-    /// simple id-based predicate as a placeholder: for FEACN ordering we compute a
-    /// numeric priority but full cross-row comparison by priority then id would
-    /// require translating the same expression used during ordering. To keep the
-    /// logic simple and efficient we fall back to id-based progression after
-    /// computing the priority for the current row.
-    ///
-    /// NOTE: This means keyset pagination across FEACN-priority boundaries is driven
-    /// primarily by Id; it is intentional to avoid complex SQL expressions that are
-    /// hard to keep consistent between computing priority and applying keyset predicate.
+    /// Keyset predicate for FEACN lookup ordering. Mirrors the priority computation
+    /// used for sorting so that pagination respects FEACN match quality. Parcels are
+    /// compared by calculated priority with Id used as a tiebreaker in the direction
+    /// of the requested sort order.
     /// </summary>
-    private static IQueryable<BaseParcel> ApplyFeacnKeysetPredicate(IQueryable<BaseParcel> query, ParcelKeys currentKeys, bool isDescending)
+    private IQueryable<BaseParcel> ApplyFeacnKeysetPredicate(IQueryable<BaseParcel> query, ParcelKeys currentKeys, bool isDescending)
     {
         var currentPriority = currentKeys.IntKey ?? 8;
         var currentId = currentKeys.Id;
 
+        var projected = query.Select(p => new
+        {
+            Parcel = p,
+            Priority =
+                p.BaseParcelKeyWords.Any() &&
+                p.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Select(fc => fc.FeacnCode).Distinct().Count() == 1 &&
+                p.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Any(fc => fc.FeacnCode == p.TnVed) ? 1 :
+
+                p.BaseParcelKeyWords.Any() &&
+                p.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Select(fc => fc.FeacnCode).Distinct().Count() > 1 &&
+                p.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Any(fc => fc.FeacnCode == p.TnVed) ? 2 :
+
+                p.BaseParcelKeyWords.Any() &&
+                p.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Select(fc => fc.FeacnCode).Distinct().Count() == 1 &&
+                !p.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Any(fc => fc.FeacnCode == p.TnVed) &&
+                _db.FeacnCodes.Any(fc => fc.Code == p.TnVed) ? 3 :
+
+                p.BaseParcelKeyWords.Any() &&
+                p.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Select(fc => fc.FeacnCode).Distinct().Count() > 1 &&
+                !p.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Any(fc => fc.FeacnCode == p.TnVed) &&
+                _db.FeacnCodes.Any(fc => fc.Code == p.TnVed) ? 4 :
+
+                p.BaseParcelKeyWords.Any() &&
+                p.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Select(fc => fc.FeacnCode).Distinct().Count() == 1 &&
+                !p.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Any(fc => fc.FeacnCode == p.TnVed) &&
+                !_db.FeacnCodes.Any(fc => fc.Code == p.TnVed) ? 5 :
+
+                p.BaseParcelKeyWords.Any() &&
+                p.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Select(fc => fc.FeacnCode).Distinct().Count() > 1 &&
+                !p.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Any(fc => fc.FeacnCode == p.TnVed) &&
+                !_db.FeacnCodes.Any(fc => fc.Code == p.TnVed) ? 6 :
+
+                !p.BaseParcelKeyWords.Any() &&
+                _db.FeacnCodes.Any(fc => fc.Code == p.TnVed) ? 7 : 8
+        });
+
         if (isDescending)
         {
-            // For descending priority, we want higher priority values (worse matches) first
-            return query.Where(p => p.Id > currentId); // Simple id-based pagination for feacnlookup desc
+            return projected
+                .Where(x => x.Priority < currentPriority ||
+                            (x.Priority == currentPriority && x.Parcel.Id < currentId))
+                .Select(x => x.Parcel);
         }
         else
         {
-            // For ascending priority, we want lower priority values (better matches) first
-            return query.Where(p => p.Id > currentId); // Simple id-based pagination for feacnlookup asc
+            return projected
+                .Where(x => x.Priority > currentPriority ||
+                            (x.Priority == currentPriority && x.Parcel.Id > currentId))
+                .Select(x => x.Parcel);
         }
     }
 

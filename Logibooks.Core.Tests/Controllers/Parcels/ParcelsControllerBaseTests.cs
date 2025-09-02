@@ -483,9 +483,9 @@ public class ParcelsControllerBaseTests
         Assert.That(result!.Id, Is.EqualTo(expectedId));
     }
 
-    [TestCase("asc")]
-    [TestCase("desc")]
-    public async Task GetNextParcelKeysetAsync_FeacnKeysetPredicate_Works(string sortOrder)
+    [TestCase("asc", 10, 20)]
+    [TestCase("desc", 20, 10)]
+    public async Task GetNextParcelKeysetAsync_FeacnKeysetPredicate_Works(string sortOrder, int startId, int expectedId)
     {
         _dbContext.FeacnCodes.Add(new FeacnCode
         {
@@ -514,7 +514,7 @@ public class ParcelsControllerBaseTests
         var result = await _controller.TestGetNextParcelKeysetAsync(
             companyId: 2,
             registerId: 1,
-            parcelId: 10,
+            parcelId: startId,
             statusId: null,
             checkStatusId: null,
             tnVed: null,
@@ -524,7 +524,7 @@ public class ParcelsControllerBaseTests
         );
 
         Assert.That(result, Is.Not.Null);
-        Assert.That(result!.Id, Is.EqualTo(20));
+        Assert.That(result!.Id, Is.EqualTo(expectedId));
     }
 
     [Test]
