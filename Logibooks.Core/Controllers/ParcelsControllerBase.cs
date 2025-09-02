@@ -30,6 +30,28 @@ namespace Logibooks.Core.Controllers;
 public abstract class ParcelsControllerBase(IHttpContextAccessor httpContextAccessor, AppDbContext db, ILogger logger) : 
     LogibooksControllerBase(httpContextAccessor, db, logger)
 {
+    /// <summary>
+    /// Cache for FeacnCode values to avoid N+1 query issues during priority calculations.
+    /// This cache is populated once per request and reused for all priority calculations.
+    /// </summary>
+    private HashSet<string>? _cachedFeacnCodes;
+
+    /// <summary>
+    /// Get all FeacnCode values from the database and cache them in memory.
+    /// This method populates the cache once per request to avoid repeated database queries
+    /// during priority calculations for multiple parcels.
+    /// </summary>
+    /// <returns>A HashSet containing all FeacnCode values from the database</returns>
+    private async Task<HashSet<string>> GetFeacnCodesAsync()
+    {
+        if (_cachedFeacnCodes == null)
+        {
+            _cachedFeacnCodes = await _db.FeacnCodes
+                .Select(fc => fc.Code)
+                .ToHashSetAsync();
+        }
+        return _cachedFeacnCodes;
+    }
 
     /// <summary>
     /// Calculate match priority for sorting: 1 = best match, 8 = worst match.
@@ -45,6 +67,9 @@ public abstract class ParcelsControllerBase(IHttpContextAccessor httpContextAcce
     /// returned IQueryable is ordered by computed priority (ascending = best match)
     /// or descending depending on the requested sort order. Id is always used as a
     /// final stable tiebreaker.
+    /// 
+    /// Note: This method still uses database queries in the expression tree for SQL translation.
+    /// For in-memory calculations, use CalculateMatchPriorityAsync which leverages caching.
     /// </summary>
     protected IQueryable<T> ApplyMatchSorting<T>(IQueryable<T> query, string sortOrder) where T : BaseParcel
     {
@@ -391,8 +416,8 @@ public abstract class ParcelsControllerBase(IHttpContextAccessor httpContextAcce
         if (currentParcel == null)
             return null;
 
-        // Calculate priority using the same logic as ApplyMatchSorting
-        int priority = CalculateMatchPriority(currentParcel);
+        // Calculate priority using the cached approach to avoid N+1 queries
+        int priority = await CalculateMatchPriorityAsync(currentParcel);
         
         return new ParcelKeys { Id = currentParcel.Id, IntKey = priority };
     }
@@ -401,30 +426,35 @@ public abstract class ParcelsControllerBase(IHttpContextAccessor httpContextAcce
     /// Calculate priority (1..8) for an individual parcel instance. This mirrors the
     /// expression used in ApplyMatchSorting but runs in-memory against the loaded
     /// parcel entity; used when computing key values for keyset pagination.
+    /// 
+    /// This method now uses cached FeacnCodes to avoid N+1 query issues when processing
+    /// multiple parcels.
     /// </summary>
-    private int CalculateMatchPriority(BaseParcel parcel)
+    private async Task<int> CalculateMatchPriorityAsync(BaseParcel parcel)
     {
         var hasKeywords = parcel.BaseParcelKeyWords.Any();
+        var feacnCodes = await GetFeacnCodesAsync();
+        
         if (!hasKeywords)
         {
             // If no keywords exist, determine whether the parcel's TnVed exists in the
-            // global FeacnCodes table. If it does, prefer it (priority 7) over unknown (8).
+            // cached FeacnCodes. If it does, prefer it (priority 7) over unknown (8).
             var tnVedExists = !string.IsNullOrEmpty(parcel.TnVed) && 
-                             _db.FeacnCodes.Any(fc => fc.Code == parcel.TnVed);
+                             feacnCodes.Contains(parcel.TnVed);
             return tnVedExists ? 7 : 8;
         }
 
         // Collect distinct FEACN codes referenced by keywords for this parcel
-        var feacnCodes = parcel.BaseParcelKeyWords
+        var parcelFeacnCodes = parcel.BaseParcelKeyWords
             .SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes)
             .Select(fc => fc.FeacnCode)
             .Distinct()
             .ToList();
 
-        var distinctCount = feacnCodes.Count;
-        var matchesTnVed = !string.IsNullOrEmpty(parcel.TnVed) && feacnCodes.Contains(parcel.TnVed);
+        var distinctCount = parcelFeacnCodes.Count;
+        var matchesTnVed = !string.IsNullOrEmpty(parcel.TnVed) && parcelFeacnCodes.Contains(parcel.TnVed);
         var tnVedInDb = !string.IsNullOrEmpty(parcel.TnVed) && 
-                        _db.FeacnCodes.Any(fc => fc.Code == parcel.TnVed);
+                        feacnCodes.Contains(parcel.TnVed);
 
         // Map tuple of (distinctCount, matchesTnVed, tnVedInDb) to priority according to rules
         return (distinctCount, matchesTnVed, tnVedInDb) switch
