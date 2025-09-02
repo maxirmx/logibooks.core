@@ -52,7 +52,7 @@ public class ParcelViewsController(
         var orderExists = await _db.Parcels.AnyAsync(o => o.Id == dto.Id);
         if (!orderExists)
         {
-            return _404Order(dto.Id);
+            return _404Parcel(dto.Id);
         }
 
         var pv = new ParcelView

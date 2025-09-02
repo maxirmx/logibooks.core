@@ -27,6 +27,6 @@ namespace Logibooks.Core;
 
 public static class VersionInfo
 {
-    public const string AppVersion = "0.11.1";
+    public const string AppVersion = "0.11.2";
 }
 
