@@ -73,59 +73,86 @@ public abstract class ParcelsControllerBase(IHttpContextAccessor httpContextAcce
     /// </summary>
     protected IQueryable<T> ApplyMatchSorting<T>(IQueryable<T> query, string sortOrder) where T : BaseParcel
     {
-        // Build an expression tree that can be translated to SQL by EF Core.
-        Expression<Func<T, int>> priorityExpression = o =>
-            // Priority 1: Exactly one distinct FEACN code across all keywords and it equals TnVed
-            o.BaseParcelKeyWords.Any() &&
-            o.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Select(fc => fc.FeacnCode).Distinct().Count() == 1 &&
-            o.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Any(fc => fc.FeacnCode == o.TnVed) ? 1 :
+        // Assign SelectMany query to a local variable and derive match indicators from it.
+        var matchQuery = query.Select(o => new
+            {
+                Parcel = o,
+                FeacnQuery = o.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes)
+            })
+            .Select(x => new
+            {
+                x.Parcel,
+                DistinctFeacnCount = x.FeacnQuery.Select(fc => fc.FeacnCode).Distinct().Count(),
+                HasTnVedMatch = x.FeacnQuery.Any(fc => fc.FeacnCode == x.Parcel.TnVed)
+            });
 
-            // Priority 2: Multiple distinct FEACN codes across keywords and one of them equals TnVed
-            o.BaseParcelKeyWords.Any() &&
-            o.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Select(fc => fc.FeacnCode).Distinct().Count() > 1 &&
-            o.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Any(fc => fc.FeacnCode == o.TnVed) ? 2 :
-
-            // Priority 3: Exactly one distinct FEACN code, it does NOT equal TnVed, but TnVed exists in FeacnCodes table
-            o.BaseParcelKeyWords.Any() &&
-            o.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Select(fc => fc.FeacnCode).Distinct().Count() == 1 &&
-            !o.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Any(fc => fc.FeacnCode == o.TnVed) &&
-            _db.FeacnCodes.Any(fc => fc.Code == o.TnVed) ? 3 :
-
-            // Priority 4: Multiple distinct FEACN codes, none equal TnVed, but TnVed exists in FeacnCodes
-            o.BaseParcelKeyWords.Any() &&
-            o.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Select(fc => fc.FeacnCode).Distinct().Count() > 1 &&
-            !o.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Any(fc => fc.FeacnCode == o.TnVed) &&
-            _db.FeacnCodes.Any(fc => fc.Code == o.TnVed) ? 4 :
-
-            // Priority 5: Exactly one distinct FEACN code, doesn't match TnVed, and TnVed NOT present in FeacnCodes
-            o.BaseParcelKeyWords.Any() &&
-            o.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Select(fc => fc.FeacnCode).Distinct().Count() == 1 &&
-            !o.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Any(fc => fc.FeacnCode == o.TnVed) &&
-            !_db.FeacnCodes.Any(fc => fc.Code == o.TnVed) ? 5 :
-
-            // Priority 6: Multiple distinct FEACN codes, none match TnVed, and TnVed NOT present in FeacnCodes
-            o.BaseParcelKeyWords.Any() &&
-            o.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Select(fc => fc.FeacnCode).Distinct().Count() > 1 &&
-            !o.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Any(fc => fc.FeacnCode == o.TnVed) &&
-            !_db.FeacnCodes.Any(fc => fc.Code == o.TnVed) ? 6 :
-
-            // Priority 7: No keywords but TnVed exists in FeacnCodes table
-            !o.BaseParcelKeyWords.Any() &&
-            _db.FeacnCodes.Any(fc => fc.Code == o.TnVed) ? 7 :
-
-            // Priority 8: No keywords and TnVed not in FeacnCodes table (worst match)
-            8;
-
-        // Apply direction and stable tiebreaker by Id
         if (sortOrder.ToLower() == "desc")
         {
-            return query.OrderByDescending(priorityExpression)
-                .ThenByDescending(o => o.Id); 
+            return matchQuery
+                .OrderByDescending(x =>
+                    // Priority 1: Exactly one distinct FEACN code across all keywords and it equals TnVed
+                    x.Parcel.BaseParcelKeyWords.Any() && x.DistinctFeacnCount == 1 && x.HasTnVedMatch ? 1 :
+
+                    // Priority 2: Multiple distinct FEACN codes across keywords and one of them equals TnVed
+                    x.Parcel.BaseParcelKeyWords.Any() && x.DistinctFeacnCount > 1 && x.HasTnVedMatch ? 2 :
+
+                    // Priority 3: Exactly one distinct FEACN code, it does NOT equal TnVed, but TnVed exists in FeacnCodes table
+                    x.Parcel.BaseParcelKeyWords.Any() && x.DistinctFeacnCount == 1 && !x.HasTnVedMatch &&
+                    _db.FeacnCodes.Any(fc => fc.Code == x.Parcel.TnVed) ? 3 :
+
+                    // Priority 4: Multiple distinct FEACN codes, none equal TnVed, but TnVed exists in FeacnCodes
+                    x.Parcel.BaseParcelKeyWords.Any() && x.DistinctFeacnCount > 1 && !x.HasTnVedMatch &&
+                    _db.FeacnCodes.Any(fc => fc.Code == x.Parcel.TnVed) ? 4 :
+
+                    // Priority 5: Exactly one distinct FEACN code, doesn't match TnVed, and TnVed NOT present in FeacnCodes
+                    x.Parcel.BaseParcelKeyWords.Any() && x.DistinctFeacnCount == 1 && !x.HasTnVedMatch &&
+                    !_db.FeacnCodes.Any(fc => fc.Code == x.Parcel.TnVed) ? 5 :
+
+                    // Priority 6: Multiple distinct FEACN codes, none match TnVed, and TnVed NOT present in FeacnCodes
+                    x.Parcel.BaseParcelKeyWords.Any() && x.DistinctFeacnCount > 1 && !x.HasTnVedMatch &&
+                    !_db.FeacnCodes.Any(fc => fc.Code == x.Parcel.TnVed) ? 6 :
+
+                    // Priority 7: No keywords but TnVed exists in FeacnCodes table
+                    !x.Parcel.BaseParcelKeyWords.Any() && _db.FeacnCodes.Any(fc => fc.Code == x.Parcel.TnVed) ? 7 :
+
+                    // Priority 8: No keywords and TnVed not in FeacnCodes table (worst match)
+                    8)
+                .ThenByDescending(x => x.Parcel.Id)
+                .Select(x => x.Parcel);
         }
         else
         {
-            return query.OrderBy(priorityExpression)
-                .ThenBy(o => o.Id); // Always use ascending Id as final tiebreaker
+            return matchQuery
+                .OrderBy(x =>
+                    // Priority 1: Exactly one distinct FEACN code across all keywords and it equals TnVed
+                    x.Parcel.BaseParcelKeyWords.Any() && x.DistinctFeacnCount == 1 && x.HasTnVedMatch ? 1 :
+
+                    // Priority 2: Multiple distinct FEACN codes across keywords and one of them equals TnVed
+                    x.Parcel.BaseParcelKeyWords.Any() && x.DistinctFeacnCount > 1 && x.HasTnVedMatch ? 2 :
+
+                    // Priority 3: Exactly one distinct FEACN code, it does NOT equal TnVed, but TnVed exists in FeacnCodes table
+                    x.Parcel.BaseParcelKeyWords.Any() && x.DistinctFeacnCount == 1 && !x.HasTnVedMatch &&
+                    _db.FeacnCodes.Any(fc => fc.Code == x.Parcel.TnVed) ? 3 :
+
+                    // Priority 4: Multiple distinct FEACN codes, none equal TnVed, but TnVed exists in FeacnCodes
+                    x.Parcel.BaseParcelKeyWords.Any() && x.DistinctFeacnCount > 1 && !x.HasTnVedMatch &&
+                    _db.FeacnCodes.Any(fc => fc.Code == x.Parcel.TnVed) ? 4 :
+
+                    // Priority 5: Exactly one distinct FEACN code, doesn't match TnVed, and TnVed NOT present in FeacnCodes
+                    x.Parcel.BaseParcelKeyWords.Any() && x.DistinctFeacnCount == 1 && !x.HasTnVedMatch &&
+                    !_db.FeacnCodes.Any(fc => fc.Code == x.Parcel.TnVed) ? 5 :
+
+                    // Priority 6: Multiple distinct FEACN codes, none match TnVed, and TnVed NOT present in FeacnCodes
+                    x.Parcel.BaseParcelKeyWords.Any() && x.DistinctFeacnCount > 1 && !x.HasTnVedMatch &&
+                    !_db.FeacnCodes.Any(fc => fc.Code == x.Parcel.TnVed) ? 6 :
+
+                    // Priority 7: No keywords but TnVed exists in FeacnCodes table
+                    !x.Parcel.BaseParcelKeyWords.Any() && _db.FeacnCodes.Any(fc => fc.Code == x.Parcel.TnVed) ? 7 :
+
+                    // Priority 8: No keywords and TnVed not in FeacnCodes table (worst match)
+                    8)
+                .ThenBy(x => x.Parcel.Id)
+                .Select(x => x.Parcel);
         }
     }
 
