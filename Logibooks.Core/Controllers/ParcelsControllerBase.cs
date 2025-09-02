@@ -95,7 +95,7 @@ public abstract class ParcelsControllerBase(IHttpContextAccessor httpContextAcce
         if (sortOrder.ToLower() == "desc")
         {
             return query.OrderByDescending(priorityExpression)
-                fi.ThenByDescending(o => o.Id); 
+                .ThenByDescending(o => o.Id); 
         }
         else
         {
