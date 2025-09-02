@@ -89,14 +89,15 @@ public class ParcelsControllerBaseTests
     }
 
     [Test]
-    public async Task GetNextParcelKeysetAsync_CurrentParcelFilteredOut_ReturnsFirstParcelBySort()
+    public async Task GetNextParcelKeysetAsync_CurrentParcelFilteredOut_ReturnsNextFilteredParcelAfterCurrent()
     {
         // Arrange: Create parcels with different status and check status IDs
         var parcels = new[]
         {
             new WbrParcel { Id = 10, RegisterId = 1, StatusId = 1, CheckStatusId = 1, TnVed = "A" },
             new WbrParcel { Id = 20, RegisterId = 1, StatusId = 2, CheckStatusId = 1, TnVed = "B" },
-            new WbrParcel { Id = 30, RegisterId = 1, StatusId = 3, CheckStatusId = 2, TnVed = "C" }
+            new WbrParcel { Id = 30, RegisterId = 1, StatusId = 3, CheckStatusId = 2, TnVed = "C" }, // Filtered out
+            new WbrParcel { Id = 40, RegisterId = 1, StatusId = 4, CheckStatusId = 1, TnVed = "D" }  // Next match after 30
         };
         _dbContext.Parcels.AddRange(parcels);
         await _dbContext.SaveChangesAsync();
@@ -114,9 +115,9 @@ public class ParcelsControllerBaseTests
             withIssues: false
         );
 
-        // Assert: Should return the first parcel matching the filter when sorted by id ascending (ID 10)
+        // Assert: Should return the next parcel after ID 30 that matches the filter (ID 40)
         Assert.That(result, Is.Not.Null);
-        Assert.That(result!.Id, Is.EqualTo(10));
+        Assert.That(result!.Id, Is.EqualTo(40));
         Assert.That(result.CheckStatusId, Is.EqualTo(1));
     }
 
@@ -159,8 +160,8 @@ public class ParcelsControllerBaseTests
         var parcels = new[]
         {
             new WbrParcel { Id = 10, RegisterId = 1, StatusId = 1, CheckStatusId = 1, TnVed = "123ABC" },
-            new WbrParcel { Id = 20, RegisterId = 1, StatusId = 1, CheckStatusId = 1, TnVed = "456DEF" },
-            new WbrParcel { Id = 30, RegisterId = 1, StatusId = 1, CheckStatusId = 1, TnVed = "123XYZ" }
+            new WbrParcel { Id = 20, RegisterId = 1, StatusId = 1, CheckStatusId = 1, TnVed = "456DEF" }, // Filtered out  
+            new WbrParcel { Id = 30, RegisterId = 1, StatusId = 1, CheckStatusId = 1, TnVed = "123XYZ" }  // Next match after 20
         };
         _dbContext.Parcels.AddRange(parcels);
         await _dbContext.SaveChangesAsync();
@@ -178,9 +179,9 @@ public class ParcelsControllerBaseTests
             withIssues: false
         );
 
-        // Assert: Should return the first parcel matching the filter when sorted by id ascending (ID 10)
+        // Assert: Should return the next parcel after ID 20 that matches the filter (ID 30)
         Assert.That(result, Is.Not.Null);
-        Assert.That(result!.Id, Is.EqualTo(10));
+        Assert.That(result!.Id, Is.EqualTo(30));
         Assert.That(result.TnVed, Does.Contain("123"));
     }
 

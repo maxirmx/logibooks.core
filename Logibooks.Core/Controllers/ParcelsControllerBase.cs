@@ -329,8 +329,8 @@ public abstract class ParcelsControllerBase(IHttpContextAccessor httpContextAcce
     /// desired sorting. Returns null when the requested sortBy is invalid.
     ///
     /// The method first attempts to find the next parcel using keyset pagination.
-    /// If the current parcel is not found in the filtered set, it returns the first
-    /// parcel according to the specified sorting criteria.
+    /// If the current parcel is not found in the filtered set, it finds the next parcel
+    /// that comes after the current parcel in sort order AND matches the applied filters.
     /// </summary>
     protected async Task<BaseParcel?> GetNextParcelKeysetAsync(
         int companyId,
@@ -354,9 +354,9 @@ public abstract class ParcelsControllerBase(IHttpContextAccessor httpContextAcce
         var currentKeys = await GetCurrentParcelKeysAsync(filterQuery, parcelId, sortBy);
         if (currentKeys == null)
         {
-            // Current parcel not found or filtered out - return the first parcel according to sort criteria
-            var orderedQuery = ApplyParcelOrdering(filterQuery, sortBy, sortOrder);
-            return await orderedQuery.FirstOrDefaultAsync();
+            // Current parcel not found in filtered set - need to find next item after current parcel
+            // that matches the filters, not just the first filtered item
+            return await GetNextFilteredParcelAfterCurrentAsync(companyId, registerId, parcelId, statusId, checkStatusId, tnVed, sortBy, sortOrder, withIssues);
         }
 
         // Apply keyset predicate to find next parcel
@@ -366,6 +366,134 @@ public abstract class ParcelsControllerBase(IHttpContextAccessor httpContextAcce
         var orderedQuery2 = ApplyParcelOrdering(keysetQuery, sortBy, sortOrder);
         
         return await orderedQuery2.FirstOrDefaultAsync();
+    }
+
+    /// <summary>
+    /// Find the next parcel that comes after the current parcel in sort order AND matches the applied filters.
+    /// This is used when the current parcel is filtered out (e.g., doesn't have issues when withIssues=true).
+    /// </summary>
+    private async Task<BaseParcel?> GetNextFilteredParcelAfterCurrentAsync(
+        int companyId,
+        int registerId,
+        int parcelId,
+        int? statusId,
+        int? checkStatusId,
+        string? tnVed,
+        string sortBy,
+        string sortOrder,
+        bool withIssues)
+    {
+        // Build query without the specific filters (withIssues, statusId, checkStatusId, tnVed)
+        // to get the current parcel's key values
+        var unfiltered = BuildParcelFilterQuery(companyId, registerId, null, null, null, false);
+        
+        // Get current parcel's keys from the unfiltered set
+        var currentKeys = await GetCurrentParcelKeysAsync(unfiltered, parcelId, sortBy);
+        if (currentKeys == null)
+        {
+            // Current parcel doesn't exist at all - return first filtered item
+            var filterQuery = BuildParcelFilterQuery(companyId, registerId, statusId, checkStatusId, tnVed, withIssues);
+            var orderedQuery = ApplyParcelOrdering(filterQuery, sortBy, sortOrder);
+            return await orderedQuery.FirstOrDefaultAsync();
+        }
+
+        // Apply keyset predicate to unfiltered query to get all parcels after current
+        var afterCurrentQuery = ApplyKeysetPredicate(unfiltered, currentKeys, sortBy, sortOrder);
+        
+        // Now apply the filters to get only the parcels after current that match filters
+        var filteredAfterCurrent = ApplyFiltersToQuery(afterCurrentQuery, statusId, checkStatusId, tnVed, withIssues);
+        
+        // Apply ordering and get first result
+        var orderedQuery2 = ApplyParcelOrdering(filteredAfterCurrent, sortBy, sortOrder);
+        
+        return await orderedQuery2.FirstOrDefaultAsync();
+    }
+
+    /// <summary>
+    /// Apply the specific filters (statusId, checkStatusId, tnVed, withIssues) to a query.
+    /// This is used to filter parcels that come after the current parcel.
+    /// </summary>
+    private static IQueryable<BaseParcel> ApplyFiltersToQuery(
+        IQueryable<BaseParcel> query,
+        int? statusId,
+        int? checkStatusId,
+        string? tnVed,
+        bool withIssues)
+    {
+        // Apply withIssues filter
+        if (withIssues)
+        {
+            query = query.Where(o => 
+                o.CheckStatusId >= (int)ParcelCheckStatusCode.HasIssues &&
+                o.CheckStatusId < (int)ParcelCheckStatusCode.NoIssues);
+        }
+
+        // Apply statusId filter
+        if (statusId != null)
+        {
+            query = query.Where(o => o.StatusId == statusId);
+        }
+
+        // Apply checkStatusId filter
+        if (checkStatusId != null)
+        {
+            query = query.Where(o => o.CheckStatusId == checkStatusId);
+        }
+
+        // Apply tnVed filter
+        if (!string.IsNullOrWhiteSpace(tnVed))
+        {
+            query = query.Where(o => o.TnVed != null && o.TnVed.Contains(tnVed));
+        }
+
+        return query;
+    }
+
+    /// <summary>
+    /// Calculate priority (1..8) for an individual parcel instance. This mirrors the
+    /// expression used in ApplyMatchSorting but runs in-memory against the loaded
+    /// parcel entity; used when computing key values for keyset pagination.
+    /// 
+    /// This method now uses cached FeacnCodes to avoid N+1 query issues when processing
+    /// multiple parcels.
+    /// </summary>
+    private async Task<int> CalculateMatchPriorityAsync(BaseParcel parcel)
+    {
+        var hasKeywords = parcel.BaseParcelKeyWords.Any();
+        var feacnCodes = await GetFeacnCodesAsync();
+        
+        if (!hasKeywords)
+        {
+            // If no keywords exist, determine whether the parcel's TnVed exists in the
+            // cached FeacnCodes. If it does, prefer it (priority 7) over unknown (8).
+            var tnVedExists = !string.IsNullOrEmpty(parcel.TnVed) && 
+                             feacnCodes.Contains(parcel.TnVed);
+            return tnVedExists ? 7 : 8;
+        }
+
+        // Collect distinct FEACN codes referenced by keywords for this parcel
+        var parcelFeacnCodes = parcel.BaseParcelKeyWords
+            .SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes)
+            .Select(fc => fc.FeacnCode)
+            .Distinct()
+            .ToList();
+
+        var distinctCount = parcelFeacnCodes.Count;
+        var matchesTnVed = !string.IsNullOrEmpty(parcel.TnVed) && parcelFeacnCodes.Contains(parcel.TnVed);
+        var tnVedInDb = !string.IsNullOrEmpty(parcel.TnVed) && 
+                        feacnCodes.Contains(parcel.TnVed);
+
+        // Map tuple of (distinctCount, matchesTnVed, tnVedInDb) to priority according to rules
+        return (distinctCount, matchesTnVed, tnVedInDb) switch
+        {
+            (1, true, _) => 1,
+            (> 1, true, _) => 2,
+            (1, false, true) => 3,
+            (> 1, false, true) => 4,
+            (1, false, false) => 5,
+            (> 1, false, false) => 6,
+            _ => 8
+        };
     }
 
     /// <summary>
@@ -423,57 +551,10 @@ public abstract class ParcelsControllerBase(IHttpContextAccessor httpContextAcce
     }
 
     /// <summary>
-    /// Calculate priority (1..8) for an individual parcel instance. This mirrors the
-    /// expression used in ApplyMatchSorting but runs in-memory against the loaded
-    /// parcel entity; used when computing key values for keyset pagination.
-    /// 
-    /// This method now uses cached FeacnCodes to avoid N+1 query issues when processing
-    /// multiple parcels.
-    /// </summary>
-    private async Task<int> CalculateMatchPriorityAsync(BaseParcel parcel)
-    {
-        var hasKeywords = parcel.BaseParcelKeyWords.Any();
-        var feacnCodes = await GetFeacnCodesAsync();
-        
-        if (!hasKeywords)
-        {
-            // If no keywords exist, determine whether the parcel's TnVed exists in the
-            // cached FeacnCodes. If it does, prefer it (priority 7) over unknown (8).
-            var tnVedExists = !string.IsNullOrEmpty(parcel.TnVed) && 
-                             feacnCodes.Contains(parcel.TnVed);
-            return tnVedExists ? 7 : 8;
-        }
-
-        // Collect distinct FEACN codes referenced by keywords for this parcel
-        var parcelFeacnCodes = parcel.BaseParcelKeyWords
-            .SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes)
-            .Select(fc => fc.FeacnCode)
-            .Distinct()
-            .ToList();
-
-        var distinctCount = parcelFeacnCodes.Count;
-        var matchesTnVed = !string.IsNullOrEmpty(parcel.TnVed) && parcelFeacnCodes.Contains(parcel.TnVed);
-        var tnVedInDb = !string.IsNullOrEmpty(parcel.TnVed) && 
-                        feacnCodes.Contains(parcel.TnVed);
-
-        // Map tuple of (distinctCount, matchesTnVed, tnVedInDb) to priority according to rules
-        return (distinctCount, matchesTnVed, tnVedInDb) switch
-        {
-            (1, true, _) => 1,
-            (> 1, true, _) => 2,
-            (1, false, true) => 3,
-            (> 1, false, true) => 4,
-            (1, false, false) => 5,
-            (> 1, false, false) => 6,
-            _ => 8
-        };
-    }
-
-    /// <summary>
     /// Given the current parcel keys, return a query representing all rows that come
     /// after the current row according to the requested sortBy/sortOrder (keyset predicate).
     /// </summary>
-    private IQueryable<BaseParcel> ApplyKeysetPredicate(IQueryable<BaseParcel> query, ParcelKeys currentKeys, string sortBy, string sortOrder)
+    private static IQueryable<BaseParcel> ApplyKeysetPredicate(IQueryable<BaseParcel> query, ParcelKeys currentKeys, string sortBy, string sortOrder)
     {
         var isDescending = sortOrder.ToLower() == "desc";
         
