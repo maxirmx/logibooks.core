@@ -301,12 +301,11 @@ public abstract class ParcelsControllerBase(IHttpContextAccessor httpContextAcce
 
     /// <summary>
     /// Find the next parcel for keyset pagination given the current parcel id and
-    /// desired sorting. Returns null when the requested sortBy is invalid or the
-    /// current parcel is not present in the filtered set.
+    /// desired sorting. Returns null when the requested sortBy is invalid.
     ///
-    /// The method first computes the current parcel's sort key(s) then applies the
-    /// appropriate keyset predicate to locate the next matching row, finally
-    /// ordering the result and returning the first item.
+    /// The method first attempts to find the next parcel using keyset pagination.
+    /// If the current parcel is not found in the filtered set, it returns the first
+    /// parcel according to the specified sorting criteria.
     /// </summary>
     protected async Task<BaseParcel?> GetNextParcelKeysetAsync(
         int companyId,
@@ -330,16 +329,18 @@ public abstract class ParcelsControllerBase(IHttpContextAccessor httpContextAcce
         var currentKeys = await GetCurrentParcelKeysAsync(filterQuery, parcelId, sortBy);
         if (currentKeys == null)
         {
-            return null; // Current parcel not found or filtered out
+            // Current parcel not found or filtered out - return the first parcel according to sort criteria
+            var orderedQuery = ApplyParcelOrdering(filterQuery, sortBy, sortOrder);
+            return await orderedQuery.FirstOrDefaultAsync();
         }
 
         // Apply keyset predicate to find next parcel
         var keysetQuery = ApplyKeysetPredicate(filterQuery, currentKeys, sortBy, sortOrder);
         
         // Apply ordering and get first result
-        var orderedQuery = ApplyParcelOrdering(keysetQuery, sortBy, sortOrder);
+        var orderedQuery2 = ApplyParcelOrdering(keysetQuery, sortBy, sortOrder);
         
-        return await orderedQuery.FirstOrDefaultAsync();
+        return await orderedQuery2.FirstOrDefaultAsync();
     }
 
     /// <summary>
