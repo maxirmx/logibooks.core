@@ -3,6 +3,8 @@
 // This file is a part of Logibooks Core application
 
 using System;
+using System.Collections.Generic;
+using System.Reflection;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
@@ -422,6 +424,204 @@ public class ParcelsControllerBaseTests
         // Assert: Should return null when there are no more parcels
         Assert.That(result, Is.Null);
     }
+
+    [TestCase("asc", 10, 20)]
+    [TestCase("desc", 20, 10)]
+    public async Task GetNextParcelKeysetAsync_CheckStatusKeysetPredicate_Works(string sortOrder, int startId, int expectedId)
+    {
+        var parcels = new[]
+        {
+            new WbrParcel { Id = 10, RegisterId = 1, StatusId = 1, CheckStatusId = 1 },
+            new WbrParcel { Id = 20, RegisterId = 1, StatusId = 1, CheckStatusId = 2 },
+            new WbrParcel { Id = 30, RegisterId = 1, StatusId = 1, CheckStatusId = 3 }
+        };
+        _dbContext.Parcels.AddRange(parcels);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.TestGetNextParcelKeysetAsync(
+            companyId: 2,
+            registerId: 1,
+            parcelId: startId,
+            statusId: null,
+            checkStatusId: null,
+            tnVed: null,
+            sortBy: "checkstatusid",
+            sortOrder: sortOrder,
+            withIssues: false
+        );
+
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result!.Id, Is.EqualTo(expectedId));
+    }
+
+    [TestCase("asc", 10, 20)]
+    [TestCase("desc", 20, 10)]
+    public async Task GetNextParcelKeysetAsync_ShkKeysetPredicate_Works(string sortOrder, int startId, int expectedId)
+    {
+        var parcels = new[]
+        {
+            new WbrParcel { Id = 10, RegisterId = 1, StatusId = 1, CheckStatusId = 1, Shk = "100" },
+            new WbrParcel { Id = 20, RegisterId = 1, StatusId = 1, CheckStatusId = 1, Shk = "200" },
+            new WbrParcel { Id = 30, RegisterId = 1, StatusId = 1, CheckStatusId = 1, Shk = "300" }
+        };
+        _dbContext.Parcels.AddRange(parcels);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.TestGetNextParcelKeysetAsync(
+            companyId: 2,
+            registerId: 1,
+            parcelId: startId,
+            statusId: null,
+            checkStatusId: null,
+            tnVed: null,
+            sortBy: "shk",
+            sortOrder: sortOrder,
+            withIssues: false
+        );
+
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result!.Id, Is.EqualTo(expectedId));
+    }
+
+    [TestCase("asc")]
+    [TestCase("desc")]
+    public async Task GetNextParcelKeysetAsync_FeacnKeysetPredicate_Works(string sortOrder)
+    {
+        _dbContext.FeacnCodes.Add(new FeacnCode
+        {
+            Id = 1,
+            Code = "1234567890",
+            CodeEx = "1234567890",
+            Name = "Test",
+            NormalizedName = "test"
+        });
+
+        var keyword = new KeyWord { Id = 1, Word = "test", MatchTypeId = 1 };
+        keyword.KeyWordFeacnCodes = [new KeyWordFeacnCode { KeyWordId = 1, FeacnCode = "1234567890", KeyWord = keyword }];
+
+        var parcels = new[]
+        {
+            new WbrParcel { Id = 10, RegisterId = 1, StatusId = 1, CheckStatusId = 1, TnVed = "1234567890" },
+            new WbrParcel { Id = 20, RegisterId = 1, StatusId = 1, CheckStatusId = 1, TnVed = "0000000000" }
+        };
+
+        var keywordLink = new BaseParcelKeyWord { BaseParcelId = 10, KeyWordId = 1, BaseParcel = parcels[0], KeyWord = keyword };
+
+        _dbContext.Parcels.AddRange(parcels);
+        _dbContext.Set<BaseParcelKeyWord>().Add(keywordLink);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.TestGetNextParcelKeysetAsync(
+            companyId: 2,
+            registerId: 1,
+            parcelId: 10,
+            statusId: null,
+            checkStatusId: null,
+            tnVed: null,
+            sortBy: "feacnlookup",
+            sortOrder: sortOrder,
+            withIssues: false
+        );
+
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result!.Id, Is.EqualTo(20));
+    }
+
+    [Test]
+    public async Task GetNextParcelKeysetAsync_StatusIdDescending_Works()
+    {
+        var parcels = new[]
+        {
+            new WbrParcel { Id = 10, RegisterId = 1, StatusId = 1, CheckStatusId = 1 },
+            new WbrParcel { Id = 20, RegisterId = 1, StatusId = 2, CheckStatusId = 1 },
+            new WbrParcel { Id = 30, RegisterId = 1, StatusId = 3, CheckStatusId = 1 }
+        };
+        _dbContext.Parcels.AddRange(parcels);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.TestGetNextParcelKeysetAsync(
+            companyId: 2,
+            registerId: 1,
+            parcelId: 20,
+            statusId: null,
+            checkStatusId: null,
+            tnVed: null,
+            sortBy: "statusid",
+            sortOrder: "desc",
+            withIssues: false
+        );
+
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result!.Id, Is.EqualTo(10));
+    }
+
+    [Test]
+    public async Task GetNextParcelKeysetAsync_OzonPostingNumberDescending_Works()
+    {
+        var ozonRegister = new Register { Id = 2, CompanyId = 1, FileName = "ozon.xlsx" };
+        _dbContext.Registers.Add(ozonRegister);
+
+        var parcels = new[]
+        {
+            new OzonParcel { Id = 100, RegisterId = 2, StatusId = 1, CheckStatusId = 1, PostingNumber = "POST001" },
+            new OzonParcel { Id = 200, RegisterId = 2, StatusId = 1, CheckStatusId = 1, PostingNumber = "POST002" },
+            new OzonParcel { Id = 300, RegisterId = 2, StatusId = 1, CheckStatusId = 1, PostingNumber = "POST003" }
+        };
+        _dbContext.Parcels.AddRange(parcels);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.TestGetNextParcelKeysetAsync(
+            companyId: 1,
+            registerId: 2,
+            parcelId: 200,
+            statusId: null,
+            checkStatusId: null,
+            tnVed: null,
+            sortBy: "postingnumber",
+            sortOrder: "desc",
+            withIssues: false
+        );
+
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result!.Id, Is.EqualTo(100));
+    }
+
+    [TestCase(new[] { "A" }, "A", new[] { "A" }, 1)]
+    [TestCase(new[] { "A", "B" }, "B", new string[0], 2)]
+    [TestCase(new[] { "A" }, "B", new[] { "B" }, 3)]
+    [TestCase(new[] { "A", "B" }, "C", new[] { "C" }, 4)]
+    [TestCase(new[] { "A" }, "B", new string[0], 5)]
+    [TestCase(new[] { "A", "B" }, "C", new string[0], 6)]
+    [TestCase(new string[0], "A", new[] { "A" }, 7)]
+    [TestCase(new string[0], "A", new string[0], 8)]
+    public async Task CalculateMatchPriorityAsync_ReturnsExpectedPriority(string[] keywordCodes, string tnVed, string[] dbCodes, int expected)
+    {
+        foreach (var code in dbCodes)
+        {
+            _dbContext.FeacnCodes.Add(new FeacnCode
+            {
+                Code = code,
+                CodeEx = code,
+                Name = code,
+                NormalizedName = code
+            });
+        }
+        _dbContext.SaveChanges();
+
+        var parcel = new WbrParcel { TnVed = tnVed, BaseParcelKeyWords = new List<BaseParcelKeyWord>() };
+        if (keywordCodes.Length > 0)
+        {
+            var kw = new KeyWord { Id = 1, Word = "kw", MatchTypeId = 1, KeyWordFeacnCodes = new List<KeyWordFeacnCode>() };
+            foreach (var code in keywordCodes)
+            {
+                kw.KeyWordFeacnCodes.Add(new KeyWordFeacnCode { KeyWordId = 1, FeacnCode = code, KeyWord = kw });
+            }
+            parcel.BaseParcelKeyWords.Add(new BaseParcelKeyWord { BaseParcelId = 0, BaseParcel = parcel, KeyWordId = 1, KeyWord = kw });
+        }
+
+        var priority = await _controller.TestCalculateMatchPriorityAsync(parcel);
+        Assert.That(priority, Is.EqualTo(expected));
+    }
 }
 
 /// <summary>
@@ -449,5 +649,11 @@ public class TestParcelsController : ParcelsControllerBase
         bool withIssues)
     {
         return GetNextParcelKeysetAsync(companyId, registerId, parcelId, statusId, checkStatusId, tnVed, sortBy, sortOrder, withIssues);
+    }
+
+    public Task<int> TestCalculateMatchPriorityAsync(BaseParcel parcel)
+    {
+        var method = typeof(ParcelsControllerBase).GetMethod("CalculateMatchPriorityAsync", BindingFlags.NonPublic | BindingFlags.Instance);
+        return (Task<int>)method!.Invoke(this, new object[] { parcel })!;
     }
 }
