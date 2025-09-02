@@ -617,7 +617,7 @@ public class RegistersController(
             tnVed, 
             sortBy, 
             sortOrder, 
-            (int)ParcelCheckStatusCode.HasIssues);
+            true);
 
         if (nextParcel == null)
         {
@@ -682,7 +682,8 @@ public class RegistersController(
             checkStatusId, 
             tnVed, 
             sortBy, 
-            sortOrder);
+            sortOrder,
+            false);
 
         if (nextParcel == null)
         {

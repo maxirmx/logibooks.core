@@ -301,7 +301,7 @@ public class ParcelsController(
             return _404Register(registerId);
         }
 
-        var query = BuildParcelQuery(register.CompanyId, registerId, statusId, checkStatusId, tnVed, sortBy, sortOrder);
+        var query = BuildParcelQuery(register.CompanyId, registerId, statusId, checkStatusId, tnVed, sortBy, sortOrder, false);
 
         if (query == null)
         {

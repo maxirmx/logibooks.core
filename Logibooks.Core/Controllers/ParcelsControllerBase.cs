@@ -116,13 +116,13 @@ public abstract class ParcelsControllerBase(IHttpContextAccessor httpContextAcce
         string? tnVed,
         string sortBy,
         string sortOrder,
-        int? minCheckStatusId = null)
+        bool withIssues)
     {
         if (!IsValidSortBy(companyId, sortBy))
         {
             return null;
         }
-        var filterQuery = BuildParcelFilterQuery(companyId, registerId, statusId, checkStatusId, tnVed, minCheckStatusId);
+        var filterQuery = BuildParcelFilterQuery(companyId, registerId, statusId, checkStatusId, tnVed, withIssues);
         var orderedQuery = ApplyParcelOrdering(filterQuery, sortBy, sortOrder);
         return orderedQuery;
     }
@@ -160,7 +160,7 @@ public abstract class ParcelsControllerBase(IHttpContextAccessor httpContextAcce
         int? statusId,
         int? checkStatusId,
         string? tnVed,
-        int? minCheckStatusId)
+        bool withIssues)
     {
         if (companyId == IRegisterProcessingService.GetWBRId())
         {
@@ -175,9 +175,11 @@ public abstract class ParcelsControllerBase(IHttpContextAccessor httpContextAcce
                 .Where(o => o.RegisterId == registerId && o.CheckStatusId != (int)ParcelCheckStatusCode.MarkedByPartner);
 
             // Apply filters
-            if (minCheckStatusId.HasValue)
+            if (withIssues)
             {
-                query = query.Where(o => o.CheckStatusId >= minCheckStatusId.Value);
+                query = query.Where(o => 
+                    o.CheckStatusId >= (int)ParcelCheckStatusCode.HasIssues &&
+                    o.CheckStatusId < (int)ParcelCheckStatusCode.NoIssues);
             }
 
             if (statusId != null)
@@ -211,9 +213,11 @@ public abstract class ParcelsControllerBase(IHttpContextAccessor httpContextAcce
                 .Where(o => o.RegisterId == registerId && o.CheckStatusId != (int)ParcelCheckStatusCode.MarkedByPartner);
 
             // Apply filters
-            if (minCheckStatusId.HasValue)
+            if (withIssues)
             {
-                query = query.Where(o => o.CheckStatusId >= minCheckStatusId.Value);
+                query = query.Where(o =>
+                    o.CheckStatusId >= (int)ParcelCheckStatusCode.HasIssues &&
+                    o.CheckStatusId < (int)ParcelCheckStatusCode.NoIssues);
             }
 
             if (statusId != null)
@@ -313,14 +317,14 @@ public abstract class ParcelsControllerBase(IHttpContextAccessor httpContextAcce
         string? tnVed,
         string sortBy,
         string sortOrder,
-        int? minCheckStatusId = null)
+        bool withIssues)
     {
         // Check if sortBy is valid
         if (!IsValidSortBy(companyId, sortBy))
         {
             return null;
         }
-        var filterQuery = BuildParcelFilterQuery(companyId, registerId, statusId, checkStatusId, tnVed, minCheckStatusId);      
+        var filterQuery = BuildParcelFilterQuery(companyId, registerId, statusId, checkStatusId, tnVed, withIssues);      
 
         // Get current parcel's key values for keyset pagination
         var currentKeys = await GetCurrentParcelKeysAsync(filterQuery, parcelId, sortBy);
