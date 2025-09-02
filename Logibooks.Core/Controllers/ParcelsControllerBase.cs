@@ -94,8 +94,7 @@ public abstract class ParcelsControllerBase(IHttpContextAccessor httpContextAcce
         // Apply direction and stable tiebreaker by Id
         if (sortOrder.ToLower() == "desc")
         {
-            return query.OrderByDescending(priorityExpression)
-                .ThenBy(o => o.Id); 
+                .ThenByDescending(o => o.Id); 
         }
         else
         {
