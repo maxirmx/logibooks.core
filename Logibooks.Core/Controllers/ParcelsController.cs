@@ -26,7 +26,6 @@
 using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Linq.Expressions;
 using System.Text;
 
 using Logibooks.Core.Authorization;
@@ -54,7 +53,7 @@ public class ParcelsController(
     IParcelFeacnCodeLookupService feacnLookupService,
     IMorphologySearchService morphologyService,
     IRegisterProcessingService processingService,
-    IParcelIndPostGenerator indPostGenerator) : LogibooksControllerBase(httpContextAccessor, db, logger)
+    IParcelIndPostGenerator indPostGenerator) : ParcelsControllerBase(httpContextAccessor, db, logger)
 {
     private const int MaxPageSize = 1000;
     private readonly IUserInformationService _userService = userService;
@@ -64,74 +63,6 @@ public class ParcelsController(
     private readonly IMorphologySearchService _morphologyService = morphologyService;
     private readonly IRegisterProcessingService _processingService = processingService;
     private readonly IParcelIndPostGenerator _indPostGenerator = indPostGenerator;
-
-    /// <summary>
-    /// Calculate match priority for sorting: 1 = best match, 8 = worst match
-    /// (1) Parcels with keywords that have exactly one FeacnCode (total distinct sum = 1) and it matches parcel TnVed 
-    /// (2) Parcels with keywords that have multiple FeacnCodes (total distinct sum > 1) and one of them matches parcel TnVed 
-    /// (3) Parcels with keywords that have exactly one FeacnCode (total distinct sum = 1) and it does not match parcel TnVed and TnVed exists in FeacnCodes
-    /// (4) Parcels with keywords that have multiple FeacnCodes (total distinct sum > 1) and none of them matches parcel TnVed and TnVed exists in FeacnCodes
-    /// (5) Parcels with keywords that have exactly one FeacnCode (total distinct sum = 1) and it does not match parcel TnVed and TnVed not in FeacnCodes
-    /// (6) Parcels with keywords that have multiple FeacnCodes (total distinct sum > 1) and none of them matches parcel TnVed and TnVed not in FeacnCodes
-    /// (7) Parcels without keywords but TnVed exists in FeacnCodes
-    /// (8) Parcels without keywords and TnVed not in FeacnCodes
-    /// </summary>
-    private IQueryable<T> ApplyMatchSorting<T>(IQueryable<T> query, string sortOrder) where T : BaseParcel
-    {
-        // Define the priority calculation expression once
-        Expression<Func<T, int>> priorityExpression = o => 
-            // Priority 1: Has keywords with exactly one distinct FeacnCode and it matches TnVed
-            o.BaseParcelKeyWords.Any() && 
-            o.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Select(fc => fc.FeacnCode).Distinct().Count() == 1 &&
-            o.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Any(fc => fc.FeacnCode == o.TnVed) ? 1 :
-            
-            // Priority 2: Has keywords with multiple distinct FeacnCodes and one of them matches TnVed
-            o.BaseParcelKeyWords.Any() && 
-            o.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Select(fc => fc.FeacnCode).Distinct().Count() > 1 &&
-            o.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Any(fc => fc.FeacnCode == o.TnVed) ? 2 :
-            
-            // Priority 3: Has keywords with exactly one distinct FeacnCode, doesn't match TnVed, but TnVed exists in FeacnCodes
-            o.BaseParcelKeyWords.Any() && 
-            o.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Select(fc => fc.FeacnCode).Distinct().Count() == 1 &&
-            !o.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Any(fc => fc.FeacnCode == o.TnVed) &&
-            _db.FeacnCodes.Any(fc => fc.Code == o.TnVed) ? 3 :
-            
-            // Priority 4: Has keywords with multiple distinct FeacnCodes, none match TnVed, but TnVed exists in FeacnCodes
-            o.BaseParcelKeyWords.Any() && 
-            o.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Select(fc => fc.FeacnCode).Distinct().Count() > 1 &&
-            !o.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Any(fc => fc.FeacnCode == o.TnVed) &&
-            _db.FeacnCodes.Any(fc => fc.Code == o.TnVed) ? 4 :
-            
-            // Priority 5: Has keywords with exactly one distinct FeacnCode, doesn't match TnVed, and TnVed not in FeacnCodes
-            o.BaseParcelKeyWords.Any() && 
-            o.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Select(fc => fc.FeacnCode).Distinct().Count() == 1 &&
-            !o.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Any(fc => fc.FeacnCode == o.TnVed) &&
-            !_db.FeacnCodes.Any(fc => fc.Code == o.TnVed) ? 5 :
-            
-            // Priority 6: Has keywords with multiple distinct FeacnCodes, none match TnVed, and TnVed not in FeacnCodes
-            o.BaseParcelKeyWords.Any() && 
-            o.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Select(fc => fc.FeacnCode).Distinct().Count() > 1 &&
-            !o.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Any(fc => fc.FeacnCode == o.TnVed) &&
-            !_db.FeacnCodes.Any(fc => fc.Code == o.TnVed) ? 6 :
-            
-            // Priority 7: No keywords but TnVed exists in FeacnCodes table
-            !o.BaseParcelKeyWords.Any() && 
-            _db.FeacnCodes.Any(fc => fc.Code == o.TnVed) ? 7 :
-            
-            // Priority 8: No keywords and TnVed not in FeacnCodes table
-            8;
-
-        if (sortOrder.ToLower() == "desc")
-        {
-            return query.OrderByDescending(priorityExpression)
-                .ThenByDescending(o => o.Id);
-        }
-        else
-        {
-            return query.OrderBy(priorityExpression)
-                .ThenBy(o => o.Id);
-        }
-    }
 
     [HttpGet("{id}")]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ParcelViewItem))]
@@ -370,150 +301,36 @@ public class ParcelsController(
             return _404Register(registerId);
         }
 
-        List<BaseParcel> items;
-        int totalCount;
-        int actualPage;
-        int actualPageSize;
-        int totalPages;
+        bool invalidSort;
+        var query = BuildParcelQuery(register.CompanyId, registerId, statusId, checkStatusId, tnVed, sortBy, sortOrder, out invalidSort);
 
-        // Create a typed query based on the register company type
-        if (register.CompanyId == IRegisterProcessingService.GetWBRId())
+        if (query == null)
         {
-            var allowedSortBy = new[] { "id", "statusid", "checkstatusid", "tnved", "shk", "feacnlookup" };
-            if (!allowedSortBy.Contains(sortBy.ToLower()))
+            if (invalidSort)
             {
-                _logger.LogDebug("GetOrders returning '400 Bad Request' - invalid sortBy for WBR");
+                _logger.LogDebug("GetParcels returning '400 Bad Request' - invalid sortBy");
                 return _400();
             }
 
-            var query = _db.WbrParcels.AsNoTracking()
-                .Include(o => o.BaseParcelStopWords)
-                .Include(o => o.BaseParcelKeyWords)
-                    .ThenInclude(bkw => bkw.KeyWord)
-                        .ThenInclude(kw => kw.KeyWordFeacnCodes)
-                .Include(o => o.BaseParcelFeacnPrefixes)
-                    .ThenInclude(bofp => bofp.FeacnPrefix)
-                        .ThenInclude(fp => fp.FeacnOrder)
-                .Where(o => o.RegisterId == registerId && o.CheckStatusId != (int)ParcelCheckStatusCode.MarkedByPartner);
-
-            if (statusId != null)
-            {
-                query = query.Where(o => o.StatusId == statusId);
-            }
-
-            if (checkStatusId != null)
-            {
-                query = query.Where(o => o.CheckStatusId == checkStatusId);
-            }
-
-            if (!string.IsNullOrWhiteSpace(tnVed))
-            {
-                query = query.Where(o => o.TnVed != null && o.TnVed.Contains(tnVed));
-            }
-
-            query = (sortBy.ToLower(), sortOrder) switch
-            {
-                ("statusid", "asc") => query.OrderBy(o => o.StatusId),
-                ("statusid", "desc") => query.OrderByDescending(o => o.StatusId),
-                ("checkstatusid", "asc") => query.OrderBy(o => o.CheckStatusId),
-                ("checkstatusid", "desc") => query.OrderByDescending(o => o.CheckStatusId),
-                ("tnved", "asc") => query.OrderBy(o => o.TnVed),
-                ("tnved", "desc") => query.OrderByDescending(o => o.TnVed),
-                ("shk", "asc") => query.OrderBy(o => o.Shk), 
-                ("shk", "desc") => query.OrderByDescending(o => o.Shk),
-                ("feacnlookup", _) => ApplyMatchSorting(query, sortOrder),
-                ("id", "desc") => query.OrderByDescending(o => o.Id),
-                _ => query.OrderBy(o => o.Id)
-            };
-
-            totalCount = await query.CountAsync();
-
-            actualPage = pageSize == -1 ? 1 : page;
-            actualPageSize = pageSize == -1 ? (totalCount == 0 ? 1 : totalCount) : pageSize;
-            totalPages = (int)Math.Ceiling(totalCount / (double)actualPageSize);
-
-            if (actualPage > totalPages && totalPages > 0)
-            {
-                actualPage = 1;
-            }
-
-            items = (await query
-                .Skip((actualPage - 1) * actualPageSize)
-                .Take(actualPageSize)
-                .ToListAsync()).Cast<BaseParcel>().ToList();
-        }
-        else if (register.CompanyId == IRegisterProcessingService.GetOzonId())
-        {
-            // Use Ozon-specific allowed sort fields
-            var allowedSortBy = new[] { "id", "statusid", "checkstatusid", "tnved", "postingnumber", "feacnlookup" };
-            if (!allowedSortBy.Contains(sortBy.ToLower()))
-            {
-                _logger.LogDebug("GetOrders returning '400 Bad Request' - invalid sortBy for Ozon");
-                return _400();
-            }
-
-            var query = _db.OzonParcels.AsNoTracking()
-                .Include(o => o.BaseParcelStopWords)
-                .Include(o => o.BaseParcelKeyWords)
-                    .ThenInclude(bkw => bkw.KeyWord)
-                        .ThenInclude(kw => kw.KeyWordFeacnCodes)
-                .Include(o => o.BaseParcelFeacnPrefixes)
-                    .ThenInclude(bofp => bofp.FeacnPrefix)
-                        .ThenInclude(fp => fp.FeacnOrder)
-                .Where(o => o.RegisterId == registerId && o.CheckStatusId != (int)ParcelCheckStatusCode.MarkedByPartner);
-
-            if (statusId != null)
-            {
-                query = query.Where(o => o.StatusId == statusId);
-            }
-
-            if (checkStatusId != null)
-            {
-                query = query.Where(o => o.CheckStatusId == checkStatusId);
-            }
-
-            if (!string.IsNullOrWhiteSpace(tnVed))
-            {
-                query = query.Where(o => o.TnVed != null && o.TnVed.Contains(tnVed));
-            }
-
-            query = (sortBy.ToLower(), sortOrder) switch
-            {
-                ("statusid", "asc") => query.OrderBy(o => o.StatusId),
-                ("statusid", "desc") => query.OrderByDescending(o => o.StatusId),
-                ("checkstatusid", "asc") => query.OrderBy(o => o.CheckStatusId),
-                ("checkstatusid", "desc") => query.OrderByDescending(o => o.CheckStatusId),
-                ("tnved", "asc") => query.OrderBy(o => o.TnVed),
-                ("tnved", "desc") => query.OrderByDescending(o => o.TnVed),
-                ("postingnumber", "asc") => query.OrderBy(o => o.PostingNumber), 
-                ("postingnumber", "desc") => query.OrderByDescending(o => o.PostingNumber),
-                ("feacnlookup", _) => ApplyMatchSorting(query, sortOrder),
-                ("id", "desc") => query.OrderByDescending(o => o.Id),
-                _ => query.OrderBy(o => o.Id)
-            };
-
-            totalCount = await query.CountAsync();
-
-            actualPage = pageSize == -1 ? 1 : page;
-            actualPageSize = pageSize == -1 ? (totalCount == 0 ? 1 : totalCount) : pageSize;
-            totalPages = (int)Math.Ceiling(totalCount / (double)actualPageSize);
-
-            if (actualPage > totalPages && totalPages > 0)
-            {
-                actualPage = 1;
-            }
-
-            items = (await query
-                .Skip((actualPage - 1) * actualPageSize)
-                .Take(actualPageSize)
-                .ToListAsync()).Cast<BaseParcel>().ToList();
-        }
-        else
-        {
-            // For non-WBR, non-Ozon registers, return error
             _logger.LogDebug("GetParcels returning '400 Bad Request' - unsupported register company type");
             return _400CompanyId(register.CompanyId);
         }
+
+        int totalCount = await query.CountAsync();
+
+        int actualPage = pageSize == -1 ? 1 : page;
+        int actualPageSize = pageSize == -1 ? (totalCount == 0 ? 1 : totalCount) : pageSize;
+        int totalPages = (int)Math.Ceiling(totalCount / (double)actualPageSize);
+
+        if (actualPage > totalPages && totalPages > 0)
+        {
+            actualPage = 1;
+        }
+
+        var items = await query
+            .Skip((actualPage - 1) * actualPageSize)
+            .Take(actualPageSize)
+            .ToListAsync();
 
         var viewItems = items.Select(o => new ParcelViewItem(o)).ToList();
 

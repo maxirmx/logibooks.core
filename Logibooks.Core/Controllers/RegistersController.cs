@@ -34,6 +34,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SharpCompress.Archives;
 using System.Linq.Expressions;
+using System.Linq;
 
 namespace Logibooks.Core.Controllers;
 
@@ -50,7 +51,7 @@ public class RegistersController(
     IRegisterValidationService validationService,
     IRegisterFeacnCodeLookupService feacnLookupService,
     IRegisterProcessingService processingService,
-    IParcelIndPostGenerator indPostGenerator) : LogibooksControllerBase(httpContextAccessor, db, logger)
+    IParcelIndPostGenerator indPostGenerator) : ParcelsControllerBase(httpContextAccessor, db, logger)
 {
     private readonly IUserInformationService _userService = userService;
 
@@ -567,7 +568,13 @@ public class RegistersController(
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
-    public async Task<ActionResult<ParcelViewItem>> NextParcel(int parcelId)
+    public async Task<ActionResult<ParcelViewItem>> NextParcel(
+        int parcelId,
+        int? statusId = null,
+        int? checkStatusId = null,
+        string? tnVed = null,
+        string? sortBy = null,
+        string sortOrder = "asc")
     {
         _logger.LogDebug("NextParcel for parcelId={parcelId}", parcelId);
 
@@ -590,39 +597,34 @@ public class RegistersController(
         int registerId = current.RegisterId;
         int companyId = current.Register.CompanyId;
 
-        // Find the next parcel with issues after the current one (no rollover)
-        var next = await _db.Parcels.AsNoTracking()
-            .Where(o => o.RegisterId == registerId &&
-                        o.CheckStatusId >= (int)ParcelCheckStatusCode.HasIssues && 
-                        o.CheckStatusId < (int)ParcelCheckStatusCode.MarkedByPartner &&
-                        o.Id > parcelId)
-            .OrderBy(o => o.Id)
-            .FirstOrDefaultAsync();
+        sortBy ??= "id";
+        sortOrder = string.IsNullOrEmpty(sortOrder) ? "asc" : sortOrder.ToLower();
 
-        if (next == null)
+        bool invalidSort;
+        var query = BuildParcelQuery(companyId, registerId, statusId, checkStatusId, tnVed, sortBy, sortOrder, out invalidSort);
+        if (query == null)
+        {
+            if (invalidSort)
+            {
+                _logger.LogDebug("NextParcel returning '400 Bad Request' - invalid sortBy");
+                return _400();
+            }
+
+            _logger.LogDebug("NextParcel returning '400 Bad Request' - unsupported register company type");
+            return _400CompanyId(companyId);
+        }
+
+        query = query.Where(o => o.CheckStatusId >= (int)ParcelCheckStatusCode.HasIssues);
+
+        var parcels = await query.ToListAsync();
+        var index = parcels.FindIndex(o => o.Id == parcelId);
+        if (index == -1 || index + 1 >= parcels.Count)
         {
             _logger.LogDebug("NextParcel returning '204 No Content'");
             return NoContent();
         }
 
-        BaseParcel? parcel = null;
-
-        if (companyId == IRegisterProcessingService.GetWBRId())
-        {
-            parcel = await ApplyOrderIncludes(_db.WbrParcels.AsNoTracking())
-                .FirstOrDefaultAsync(o => o.Id == next.Id);
-        }
-        else if (companyId == IRegisterProcessingService.GetOzonId())
-        {
-            parcel = await ApplyOrderIncludes(_db.OzonParcels.AsNoTracking())
-                .FirstOrDefaultAsync(o => o.Id == next.Id);
-        }
-
-        if (parcel == null)
-        {
-            _logger.LogDebug("NextParcel returning '204 No Content' - derived parcel not found");
-            return NoContent();
-        }
+        var parcel = parcels[index + 1];
 
         _logger.LogDebug("NextParcel returning order {id}", parcel.Id);
         return new ParcelViewItem(parcel);
@@ -633,7 +635,13 @@ public class RegistersController(
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
-    public async Task<ActionResult<ParcelViewItem>> TheNextParcel(int parcelId)
+    public async Task<ActionResult<ParcelViewItem>> TheNextParcel(
+        int parcelId,
+        int? statusId = null,
+        int? checkStatusId = null,
+        string? tnVed = null,
+        string? sortBy = null,
+        string sortOrder = "asc")
     {
         _logger.LogDebug("TheNextParcel for parcelId={parcelId}", parcelId);
 
@@ -656,38 +664,32 @@ public class RegistersController(
         int registerId = current.RegisterId;
         int companyId = current.Register.CompanyId;
 
-        // Find the next parcel after the current one (no rollover)
-        var next = await _db.Parcels.AsNoTracking()
-            .Where(o => o.RegisterId == registerId && o.Id > parcelId && 
-                   o.CheckStatusId != (int)ParcelCheckStatusCode.MarkedByPartner)
-            .OrderBy(o => o.Id)
-            .FirstOrDefaultAsync();
+        sortBy ??= "id";
+        sortOrder = string.IsNullOrEmpty(sortOrder) ? "asc" : sortOrder.ToLower();
 
-        // If no next parcel found, return 204 No Content
-        if (next == null)
+        bool invalidSort;
+        var query = BuildParcelQuery(companyId, registerId, statusId, checkStatusId, tnVed, sortBy, sortOrder, out invalidSort);
+        if (query == null)
+        {
+            if (invalidSort)
+            {
+                _logger.LogDebug("TheNextParcel returning '400 Bad Request' - invalid sortBy");
+                return _400();
+            }
+
+            _logger.LogDebug("TheNextParcel returning '400 Bad Request' - unsupported register company type");
+            return _400CompanyId(companyId);
+        }
+
+        var parcels = await query.ToListAsync();
+        var index = parcels.FindIndex(o => o.Id == parcelId);
+        if (index == -1 || index + 1 >= parcels.Count)
         {
             _logger.LogDebug("TheNextParcel returning '204 No Content' - no next parcel found");
             return NoContent();
         }
 
-        BaseParcel? parcel = null;
-
-        if (companyId == IRegisterProcessingService.GetWBRId())
-        {
-            parcel = await ApplyOrderIncludes(_db.WbrParcels.AsNoTracking())
-                .FirstOrDefaultAsync(o => o.Id == next.Id);
-        }
-        else if (companyId == IRegisterProcessingService.GetOzonId())
-        {
-            parcel = await ApplyOrderIncludes(_db.OzonParcels.AsNoTracking())
-                .FirstOrDefaultAsync(o => o.Id == next.Id);
-        }
-
-        if (parcel == null)
-        {
-            _logger.LogDebug("TheNextParcel returning '204 No Content' - derived parcel not found");
-            return NoContent();
-        }
+        var parcel = parcels[index + 1];
 
         _logger.LogDebug("TheNextParcel returning order {id}", parcel.Id);
         return new ParcelViewItem(parcel);
@@ -903,13 +905,4 @@ public class RegistersController(
         return result;
     }
 
-    private static IQueryable<TOrder> ApplyOrderIncludes<TOrder>(IQueryable<TOrder> query) where TOrder : BaseParcel
-    {
-        return query
-            .Include(o => o.Register)
-            .Include(o => o.BaseParcelStopWords)
-            .Include(o => o.BaseParcelFeacnPrefixes)
-                .ThenInclude(bofp => bofp.FeacnPrefix)
-                    .ThenInclude(fp => fp.FeacnOrder);
-    }
 }

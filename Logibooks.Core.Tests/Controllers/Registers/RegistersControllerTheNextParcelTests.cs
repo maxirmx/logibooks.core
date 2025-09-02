@@ -85,6 +85,30 @@ public class RegistersControllerTheNextParcelTests : RegistersControllerTestsBas
         Assert.That(result.Value!.Id, Is.EqualTo(25), "Should return parcel with ID 25 (next after 15)");
     }
 
+    [Test]
+    public async Task TheNextParcel_AppliesSortingParameters()
+    {
+        // Arrange
+        SetCurrentUserId(1);
+
+        var register = new Register { Id = 1, FileName = "test.xlsx", CompanyId = 1, TheOtherCompanyId = 3 }; // Ozon company
+        _dbContext.Registers.Add(register);
+
+        var ozonParcel1 = new OzonParcel { Id = 15, RegisterId = 1, StatusId = 1, CheckStatusId = 1, PostingNumber = "B" };
+        var ozonParcel2 = new OzonParcel { Id = 25, RegisterId = 1, StatusId = 1, CheckStatusId = 1, PostingNumber = "A" };
+
+        _dbContext.Parcels.AddRange(ozonParcel1, ozonParcel2);
+        _dbContext.OzonParcels.AddRange(ozonParcel1, ozonParcel2);
+        await _dbContext.SaveChangesAsync();
+
+        // Act - starting from parcel with posting number "A"
+        var result = await _controller.TheNextParcel(25, sortBy: "postingnumber", sortOrder: "asc");
+
+        // Assert - next should be parcel with posting number "B" (ID 15)
+        Assert.That(result.Value, Is.Not.Null);
+        Assert.That(result.Value!.Id, Is.EqualTo(15));
+    }
+
 
     [Test]
     public async Task TheNextParcel_ReturnsNoContent_WhenCurrentParcelIsLast()

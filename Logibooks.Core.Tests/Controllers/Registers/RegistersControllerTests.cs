@@ -1231,6 +1231,26 @@ public class RegistersControllerTests : RegistersControllerTestsBase
     }
 
     [Test]
+    public async Task NextParcel_AppliesSortingParameters()
+    {
+        SetCurrentUserId(1);
+        _dbContext.CheckStatuses.Add(new ParcelCheckStatus { Id = 101, Title = "Has" });
+        var reg = new Register { Id = 1, FileName = "r.xlsx", CompanyId = 2 };
+        _dbContext.Registers.Add(reg);
+        _dbContext.Parcels.AddRange(
+            new WbrParcel { Id = 10, RegisterId = 1, StatusId = 1, CheckStatusId = 101, TnVed = "111" },
+            new WbrParcel { Id = 20, RegisterId = 1, StatusId = 1, CheckStatusId = 101, TnVed = "333" },
+            new WbrParcel { Id = 30, RegisterId = 1, StatusId = 1, CheckStatusId = 101, TnVed = "222" }
+        );
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.NextParcel(10, sortBy: "tnved", sortOrder: "asc");
+
+        Assert.That(result.Value, Is.Not.Null);
+        Assert.That(result.Value!.Id, Is.EqualTo(30));
+    }
+
+    [Test]
     public async Task SetParcelStatuses_DoesNotUpdateMarkedByPartnerOrders()
     {
         SetCurrentUserId(1);
