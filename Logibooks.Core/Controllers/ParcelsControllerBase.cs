@@ -10,48 +10,75 @@ using Logibooks.Core.Models;
 
 namespace Logibooks.Core.Controllers;
 
-public abstract class ParcelsControllerBase : LogibooksControllerBase
+/// <summary>
+/// Base controller providing common parcel query, sorting and keyset pagination helpers.
+///
+/// This abstract controller contains reusable logic used by concrete parcel controllers
+/// (e.g. WBR / Ozon specific controllers) for building filtered queries, applying
+/// ordering (including special FEACN match sorting) and performing keyset-style "next"
+/// lookups efficiently.
+///
+/// Notes:
+/// - Methods return IQueryable so calling code can add additional projection/filters
+///   before execution.
+/// - FEACN match sorting uses a computed priority (1..8) where lower values indicate
+///   better matches between keywords/FEACN codes and the parcel's TN VED value.
+/// - Keyset pagination helpers compute the current row's sort keys and then apply
+///   a predicate to fetch the next row in the requested sort order without using
+///   OFFSET-based paging.
+/// </summary>
+public abstract class ParcelsControllerBase(IHttpContextAccessor httpContextAccessor, AppDbContext db, ILogger logger) : 
+    LogibooksControllerBase(httpContextAccessor, db, logger)
 {
-    protected ParcelsControllerBase(IHttpContextAccessor httpContextAccessor, AppDbContext db, ILogger logger)
-        : base(httpContextAccessor, db, logger)
-    {
-    }
 
     /// <summary>
-    /// Calculate match priority for sorting: 1 = best match, 8 = worst match
+    /// Calculate match priority for sorting: 1 = best match, 8 = worst match.
+    ///
+    /// This method builds an expression that computes an integer priority for each
+    /// parcel based on the following factors (evaluated in order):
+    /// 1) Whether the parcel has associated keyword FEACN codes and how many distinct
+    ///    FEACN codes are present for those keywords.
+    /// 2) Whether one of those FEACN codes equals the parcel's TnVed value.
+    /// 3) Whether the parcel's TnVed exists in the global FeacnCodes table.
+    ///
+    /// The resulting priority values are used to order parcels by match quality. The
+    /// returned IQueryable is ordered by computed priority (ascending = best match)
+    /// or descending depending on the requested sort order. Id is always used as a
+    /// final stable tiebreaker.
     /// </summary>
     protected IQueryable<T> ApplyMatchSorting<T>(IQueryable<T> query, string sortOrder) where T : BaseParcel
     {
+        // Build an expression tree that can be translated to SQL by EF Core.
         Expression<Func<T, int>> priorityExpression = o =>
-            // Priority 1: Has keywords with exactly one distinct FeacnCode and it matches TnVed
+            // Priority 1: Exactly one distinct FEACN code across all keywords and it equals TnVed
             o.BaseParcelKeyWords.Any() &&
             o.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Select(fc => fc.FeacnCode).Distinct().Count() == 1 &&
             o.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Any(fc => fc.FeacnCode == o.TnVed) ? 1 :
 
-            // Priority 2: Has keywords with multiple distinct FeacnCodes and one of them matches TnVed
+            // Priority 2: Multiple distinct FEACN codes across keywords and one of them equals TnVed
             o.BaseParcelKeyWords.Any() &&
             o.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Select(fc => fc.FeacnCode).Distinct().Count() > 1 &&
             o.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Any(fc => fc.FeacnCode == o.TnVed) ? 2 :
 
-            // Priority 3: Has keywords with exactly one distinct FeacnCode, doesn't match TnVed, but TnVed exists in FeacnCodes
+            // Priority 3: Exactly one distinct FEACN code, it does NOT equal TnVed, but TnVed exists in FeacnCodes table
             o.BaseParcelKeyWords.Any() &&
             o.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Select(fc => fc.FeacnCode).Distinct().Count() == 1 &&
             !o.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Any(fc => fc.FeacnCode == o.TnVed) &&
             _db.FeacnCodes.Any(fc => fc.Code == o.TnVed) ? 3 :
 
-            // Priority 4: Has keywords with multiple distinct FeacnCodes, none match TnVed, but TnVed exists in FeacnCodes
+            // Priority 4: Multiple distinct FEACN codes, none equal TnVed, but TnVed exists in FeacnCodes
             o.BaseParcelKeyWords.Any() &&
             o.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Select(fc => fc.FeacnCode).Distinct().Count() > 1 &&
             !o.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Any(fc => fc.FeacnCode == o.TnVed) &&
             _db.FeacnCodes.Any(fc => fc.Code == o.TnVed) ? 4 :
 
-            // Priority 5: Has keywords with exactly one distinct FeacnCode, doesn't match TnVed, and TnVed not in FeacnCodes
+            // Priority 5: Exactly one distinct FEACN code, doesn't match TnVed, and TnVed NOT present in FeacnCodes
             o.BaseParcelKeyWords.Any() &&
             o.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Select(fc => fc.FeacnCode).Distinct().Count() == 1 &&
             !o.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Any(fc => fc.FeacnCode == o.TnVed) &&
             !_db.FeacnCodes.Any(fc => fc.Code == o.TnVed) ? 5 :
 
-            // Priority 6: Has keywords with multiple distinct FeacnCodes, none match TnVed, and TnVed not in FeacnCodes
+            // Priority 6: Multiple distinct FEACN codes, none match TnVed, and TnVed NOT present in FeacnCodes
             o.BaseParcelKeyWords.Any() &&
             o.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Select(fc => fc.FeacnCode).Distinct().Count() > 1 &&
             !o.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Any(fc => fc.FeacnCode == o.TnVed) &&
@@ -61,9 +88,10 @@ public abstract class ParcelsControllerBase : LogibooksControllerBase
             !o.BaseParcelKeyWords.Any() &&
             _db.FeacnCodes.Any(fc => fc.Code == o.TnVed) ? 7 :
 
-            // Priority 8: No keywords and TnVed not in FeacnCodes table
+            // Priority 8: No keywords and TnVed not in FeacnCodes table (worst match)
             8;
 
+        // Apply direction and stable tiebreaker by Id
         if (sortOrder.ToLower() == "desc")
         {
             return query.OrderByDescending(priorityExpression)
@@ -76,6 +104,10 @@ public abstract class ParcelsControllerBase : LogibooksControllerBase
         }
     }
 
+    /// <summary>
+    /// Build a full parcel query (filters + ordering) for a given company/register and sorting
+    /// parameters. Returns null if the requested sortBy is not valid for the company.
+    /// </summary>
     protected IQueryable<BaseParcel>? BuildParcelQuery(
         int companyId,
         int registerId,
@@ -95,6 +127,10 @@ public abstract class ParcelsControllerBase : LogibooksControllerBase
         return orderedQuery;
     }
 
+    /// <summary>
+    /// Validate that the provided sortBy field is allowed for the given company type.
+    /// This prevents clients from requesting invalid sort fields (e.g. SHK for Ozon).
+    /// </summary>
     private static bool IsValidSortBy(int companyId, string sortBy)
     {
         // Determine allowed sortBy based on parcel type
@@ -110,6 +146,14 @@ public abstract class ParcelsControllerBase : LogibooksControllerBase
         return allowedSortBy.Contains(sortBy.ToLower());
     }
 
+    /// <summary>
+    /// Build the base IQueryable for parcels for the given company/register applying
+    /// includes and basic filters. This method does not apply ordering.
+    ///
+    /// Includes are added to eagerly load related entities used by sorting/lookup
+    /// (keywords, FEACN codes, prefixes etc.) so the resulting projection can be
+    /// translated by EF Core into a single query when possible.
+    /// </summary>
     protected IQueryable<BaseParcel> BuildParcelFilterQuery(
         int companyId,
         int registerId,
@@ -148,6 +192,7 @@ public abstract class ParcelsControllerBase : LogibooksControllerBase
 
             if (!string.IsNullOrWhiteSpace(tnVed))
             {
+                // Partial match on TN VED (contains) to allow searching by prefix or substring
                 query = query.Where(o => o.TnVed != null && o.TnVed.Contains(tnVed));
             }
 
@@ -183,6 +228,7 @@ public abstract class ParcelsControllerBase : LogibooksControllerBase
 
             if (!string.IsNullOrWhiteSpace(tnVed))
             {
+                // Partial match on TN VED (contains) to allow searching by prefix or substring
                 query = query.Where(o => o.TnVed != null && o.TnVed.Contains(tnVed));
             }
 
@@ -190,6 +236,14 @@ public abstract class ParcelsControllerBase : LogibooksControllerBase
         }
     }
 
+    /// <summary>
+    /// Apply ordering to a filtered parcel query based on sortBy/sortOrder. Supports
+    /// simple fields and company-specific columns (SHK / PostingNumber) as well as
+    /// the custom FEACN lookup ordering that uses ApplyMatchSorting.
+    ///
+    /// If the query is empty this method returns a stable ordered query by Id to
+    /// allow callers to continue using the returned value safely.
+    /// </summary>
     protected IOrderedQueryable<BaseParcel> ApplyParcelOrdering(IQueryable<BaseParcel> query, string sortBy, string sortOrder)
     {
         // Get the first parcel to determine company type for validation
@@ -221,6 +275,7 @@ public abstract class ParcelsControllerBase : LogibooksControllerBase
             return query.OrderBy(o => o.Id); // Return default ordering for invalid sortBy
         }
 
+        // Map sortBy + sortOrder to specific OrderBy calls. Use Id as final tiebreaker
         return (sortBy.ToLower(), sortOrder.ToLower()) switch
         {
             ("statusid", "asc") => query.OrderBy(o => o.StatusId).ThenBy(o => o.Id),
@@ -240,6 +295,15 @@ public abstract class ParcelsControllerBase : LogibooksControllerBase
         };
     }
 
+    /// <summary>
+    /// Find the next parcel for keyset pagination given the current parcel id and
+    /// desired sorting. Returns null when the requested sortBy is invalid or the
+    /// current parcel is not present in the filtered set.
+    ///
+    /// The method first computes the current parcel's sort key(s) then applies the
+    /// appropriate keyset predicate to locate the next matching row, finally
+    /// ordering the result and returning the first item.
+    /// </summary>
     protected async Task<BaseParcel?> GetNextParcelKeysetAsync(
         int companyId,
         int registerId,
@@ -274,6 +338,11 @@ public abstract class ParcelsControllerBase : LogibooksControllerBase
         return await orderedQuery.FirstOrDefaultAsync();
     }
 
+    /// <summary>
+    /// Retrieve the sort key(s) for the specified parcel depending on the requested
+    /// sort field. For string-based fields the StringKey is used; for integer-based
+    /// fields the IntKey is used. For feacnlookup the priority calculation is performed.
+    /// </summary>
     private async Task<ParcelKeys?> GetCurrentParcelKeysAsync(IQueryable<BaseParcel> filterQuery, int parcelId, string sortBy)
     {
         return sortBy.ToLower() switch
@@ -300,6 +369,11 @@ public abstract class ParcelsControllerBase : LogibooksControllerBase
         };
     }
 
+    /// <summary>
+    /// For FEACN lookup ordering compute the match priority for the current parcel
+    /// and return it in IntKey so keyset predicate logic can operate on the numeric
+    /// priority value.
+    /// </summary>
     private async Task<ParcelKeys?> GetFeacnLookupKeysAsync(IQueryable<BaseParcel> filterQuery, int parcelId)
     {
         // For feacnlookup, we need to calculate the priority for the current parcel
@@ -318,17 +392,24 @@ public abstract class ParcelsControllerBase : LogibooksControllerBase
         return new ParcelKeys { Id = currentParcel.Id, IntKey = priority };
     }
 
+    /// <summary>
+    /// Calculate priority (1..8) for an individual parcel instance. This mirrors the
+    /// expression used in ApplyMatchSorting but runs in-memory against the loaded
+    /// parcel entity; used when computing key values for keyset pagination.
+    /// </summary>
     private int CalculateMatchPriority(BaseParcel parcel)
     {
         var hasKeywords = parcel.BaseParcelKeyWords.Any();
         if (!hasKeywords)
         {
-            // Check if TnVed exists in FeacnCodes table
+            // If no keywords exist, determine whether the parcel's TnVed exists in the
+            // global FeacnCodes table. If it does, prefer it (priority 7) over unknown (8).
             var tnVedExists = !string.IsNullOrEmpty(parcel.TnVed) && 
                              _db.FeacnCodes.Any(fc => fc.Code == parcel.TnVed);
             return tnVedExists ? 7 : 8;
         }
 
+        // Collect distinct FEACN codes referenced by keywords for this parcel
         var feacnCodes = parcel.BaseParcelKeyWords
             .SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes)
             .Select(fc => fc.FeacnCode)
@@ -340,6 +421,7 @@ public abstract class ParcelsControllerBase : LogibooksControllerBase
         var tnVedInDb = !string.IsNullOrEmpty(parcel.TnVed) && 
                         _db.FeacnCodes.Any(fc => fc.Code == parcel.TnVed);
 
+        // Map tuple of (distinctCount, matchesTnVed, tnVedInDb) to priority according to rules
         return (distinctCount, matchesTnVed, tnVedInDb) switch
         {
             (1, true, _) => 1,
@@ -352,6 +434,10 @@ public abstract class ParcelsControllerBase : LogibooksControllerBase
         };
     }
 
+    /// <summary>
+    /// Given the current parcel keys, return a query representing all rows that come
+    /// after the current row according to the requested sortBy/sortOrder (keyset predicate).
+    /// </summary>
     private IQueryable<BaseParcel> ApplyKeysetPredicate(IQueryable<BaseParcel> query, ParcelKeys currentKeys, string sortBy, string sortOrder)
     {
         var isDescending = sortOrder.ToLower() == "desc";
@@ -368,7 +454,13 @@ public abstract class ParcelsControllerBase : LogibooksControllerBase
         };
     }
 
-    private IQueryable<BaseParcel> ApplyStatusIdKeysetPredicate(IQueryable<BaseParcel> query, ParcelKeys currentKeys, bool isDescending)
+    /// <summary>
+    /// Keyset predicate for StatusId ordering. When ascending we want StatusId > cur
+    /// or same StatusId and Id greater than current Id. For descending the comparison
+    /// operator is inverted but Id tie-breaker uses > so we iterate in the correct
+    /// direction for keyset pagination.
+    /// </summary>
+    private static IQueryable<BaseParcel> ApplyStatusIdKeysetPredicate(IQueryable<BaseParcel> query, ParcelKeys currentKeys, bool isDescending)
     {
         var currentStatusId = currentKeys.IntKey ?? 0;
         var currentId = currentKeys.Id;
@@ -387,7 +479,10 @@ public abstract class ParcelsControllerBase : LogibooksControllerBase
         }
     }
 
-    private IQueryable<BaseParcel> ApplyCheckStatusIdKeysetPredicate(IQueryable<BaseParcel> query, ParcelKeys currentKeys, bool isDescending)
+    /// <summary>
+    /// Keyset predicate for CheckStatusId ordering. Same tie-breaker rules as StatusId.
+    /// </summary>
+    private static IQueryable<BaseParcel> ApplyCheckStatusIdKeysetPredicate(IQueryable<BaseParcel> query, ParcelKeys currentKeys, bool isDescending)
     {
         var currentCheckStatusId = currentKeys.IntKey ?? 0;
         var currentId = currentKeys.Id;
@@ -406,7 +501,11 @@ public abstract class ParcelsControllerBase : LogibooksControllerBase
         }
     }
 
-    private IQueryable<BaseParcel> ApplyTnVedKeysetPredicate(IQueryable<BaseParcel> query, ParcelKeys currentKeys, bool isDescending)
+    /// <summary>
+    /// Keyset predicate for TN VED string ordering using string.Compare to ensure
+    /// culture-insensitive ordinal comparison behavior in SQL translation.
+    /// </summary>
+    private static IQueryable<BaseParcel> ApplyTnVedKeysetPredicate(IQueryable<BaseParcel> query, ParcelKeys currentKeys, bool isDescending)
     {
         var currentTnVed = currentKeys.StringKey;
         var currentId = currentKeys.Id;
@@ -425,7 +524,10 @@ public abstract class ParcelsControllerBase : LogibooksControllerBase
         }
     }
 
-    private IQueryable<WbrParcel> ApplyShkKeysetPredicate(IQueryable<WbrParcel> query, ParcelKeys currentKeys, bool isDescending)
+    /// <summary>
+    /// Keyset predicate for SHK (WBR-specific) ordering. Operates on WbrParcel queries.
+    /// </summary>
+    private static IQueryable<WbrParcel> ApplyShkKeysetPredicate(IQueryable<WbrParcel> query, ParcelKeys currentKeys, bool isDescending)
     {
         var currentShk = currentKeys.StringKey;
         var currentId = currentKeys.Id;
@@ -444,7 +546,10 @@ public abstract class ParcelsControllerBase : LogibooksControllerBase
         }
     }
 
-    private IQueryable<OzonParcel> ApplyPostingNumberKeysetPredicate(IQueryable<OzonParcel> query, ParcelKeys currentKeys, bool isDescending)
+    /// <summary>
+    /// Keyset predicate for PostingNumber (Ozon-specific) ordering. Operates on OzonParcel queries.
+    /// </summary>
+    private static IQueryable<OzonParcel> ApplyPostingNumberKeysetPredicate(IQueryable<OzonParcel> query, ParcelKeys currentKeys, bool isDescending)
     {
         var currentPostingNumber = currentKeys.StringKey;
         var currentId = currentKeys.Id;
@@ -463,7 +568,19 @@ public abstract class ParcelsControllerBase : LogibooksControllerBase
         }
     }
 
-    private IQueryable<BaseParcel> ApplyFeacnKeysetPredicate(IQueryable<BaseParcel> query, ParcelKeys currentKeys, bool isDescending)
+    /// <summary>
+    /// Keyset predicate for FEACN lookup ordering. Currently this method performs a
+    /// simple id-based predicate as a placeholder: for FEACN ordering we compute a
+    /// numeric priority but full cross-row comparison by priority then id would
+    /// require translating the same expression used during ordering. To keep the
+    /// logic simple and efficient we fall back to id-based progression after
+    /// computing the priority for the current row.
+    ///
+    /// NOTE: This means keyset pagination across FEACN-priority boundaries is driven
+    /// primarily by Id; it is intentional to avoid complex SQL expressions that are
+    /// hard to keep consistent between computing priority and applying keyset predicate.
+    /// </summary>
+    private static IQueryable<BaseParcel> ApplyFeacnKeysetPredicate(IQueryable<BaseParcel> query, ParcelKeys currentKeys, bool isDescending)
     {
         var currentPriority = currentKeys.IntKey ?? 8;
         var currentId = currentKeys.Id;
@@ -480,7 +597,11 @@ public abstract class ParcelsControllerBase : LogibooksControllerBase
         }
     }
 
-    private IQueryable<BaseParcel> ApplyIdKeysetPredicate(IQueryable<BaseParcel> query, ParcelKeys currentKeys, bool isDescending)
+    /// <summary>
+    /// Default keyset predicate for Id ordering. Uses greater/less-than comparisons
+    /// depending on requested direction.
+    /// </summary>
+    private static IQueryable<BaseParcel> ApplyIdKeysetPredicate(IQueryable<BaseParcel> query, ParcelKeys currentKeys, bool isDescending)
     {
         var currentId = currentKeys.Id;
 
@@ -494,6 +615,11 @@ public abstract class ParcelsControllerBase : LogibooksControllerBase
         }
     }
 
+    /// <summary>
+    /// Helper type used to carry the current row's key values required for keyset
+    /// predicate evaluation. IntKey is used for numeric sort fields; StringKey for
+    /// string-based sorts. Id is always included for tie-breakers.
+    /// </summary>
     private class ParcelKeys
     {
         public int Id { get; set; }
