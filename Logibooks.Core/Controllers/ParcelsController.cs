@@ -87,7 +87,7 @@ public class ParcelsController(
         if (orderWithRegister == null)
         {
             _logger.LogDebug("GetOrder returning '404 Not Found'");
-            return _404Order(id);
+            return _404Parcel(id);
         }
 
         // Validate that the company exists
@@ -127,7 +127,7 @@ public class ParcelsController(
         if (order == null)
         {
             _logger.LogDebug("GetOrder returning '404 Not Found' - order not found in specific table");
-            return _404Order(id);
+            return _404Parcel(id);
         }
 
         var lastView = await _db.ParcelViews
@@ -169,7 +169,7 @@ public class ParcelsController(
         if (orderWithRegister == null)
         {
             _logger.LogDebug("UpdateOrder returning '404 Not Found'");
-            return _404Order(id);
+            return _404Parcel(id);
         }
 
         // Validate that the company exists
@@ -199,7 +199,7 @@ public class ParcelsController(
         if (order == null)
         {
             _logger.LogDebug("UpdateOrder returning '404 Not Found' - order not found in specific table");
-            return _404Order(id);
+            return _404Parcel(id);
         }
 
         if (order is WbrParcel wbr)
@@ -240,7 +240,7 @@ public class ParcelsController(
         if (orderWithRegister == null)
         {
             _logger.LogDebug("DeleteOrder returning '404 Not Found'");
-            return _404Order(id);
+            return _404Parcel(id);
         }
 
         // Validate that the company exists
@@ -301,19 +301,12 @@ public class ParcelsController(
             return _404Register(registerId);
         }
 
-        bool invalidSort;
-        var query = BuildParcelQuery(register.CompanyId, registerId, statusId, checkStatusId, tnVed, sortBy, sortOrder, out invalidSort);
+        var query = BuildParcelQuery(register.CompanyId, registerId, statusId, checkStatusId, tnVed, sortBy, sortOrder);
 
         if (query == null)
         {
-            if (invalidSort)
-            {
-                _logger.LogDebug("GetParcels returning '400 Bad Request' - invalid sortBy");
-                return _400();
-            }
-
-            _logger.LogDebug("GetParcels returning '400 Bad Request' - unsupported register company type");
-            return _400CompanyId(register.CompanyId);
+           _logger.LogDebug("GetParcels returning '400 Bad Request' - invalid sortBy");
+           return _400();
         }
 
         int totalCount = await query.CountAsync();
@@ -372,7 +365,7 @@ public class ParcelsController(
         if (parcel == null)
         {
             _logger.LogDebug("LookupFeacnCode returning '404 Not Found'");
-            return _404Order(id);
+            return _404Parcel(id);
         }
 
         var keyWords = await _db.KeyWords.AsNoTracking().ToListAsync();
@@ -405,7 +398,7 @@ public class ParcelsController(
         if (order == null)
         {
             _logger.LogDebug("ValidateOrder returning '404 Not Found'");
-            return _404Order(id);
+            return _404Parcel(id);
         }
 
         var stopWords = await _db.StopWords.AsNoTracking().ToListAsync();
@@ -438,7 +431,7 @@ public class ParcelsController(
         if (order == null)
         {
             _logger.LogDebug("Generate returning '404 Not Found'");
-            return _404Order(id);
+            return _404Parcel(id);
         }
 
         var (fileName, xml) = await _indPostGenerator.GenerateXML(id);
@@ -466,7 +459,7 @@ public class ParcelsController(
         if (parcel == null)
         {
             _logger.LogDebug("ApproveParcel returning '404 Not Found'");
-            return _404Order(id);
+            return _404Parcel(id);
         }
 
         parcel.CheckStatusId = withExcise 
@@ -497,7 +490,7 @@ public class ParcelsController(
         if (statusTitle == null)
         {
             _logger.LogDebug("GetOrderStatus returning '404 Not Found'");
-            return _404OrderNumber(orderNumber);
+            return _404ParcelNumber(orderNumber);
         }
 
         return Ok(statusTitle);

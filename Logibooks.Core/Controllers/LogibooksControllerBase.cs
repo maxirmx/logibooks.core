@@ -108,12 +108,12 @@ public class LogibooksControllerPreBase(AppDbContext db, ILogger logger) : Contr
         return StatusCode(StatusCodes.Status404NotFound,
                           new ErrMessage { Msg = $"Не удалось найти объект [id={id}]" });
     }
-    protected ObjectResult _404Order(int id)
+    protected ObjectResult _404Parcel(int id)
     {
         return StatusCode(StatusCodes.Status404NotFound,
                           new ErrMessage { Msg = $"Не удалось найти информацию о посылке [id={id}]" });
     }
-    protected ObjectResult _404OrderNumber(string number)
+    protected ObjectResult _404ParcelNumber(string number)
     {
         return StatusCode(StatusCodes.Status404NotFound,
                           new ErrMessage { Msg = $"Не удалось найти информацию о посылке [номер={number}]" });

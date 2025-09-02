@@ -129,7 +129,7 @@ public class RegistersController(
             return _404Register(id);
         }
 
-        var parcelsStats = await FetchOrdersStatsAsync([id]);
+        var parcelsStats = await FetchParcelsStatsAsync([id]);
         var parcelsByStatus = parcelsStats.GetValueOrDefault(id, []);
         var placesTotal = await FetchUniqueIdentifiersCountAsync([id]);
 
@@ -247,7 +247,7 @@ public class RegistersController(
             .ToListAsync();
 
         var ids = items.Select(r => r.Id).ToList();
-        var stats = await FetchOrdersStatsAsync(ids);
+        var stats = await FetchParcelsStatsAsync(ids);
         var placesTotal = await FetchUniqueIdentifiersCountAsync(ids);
 
         var viewItems = items.Select(r => r.ToViewItem(stats.GetValueOrDefault(r.Id, []), placesTotal[r.Id])).ToList();
@@ -591,7 +591,7 @@ public class RegistersController(
         if (current == null)
         {
             _logger.LogDebug("NextParcel returning '404 Not Found' - parcel");
-            return _404Order(parcelId);
+            return _404Parcel(parcelId);
         }
 
         int registerId = current.RegisterId;
@@ -600,34 +600,33 @@ public class RegistersController(
         sortBy ??= "id";
         sortOrder = string.IsNullOrEmpty(sortOrder) ? "asc" : sortOrder.ToLower();
 
-        bool invalidSort;
-        var query = BuildParcelQuery(companyId, registerId, statusId, checkStatusId, tnVed, sortBy, sortOrder, out invalidSort);
-        if (query == null)
+        // Validate company ID
+        if (companyId != IRegisterProcessingService.GetWBRId() && companyId != IRegisterProcessingService.GetOzonId())
         {
-            if (invalidSort)
-            {
-                _logger.LogDebug("NextParcel returning '400 Bad Request' - invalid sortBy");
-                return _400();
-            }
-
             _logger.LogDebug("NextParcel returning '400 Bad Request' - unsupported register company type");
             return _400CompanyId(companyId);
         }
 
-        query = query.Where(o => o.CheckStatusId >= (int)ParcelCheckStatusCode.HasIssues);
+        // Get next parcel using keyset pagination
+        var nextParcel = await GetNextParcelKeysetAsync(
+            companyId, 
+            registerId, 
+            parcelId, 
+            statusId, 
+            checkStatusId, 
+            tnVed, 
+            sortBy, 
+            sortOrder, 
+            (int)ParcelCheckStatusCode.HasIssues);
 
-        var parcels = await query.ToListAsync();
-        var index = parcels.FindIndex(o => o.Id == parcelId);
-        if (index == -1 || index + 1 >= parcels.Count)
+        if (nextParcel == null)
         {
             _logger.LogDebug("NextParcel returning '204 No Content'");
             return NoContent();
         }
 
-        var parcel = parcels[index + 1];
-
-        _logger.LogDebug("NextParcel returning order {id}", parcel.Id);
-        return new ParcelViewItem(parcel);
+        _logger.LogDebug("NextParcel returning order {id}", nextParcel.Id);
+        return new ParcelViewItem(nextParcel);
     }
 
     [HttpGet("the-nextparcel/{parcelId}")]
@@ -658,7 +657,7 @@ public class RegistersController(
         if (current == null)
         {
             _logger.LogDebug("TheNextParcel returning '404 Not Found'");
-            return _404Order(parcelId);
+            return _404Parcel(parcelId);
         }
 
         int registerId = current.RegisterId;
@@ -667,32 +666,32 @@ public class RegistersController(
         sortBy ??= "id";
         sortOrder = string.IsNullOrEmpty(sortOrder) ? "asc" : sortOrder.ToLower();
 
-        bool invalidSort;
-        var query = BuildParcelQuery(companyId, registerId, statusId, checkStatusId, tnVed, sortBy, sortOrder, out invalidSort);
-        if (query == null)
+        // Validate company ID
+        if (companyId != IRegisterProcessingService.GetWBRId() && companyId != IRegisterProcessingService.GetOzonId())
         {
-            if (invalidSort)
-            {
-                _logger.LogDebug("TheNextParcel returning '400 Bad Request' - invalid sortBy");
-                return _400();
-            }
-
             _logger.LogDebug("TheNextParcel returning '400 Bad Request' - unsupported register company type");
             return _400CompanyId(companyId);
         }
 
-        var parcels = await query.ToListAsync();
-        var index = parcels.FindIndex(o => o.Id == parcelId);
-        if (index == -1 || index + 1 >= parcels.Count)
+        // Get next parcel using keyset pagination (without minCheckStatusId filter)
+        var nextParcel = await GetNextParcelKeysetAsync(
+            companyId, 
+            registerId, 
+            parcelId, 
+            statusId, 
+            checkStatusId, 
+            tnVed, 
+            sortBy, 
+            sortOrder);
+
+        if (nextParcel == null)
         {
             _logger.LogDebug("TheNextParcel returning '204 No Content' - no next parcel found");
             return NoContent();
         }
 
-        var parcel = parcels[index + 1];
-
-        _logger.LogDebug("TheNextParcel returning order {id}", parcel.Id);
-        return new ParcelViewItem(parcel);
+        _logger.LogDebug("TheNextParcel returning order {id}", nextParcel.Id);
+        return new ParcelViewItem(nextParcel);
     }
 
     [HttpPost("{id}/lookup-feacn-codes")]
@@ -839,7 +838,7 @@ public class RegistersController(
         return NoContent();
     }
 
-    private async Task<Dictionary<int, Dictionary<int, int>>> FetchOrdersStatsAsync(IEnumerable<int> registerIds)
+    private async Task<Dictionary<int, Dictionary<int, int>>> FetchParcelsStatsAsync(IEnumerable<int> registerIds)
     {
         var grouped = await _db.Parcels
             .AsNoTracking()
