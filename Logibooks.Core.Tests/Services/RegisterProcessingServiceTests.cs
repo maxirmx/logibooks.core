@@ -402,10 +402,12 @@ public class DownloadRegisterTests
         var orders = _dbContext.OzonParcels.OrderBy(o => o.Id).ToList();
         
         // Set different HasIssues status codes
-        orders[0].CheckStatusId = (int)ParcelCheckStatusCode.HasIssues; // 101
-        orders[1].CheckStatusId = (int)ParcelCheckStatusCode.InvalidFeacnFormat; // 102  
-        orders[2].CheckStatusId = (int)ParcelCheckStatusCode.HasIssuesAtDescription; // 104
-        
+        orders[0].CheckStatusId = (int)ParcelCheckStatusCode.HasIssues; 
+        orders[1].CheckStatusId = (int)ParcelCheckStatusCode.InvalidFeacnFormat; 
+        orders[2].CheckStatusId = (int)ParcelCheckStatusCode.BlockedByFeacnCodeAndStopWord;
+        orders[3].CheckStatusId = (int)ParcelCheckStatusCode.BlockedByFeacnCode;
+        orders[4].CheckStatusId = (int)ParcelCheckStatusCode.BlockedByStopWord;
+
         await _dbContext.SaveChangesAsync();
 
         // Act: Download Excel
@@ -416,7 +418,7 @@ public class DownloadRegisterTests
         using var workbook = new XLWorkbook(ms);
         var worksheet = workbook.Worksheet(1);
         
-        for (int i = 2; i <= 4; i++) // Rows 2-4 (row 1 is header)
+        for (int i = 2; i <= 5; i++) // Rows 2-54 (row 1 is header)
         {
             var row = worksheet.Row(i);
             Assert.That(row.Style.Fill.BackgroundColor, Is.EqualTo(XLColor.Red), 
