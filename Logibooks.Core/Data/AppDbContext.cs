@@ -253,6 +253,7 @@ namespace Logibooks.Core.Data
             modelBuilder.Entity<ParcelCheckStatus>().HasData(
                 new ParcelCheckStatus { Id = (int)ParcelCheckStatusCode.NotChecked, Title = "Не проверен" },
                 new ParcelCheckStatus { Id = (int)ParcelCheckStatusCode.HasIssues, Title = "Запрет" },
+
                 new ParcelCheckStatus { Id = (int)ParcelCheckStatusCode.InvalidFeacnFormat, Title = "Неправильный формат ТН ВЭД" },
                 new ParcelCheckStatus { Id = (int)ParcelCheckStatusCode.NonexistingFeacn, Title = "Несуществующий ТН ВЭД" },
                 new ParcelCheckStatus { Id = (int)ParcelCheckStatusCode.MarkedByPartner, Title = "Запрещено партнёром" },
