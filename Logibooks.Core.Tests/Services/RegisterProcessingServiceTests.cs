@@ -57,7 +57,7 @@ public class UploadOzonRegisterTests
         var register = ctx.Registers.FirstOrDefault(r => r.Id == reference.Id);
         Assert.That(reference.Id, Is.GreaterThan(0));
         Assert.That(ctx.Registers.Count(), Is.EqualTo(1));
-        Assert.That(ctx.OzonParcels.Count(), Is.EqualTo(3));
+        Assert.That(ctx.OzonParcels.Count(), Is.EqualTo(6));
         Assert.That(ctx.OzonParcels.OrderBy(o => o.Id).First().PostingNumber, Is.EqualTo("0180993146-0049-7"));
         Assert.That(register, Is.Not.Null);
         Assert.That(register!.TheOtherCountryCode, Is.EqualTo(860));
@@ -309,7 +309,7 @@ public class DownloadRegisterTests
         var ds = reader.AsDataSet();
         var table = ds.Tables[0];
 
-        Assert.That(table.Rows.Count, Is.EqualTo(4));
+        Assert.That(table.Rows.Count, Is.EqualTo(7));
 
         using var archive = new System.IO.Compression.ZipArchive(new MemoryStream(bytes));
         var entry = archive.GetEntry("xl/styles.xml");
