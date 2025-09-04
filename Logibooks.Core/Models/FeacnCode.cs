@@ -23,6 +23,7 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+using Logibooks.Core.Data;
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -68,4 +69,13 @@ public class FeacnCode
     public FeacnCode? Parent { get; set; }
 
     public ICollection<FeacnCode>? Children { get; set; }
+
+    public static IQueryable<FeacnCode> RoQuery(AppDbContext db)
+    {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        IQueryable<FeacnCode> query = db.FeacnCodes.AsNoTracking()
+                   .Where(c => (c.FromDate == null || c.FromDate <= today) &&
+                               (c.ToDate == null || c.ToDate > today));
+        return query;
+    }
 }

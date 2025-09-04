@@ -46,9 +46,8 @@ public abstract class ParcelsControllerBase(IHttpContextAccessor httpContextAcce
     {
         if (_cachedFeacnCodes == null)
         {
-            _cachedFeacnCodes = await _db.FeacnCodes
-                .Select(fc => fc.Code)
-                .ToHashSetAsync();
+            var query = FeacnCode.RoQuery(_db);
+            _cachedFeacnCodes = await query.Select(fc => fc.Code).ToHashSetAsync();
         }
         return _cachedFeacnCodes;
     }
@@ -98,22 +97,22 @@ public abstract class ParcelsControllerBase(IHttpContextAccessor httpContextAcce
 
                     // Priority 3: Exactly one distinct FEACN code, it does NOT equal TnVed, but TnVed exists in FeacnCodes table
                     x.Parcel.BaseParcelKeyWords.Any() && x.DistinctFeacnCount == 1 && !x.HasTnVedMatch &&
-                    _db.FeacnCodes.Any(fc => fc.Code == x.Parcel.TnVed) ? 3 :
+                    FeacnCode.RoQuery(_db).Any(fc => fc.Code == x.Parcel.TnVed) ? 3 :
 
                     // Priority 4: Multiple distinct FEACN codes, none equal TnVed, but TnVed exists in FeacnCodes
                     x.Parcel.BaseParcelKeyWords.Any() && x.DistinctFeacnCount > 1 && !x.HasTnVedMatch &&
-                    _db.FeacnCodes.Any(fc => fc.Code == x.Parcel.TnVed) ? 4 :
+                    FeacnCode.RoQuery(_db).Any(fc => fc.Code == x.Parcel.TnVed) ? 4 :
 
                     // Priority 5: Exactly one distinct FEACN code, doesn't match TnVed, and TnVed NOT present in FeacnCodes
                     x.Parcel.BaseParcelKeyWords.Any() && x.DistinctFeacnCount == 1 && !x.HasTnVedMatch &&
-                    !_db.FeacnCodes.Any(fc => fc.Code == x.Parcel.TnVed) ? 5 :
+                    !FeacnCode.RoQuery(_db).Any(fc => fc.Code == x.Parcel.TnVed) ? 5 :
 
                     // Priority 6: Multiple distinct FEACN codes, none match TnVed, and TnVed NOT present in FeacnCodes
                     x.Parcel.BaseParcelKeyWords.Any() && x.DistinctFeacnCount > 1 && !x.HasTnVedMatch &&
-                    !_db.FeacnCodes.Any(fc => fc.Code == x.Parcel.TnVed) ? 6 :
+                    !FeacnCode.RoQuery(_db).Any(fc => fc.Code == x.Parcel.TnVed) ? 6 :
 
                     // Priority 7: No keywords but TnVed exists in FeacnCodes table
-                    !x.Parcel.BaseParcelKeyWords.Any() && _db.FeacnCodes.Any(fc => fc.Code == x.Parcel.TnVed) ? 7 :
+                    !x.Parcel.BaseParcelKeyWords.Any() && FeacnCode.RoQuery(_db).Any(fc => fc.Code == x.Parcel.TnVed) ? 7 :
 
                     // Priority 8: No keywords and TnVed not in FeacnCodes table (worst match)
                     8)
@@ -132,22 +131,22 @@ public abstract class ParcelsControllerBase(IHttpContextAccessor httpContextAcce
 
                     // Priority 3: Exactly one distinct FEACN code, it does NOT equal TnVed, but TnVed exists in FeacnCodes table
                     x.Parcel.BaseParcelKeyWords.Any() && x.DistinctFeacnCount == 1 && !x.HasTnVedMatch &&
-                    _db.FeacnCodes.Any(fc => fc.Code == x.Parcel.TnVed) ? 3 :
+                    FeacnCode.RoQuery(_db).Any(fc => fc.Code == x.Parcel.TnVed) ? 3 :
 
                     // Priority 4: Multiple distinct FEACN codes, none equal TnVed, but TnVed exists in FeacnCodes
                     x.Parcel.BaseParcelKeyWords.Any() && x.DistinctFeacnCount > 1 && !x.HasTnVedMatch &&
-                    _db.FeacnCodes.Any(fc => fc.Code == x.Parcel.TnVed) ? 4 :
+                    FeacnCode.RoQuery(_db).Any(fc => fc.Code == x.Parcel.TnVed) ? 4 :
 
                     // Priority 5: Exactly one distinct FEACN code, doesn't match TnVed, and TnVed NOT present in FeacnCodes
                     x.Parcel.BaseParcelKeyWords.Any() && x.DistinctFeacnCount == 1 && !x.HasTnVedMatch &&
-                    !_db.FeacnCodes.Any(fc => fc.Code == x.Parcel.TnVed) ? 5 :
+                    !FeacnCode.RoQuery(_db).Any(fc => fc.Code == x.Parcel.TnVed) ? 5 :
 
                     // Priority 6: Multiple distinct FEACN codes, none match TnVed, and TnVed NOT present in FeacnCodes
                     x.Parcel.BaseParcelKeyWords.Any() && x.DistinctFeacnCount > 1 && !x.HasTnVedMatch &&
-                    !_db.FeacnCodes.Any(fc => fc.Code == x.Parcel.TnVed) ? 6 :
+                    !FeacnCode.RoQuery(_db).Any(fc => fc.Code == x.Parcel.TnVed) ? 6 :
 
                     // Priority 7: No keywords but TnVed exists in FeacnCodes table
-                    !x.Parcel.BaseParcelKeyWords.Any() && _db.FeacnCodes.Any(fc => fc.Code == x.Parcel.TnVed) ? 7 :
+                    !x.Parcel.BaseParcelKeyWords.Any() && FeacnCode.RoQuery(_db).Any(fc => fc.Code == x.Parcel.TnVed) ? 7 :
 
                     // Priority 8: No keywords and TnVed not in FeacnCodes table (worst match)
                     8)
@@ -737,25 +736,25 @@ public abstract class ParcelsControllerBase(IHttpContextAccessor httpContextAcce
                 p.BaseParcelKeyWords.Any() &&
                 p.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Select(fc => fc.FeacnCode).Distinct().Count() == 1 &&
                 !p.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Any(fc => fc.FeacnCode == p.TnVed) &&
-                _db.FeacnCodes.Any(fc => fc.Code == p.TnVed) ? 3 :
+                FeacnCode.RoQuery(_db).Any(fc => fc.Code == p.TnVed) ? 3 :
 
                 p.BaseParcelKeyWords.Any() &&
                 p.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Select(fc => fc.FeacnCode).Distinct().Count() > 1 &&
                 !p.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Any(fc => fc.FeacnCode == p.TnVed) &&
-                _db.FeacnCodes.Any(fc => fc.Code == p.TnVed) ? 4 :
+                FeacnCode.RoQuery(_db).Any(fc => fc.Code == p.TnVed) ? 4 :
 
                 p.BaseParcelKeyWords.Any() &&
                 p.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Select(fc => fc.FeacnCode).Distinct().Count() == 1 &&
                 !p.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Any(fc => fc.FeacnCode == p.TnVed) &&
-                !_db.FeacnCodes.Any(fc => fc.Code == p.TnVed) ? 5 :
+                !FeacnCode.RoQuery(_db).Any(fc => fc.Code == p.TnVed) ? 5 :
 
                 p.BaseParcelKeyWords.Any() &&
                 p.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Select(fc => fc.FeacnCode).Distinct().Count() > 1 &&
                 !p.BaseParcelKeyWords.SelectMany(kw => kw.KeyWord.KeyWordFeacnCodes).Any(fc => fc.FeacnCode == p.TnVed) &&
-                !_db.FeacnCodes.Any(fc => fc.Code == p.TnVed) ? 6 :
+                !FeacnCode.RoQuery(_db).Any(fc => fc.Code == p.TnVed) ? 6 :
 
                 !p.BaseParcelKeyWords.Any() &&
-                _db.FeacnCodes.Any(fc => fc.Code == p.TnVed) ? 7 : 8
+                FeacnCode.RoQuery(_db).Any(fc => fc.Code == p.TnVed) ? 7 : 8
         });
 
         if (isDescending)
