@@ -754,7 +754,7 @@ public abstract class ParcelsControllerBase(IHttpContextAccessor httpContextAcce
                 !FeacnCode.RoQuery(_db).Any(fc => fc.Code == p.TnVed) ? 6 :
 
                 !p.BaseParcelKeyWords.Any() &&
-                _db.FeacnCodes.Any(fc => fc.Code == p.TnVed) ? 7 : 8
+                FeacnCode.RoQuery(_db).Any(fc => fc.Code == p.TnVed) ? 7 : 8
         });
 
         if (isDescending)
