@@ -104,7 +104,8 @@ public class FeacnCodesControllerTests
 
     private static FeacnCode CreateCode(int id, string code, string name,
                                         int? parentId = null,
-                                        DateOnly? fromDate = null)
+                                        DateOnly? fromDate = null,
+                                        DateOnly? toDate = null)
     {
         return new FeacnCode
         {
@@ -114,7 +115,8 @@ public class FeacnCodesControllerTests
             Name = name,
             NormalizedName = name.ToUpperInvariant(),
             ParentId = parentId,
-            FromDate = fromDate
+            FromDate = fromDate,
+            ToDate = toDate
         };
     }
 
@@ -146,6 +148,20 @@ public class FeacnCodesControllerTests
         Assert.That(result2.Result, Is.TypeOf<ObjectResult>());
         var obj2 = result2.Result as ObjectResult;
         Assert.That(obj2!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+    }
+
+    [Test]
+    public async Task Get_ReturnsNotFound_WhenToDateIsToday()
+    {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var fc = CreateCode(10, "5555555555", "ExpiredToday", toDate: today);
+        _dbContext.FeacnCodes.Add(fc);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.Get(10);
+        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+        var obj = result.Result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
     }
 
     [Test]
@@ -472,4 +488,38 @@ public class FeacnCodesControllerTests
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
     }
 
+    [Test]
+    public async Task Lookup_ExcludesCodes_WithToDateEqualToday()
+    {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        _dbContext.FeacnCodes.AddRange(
+            CreateCode(11, "7777000000", "IncludeMe", fromDate: today.AddDays(-1), toDate: today.AddDays(1)),
+            CreateCode(12, "7777111111", "ExcludeToday", fromDate: today.AddDays(-10), toDate: today) // should be excluded
+        );
+        await _dbContext.SaveChangesAsync();
+
+        var res = await _controller.Lookup("7777");
+        Assert.That(res.Value, Is.Not.Null);
+        var codes = res.Value!.Select(c => c.Code).ToList();
+        Assert.That(codes, Contains.Item("7777000000"));
+        Assert.That(codes, Does.Not.Contain("7777111111"));
+    }
+
+    [Test]
+    public async Task BulkLookup_ExcludesCodes_WithToDateEqualToday()
+    {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var expiredToday = CreateCode(13, "8888000000", "ExpiredToday", toDate: today);
+        var active = CreateCode(14, "8888111111", "Active");
+        _dbContext.FeacnCodes.AddRange(expiredToday, active);
+        await _dbContext.SaveChangesAsync();
+
+        var request = new BulkFeacnCodeRequestDto(new[] { "8888000000", "8888111111" });
+        var result = await _controller.BulkLookup(request);
+        Assert.That(result.Value, Is.Not.Null);
+        var dict = result.Value!.Results;
+        Assert.That(dict.Count, Is.EqualTo(2));
+        Assert.That(dict["8888000000"], Is.Null);
+        Assert.That(dict["8888111111"], Is.Not.Null);
+    }
 }

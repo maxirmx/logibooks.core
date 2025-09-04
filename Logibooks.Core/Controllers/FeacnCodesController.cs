@@ -54,10 +54,8 @@ public class FeacnCodesController(
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
     public async Task<ActionResult<FeacnCodeDto>> Get(int id)
     {
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        var code = await _db.FeacnCodes.AsNoTracking()
-            .Where(c => c.Id == id && (c.FromDate == null || c.FromDate <= today))
-            .FirstOrDefaultAsync();
+        IQueryable<FeacnCode> query = FeacnCode.RoQuery(_db);
+        var code = await query.Where(c => c.Id == id).FirstOrDefaultAsync();
         return code == null ? _404Object(id) : new FeacnCodeDto(code);
     }
 
@@ -74,10 +72,8 @@ public class FeacnCodesController(
             return _400MustBe10Digits(code);
         }
 
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        var fc = await _db.FeacnCodes.AsNoTracking()
-            .Where(c => c.Code == code && (c.FromDate == null || c.FromDate <= today))
-            .FirstOrDefaultAsync();
+        IQueryable<FeacnCode> query = FeacnCode.RoQuery(_db);
+        var fc = await query.Where(c => c.Code == code).FirstOrDefaultAsync();
         return fc == null ? _404FeacnCode(code) : new FeacnCodeDto(fc);
     }
 
@@ -85,16 +81,13 @@ public class FeacnCodesController(
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<FeacnCodeDto>))]
     public async Task<ActionResult<IEnumerable<FeacnCodeDto>>> Lookup(string key)
     {
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        
-        IQueryable<FeacnCode> query = _db.FeacnCodes.AsNoTracking()
-            .Where(c => c.FromDate == null || c.FromDate <= today);
-
         // Handle empty or whitespace-only keys
         if (string.IsNullOrWhiteSpace(key))
         {
             return new List<FeacnCodeDto>();
         }
+
+        IQueryable<FeacnCode> query = FeacnCode.RoQuery(_db);
 
         // If key contains only digits, search by code prefix; otherwise search by normalized name
         if (key.All(char.IsDigit))
@@ -119,10 +112,7 @@ public class FeacnCodesController(
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<FeacnCodeDto>))]
     public async Task<ActionResult<IEnumerable<FeacnCodeDto>>> Children(int? id)
     {
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        IQueryable<FeacnCode> query = _db.FeacnCodes.AsNoTracking()
-            .Where(c => c.FromDate == null || c.FromDate <= today);
-        
+        IQueryable<FeacnCode> query = FeacnCode.RoQuery(_db);
         query = id.HasValue ? query.Where(c => c.ParentId == id.Value) : query.Where(c => c.ParentId == null);
         
         var codes = await query
@@ -220,12 +210,9 @@ public class FeacnCodesController(
             return new BulkFeacnCodeLookupDto(result);
         }
 
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        
         // Bulk query to get all matching codes
-        var foundCodes = await _db.FeacnCodes.AsNoTracking()
-            .Where(c => validCodes.Contains(c.Code) && (c.FromDate == null || c.FromDate <= today))
-            .ToListAsync();
+        IQueryable<FeacnCode> query = FeacnCode.RoQuery(_db);
+        var foundCodes = await query.Where(c => validCodes.Contains(c.Code)).ToListAsync();
 
         // Populate result dictionary with found codes
         foreach (var feacnCode in foundCodes)
