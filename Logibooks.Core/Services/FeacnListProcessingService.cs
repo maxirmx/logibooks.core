@@ -29,6 +29,7 @@ using Logibooks.Core.Data;
 using Logibooks.Core.Interfaces;
 using Logibooks.Core.Models;
 using Microsoft.EntityFrameworkCore;
+using Quartz.Util;
 
 namespace Logibooks.Core.Services;
 
@@ -260,7 +261,7 @@ public class FeacnListProcessingService(
     {
         var feacnCodes = new List<FeacnCode>();
         var idToIndexMap = new Dictionary<int, int>();
-        
+
         // First pass: create all FeacnCode entities
         for (int i = 0; i < excelRows.Count; i++)
         {
@@ -278,7 +279,7 @@ public class FeacnListProcessingService(
                 OldNameToDate = row.DatePrev,
                 OldName = row.TextPrev
             };
-            
+
             feacnCodes.Add(feacnCode);
         }
         
