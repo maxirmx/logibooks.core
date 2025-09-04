@@ -117,7 +117,11 @@ public class RegisterValidationService(
                     var order = await scopedDb.Parcels.FindAsync([id], cancellationToken: process.Cts.Token);
                     if (order != null)
                     {
-                        await scopedOrderSvc.ValidateAsync(order, morphologyContext, stopWordsContext, feacnContext, process.Cts.Token);
+                        await scopedOrderSvc.ValidateFeacnAsync(order, feacnContext, process.Cts.Token);
+                        if (order.CheckStatusId != (int)ParcelCheckStatusCode.InvalidFeacnFormat)
+                        {
+                            await scopedOrderSvc.ValidateKwAsync(order, morphologyContext, stopWordsContext, process.Cts.Token);
+                        }
                     }
                     process.Processed++;
                 }

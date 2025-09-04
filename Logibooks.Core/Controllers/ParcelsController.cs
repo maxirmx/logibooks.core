@@ -407,7 +407,11 @@ public class ParcelsController(
         var wordsLookupContext = new WordsLookupContext<StopWord>(
             stopWords.Where(sw => sw.MatchTypeId < (int)WordMatchTypeCode.MorphologyMatchTypes));
 
-        await _validationService.ValidateAsync(order, morphologyContext, wordsLookupContext, null);
+        await _validationService.ValidateFeacnAsync(order, null);
+        if (order.CheckStatusId != (int)ParcelCheckStatusCode.InvalidFeacnFormat)
+        {
+            await _validationService.ValidateKwAsync(order, morphologyContext, wordsLookupContext);
+        }
 
         return NoContent();
     }

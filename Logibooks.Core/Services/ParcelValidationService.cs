@@ -41,10 +41,53 @@ public class ParcelValidationService(
     private readonly IFeacnPrefixCheckService _feacnPrefixCheckService = feacnPrefixCheckService;
     private static readonly Regex TnVedRegex = new($"^\\d{{{FeacnCode.FeacnCodeLength}}}$", RegexOptions.Compiled);
 
-    public async Task ValidateAsync(
+    public async Task ValidateKwAsync(
         BaseParcel order,
         MorphologyContext morphologyContext,
         WordsLookupContext<StopWord> wordsLookupContext,
+        CancellationToken cancellationToken = default)
+    {
+        if (order.CheckStatusId == (int)ParcelCheckStatusCode.MarkedByPartner)
+        {
+            return;
+        }
+
+        var existing = _db.Set<BaseParcelStopWord>().Where(l => l.BaseParcelId == order.Id);
+        _db.Set<BaseParcelStopWord>().RemoveRange(existing);
+
+        var productName = order.ProductName ?? string.Empty;
+        var links = SelectStopWordLinks(order.Id, productName, wordsLookupContext, morphologyContext);
+
+        if (order is WbrParcel wbr && !string.IsNullOrWhiteSpace(wbr.Description))
+        {
+            var linksDesc = SelectStopWordLinks(order.Id, wbr.Description, wordsLookupContext, morphologyContext);
+            var existingIds = new HashSet<int>(links.Select(l => l.StopWordId));
+            foreach (var link in linksDesc)
+            {
+                if (existingIds.Add(link.StopWordId))
+                {
+                    links.Add(link);
+                }
+            }
+        }
+
+        if (links.Count > 0)
+        {
+            _db.AddRange(links);
+            order.CheckStatusId = (int)ParcelCheckStatusCode.HasIssues;
+        }
+        else if (order.CheckStatusId == (int)ParcelCheckStatusCode.NotChecked ||
+                 order.CheckStatusId == 0 ||
+                 order.CheckStatusId == (int)ParcelCheckStatusCode.NoIssues)
+        {
+            order.CheckStatusId = (int)ParcelCheckStatusCode.NoIssues;
+        }
+
+        await _db.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task ValidateFeacnAsync(
+        BaseParcel order,
         FeacnPrefixCheckContext? feacnContext = null,
         CancellationToken cancellationToken = default)
     {
@@ -53,13 +96,8 @@ public class ParcelValidationService(
             return;
         }
 
-        // remove existing links for this order
-        var existing1 = _db.Set<BaseParcelStopWord>().Where(l => l.BaseParcelId == order.Id);
-        _db.Set<BaseParcelStopWord>().RemoveRange(existing1);
-
-        var existing2 = _db.Set<BaseParcelFeacnPrefix>()
-            .Where(l => l.BaseParcelId == order.Id);
-        _db.Set<BaseParcelFeacnPrefix>().RemoveRange(existing2);
+        var existing = _db.Set<BaseParcelFeacnPrefix>().Where(l => l.BaseParcelId == order.Id);
+        _db.Set<BaseParcelFeacnPrefix>().RemoveRange(existing);
 
         if (string.IsNullOrWhiteSpace(order.TnVed) || !TnVedRegex.IsMatch(order.TnVed))
         {
@@ -71,44 +109,22 @@ public class ParcelValidationService(
         order.CheckStatusId = (int)ParcelCheckStatusCode.NotChecked;
         await _db.SaveChangesAsync(cancellationToken);
 
-        var productName = order.ProductName ?? string.Empty;
-        var links1 = SelectStopWordLinks(order.Id, productName, wordsLookupContext, morphologyContext);
-
-        if (order is WbrParcel wbr && !string.IsNullOrWhiteSpace(wbr.Description))
-        {
-            var linksDesc = SelectStopWordLinks(order.Id, wbr.Description, wordsLookupContext, morphologyContext);
-            // Add linksDesc to links1, keeping uniqueness by StopWordId
-            var existingIds = new HashSet<int>(links1.Select(l => l.StopWordId));
-            foreach (var link in linksDesc)
-            {
-                if (existingIds.Add(link.StopWordId))
-                {
-                    links1.Add(link);
-                }
-            }
-        }
-
-        var links2 = feacnContext != null
+        var links = feacnContext != null
             ? _feacnPrefixCheckService.CheckParcel(order, feacnContext)
             : await _feacnPrefixCheckService.CheckParcelAsync(order, cancellationToken);
 
-        if (links1.Count > 0)
+        if (links.Any())
         {
-            _db.AddRange(links1);
-        }
-        if (links2.Any())
-        {
-            _db.AddRange(links2);
-        }
-        // If stopwords found in productName or description, or feacn links found, set HasIssues
-        if (links1.Count > 0 || links2.Any())
-        {
+            _db.AddRange(links);
             order.CheckStatusId = (int)ParcelCheckStatusCode.HasIssues;
         }
-        else
+        else if (order.CheckStatusId == (int)ParcelCheckStatusCode.NotChecked ||
+                 order.CheckStatusId == 0 ||
+                 order.CheckStatusId == (int)ParcelCheckStatusCode.NoIssues)
         {
             order.CheckStatusId = (int)ParcelCheckStatusCode.NoIssues;
         }
+
         await _db.SaveChangesAsync(cancellationToken);
     }
 
