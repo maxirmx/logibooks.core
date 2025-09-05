@@ -1,4 +1,4 @@
-// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
+﻿// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
 // All rights reserved.
 // This file is a part of Logibooks Core application
 
@@ -30,18 +30,31 @@ public class ParcelValidationService(
     private static readonly Regex TnVedRegex = new($"^\\d{{{FeacnCode.FeacnCodeLength}}}$", RegexOptions.Compiled);
 
     /// <summary>
-    /// Applies CheckStatusId state transitions based on validation events using a lookup table.
-    /// This replaces the switch-based logic with a more maintainable table-driven approach.
+    /// Применяет переходы статуса проверки CheckStatusId на основе событий валидации, используя таблицу поиска.
+    /// Заменяет логику на основе switch на более поддерживаемый подход, управляемый таблицей.
+    /// 
+    /// ЛОГИКА ПЕРЕХОДОВ СТАТУСОВ ПРОВЕРКИ:
+    /// 
+    /// Система статусов работает по двум измерениям:
+    /// 1. СТОП-СЛОВА (Stop Words) - наличие запрещенных слов в товаре
+    /// 2. КОДЫ ТН ВЭД - проблемы с кодами ТН ВЭД (формат, валидность, стоп префиксы)
+    /// 
+    /// ОСНОВНЫЕ ПРИНЦИПЫ:
+    /// - Статус "MarkedByPartner" (200) никогда не изменяется - это финальное состояние
+    /// - Все остальные статусы могут переходить в зависимости от результата валидации
+    /// - При обнаружении проблем статус переходит к более специфичному варианту
+    /// - При решении проблем статус возвращается к менее проблемному состоянию
+    /// 
     /// </summary>
-    /// <param name="currentCheckStatusId">Current parcel check status</param>
-    /// <param name="validationEvent">The validation event that occurred</param>
-    /// <returns>New CheckStatusId after applying the transition</returns>
+    /// <param name="currentCheckStatusId">Текущий статус проверки посылки</param>
+    /// <param name="validationEvent">Событие валидации, которое произошло</param>
+    /// <returns>Новый CheckStatusId после применения перехода</returns>
     public static int ApplyCheckStatusTransition(int currentCheckStatusId, ValidationEvent validationEvent)
     {
         // State transition table: (CurrentStatus, Event) -> NewStatus
         var transitionTable = new Dictionary<(int currentStatus, ValidationEvent evt), int>
         {
-            // Stop word found transitions (������)
+            // Stop word found transitions (Запрет)
             {((int)ParcelCheckStatusCode.NoIssuesFeacn, ValidationEvent.StopWordFound), (int)ParcelCheckStatusCode.NoIssuesFeacnAndStopWord},
             {((int)ParcelCheckStatusCode.NoIssuesStopWordsAndFeacnCode, ValidationEvent.StopWordFound), (int)ParcelCheckStatusCode.IssueFeacnCodeAndStopWord},
             {((int)ParcelCheckStatusCode.IssueFeacnCode, ValidationEvent.StopWordFound), (int)ParcelCheckStatusCode.IssueFeacnCodeAndStopWord},
@@ -53,7 +66,7 @@ public class ParcelValidationService(
             {((int)ParcelCheckStatusCode.IssueNonexistingFeacn, ValidationEvent.StopWordFound), (int)ParcelCheckStatusCode.IssueNonexistingFeacnAndStopWord},
             {((int)ParcelCheckStatusCode.IssueNonexistingFeacnAndStopWord, ValidationEvent.StopWordFound), (int)ParcelCheckStatusCode.IssueNonexistingFeacnAndStopWord},
 
-            // Stop word not found transitions (��� �������)
+            // Stop word not found transitions (Нет запрета)
             {((int)ParcelCheckStatusCode.NoIssues, ValidationEvent.StopWordNotFound), (int)ParcelCheckStatusCode.NoIssues},
             {((int)ParcelCheckStatusCode.NoIssuesFeacn, ValidationEvent.StopWordNotFound), (int)ParcelCheckStatusCode.NoIssues},
             {((int)ParcelCheckStatusCode.NoIssuesFeacnAndStopWord, ValidationEvent.StopWordNotFound), (int)ParcelCheckStatusCode.NoIssues},
@@ -64,19 +77,19 @@ public class ParcelValidationService(
             {((int)ParcelCheckStatusCode.IssueNonexistingFeacn, ValidationEvent.StopWordNotFound), (int)ParcelCheckStatusCode.NoIssuesStopWordsAndNonexistingFeacn},
             {((int)ParcelCheckStatusCode.IssueNonexistingFeacnAndStopWord, ValidationEvent.StopWordNotFound), (int)ParcelCheckStatusCode.NoIssuesStopWordsAndNonexistingFeacn},
 
-            // Invalid FEACN format transitions (������)
+            // Invalid FEACN format transitions (Запрет)
             {((int)ParcelCheckStatusCode.NoIssues, ValidationEvent.InvalidFeacnFormat), (int)ParcelCheckStatusCode.NoIssuesStopWordsAndInvalidFeacnFormat},
             {((int)ParcelCheckStatusCode.NoIssuesStopWords, ValidationEvent.InvalidFeacnFormat), (int)ParcelCheckStatusCode.NoIssuesStopWordsAndInvalidFeacnFormat},
             {((int)ParcelCheckStatusCode.IssueStopWord, ValidationEvent.InvalidFeacnFormat), (int)ParcelCheckStatusCode.IssueInvalidFeacnFormatAndStopWord},
             {((int)ParcelCheckStatusCode.IssueInvalidFeacnFormatAndStopWord, ValidationEvent.InvalidFeacnFormat), (int)ParcelCheckStatusCode.IssueInvalidFeacnFormatAndStopWord},
 
-            // Non-existing FEACN transitions (������)
+            // Non-existing FEACN transitions (Запрет)
             {((int)ParcelCheckStatusCode.NoIssues, ValidationEvent.NonExistingFeacn), (int)ParcelCheckStatusCode.NoIssuesStopWordsAndNonexistingFeacn},
             {((int)ParcelCheckStatusCode.NoIssuesStopWords, ValidationEvent.NonExistingFeacn), (int)ParcelCheckStatusCode.NoIssuesStopWordsAndNonexistingFeacn},
             {((int)ParcelCheckStatusCode.IssueStopWord, ValidationEvent.NonExistingFeacn), (int)ParcelCheckStatusCode.IssueNonexistingFeacnAndStopWord},
             {((int)ParcelCheckStatusCode.IssueNonexistingFeacnAndStopWord, ValidationEvent.NonExistingFeacn), (int)ParcelCheckStatusCode.IssueNonexistingFeacnAndStopWord},
 
-            // FEACN code issue found transitions (������)
+            // FEACN code issue found transitions (Запрет)
             {((int)ParcelCheckStatusCode.NoIssues, ValidationEvent.FeacnCodeIssueFound), (int)ParcelCheckStatusCode.NoIssuesStopWordsAndFeacnCode},
             {((int)ParcelCheckStatusCode.NoIssuesStopWords, ValidationEvent.FeacnCodeIssueFound), (int)ParcelCheckStatusCode.NoIssuesStopWordsAndFeacnCode},
             {((int)ParcelCheckStatusCode.IssueStopWord, ValidationEvent.FeacnCodeIssueFound), (int)ParcelCheckStatusCode.IssueFeacnCodeAndStopWord},
