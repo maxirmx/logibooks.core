@@ -256,8 +256,19 @@ namespace Logibooks.Core.Data
 
                 new ParcelCheckStatus { Id = (int)ParcelCheckStatusCode.InvalidFeacnFormat, Title = "Неправильный формат ТН ВЭД" },
                 new ParcelCheckStatus { Id = (int)ParcelCheckStatusCode.NonexistingFeacn, Title = "Несуществующий ТН ВЭД" },
+
+                new ParcelCheckStatus { Id = (int)ParcelCheckStatusCode.IssueFeacnCode, Title = "ТН ВЭД" },
+                new ParcelCheckStatus { Id = (int)ParcelCheckStatusCode.IssueFeacnCodeAndStopWord, Title = "ТН ВЭД, слово" },                                                                                         
+                new ParcelCheckStatus { Id = (int)ParcelCheckStatusCode.IssueNonexistingFeacn, Title = "Нет ТН ВЭД" },
+                new ParcelCheckStatus { Id = (int)ParcelCheckStatusCode.IssueNonexistingFeacnAndStopWord, Title = "Нет ТН ВЭД, слово" },
+                new ParcelCheckStatus { Id = (int)ParcelCheckStatusCode.IssueInvalidFeacnFormat, Title = "Формат ТН ВЭД" },
+                new ParcelCheckStatus { Id = (int)ParcelCheckStatusCode.IssueInvalidFeacnFormatAndStopWord, Title = "Формат ТН ВЭД, слово" },
+                new ParcelCheckStatus { Id = (int)ParcelCheckStatusCode.IssueStopWord, Title = "Слово" },
+
                 new ParcelCheckStatus { Id = (int)ParcelCheckStatusCode.MarkedByPartner, Title = "Запрещено партнёром" },
                 new ParcelCheckStatus { Id = (int)ParcelCheckStatusCode.NoIssues, Title = "Ок" },
+                new ParcelCheckStatus { Id = (int)ParcelCheckStatusCode.NoIssuesStopWords, Title = "Ок [стоп-слова]" },
+                new ParcelCheckStatus { Id = (int)ParcelCheckStatusCode.NoIssuesFeacn, Title = "Ок [ТН ВЭД]" },
                 new ParcelCheckStatus { Id = (int)ParcelCheckStatusCode.Approved, Title = "Согласовано" },
                 new ParcelCheckStatus { Id = (int)ParcelCheckStatusCode.ApprovedWithExcise, Title = "Согласовано с акцизом" }
             );

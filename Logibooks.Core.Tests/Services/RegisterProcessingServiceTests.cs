@@ -404,9 +404,9 @@ public class DownloadRegisterTests
         // Set different HasIssues status codes
         orders[0].CheckStatusId = (int)ParcelCheckStatusCode.HasIssues; 
         orders[1].CheckStatusId = (int)ParcelCheckStatusCode.InvalidFeacnFormat; 
-        orders[2].CheckStatusId = (int)ParcelCheckStatusCode.BlockedByFeacnCodeAndStopWord;
-        orders[3].CheckStatusId = (int)ParcelCheckStatusCode.BlockedByFeacnCode;
-        orders[4].CheckStatusId = (int)ParcelCheckStatusCode.BlockedByStopWord;
+        orders[2].CheckStatusId = (int)ParcelCheckStatusCode.IssueFeacnCodeAndStopWord;
+        orders[3].CheckStatusId = (int)ParcelCheckStatusCode.IssueFeacnCode;
+        orders[4].CheckStatusId = (int)ParcelCheckStatusCode.IssueStopWord;
 
         await _dbContext.SaveChangesAsync();
 
