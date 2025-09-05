@@ -9,13 +9,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System;
 
 namespace Logibooks.Core.Tests.Services;
 
 [TestFixture]
 public class ParcelValidationServiceTests
 {
-    private static AppDbContext CreateContext(string name = null)
+    private static AppDbContext CreateContext(string? name = null)
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(name ?? $"pvs_{System.Guid.NewGuid()}")

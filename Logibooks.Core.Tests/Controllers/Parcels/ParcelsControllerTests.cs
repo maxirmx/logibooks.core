@@ -1,27 +1,6 @@
 // Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
 // All rights reserved.
 // This file is a part of Logibooks Core application
-//
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions
-// are met:
-// 1. Redistributions of source code must retain the above copyright
-// notice, this list of conditions and the following disclaimer.
-// 2. Redistributions in binary form must reproduce the above copyright
-// notice, this list of conditions and the following disclaimer in the
-// documentation and/or other materials provided with the distribution.
-//
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-// 'AS IS' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-// TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
-// PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR CONTRIBUTORS
-// BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-// POSSIBILITY OF SUCH DAMAGE.
 
 using System;
 using System.Threading.Tasks;
@@ -811,7 +790,7 @@ public class ParcelsControllerTests
     }
 
     [Test]
-    public async Task ValidateOrder_RunsService_ForLogist()
+    public async Task ValidateParcel_RunsService_ForLogist()
     {
         SetCurrentUserId(1);
         var register = new Register { Id = 10, CompanyId = 2, FileName = "r.xlsx" };
@@ -820,7 +799,7 @@ public class ParcelsControllerTests
         _dbContext.Parcels.Add(order);
         await _dbContext.SaveChangesAsync();
 
-        var result = await _controller.ValidateOrder(10);
+        var result = await _controller.ValidateParcel(10);
 
         _mockValidationService.Verify(s => s.ValidateFeacnAsync(
             order,
@@ -837,10 +816,10 @@ public class ParcelsControllerTests
     }
 
     [Test]
-    public async Task ValidateOrder_ReturnsForbidden_ForNonLogist()
+    public async Task ValidateParcel_ReturnsForbidden_ForNonLogist()
     {
         SetCurrentUserId(99);
-        var result = await _controller.ValidateOrder(1);
+        var result = await _controller.ValidateParcel(1);
 
         _mockValidationService.Verify(s => s.ValidateFeacnAsync(
             It.IsAny<BaseParcel>(),
@@ -859,10 +838,10 @@ public class ParcelsControllerTests
     }
 
     [Test]
-    public async Task ValidateOrder_ReturnsNotFound_WhenMissing()
+    public async Task ValidateParcel_ReturnsNotFound_WhenMissing()
     {
         SetCurrentUserId(1);
-        var result = await _controller.ValidateOrder(99);
+        var result = await _controller.ValidateParcel(99);
 
         Assert.That(result, Is.TypeOf<ObjectResult>());
         var obj = result as ObjectResult;
@@ -881,7 +860,7 @@ public class ParcelsControllerTests
     }
 
     [Test]
-    public async Task ValidateOrder_ReturnsNotFound_ForMarkedByPartner()
+    public async Task ValidateParcel_ReturnsNotFound_ForMarkedByPartner()
     {
         SetCurrentUserId(1);
         var register = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
@@ -890,7 +869,7 @@ public class ParcelsControllerTests
         _dbContext.Parcels.Add(order);
         await _dbContext.SaveChangesAsync();
 
-        var result = await _controller.ValidateOrder(1);
+        var result = await _controller.ValidateParcel(1);
 
         Assert.That(result, Is.TypeOf<ObjectResult>());
         var obj = result as ObjectResult;
@@ -909,7 +888,7 @@ public class ParcelsControllerTests
     }
 
     [Test]
-    public async Task ValidateOrder_WithRealService_CreatesFeacnLinks()
+    public async Task ValidateParcel_WithRealService_CreatesFeacnLinks()
     {
         SetCurrentUserId(1);
 
@@ -942,7 +921,7 @@ public class ParcelsControllerTests
             _mockProcessingService.Object,
             _mockIndPostGenerator.Object);
 
-        await ctrl.ValidateOrder(20);
+        await ctrl.ValidateParcel(20);
         var res = await ctrl.GetOrder(20);
 
         Assert.That(res.Value!.FeacnOrderIds, Does.Contain(30));

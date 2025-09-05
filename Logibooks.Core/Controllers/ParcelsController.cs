@@ -383,21 +383,21 @@ public class ParcelsController(
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
-    public async Task<IActionResult> ValidateOrder(int id)
+    public async Task<IActionResult> ValidateParcel(int id)
     {
-        _logger.LogDebug("ValidateOrder for id={id}", id);
+        _logger.LogDebug("ValidateParcel for id={id}", id);
 
         if (!await _userService.CheckLogist(_curUserId))
         {
-            _logger.LogDebug("ValidateOrder returning '403 Forbidden'");
+            _logger.LogDebug("ValidateParcel returning '403 Forbidden'");
             return _403();
         }
 
-        var order = await _db.Parcels
+        var parcel = await _db.Parcels
             .FirstOrDefaultAsync(o => o.Id == id && o.CheckStatusId != (int)ParcelCheckStatusCode.MarkedByPartner);
-        if (order == null)
+        if (parcel == null)
         {
-            _logger.LogDebug("ValidateOrder returning '404 Not Found'");
+            _logger.LogDebug("ValidateParcel returning '404 Not Found'");
             return _404Parcel(id);
         }
 
@@ -407,8 +407,8 @@ public class ParcelsController(
         var wordsLookupContext = new WordsLookupContext<StopWord>(
             stopWords.Where(sw => sw.MatchTypeId < (int)WordMatchTypeCode.MorphologyMatchTypes));
 
-        await _validationService.ValidateFeacnAsync(order, null);
-        await _validationService.ValidateKwAsync(order, morphologyContext, wordsLookupContext);
+        await _validationService.ValidateFeacnAsync(parcel, null);
+        await _validationService.ValidateKwAsync(parcel, morphologyContext, wordsLookupContext);
 
         return NoContent();
     }
