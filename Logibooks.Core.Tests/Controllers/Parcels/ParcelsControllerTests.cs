@@ -914,12 +914,14 @@ public class ParcelsControllerTests
         SetCurrentUserId(1);
 
         var register = new Register { Id = 20, CompanyId = 2, FileName = "r.xlsx" };
-        var feacnOrder = new FeacnOrder { Id = 30, Title = "t" };
+        var feacnOrder = new FeacnOrder { Id = 30, Title = "t", Enabled = true };
         var prefix = new FeacnPrefix { Id = 40, Code = "12", FeacnOrderId = 30, FeacnOrder = feacnOrder };
-        var order = new WbrParcel { Id = 20, RegisterId = 20, StatusId = 1, TnVed = "1234567890" };
+        var feacnCode = new FeacnCode { Id = 1, Code = "1203000000", CodeEx = "", Name = "Test FEACN Code", NormalizedName = "test feacn code" };
+        var order = new WbrParcel { Id = 20, RegisterId = 20, StatusId = 1, TnVed = "1203000000" };
         _dbContext.Registers.Add(register);
         _dbContext.FeacnOrders.Add(feacnOrder);
         _dbContext.FeacnPrefixes.Add(prefix);
+        _dbContext.FeacnCodes.Add(feacnCode);
         _dbContext.Parcels.Add(order);
         await _dbContext.SaveChangesAsync();
 

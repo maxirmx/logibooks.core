@@ -23,6 +23,7 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+using Logibooks.Core.Data;
 using Logibooks.Core.Models;
 using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("Logibooks.Core.Tests")]
@@ -39,6 +40,20 @@ public interface IParcelValidationService
 
     Task ValidateFeacnAsync(
         BaseParcel order,
+        FeacnPrefixCheckContext? feacnContext = null,
+        CancellationToken cancellationToken = default);
+
+    // Overloaded methods that accept DbContext for thread-safe operations
+    Task ValidateKwAsync(
+        AppDbContext dbContext,
+        BaseParcel parcel,
+        MorphologyContext morphologyContext,
+        WordsLookupContext<StopWord> wordsLookupContext,
+        CancellationToken cancellationToken = default);
+
+    Task ValidateFeacnAsync(
+        AppDbContext dbContext,
+        BaseParcel parcel,
         FeacnPrefixCheckContext? feacnContext = null,
         CancellationToken cancellationToken = default);
 }

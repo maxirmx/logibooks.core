@@ -165,13 +165,23 @@ public class ParcelValidationService(
         WordsLookupContext<StopWord> wordsLookupContext,
         CancellationToken cancellationToken = default)
     {
+        await ValidateKwAsync(_db, order, morphologyContext, wordsLookupContext, cancellationToken);
+    }
+
+    public async Task ValidateKwAsync(
+        AppDbContext dbContext,
+        BaseParcel order,
+        MorphologyContext morphologyContext,
+        WordsLookupContext<StopWord> wordsLookupContext,
+        CancellationToken cancellationToken = default)
+    {
         if (order.CheckStatusId == (int)ParcelCheckStatusCode.MarkedByPartner)
         {
             return;
         }
 
-        var existing = _db.Set<BaseParcelStopWord>().Where(l => l.BaseParcelId == order.Id);
-        _db.Set<BaseParcelStopWord>().RemoveRange(existing);
+        var existing = dbContext.Set<BaseParcelStopWord>().Where(l => l.BaseParcelId == order.Id);
+        dbContext.Set<BaseParcelStopWord>().RemoveRange(existing);
 
         var productName = order.ProductName ?? string.Empty;
         var links = SelectStopWordLinks(order.Id, productName, wordsLookupContext, morphologyContext);
@@ -191,7 +201,7 @@ public class ParcelValidationService(
 
         if (links.Count > 0)
         {
-            _db.AddRange(links);
+            dbContext.AddRange(links);
             // Use table-driven transition
             order.CheckStatusId = ApplyCheckStatusTransition(order.CheckStatusId, ValidationEvent.StopWordFound);
         }
@@ -201,10 +211,19 @@ public class ParcelValidationService(
             order.CheckStatusId = ApplyCheckStatusTransition(order.CheckStatusId, ValidationEvent.StopWordNotFound);
         }
 
-        await _db.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
     }
 
     public async Task ValidateFeacnAsync(
+        BaseParcel parcel,
+        FeacnPrefixCheckContext? feacnContext = null,
+        CancellationToken cancellationToken = default)
+    {
+        await ValidateFeacnAsync(_db, parcel, feacnContext, cancellationToken);
+    }
+
+    public async Task ValidateFeacnAsync(
+        AppDbContext dbContext,
         BaseParcel parcel,
         FeacnPrefixCheckContext? feacnContext = null,
         CancellationToken cancellationToken = default)
@@ -214,15 +233,15 @@ public class ParcelValidationService(
             return;
         }
 
-        var existing = _db.Set<BaseParcelFeacnPrefix>().Where(l => l.BaseParcelId == parcel.Id);
-        _db.Set<BaseParcelFeacnPrefix>().RemoveRange(existing);
+        var existing = dbContext.Set<BaseParcelFeacnPrefix>().Where(l => l.BaseParcelId == parcel.Id);
+        dbContext.Set<BaseParcelFeacnPrefix>().RemoveRange(existing);
 
         if (string.IsNullOrWhiteSpace(parcel.TnVed) || !TnVedRegex.IsMatch(parcel.TnVed))
         {
             // Use table-driven transition
             parcel.CheckStatusId = ApplyCheckStatusTransition(parcel.CheckStatusId, ValidationEvent.InvalidFeacnFormat);
         }
-        else if (!_db.FeacnCodes.Any(f => f.Code == parcel.TnVed))
+        else if (!dbContext.FeacnCodes.Any(f => f.Code == parcel.TnVed))
         {
             // Use table-driven transition
             parcel.CheckStatusId = ApplyCheckStatusTransition(parcel.CheckStatusId, ValidationEvent.NonExistingFeacn);
@@ -235,7 +254,7 @@ public class ParcelValidationService(
 
             if (links.Any())
             {
-                _db.AddRange(links);
+                dbContext.AddRange(links);
                 // Use table-driven transition
                 parcel.CheckStatusId = ApplyCheckStatusTransition(parcel.CheckStatusId, ValidationEvent.FeacnCodeIssueFound);
             }
@@ -246,7 +265,7 @@ public class ParcelValidationService(
             }
         }
         
-        await _db.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
     }
 
     private List<BaseParcelStopWord> SelectStopWordLinks(
