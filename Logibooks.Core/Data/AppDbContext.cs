@@ -267,8 +267,8 @@ namespace Logibooks.Core.Data
 
                 new ParcelCheckStatus { Id = (int)ParcelCheckStatusCode.MarkedByPartner, Title = "Запрещено партнёром" },
                 new ParcelCheckStatus { Id = (int)ParcelCheckStatusCode.NoIssues, Title = "Ок" },
-                new ParcelCheckStatus { Id = (int)ParcelCheckStatusCode.NoIssuesStopWords, Title = "Ок [стоп-слова]" },
-                new ParcelCheckStatus { Id = (int)ParcelCheckStatusCode.NoIssuesFeacn, Title = "Ок [ТН ВЭД]" },
+                new ParcelCheckStatus { Id = (int)ParcelCheckStatusCode.NoIssuesStopWords, Title = "Ок (стоп-слова)" },
+                new ParcelCheckStatus { Id = (int)ParcelCheckStatusCode.NoIssuesFeacn, Title = "Ок (ТН ВЭД)" },
                 new ParcelCheckStatus { Id = (int)ParcelCheckStatusCode.Approved, Title = "Согласовано" },
                 new ParcelCheckStatus { Id = (int)ParcelCheckStatusCode.ApprovedWithExcise, Title = "Согласовано с акцизом" }
             );
