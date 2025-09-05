@@ -1,35 +1,23 @@
 // Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
 // All rights reserved.
 // This file is a part of Logibooks Core application
-//
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions
-// are met:
-// 1. Redistributions of source code must retain the above copyright
-// notice, this list of conditions and the following disclaimer.
-// 2. Redistributions in binary form must reproduce the above copyright
-// notice, this list of conditions and the following disclaimer in the
-// documentation and/or other materials provided with the distribution.
-//
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-// 'AS IS' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-// TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
-// PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR CONTRIBUTORS
-// BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-// POSSIBILITY OF SUCH DAMAGE.
 
 using Logibooks.Core.Data;
 using Logibooks.Core.Interfaces;
 using Logibooks.Core.Models;
-using Microsoft.EntityFrameworkCore;
 using System.Text.RegularExpressions;
 
 namespace Logibooks.Core.Services;
+
+public enum ValidationEvent
+{
+    StopWordFound,
+    StopWordNotFound,
+    InvalidFeacnFormat,
+    NonExistingFeacn,
+    FeacnCodeIssueFound,
+    FeacnCodeCheckOk
+}
 
 public class ParcelValidationService(
     AppDbContext db, 
@@ -41,11 +29,150 @@ public class ParcelValidationService(
     private readonly IFeacnPrefixCheckService _feacnPrefixCheckService = feacnPrefixCheckService;
     private static readonly Regex TnVedRegex = new($"^\\d{{{FeacnCode.FeacnCodeLength}}}$", RegexOptions.Compiled);
 
-    public async Task ValidateAsync(
+    /// <summary>
+    /// Applies CheckStatusId state transitions based on validation events using a lookup table.
+    /// This replaces the switch-based logic with a more maintainable table-driven approach.
+    /// </summary>
+    /// <param name="currentCheckStatusId">Current parcel check status</param>
+    /// <param name="validationEvent">The validation event that occurred</param>
+    /// <returns>New CheckStatusId after applying the transition</returns>
+    public static int ApplyCheckStatusTransition(int currentCheckStatusId, ValidationEvent validationEvent)
+    {
+        // State transition table: (CurrentStatus, Event) -> NewStatus
+        var transitionTable = new Dictionary<(int currentStatus, ValidationEvent evt), int>
+        {
+            // Stop word found transitions (Запрет)
+            {((int)ParcelCheckStatusCode.NoIssuesFeacn, ValidationEvent.StopWordFound), (int)ParcelCheckStatusCode.NoIssuesFeacnAndStopWord},
+            {((int)ParcelCheckStatusCode.NoIssuesStopWordsAndFeacnCode, ValidationEvent.StopWordFound), (int)ParcelCheckStatusCode.IssueFeacnCodeAndStopWord},
+            {((int)ParcelCheckStatusCode.IssueFeacnCode, ValidationEvent.StopWordFound), (int)ParcelCheckStatusCode.IssueFeacnCodeAndStopWord},
+            {((int)ParcelCheckStatusCode.IssueFeacnCodeAndStopWord, ValidationEvent.StopWordFound), (int)ParcelCheckStatusCode.IssueFeacnCodeAndStopWord},
+            {((int)ParcelCheckStatusCode.IssueInvalidFeacnFormat, ValidationEvent.StopWordFound), (int)ParcelCheckStatusCode.IssueInvalidFeacnFormatAndStopWord},
+            {((int)ParcelCheckStatusCode.NoIssuesStopWordsAndInvalidFeacnFormat, ValidationEvent.StopWordFound), (int)ParcelCheckStatusCode.IssueInvalidFeacnFormatAndStopWord},
+            {((int)ParcelCheckStatusCode.IssueInvalidFeacnFormatAndStopWord, ValidationEvent.StopWordFound), (int)ParcelCheckStatusCode.IssueInvalidFeacnFormatAndStopWord},
+            {((int)ParcelCheckStatusCode.NoIssuesStopWordsAndNonexistingFeacn, ValidationEvent.StopWordFound), (int)ParcelCheckStatusCode.IssueNonexistingFeacnAndStopWord},
+            {((int)ParcelCheckStatusCode.IssueNonexistingFeacn, ValidationEvent.StopWordFound), (int)ParcelCheckStatusCode.IssueNonexistingFeacnAndStopWord},
+            {((int)ParcelCheckStatusCode.IssueNonexistingFeacnAndStopWord, ValidationEvent.StopWordFound), (int)ParcelCheckStatusCode.IssueNonexistingFeacnAndStopWord},
+
+            // Stop word not found transitions (Нет запрета)
+            {((int)ParcelCheckStatusCode.NoIssues, ValidationEvent.StopWordNotFound), (int)ParcelCheckStatusCode.NoIssues},
+            {((int)ParcelCheckStatusCode.NoIssuesFeacn, ValidationEvent.StopWordNotFound), (int)ParcelCheckStatusCode.NoIssues},
+            {((int)ParcelCheckStatusCode.NoIssuesFeacnAndStopWord, ValidationEvent.StopWordNotFound), (int)ParcelCheckStatusCode.NoIssues},
+            {((int)ParcelCheckStatusCode.IssueFeacnCode, ValidationEvent.StopWordNotFound), (int)ParcelCheckStatusCode.NoIssuesStopWordsAndFeacnCode},
+            {((int)ParcelCheckStatusCode.IssueFeacnCodeAndStopWord, ValidationEvent.StopWordNotFound), (int)ParcelCheckStatusCode.NoIssuesStopWordsAndFeacnCode},
+            {((int)ParcelCheckStatusCode.IssueInvalidFeacnFormat, ValidationEvent.StopWordNotFound), (int)ParcelCheckStatusCode.NoIssuesStopWordsAndInvalidFeacnFormat},
+            {((int)ParcelCheckStatusCode.IssueInvalidFeacnFormatAndStopWord, ValidationEvent.StopWordNotFound), (int)ParcelCheckStatusCode.NoIssuesStopWordsAndInvalidFeacnFormat},
+            {((int)ParcelCheckStatusCode.IssueNonexistingFeacn, ValidationEvent.StopWordNotFound), (int)ParcelCheckStatusCode.NoIssuesStopWordsAndNonexistingFeacn},
+            {((int)ParcelCheckStatusCode.IssueNonexistingFeacnAndStopWord, ValidationEvent.StopWordNotFound), (int)ParcelCheckStatusCode.NoIssuesStopWordsAndNonexistingFeacn},
+
+            // Invalid FEACN format transitions (Запрет)
+            {((int)ParcelCheckStatusCode.NoIssues, ValidationEvent.InvalidFeacnFormat), (int)ParcelCheckStatusCode.NoIssuesStopWordsAndInvalidFeacnFormat},
+            {((int)ParcelCheckStatusCode.NoIssuesStopWords, ValidationEvent.InvalidFeacnFormat), (int)ParcelCheckStatusCode.NoIssuesStopWordsAndInvalidFeacnFormat},
+            {((int)ParcelCheckStatusCode.IssueStopWord, ValidationEvent.InvalidFeacnFormat), (int)ParcelCheckStatusCode.IssueInvalidFeacnFormatAndStopWord},
+            {((int)ParcelCheckStatusCode.IssueInvalidFeacnFormatAndStopWord, ValidationEvent.InvalidFeacnFormat), (int)ParcelCheckStatusCode.IssueInvalidFeacnFormatAndStopWord},
+
+            // Non-existing FEACN transitions (Запрет)
+            {((int)ParcelCheckStatusCode.NoIssues, ValidationEvent.NonExistingFeacn), (int)ParcelCheckStatusCode.NoIssuesStopWordsAndNonexistingFeacn},
+            {((int)ParcelCheckStatusCode.NoIssuesStopWords, ValidationEvent.NonExistingFeacn), (int)ParcelCheckStatusCode.NoIssuesStopWordsAndNonexistingFeacn},
+            {((int)ParcelCheckStatusCode.IssueStopWord, ValidationEvent.NonExistingFeacn), (int)ParcelCheckStatusCode.IssueNonexistingFeacnAndStopWord},
+            {((int)ParcelCheckStatusCode.IssueNonexistingFeacnAndStopWord, ValidationEvent.NonExistingFeacn), (int)ParcelCheckStatusCode.IssueNonexistingFeacnAndStopWord},
+
+            // FEACN code issue found transitions (Запрет)
+            {((int)ParcelCheckStatusCode.NoIssues, ValidationEvent.FeacnCodeIssueFound), (int)ParcelCheckStatusCode.NoIssuesStopWordsAndFeacnCode},
+            {((int)ParcelCheckStatusCode.NoIssuesStopWords, ValidationEvent.FeacnCodeIssueFound), (int)ParcelCheckStatusCode.NoIssuesStopWordsAndFeacnCode},
+            {((int)ParcelCheckStatusCode.IssueStopWord, ValidationEvent.FeacnCodeIssueFound), (int)ParcelCheckStatusCode.IssueFeacnCodeAndStopWord},
+            {((int)ParcelCheckStatusCode.IssueFeacnCodeAndStopWord, ValidationEvent.FeacnCodeIssueFound), (int)ParcelCheckStatusCode.IssueFeacnCodeAndStopWord},
+
+            // FEACN code check OK transitions 
+            {((int)ParcelCheckStatusCode.NoIssues, ValidationEvent.FeacnCodeCheckOk), (int)ParcelCheckStatusCode.NoIssues},
+            {((int)ParcelCheckStatusCode.NoIssuesStopWords, ValidationEvent.FeacnCodeCheckOk), (int)ParcelCheckStatusCode.NoIssues},
+            {((int)ParcelCheckStatusCode.NoIssuesStopWordsAndFeacnCode, ValidationEvent.FeacnCodeCheckOk), (int)ParcelCheckStatusCode.NoIssues},
+            {((int)ParcelCheckStatusCode.NoIssuesStopWordsAndInvalidFeacnFormat, ValidationEvent.FeacnCodeCheckOk), (int)ParcelCheckStatusCode.NoIssues},
+            {((int)ParcelCheckStatusCode.NoIssuesStopWordsAndNonexistingFeacn, ValidationEvent.FeacnCodeCheckOk), (int)ParcelCheckStatusCode.NoIssues},
+            {((int)ParcelCheckStatusCode.IssueStopWord, ValidationEvent.FeacnCodeCheckOk), (int)ParcelCheckStatusCode.IssueStopWord},
+            {((int)ParcelCheckStatusCode.IssueFeacnCodeAndStopWord, ValidationEvent.FeacnCodeCheckOk), (int)ParcelCheckStatusCode.IssueStopWord},
+            {((int)ParcelCheckStatusCode.IssueInvalidFeacnFormatAndStopWord, ValidationEvent.FeacnCodeCheckOk), (int)ParcelCheckStatusCode.IssueStopWord},
+            {((int)ParcelCheckStatusCode.IssueNonexistingFeacnAndStopWord, ValidationEvent.FeacnCodeCheckOk), (int)ParcelCheckStatusCode.IssueStopWord},
+
+            // Cross-class FEACN issue replacement transitions (preserve stop word dimension)
+
+            // FeacnCode -> InvalidFormat
+            {((int)ParcelCheckStatusCode.IssueFeacnCode, ValidationEvent.InvalidFeacnFormat), (int)ParcelCheckStatusCode.IssueInvalidFeacnFormat},
+            {((int)ParcelCheckStatusCode.IssueFeacnCodeAndStopWord, ValidationEvent.InvalidFeacnFormat), (int)ParcelCheckStatusCode.IssueInvalidFeacnFormatAndStopWord},
+            {((int)ParcelCheckStatusCode.NoIssuesStopWordsAndFeacnCode, ValidationEvent.InvalidFeacnFormat), (int)ParcelCheckStatusCode.NoIssuesStopWordsAndInvalidFeacnFormat},
+
+            // FeacnCode -> NonExisting
+            {((int)ParcelCheckStatusCode.IssueFeacnCode, ValidationEvent.NonExistingFeacn), (int)ParcelCheckStatusCode.IssueNonexistingFeacn},
+            {((int)ParcelCheckStatusCode.IssueFeacnCodeAndStopWord, ValidationEvent.NonExistingFeacn), (int)ParcelCheckStatusCode.IssueNonexistingFeacnAndStopWord},
+            {((int)ParcelCheckStatusCode.NoIssuesStopWordsAndFeacnCode, ValidationEvent.NonExistingFeacn), (int)ParcelCheckStatusCode.NoIssuesStopWordsAndNonexistingFeacn},
+
+            // InvalidFormat -> NonExisting
+            {((int)ParcelCheckStatusCode.IssueInvalidFeacnFormat, ValidationEvent.NonExistingFeacn), (int)ParcelCheckStatusCode.IssueNonexistingFeacn},
+            {((int)ParcelCheckStatusCode.IssueInvalidFeacnFormatAndStopWord, ValidationEvent.NonExistingFeacn), (int)ParcelCheckStatusCode.IssueNonexistingFeacnAndStopWord},
+            {((int)ParcelCheckStatusCode.NoIssuesStopWordsAndInvalidFeacnFormat, ValidationEvent.NonExistingFeacn), (int)ParcelCheckStatusCode.NoIssuesStopWordsAndNonexistingFeacn},
+
+            // NonExisting -> InvalidFormat
+            {((int)ParcelCheckStatusCode.IssueNonexistingFeacn, ValidationEvent.InvalidFeacnFormat), (int)ParcelCheckStatusCode.IssueInvalidFeacnFormat},
+            {((int)ParcelCheckStatusCode.IssueNonexistingFeacnAndStopWord, ValidationEvent.InvalidFeacnFormat), (int)ParcelCheckStatusCode.IssueInvalidFeacnFormatAndStopWord},
+            {((int)ParcelCheckStatusCode.NoIssuesStopWordsAndNonexistingFeacn, ValidationEvent.InvalidFeacnFormat), (int)ParcelCheckStatusCode.NoIssuesStopWordsAndInvalidFeacnFormat},
+
+            // InvalidFormat -> FeacnCodeIssueFound
+            {((int)ParcelCheckStatusCode.IssueInvalidFeacnFormat, ValidationEvent.FeacnCodeIssueFound), (int)ParcelCheckStatusCode.IssueFeacnCode},
+            {((int)ParcelCheckStatusCode.IssueInvalidFeacnFormatAndStopWord, ValidationEvent.FeacnCodeIssueFound), (int)ParcelCheckStatusCode.IssueFeacnCodeAndStopWord},
+            {((int)ParcelCheckStatusCode.NoIssuesStopWordsAndInvalidFeacnFormat, ValidationEvent.FeacnCodeIssueFound), (int)ParcelCheckStatusCode.NoIssuesStopWordsAndFeacnCode},
+
+            // NonExisting -> FeacnCodeIssueFound
+            {((int)ParcelCheckStatusCode.IssueNonexistingFeacn, ValidationEvent.FeacnCodeIssueFound), (int)ParcelCheckStatusCode.IssueFeacnCode},
+            {((int)ParcelCheckStatusCode.IssueNonexistingFeacnAndStopWord, ValidationEvent.FeacnCodeIssueFound), (int)ParcelCheckStatusCode.IssueFeacnCodeAndStopWord},
+            {((int)ParcelCheckStatusCode.NoIssuesStopWordsAndNonexistingFeacn, ValidationEvent.FeacnCodeIssueFound), (int)ParcelCheckStatusCode.NoIssuesStopWordsAndFeacnCode},
+        };
+
+        // Default transitions for events that set specific issues when no specific rule exists
+        var defaultTransitions = new Dictionary<ValidationEvent, int>
+        {
+            [ValidationEvent.StopWordFound] = (int)ParcelCheckStatusCode.IssueStopWord,
+            [ValidationEvent.StopWordNotFound] = (int)ParcelCheckStatusCode.NoIssuesStopWords,
+            [ValidationEvent.InvalidFeacnFormat] = (int)ParcelCheckStatusCode.IssueInvalidFeacnFormat,
+            [ValidationEvent.NonExistingFeacn] = (int)ParcelCheckStatusCode.IssueNonexistingFeacn,
+            [ValidationEvent.FeacnCodeIssueFound] = (int)ParcelCheckStatusCode.IssueFeacnCode,
+            [ValidationEvent.FeacnCodeCheckOk] = (int)ParcelCheckStatusCode.NoIssuesFeacn
+        };
+
+        // Special case: MarkedByPartner status never changes
+        if (currentCheckStatusId == (int)ParcelCheckStatusCode.MarkedByPartner)
+        {
+            return currentCheckStatusId;
+        }
+
+        // Look up specific transition first
+        if (transitionTable.TryGetValue((currentCheckStatusId, validationEvent), out var newStatus))
+        {
+            return newStatus;
+        }
+
+        // Fall back to default transition for the event
+        if (defaultTransitions.TryGetValue(validationEvent, out var defaultStatus))
+        {
+            return defaultStatus;
+        }
+
+        // If no transition is defined, return current status unchanged
+        return currentCheckStatusId;
+    }
+
+    public async Task ValidateKwAsync(
         BaseParcel order,
         MorphologyContext morphologyContext,
         WordsLookupContext<StopWord> wordsLookupContext,
-        FeacnPrefixCheckContext? feacnContext = null,
+        CancellationToken cancellationToken = default)
+    {
+        await ValidateKwAsync(_db, order, morphologyContext, wordsLookupContext, cancellationToken);
+    }
+
+    public async Task ValidateKwAsync(
+        AppDbContext dbContext,
+        BaseParcel order,
+        MorphologyContext morphologyContext,
+        WordsLookupContext<StopWord> wordsLookupContext,
         CancellationToken cancellationToken = default)
     {
         if (order.CheckStatusId == (int)ParcelCheckStatusCode.MarkedByPartner)
@@ -53,63 +180,92 @@ public class ParcelValidationService(
             return;
         }
 
-        // remove existing links for this order
-        var existing1 = _db.Set<BaseParcelStopWord>().Where(l => l.BaseParcelId == order.Id);
-        _db.Set<BaseParcelStopWord>().RemoveRange(existing1);
-
-        var existing2 = _db.Set<BaseParcelFeacnPrefix>()
-            .Where(l => l.BaseParcelId == order.Id);
-        _db.Set<BaseParcelFeacnPrefix>().RemoveRange(existing2);
-
-        if (string.IsNullOrWhiteSpace(order.TnVed) || !TnVedRegex.IsMatch(order.TnVed))
-        {
-            order.CheckStatusId = (int)ParcelCheckStatusCode.InvalidFeacnFormat;
-            await _db.SaveChangesAsync(cancellationToken);
-            return;
-        }
-
-        order.CheckStatusId = (int)ParcelCheckStatusCode.NotChecked;
-        await _db.SaveChangesAsync(cancellationToken);
+        var existing = dbContext.Set<BaseParcelStopWord>().Where(l => l.BaseParcelId == order.Id);
+        dbContext.Set<BaseParcelStopWord>().RemoveRange(existing);
 
         var productName = order.ProductName ?? string.Empty;
-        var links1 = SelectStopWordLinks(order.Id, productName, wordsLookupContext, morphologyContext);
+        var links = SelectStopWordLinks(order.Id, productName, wordsLookupContext, morphologyContext);
 
         if (order is WbrParcel wbr && !string.IsNullOrWhiteSpace(wbr.Description))
         {
             var linksDesc = SelectStopWordLinks(order.Id, wbr.Description, wordsLookupContext, morphologyContext);
-            // Add linksDesc to links1, keeping uniqueness by StopWordId
-            var existingIds = new HashSet<int>(links1.Select(l => l.StopWordId));
+            var existingIds = new HashSet<int>(links.Select(l => l.StopWordId));
             foreach (var link in linksDesc)
             {
                 if (existingIds.Add(link.StopWordId))
                 {
-                    links1.Add(link);
+                    links.Add(link);
                 }
             }
         }
 
-        var links2 = feacnContext != null
-            ? _feacnPrefixCheckService.CheckParcel(order, feacnContext)
-            : await _feacnPrefixCheckService.CheckParcelAsync(order, cancellationToken);
-
-        if (links1.Count > 0)
+        if (links.Count > 0)
         {
-            _db.AddRange(links1);
-        }
-        if (links2.Any())
-        {
-            _db.AddRange(links2);
-        }
-        // If stopwords found in productName or description, or feacn links found, set HasIssues
-        if (links1.Count > 0 || links2.Any())
-        {
-            order.CheckStatusId = (int)ParcelCheckStatusCode.HasIssues;
+            dbContext.AddRange(links);
+            // Use table-driven transition
+            order.CheckStatusId = ApplyCheckStatusTransition(order.CheckStatusId, ValidationEvent.StopWordFound);
         }
         else
         {
-            order.CheckStatusId = (int)ParcelCheckStatusCode.NoIssues;
+            // Use table-driven transition
+            order.CheckStatusId = ApplyCheckStatusTransition(order.CheckStatusId, ValidationEvent.StopWordNotFound);
         }
-        await _db.SaveChangesAsync(cancellationToken);
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task ValidateFeacnAsync(
+        BaseParcel parcel,
+        FeacnPrefixCheckContext? feacnContext = null,
+        CancellationToken cancellationToken = default)
+    {
+        await ValidateFeacnAsync(_db, parcel, feacnContext, cancellationToken);
+    }
+
+    public async Task ValidateFeacnAsync(
+        AppDbContext dbContext,
+        BaseParcel parcel,
+        FeacnPrefixCheckContext? feacnContext = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (parcel.CheckStatusId == (int)ParcelCheckStatusCode.MarkedByPartner)
+        {
+            return;
+        }
+
+        var existing = dbContext.Set<BaseParcelFeacnPrefix>().Where(l => l.BaseParcelId == parcel.Id);
+        dbContext.Set<BaseParcelFeacnPrefix>().RemoveRange(existing);
+
+        if (string.IsNullOrWhiteSpace(parcel.TnVed) || !TnVedRegex.IsMatch(parcel.TnVed))
+        {
+            // Use table-driven transition
+            parcel.CheckStatusId = ApplyCheckStatusTransition(parcel.CheckStatusId, ValidationEvent.InvalidFeacnFormat);
+        }
+        else if (!dbContext.FeacnCodes.Any(f => f.Code == parcel.TnVed))
+        {
+            // Use table-driven transition
+            parcel.CheckStatusId = ApplyCheckStatusTransition(parcel.CheckStatusId, ValidationEvent.NonExistingFeacn);
+        }
+        else
+        {
+            var links = feacnContext != null
+                ? _feacnPrefixCheckService.CheckParcel(parcel, feacnContext)
+                : await _feacnPrefixCheckService.CheckParcelAsync(parcel, cancellationToken);
+
+            if (links.Any())
+            {
+                dbContext.AddRange(links);
+                // Use table-driven transition
+                parcel.CheckStatusId = ApplyCheckStatusTransition(parcel.CheckStatusId, ValidationEvent.FeacnCodeIssueFound);
+            }
+            else
+            {
+                // Use table-driven transition
+                parcel.CheckStatusId = ApplyCheckStatusTransition(parcel.CheckStatusId, ValidationEvent.FeacnCodeCheckOk);
+            }
+        }
+        
+        await dbContext.SaveChangesAsync(cancellationToken);
     }
 
     private List<BaseParcelStopWord> SelectStopWordLinks(

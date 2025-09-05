@@ -80,10 +80,10 @@ public class RegisterValidationService(
         {
             using var scope = _scopeFactory.CreateScope();
             var scopedDb = scope.ServiceProvider.GetService(typeof(AppDbContext)) as AppDbContext;
-            var scopedOrderSvc = scope.ServiceProvider.GetService(typeof(IParcelValidationService)) as IParcelValidationService;
+            var scopedValidationSvc = scope.ServiceProvider.GetService(typeof(IParcelValidationService)) as IParcelValidationService;
             var scopedFeacnSvc = scope.ServiceProvider.GetService(typeof(IFeacnPrefixCheckService)) as IFeacnPrefixCheckService;
 
-            if (scopedDb == null || scopedOrderSvc == null || scopedFeacnSvc == null)
+            if (scopedDb == null || scopedValidationSvc == null || scopedFeacnSvc == null)
             {
                 process.Error = "Failed to resolve required services";
                 process.Finished = true;
@@ -95,29 +95,30 @@ public class RegisterValidationService(
 
             try
             {
-                var orders = await scopedDb.Parcels
+                var parcels = await scopedDb.Parcels
                     .Where(o => o.RegisterId == registerId &&
                                 o.CheckStatusId < (int)ParcelCheckStatusCode.Approved &&
                                 o.CheckStatusId != (int)ParcelCheckStatusCode.MarkedByPartner)
                     .Select(o => o.Id)
                     .ToListAsync(process.Cts.Token);
-                process.Total = orders.Count;
+                process.Total = parcels.Count;
                 tcs.TrySetResult();
 
                 var stopWordsContext = new WordsLookupContext<StopWord>(allStopWords);
                 var feacnContext = await scopedFeacnSvc.CreateContext(process.Cts.Token);
 
-                foreach (var id in orders)
+                foreach (var id in parcels)
                 {
                     if (process.Cts.IsCancellationRequested)
                     {
                         process.Finished = true;
                         break;
                     }
-                    var order = await scopedDb.Parcels.FindAsync([id], cancellationToken: process.Cts.Token);
-                    if (order != null)
+                    var parcel = await scopedDb.Parcels.FindAsync([id], cancellationToken: process.Cts.Token);
+                    if (parcel != null)
                     {
-                        await scopedOrderSvc.ValidateAsync(order, morphologyContext, stopWordsContext, feacnContext, process.Cts.Token);
+                        await scopedValidationSvc.ValidateFeacnAsync(scopedDb, parcel, feacnContext, process.Cts.Token);
+                        await scopedValidationSvc.ValidateKwAsync(scopedDb, parcel, morphologyContext, stopWordsContext, process.Cts.Token);
                     }
                     process.Processed++;
                 }

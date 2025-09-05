@@ -647,6 +647,41 @@ namespace Logibooks.Core.Migrations
                         },
                         new
                         {
+                            Id = 129,
+                            Title = "ТН ВЭД"
+                        },
+                        new
+                        {
+                            Id = 130,
+                            Title = "ТН ВЭД, слово"
+                        },
+                        new
+                        {
+                            Id = 131,
+                            Title = "Нет ТН ВЭД"
+                        },
+                        new
+                        {
+                            Id = 132,
+                            Title = "Нет ТН ВЭД, слово"
+                        },
+                        new
+                        {
+                            Id = 133,
+                            Title = "Формат ТН ВЭД"
+                        },
+                        new
+                        {
+                            Id = 134,
+                            Title = "Формат ТН ВЭД, слово"
+                        },
+                        new
+                        {
+                            Id = 135,
+                            Title = "Слово"
+                        },
+                        new
+                        {
                             Id = 200,
                             Title = "Запрещено партнёром"
                         },
@@ -654,6 +689,16 @@ namespace Logibooks.Core.Migrations
                         {
                             Id = 201,
                             Title = "Ок"
+                        },
+                        new
+                        {
+                            Id = 202,
+                            Title = "Ок (стоп-слова)"
+                        },
+                        new
+                        {
+                            Id = 203,
+                            Title = "Ок (ТН ВЭД)"
                         },
                         new
                         {

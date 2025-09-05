@@ -1,283 +1,218 @@
-// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
-// All rights reserved.
-// This file is a part of Logibooks Core application
-//
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions
-// are met:
-// 1. Redistributions of source code must retain the above copyright
-// notice, this list of conditions and the following disclaimer.
-// 2. Redistributions in binary form must reproduce the above copyright
-// notice, this list of conditions and the following disclaimer in the
-// documentation and/or other materials provided with the distribution.
-//
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-// 'AS IS' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-// TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
-// PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR CONTRIBUTORS
-// BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-// POSSIBILITY OF SUCH DAMAGE.
-
 using Logibooks.Core.Data;
-using Logibooks.Core.Interfaces;
 using Logibooks.Core.Models;
 using Logibooks.Core.Services;
+using Logibooks.Core.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Moq;
 using NUnit.Framework;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System;
 
 namespace Logibooks.Core.Tests.Services;
 
 [TestFixture]
 public class ParcelValidationServiceTests
 {
-    private static AppDbContext CreateContext()
+    private static AppDbContext CreateContext(string? name = null)
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseInMemoryDatabase($"ov_{System.Guid.NewGuid()}")
+            .UseInMemoryDatabase(name ?? $"pvs_{System.Guid.NewGuid()}")
             .Options;
         return new AppDbContext(options);
     }
 
-    // Add a helper method to create the service with mocked dependencies
-    private static ParcelValidationService CreateService(AppDbContext context)
+    [Test]
+    public void ApplyCheckStatusTransition_MarkedByPartner_IsStable()
     {
-        var mockFeacnService = new Mock<IFeacnPrefixCheckService>();
-        // Setup mock to return empty list by default
-        mockFeacnService.Setup(x => x.CheckParcelAsync(It.IsAny<BaseParcel>(), It.IsAny<CancellationToken>()))
-                   .ReturnsAsync(new List<BaseParcelFeacnPrefix>());
-
-        return new ParcelValidationService(context, new MorphologySearchService(), mockFeacnService.Object);
-    }
-
-    private static ParcelValidationService CreateServiceWithMorphology(AppDbContext context, MorphologySearchService morphService)
-    {
-        var mockFeacnService = new Mock<IFeacnPrefixCheckService>();
-        // Setup mock to return empty list by default
-        mockFeacnService.Setup(x => x.CheckParcelAsync(It.IsAny<BaseParcel>(), It.IsAny<CancellationToken>()))
-                   .ReturnsAsync(new List<BaseParcelFeacnPrefix>());
-
-        return new ParcelValidationService(context, morphService, mockFeacnService.Object);
+        var marked = (int)ParcelCheckStatusCode.MarkedByPartner;
+        foreach (ValidationEvent e in (ValidationEvent[])System.Enum.GetValues(typeof(ValidationEvent)))
+        {
+            var res = ParcelValidationService.ApplyCheckStatusTransition(marked, e);
+            Assert.That(res, Is.EqualTo(marked));
+        }
     }
 
     [Test]
-    public async Task ValidateAsync_AddsLinksAndUpdatesStatus()
+    public void ApplyCheckStatusTransition_Defaults_BasicEvents()
+    {
+        Assert.That(ParcelValidationService.ApplyCheckStatusTransition((int)ParcelCheckStatusCode.NoIssues, ValidationEvent.StopWordFound), Is.EqualTo((int)ParcelCheckStatusCode.IssueStopWord));
+        Assert.That(ParcelValidationService.ApplyCheckStatusTransition((int)ParcelCheckStatusCode.NoIssues, ValidationEvent.StopWordNotFound), Is.EqualTo((int)ParcelCheckStatusCode.NoIssues));
+        Assert.That(ParcelValidationService.ApplyCheckStatusTransition((int)ParcelCheckStatusCode.NoIssues, ValidationEvent.InvalidFeacnFormat), Is.EqualTo((int)ParcelCheckStatusCode.NoIssuesStopWordsAndInvalidFeacnFormat));
+        Assert.That(ParcelValidationService.ApplyCheckStatusTransition((int)ParcelCheckStatusCode.NoIssues, ValidationEvent.NonExistingFeacn), Is.EqualTo((int)ParcelCheckStatusCode.NoIssuesStopWordsAndNonexistingFeacn));
+        Assert.That(ParcelValidationService.ApplyCheckStatusTransition((int)ParcelCheckStatusCode.NoIssues, ValidationEvent.FeacnCodeIssueFound), Is.EqualTo((int)ParcelCheckStatusCode.NoIssuesStopWordsAndFeacnCode));
+        Assert.That(ParcelValidationService.ApplyCheckStatusTransition((int)ParcelCheckStatusCode.NoIssues, ValidationEvent.FeacnCodeCheckOk), Is.EqualTo((int)ParcelCheckStatusCode.NoIssues));
+    }
+
+    [Test]
+    public void ApplyCheckStatusTransition_CrossClass_ReplacesFeacnIssue_PreservesStopWord()
+    {
+        // IssueFeacnCodeAndStopWord + InvalidFeacnFormat => IssueInvalidFeacnFormatAndStopWord
+        var from = (int)ParcelCheckStatusCode.IssueFeacnCodeAndStopWord;
+        var res = ParcelValidationService.ApplyCheckStatusTransition(from, ValidationEvent.InvalidFeacnFormat);
+        Assert.That(res, Is.EqualTo((int)ParcelCheckStatusCode.IssueInvalidFeacnFormatAndStopWord));
+
+        // IssueInvalidFeacnFormatAndStopWord + NonExistingFeacn => IssueNonexistingFeacnAndStopWord
+        from = (int)ParcelCheckStatusCode.IssueInvalidFeacnFormatAndStopWord;
+        res = ParcelValidationService.ApplyCheckStatusTransition(from, ValidationEvent.NonExistingFeacn);
+        Assert.That(res, Is.EqualTo((int)ParcelCheckStatusCode.IssueNonexistingFeacnAndStopWord));
+
+        // IssueNonexistingFeacnAndStopWord + FeacnCodeIssueFound => IssueFeacnCodeAndStopWord
+        from = (int)ParcelCheckStatusCode.IssueNonexistingFeacnAndStopWord;
+        res = ParcelValidationService.ApplyCheckStatusTransition(from, ValidationEvent.FeacnCodeIssueFound);
+        Assert.That(res, Is.EqualTo((int)ParcelCheckStatusCode.IssueFeacnCodeAndStopWord));
+    }
+
+    [Test]
+    public async Task ValidateKwAsync_AddsStopWordLinks_And_TransitionsStatus()
     {
         using var ctx = CreateContext();
-        var order = new WbrParcel { Id = 1, RegisterId = 1, CheckStatusId = 1, ProductName = "This is SPAM", TnVed = "1234567890" };
-        ctx.Parcels.Add(order);
-        ctx.StopWords.AddRange(
-            new StopWord { Id = 2, Word = "spam", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols },
-            new StopWord { Id = 3, Word = "other", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols }
-        );
-        ctx.Set<BaseParcelStopWord>().Add(new BaseParcelStopWord { BaseParcelId = 1, StopWordId = 99 });
+        var sw1 = new StopWord { Id = 1, Word = "spam", MatchTypeId = (int)WordMatchTypeCode.ExactWord };
+        var sw2 = new StopWord { Id = 2, Word = "malware", MatchTypeId = (int)WordMatchTypeCode.ExactWord };
+        ctx.StopWords.AddRange(sw1, sw2);
+
+        var parcel = new WbrParcel { Id = 10, RegisterId = 1, CheckStatusId = (int)ParcelCheckStatusCode.NoIssues, ProductName = "This product contains spam and other items", Description = "Contains malware" };
+        ctx.Parcels.Add(parcel);
         await ctx.SaveChangesAsync();
 
-        var svc = CreateService(ctx);
-        var wordsLookupContext = new WordsLookupContext<StopWord>(ctx.StopWords.ToList());
-        var morphologyContext = new MorphologyContext(); // Assuming you have a way to create this context
-        await svc.ValidateAsync(order, morphologyContext, wordsLookupContext);
+        var morph = new MorphologySearchService();
+        var morphologyContext = morph.InitializeContext(new[] { sw1, sw2 }.Where(s => s.MatchTypeId >= (int)WordMatchTypeCode.MorphologyMatchTypes));
+        var wordsLookupContext = new WordsLookupContext<StopWord>(new[] { sw1, sw2 });
 
-        Assert.That(ctx.Set<BaseParcelStopWord>().Count(), Is.EqualTo(1));
-        var link = ctx.Set<BaseParcelStopWord>().Single();
-        Assert.That(link.StopWordId, Is.EqualTo(2));
-        Assert.That(ctx.Parcels.Find(1)!.CheckStatusId, Is.EqualTo((int)ParcelCheckStatusCode.HasIssues));
+        var feacnMock = new Mock<IFeacnPrefixCheckService>();
+        var svc = new ParcelValidationService(ctx, morph, feacnMock.Object);
+
+        await svc.ValidateKwAsync(parcel, morphologyContext, wordsLookupContext);
+
+        // reload
+        var p = await ctx.Parcels.Include(p => p.BaseParcelStopWords).FirstAsync(p => p.Id == 10);
+        var ids = p.BaseParcelStopWords.Select(l => l.StopWordId).ToList();
+        Assert.That(ids, Does.Contain(1));
+        Assert.That(ids, Does.Contain(2));
+
+        // Check status transitioned to IssueStopWord from NoIssues
+        Assert.That(p.CheckStatusId, Is.EqualTo(ParcelValidationService.ApplyCheckStatusTransition((int)ParcelCheckStatusCode.NoIssues, ValidationEvent.StopWordFound)));
     }
 
     [Test]
-    public async Task ValidateAsync_NoMatch_DoesNothing()
+    public async Task ValidateKwAsync_DoesNothing_WhenMarkedByPartner()
     {
         using var ctx = CreateContext();
-        var order = new WbrParcel { Id = 1, RegisterId = 1, CheckStatusId = 1, ProductName = "clean", TnVed = "1234567890" };
-        ctx.Parcels.Add(order);
-        ctx.StopWords.Add(new StopWord { Id = 2, Word = "spam", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols });
-        await ctx.SaveChangesAsync();
-
-        var svc = CreateService(ctx);
-        var wordsLookupContext = new WordsLookupContext<StopWord>(ctx.StopWords.ToList());
-        var morphologyContext = new MorphologyContext(); // Assuming you have a way to create this context
-        await svc.ValidateAsync(order, morphologyContext, wordsLookupContext);
-
-        Assert.That(ctx.Set<BaseParcelStopWord>().Any(), Is.False);
-        Assert.That(ctx.Parcels.Find(1)!.CheckStatusId, Is.EqualTo((int)ParcelCheckStatusCode.NoIssues));
-    }
-
-    [Test]
-    public async Task ValidateAsync_IgnoresCase()
-    {
-        using var ctx = CreateContext();
-        var order = new WbrParcel { Id = 1, RegisterId = 1, CheckStatusId = 1, ProductName = "bad WORD", TnVed = "1234567890" };
-        ctx.Parcels.Add(order);
-        ctx.StopWords.Add(new StopWord { Id = 5, Word = "word", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols });
-        await ctx.SaveChangesAsync();
-
-        var svc = CreateService(ctx);
-        var wordsLookupContext = new WordsLookupContext<StopWord>(ctx.StopWords.ToList());
-        var morphologyContext = new MorphologyContext(); // Assuming you have a way to create this context
-        await svc.ValidateAsync(order, morphologyContext, wordsLookupContext);
-
-        Assert.That(ctx.Set<BaseParcelStopWord>().Single().StopWordId, Is.EqualTo(5));
-        Assert.That(ctx.Parcels.Find(1)!.CheckStatusId, Is.EqualTo((int)ParcelCheckStatusCode.HasIssues));
-    }
-
-    [Test]
-    public async Task ValidateAsync_UsesMorphologyContext()
-    {
-        using var ctx = CreateContext();
-        var order = new WbrParcel { Id = 1, RegisterId = 1, CheckStatusId = 1, ProductName = "золотой браслет", TnVed = "1234567890" };
-        ctx.Parcels.Add(order);
-        var sw = new StopWord { Id = 7, Word = "золото", MatchTypeId = (int)WordMatchTypeCode.StrongMorphology };
+        var sw = new StopWord { Id = 1, Word = "spam", MatchTypeId = (int)WordMatchTypeCode.ExactWord };
         ctx.StopWords.Add(sw);
+        var parcel = new WbrParcel { Id = 11, RegisterId = 1, CheckStatusId = (int)ParcelCheckStatusCode.MarkedByPartner, ProductName = "spam" };
+        ctx.Parcels.Add(parcel);
         await ctx.SaveChangesAsync();
 
         var morph = new MorphologySearchService();
         var morphologyContext = morph.InitializeContext(new[] { sw });
-        var wordsLookupContext = new WordsLookupContext<StopWord>(Enumerable.Empty<StopWord>());
-        var svc = CreateServiceWithMorphology(ctx, morph);
-        await svc.ValidateAsync(order, morphologyContext, wordsLookupContext);
+        var wordsLookupContext = new WordsLookupContext<StopWord>(new[] { sw });
 
-        var link = ctx.Set<BaseParcelStopWord>().Single();
-        Assert.That(link.StopWordId, Is.EqualTo(7));
-        Assert.That(ctx.Parcels.Find(1)!.CheckStatusId, Is.EqualTo((int)ParcelCheckStatusCode.HasIssues));
+        var feacnMock = new Mock<IFeacnPrefixCheckService>();
+        var svc = new ParcelValidationService(ctx, morph, feacnMock.Object);
+
+        await svc.ValidateKwAsync(parcel, morphologyContext, wordsLookupContext);
+
+        var p = await ctx.Parcels.Include(p => p.BaseParcelStopWords).FirstAsync(p => p.Id == 11);
+        Assert.That(p.BaseParcelStopWords, Is.Empty);
+        Assert.That(p.CheckStatusId, Is.EqualTo((int)ParcelCheckStatusCode.MarkedByPartner));
     }
 
     [Test]
-    public async Task ValidateAsync_MixedStopWords_BothExactAndMorphology()
+    public async Task ValidateFeacnAsync_InvalidFormat_SetsInvalidFormat()
     {
         using var ctx = CreateContext();
-        var order = new WbrParcel { Id = 1, RegisterId = 1, CheckStatusId = 1, ProductName = "This is SPAM with золотой браслет", TnVed = "1234567890" };
-        ctx.Parcels.Add(order);
-
-        var stopWords = new[]
-        {
-            new StopWord { Id = 10, Word = "spam", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols },      // Should match via exact
-            new StopWord { Id = 20, Word = "золото", MatchTypeId = (int)WordMatchTypeCode.StrongMorphology },   // Should match via morphology
-            new StopWord { Id = 30, Word = "silver", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols }     // Should NOT match
-        };
-        ctx.StopWords.AddRange(stopWords);
+        var parcel = new WbrParcel { Id = 20, RegisterId = 1, CheckStatusId = (int)ParcelCheckStatusCode.NoIssues, TnVed = "123" };
+        ctx.Parcels.Add(parcel);
         await ctx.SaveChangesAsync();
 
-        var morph = new MorphologySearchService();
-        var morphologyContext = morph.InitializeContext(stopWords.Where(sw => sw.MatchTypeId >= (int)WordMatchTypeCode.MorphologyMatchTypes));
-        var svc = CreateServiceWithMorphology(ctx, morph);
-        var wordsLookupContext = new WordsLookupContext<StopWord>(stopWords.Where(sw => sw.MatchTypeId == (int)WordMatchTypeCode.ExactSymbols));
-        await svc.ValidateAsync(order, morphologyContext, wordsLookupContext);
+        var feacnMock = new Mock<IFeacnPrefixCheckService>();
+        var svc = new ParcelValidationService(ctx, new MorphologySearchService(), feacnMock.Object);
 
-        var links = ctx.Set<BaseParcelStopWord>().ToList();
-        var foundIds = links.Select(l => l.StopWordId).OrderBy(id => id).ToList();
+        await svc.ValidateFeacnAsync(parcel);
 
-        Assert.That(links.Count, Is.EqualTo(2), "Should find exactly 2 matches");
-        Assert.That(foundIds, Is.EquivalentTo(new[] { 10, 20 }), "Should find both exact and morphology matches");
-        Assert.That(ctx.Parcels.Find(1)!.CheckStatusId, Is.EqualTo((int)ParcelCheckStatusCode.HasIssues));
+        var p = await ctx.Parcels.FirstAsync(p => p.Id == 20);
+        Assert.That(p.CheckStatusId, Is.EqualTo(ParcelValidationService.ApplyCheckStatusTransition((int)ParcelCheckStatusCode.NoIssues, ValidationEvent.InvalidFeacnFormat)));
+        Assert.That(ctx.Set<BaseParcelFeacnPrefix>().Any(), Is.False);
     }
 
     [Test]
-    public async Task ValidateAsync_RemovesExistingLinksCorrectly()
+    public async Task ValidateFeacnAsync_NonExisting_SetsNonExisting()
     {
         using var ctx = CreateContext();
-        var order = new WbrParcel { Id = 1, RegisterId = 1, CheckStatusId = 1, ProductName = "SPAM product", TnVed = "1234567890" };
-        ctx.Parcels.Add(order);
-
-        // Add some existing links that should be removed
-        ctx.Set<BaseParcelStopWord>().AddRange(
-            new BaseParcelStopWord { BaseParcelId = 1, StopWordId = 999 },
-            new BaseParcelStopWord { BaseParcelId = 1, StopWordId = 998 }
-        );
-
-        var stopWords = new[]
-        {
-            new StopWord { Id = 800, Word = "spam", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols }
-        };
-        ctx.StopWords.AddRange(stopWords);
+        var parcel = new WbrParcel { Id = 21, RegisterId = 1, CheckStatusId = (int)ParcelCheckStatusCode.NoIssues, TnVed = "1234567890" };
+        ctx.Parcels.Add(parcel);
         await ctx.SaveChangesAsync();
 
-        var svc = CreateService(ctx);
-        var wordsLookupContext = new WordsLookupContext<StopWord>(stopWords);
-        var morphologyContext = new MorphologyContext();
-        await svc.ValidateAsync(order, morphologyContext, wordsLookupContext);
+        var feacnMock = new Mock<IFeacnPrefixCheckService>();
+        var svc = new ParcelValidationService(ctx, new MorphologySearchService(), feacnMock.Object);
 
-        var links = ctx.Set<BaseParcelStopWord>().ToList();
+        await svc.ValidateFeacnAsync(parcel);
 
-        Assert.That(links.Count, Is.EqualTo(1), "Should replace existing links");
-        Assert.That(links.Single().StopWordId, Is.EqualTo(800), "Should have new link only");
-        Assert.That(ctx.Parcels.Find(1)!.CheckStatusId, Is.EqualTo((int)ParcelCheckStatusCode.HasIssues));
+        var p = await ctx.Parcels.FirstAsync(p => p.Id == 21);
+        Assert.That(p.CheckStatusId, Is.EqualTo(ParcelValidationService.ApplyCheckStatusTransition((int)ParcelCheckStatusCode.NoIssues, ValidationEvent.NonExistingFeacn)));
+        Assert.That(ctx.Set<BaseParcelFeacnPrefix>().Any(), Is.False);
     }
 
     [Test]
-    public async Task ValidateAsync_SkipsMarkedByPartner()
+    public async Task ValidateFeacnAsync_WithPrefixLinks_AddsLinks_And_Transitions()
     {
         using var ctx = CreateContext();
-        var order = new WbrParcel
-        {
-            Id = 1,
-            RegisterId = 1,
-            CheckStatusId = (int)ParcelCheckStatusCode.MarkedByPartner,
-            ProductName = "This is SPAM",
-            TnVed = "1234567890"
-        };
-        ctx.Parcels.Add(order);
-        ctx.StopWords.Add(new StopWord { Id = 2, Word = "spam", MatchTypeId = (int)WordMatchTypeCode.ExactSymbols });
-        ctx.Set<BaseParcelStopWord>().Add(new BaseParcelStopWord { BaseParcelId = 1, StopWordId = 99 });
+        // Add a feacn code that's present
+        ctx.FeacnCodes.Add(new FeacnCode { Id = 1, Code = "1234567890", CodeEx = "", Name = "n", NormalizedName = "n" });
+        var parcel = new WbrParcel { Id = 22, RegisterId = 1, CheckStatusId = (int)ParcelCheckStatusCode.NoIssues, TnVed = "1234567890" };
+        ctx.Parcels.Add(parcel);
         await ctx.SaveChangesAsync();
 
-        var svc = CreateService(ctx);
-        var wordsLookupContext = new WordsLookupContext<StopWord>(ctx.StopWords.ToList());
-        var morphologyContext = new MorphologyContext();
-        await svc.ValidateAsync(order, morphologyContext, wordsLookupContext);
+        var link = new BaseParcelFeacnPrefix { BaseParcelId = 22, FeacnPrefixId = 1 };
+        var feacnMock = new Mock<IFeacnPrefixCheckService>();
+        feacnMock.Setup(s => s.CheckParcelAsync(It.IsAny<BaseParcel>(), It.IsAny<CancellationToken>())).ReturnsAsync(new[] { link });
 
-        var links = ctx.Set<BaseParcelStopWord>().ToList();
-        Assert.That(links.Count, Is.EqualTo(1));
-        Assert.That(links.Single().StopWordId, Is.EqualTo(99));
-        Assert.That(ctx.Parcels.Find(1)!.CheckStatusId, Is.EqualTo((int)ParcelCheckStatusCode.MarkedByPartner));
+        var svc = new ParcelValidationService(ctx, new MorphologySearchService(), feacnMock.Object);
+        await svc.ValidateFeacnAsync(parcel);
+
+        var p = await ctx.Parcels.Include(p => p.BaseParcelFeacnPrefixes).FirstAsync(p => p.Id == 22);
+        Assert.That(p.BaseParcelFeacnPrefixes, Is.Not.Empty);
+        // status should reflect table transition for NoIssues + FeacnCodeIssueFound
+        Assert.That(p.CheckStatusId, Is.EqualTo(ParcelValidationService.ApplyCheckStatusTransition((int)ParcelCheckStatusCode.NoIssues, ValidationEvent.FeacnCodeIssueFound)));
     }
 
     [Test]
-    public async Task ValidateAsync_ExistingFeacn_ContinuesProcessing()
+    public async Task ValidateFeacnAsync_WithNoPrefixLinks_SetsFeacnOk()
     {
         using var ctx = CreateContext();
-        ctx.FeacnCodes.Add(new FeacnCode
-        {
-            Id = 1,
-            Code = "1234567890",
-            CodeEx = "1234567890",
-            Name = "name",
-            NormalizedName = "name",
-            FromDate = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(-1)
-        });
-        var order = new WbrParcel { Id = 1, RegisterId = 1, CheckStatusId = 1, TnVed = "1234567890" };
-        ctx.Parcels.Add(order);
+        ctx.FeacnCodes.Add(new FeacnCode { Id = 2, Code = "0987654321", CodeEx = "", Name = "n", NormalizedName = "n" });
+        var parcel = new WbrParcel { Id = 23, RegisterId = 1, CheckStatusId = (int)ParcelCheckStatusCode.NoIssues, TnVed = "0987654321" };
+        ctx.Parcels.Add(parcel);
         await ctx.SaveChangesAsync();
 
-        var svc = CreateService(ctx);
-        var wordsLookupContext = new WordsLookupContext<StopWord>(Enumerable.Empty<StopWord>());
-        var morphologyContext = new MorphologyContext();
-        await svc.ValidateAsync(order, morphologyContext, wordsLookupContext);
+        var feacnMock = new Mock<IFeacnPrefixCheckService>();
+        feacnMock.Setup(s => s.CheckParcelAsync(It.IsAny<BaseParcel>(), It.IsAny<CancellationToken>())).ReturnsAsync(new List<BaseParcelFeacnPrefix>());
 
-        Assert.That(ctx.Parcels.Find(1)!.CheckStatusId, Is.EqualTo((int)ParcelCheckStatusCode.NoIssues));
+        var svc = new ParcelValidationService(ctx, new MorphologySearchService(), feacnMock.Object);
+        await svc.ValidateFeacnAsync(parcel);
+
+        var p = await ctx.Parcels.FirstAsync(p => p.Id == 23);
+        Assert.That(p.CheckStatusId, Is.EqualTo(ParcelValidationService.ApplyCheckStatusTransition((int)ParcelCheckStatusCode.NoIssues, ValidationEvent.FeacnCodeCheckOk)));
     }
 
     [Test]
-    public void GetMatchingWords_IgnoresEmptyStopWord()
+    public async Task ValidateFeacnAsync_DoesNothing_WhenMarkedByPartner()
     {
-        // Arrange
-        var emptyStopWord = new StopWord { Id = 1, Word = string.Empty, MatchTypeId = (int)WordMatchTypeCode.ExactSymbols };
-        var context = new WordsLookupContext<StopWord>(new[] { emptyStopWord });
-        var productName = "Some product name";
+        using var ctx = CreateContext();
+        ctx.FeacnCodes.Add(new FeacnCode { Id = 3, Code = "1111111111", CodeEx = "", Name = "n", NormalizedName = "n" });
+        var parcel = new WbrParcel { Id = 24, RegisterId = 1, CheckStatusId = (int)ParcelCheckStatusCode.MarkedByPartner, TnVed = "1111111111" };
+        ctx.Parcels.Add(parcel);
+        await ctx.SaveChangesAsync();
 
-        // Act
-        var result = context.GetMatchingWords(productName).ToList();
+        var feacnMock = new Mock<IFeacnPrefixCheckService>();
+        var svc = new ParcelValidationService(ctx, new MorphologySearchService(), feacnMock.Object);
+        await svc.ValidateFeacnAsync(parcel);
 
-        // Assert
-        Assert.That(result.Count, Is.EqualTo(0), "Should not match empty stopword");
+        var p = await ctx.Parcels.FirstAsync(p => p.Id == 24);
+        Assert.That(p.CheckStatusId, Is.EqualTo((int)ParcelCheckStatusCode.MarkedByPartner));
+        Assert.That(ctx.Set<BaseParcelFeacnPrefix>().Any(), Is.False);
     }
 }

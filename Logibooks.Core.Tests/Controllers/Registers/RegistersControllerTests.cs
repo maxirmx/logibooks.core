@@ -854,13 +854,15 @@ public class RegistersControllerTests : RegistersControllerTestsBase
     {
         SetCurrentUserId(1);
         var register = new Register { Id = 200, FileName = "r.xlsx", TheOtherCompanyId = 3 };
-        var feacnOrder = new FeacnOrder { Id = 300, Title = "t" };
+        var feacnOrder = new FeacnOrder { Id = 300, Title = "t", Enabled = true };
         var prefix = new FeacnPrefix { Id = 400, Code = "12", FeacnOrderId = 300, FeacnOrder = feacnOrder };
-        var order = new WbrParcel { Id = 201, RegisterId = 200, StatusId = 1, TnVed = "1234567890" };
+        var feacnCode = new FeacnCode { Id = 1, Code = "1203000000", CodeEx = "", Name = "Копра", NormalizedName = "копра" };
+        var parcel = new WbrParcel { Id = 201, RegisterId = 200, StatusId = 1, TnVed = "1203000000" };  // "Копра"
         _dbContext.Registers.Add(register);
         _dbContext.FeacnOrders.Add(feacnOrder);
         _dbContext.FeacnPrefixes.Add(prefix);
-        _dbContext.Parcels.Add(order);
+        _dbContext.FeacnCodes.Add(feacnCode);
+        _dbContext.Parcels.Add(parcel);
         await _dbContext.SaveChangesAsync();
 
         var orderValidationService = new ParcelValidationService(_dbContext, new MorphologySearchService(), new FeacnPrefixCheckService(_dbContext));
@@ -891,8 +893,8 @@ public class RegistersControllerTests : RegistersControllerTestsBase
             await Task.Delay(50);
         }
 
-        var orderReloaded = await _dbContext.Parcels.Include(o => o.BaseParcelFeacnPrefixes).FirstAsync(o => o.Id == 201);
-        Assert.That(orderReloaded.BaseParcelFeacnPrefixes.Any(l => l.FeacnPrefixId == 400), Is.True);
+        var parcelReloaded = await _dbContext.Parcels.Include(o => o.BaseParcelFeacnPrefixes).FirstAsync(o => o.Id == 201);
+        Assert.That(parcelReloaded.BaseParcelFeacnPrefixes.Any(l => l.FeacnPrefixId == 400), Is.True);
     }
 
     [Test]
