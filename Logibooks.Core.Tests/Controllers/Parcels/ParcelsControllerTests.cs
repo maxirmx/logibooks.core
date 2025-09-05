@@ -790,7 +790,7 @@ public class ParcelsControllerTests
     }
 
     [Test]
-    public async Task ValidateParcel_RunsService_ForLogist()
+    public async Task ValidateKw_RunsService_ForLogist()
     {
         SetCurrentUserId(1);
         var register = new Register { Id = 10, CompanyId = 2, FileName = "r.xlsx" };
@@ -799,7 +799,105 @@ public class ParcelsControllerTests
         _dbContext.Parcels.Add(order);
         await _dbContext.SaveChangesAsync();
 
-        var result = await _controller.ValidateParcel(10);
+        var result = await _controller.ValidateKw(10);
+
+        _mockValidationService.Verify(s => s.ValidateKwAsync(
+            order,
+            It.IsAny<MorphologyContext>(),
+            It.IsAny<WordsLookupContext<StopWord>>(),
+            It.IsAny<CancellationToken>()),
+            Times.Once);
+        _mockValidationService.Verify(s => s.ValidateFeacnAsync(
+            It.IsAny<BaseParcel>(),
+            It.IsAny<FeacnPrefixCheckContext?>(),
+            It.IsAny<CancellationToken>()),
+            Times.Never);
+        Assert.That(result, Is.TypeOf<NoContentResult>());
+    }
+
+    [Test]
+    public async Task ValidateKw_ReturnsForbidden_ForNonLogist()
+    {
+        SetCurrentUserId(99);
+        var result = await _controller.ValidateKw(1);
+
+        _mockValidationService.Verify(s => s.ValidateKwAsync(
+            It.IsAny<BaseParcel>(),
+            It.IsAny<MorphologyContext>(),
+            It.IsAny<WordsLookupContext<StopWord>>(),
+            It.IsAny<CancellationToken>()),
+            Times.Never);
+        _mockValidationService.Verify(s => s.ValidateFeacnAsync(
+            It.IsAny<BaseParcel>(),
+            It.IsAny<FeacnPrefixCheckContext?>(),
+            It.IsAny<CancellationToken>()),
+            Times.Never);
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
+    }
+
+    [Test]
+    public async Task ValidateKw_ReturnsNotFound_WhenMissing()
+    {
+        SetCurrentUserId(1);
+        var result = await _controller.ValidateKw(99);
+
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+        _mockValidationService.Verify(s => s.ValidateKwAsync(
+            It.IsAny<BaseParcel>(),
+            It.IsAny<MorphologyContext>(),
+            It.IsAny<WordsLookupContext<StopWord>>(),
+            It.IsAny<CancellationToken>()),
+            Times.Never);
+        _mockValidationService.Verify(s => s.ValidateFeacnAsync(
+            It.IsAny<BaseParcel>(),
+            It.IsAny<FeacnPrefixCheckContext?>(),
+            It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Test]
+    public async Task ValidateKw_ReturnsNotFound_ForMarkedByPartner()
+    {
+        SetCurrentUserId(1);
+        var register = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
+        var order = new WbrParcel { Id = 1, RegisterId = 1, StatusId = 1, CheckStatusId = (int)ParcelCheckStatusCode.MarkedByPartner };
+        _dbContext.Registers.Add(register);
+        _dbContext.Parcels.Add(order);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.ValidateKw(1);
+
+        Assert.That(result, Is.TypeOf<ObjectResult>());
+        var obj = result as ObjectResult;
+        Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+        _mockValidationService.Verify(s => s.ValidateKwAsync(
+            It.IsAny<BaseParcel>(),
+            It.IsAny<MorphologyContext>(),
+            It.IsAny<WordsLookupContext<StopWord>>(),
+            It.IsAny<CancellationToken>()),
+            Times.Never);
+        _mockValidationService.Verify(s => s.ValidateFeacnAsync(
+            It.IsAny<BaseParcel>(),
+            It.IsAny<FeacnPrefixCheckContext?>(),
+            It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Test]
+    public async Task ValidateFc_RunsService_ForLogist()
+    {
+        SetCurrentUserId(1);
+        var register = new Register { Id = 10, CompanyId = 2, FileName = "r.xlsx" };
+        var order = new WbrParcel { Id = 10, RegisterId = 10, StatusId = 1 };
+        _dbContext.Registers.Add(register);
+        _dbContext.Parcels.Add(order);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _controller.ValidateFc(10);
 
         _mockValidationService.Verify(s => s.ValidateFeacnAsync(
             order,
@@ -807,19 +905,19 @@ public class ParcelsControllerTests
             It.IsAny<CancellationToken>()),
             Times.Once);
         _mockValidationService.Verify(s => s.ValidateKwAsync(
-            order,
+            It.IsAny<BaseParcel>(),
             It.IsAny<MorphologyContext>(),
             It.IsAny<WordsLookupContext<StopWord>>(),
             It.IsAny<CancellationToken>()),
-            Times.Once);
+            Times.Never);
         Assert.That(result, Is.TypeOf<NoContentResult>());
     }
 
     [Test]
-    public async Task ValidateParcel_ReturnsForbidden_ForNonLogist()
+    public async Task ValidateFc_ReturnsForbidden_ForNonLogist()
     {
         SetCurrentUserId(99);
-        var result = await _controller.ValidateParcel(1);
+        var result = await _controller.ValidateFc(1);
 
         _mockValidationService.Verify(s => s.ValidateFeacnAsync(
             It.IsAny<BaseParcel>(),
@@ -838,10 +936,10 @@ public class ParcelsControllerTests
     }
 
     [Test]
-    public async Task ValidateParcel_ReturnsNotFound_WhenMissing()
+    public async Task ValidateFc_ReturnsNotFound_WhenMissing()
     {
         SetCurrentUserId(1);
-        var result = await _controller.ValidateParcel(99);
+        var result = await _controller.ValidateFc(99);
 
         Assert.That(result, Is.TypeOf<ObjectResult>());
         var obj = result as ObjectResult;
@@ -860,7 +958,7 @@ public class ParcelsControllerTests
     }
 
     [Test]
-    public async Task ValidateParcel_ReturnsNotFound_ForMarkedByPartner()
+    public async Task ValidateFc_ReturnsNotFound_ForMarkedByPartner()
     {
         SetCurrentUserId(1);
         var register = new Register { Id = 1, CompanyId = 2, FileName = "r.xlsx" };
@@ -869,7 +967,7 @@ public class ParcelsControllerTests
         _dbContext.Parcels.Add(order);
         await _dbContext.SaveChangesAsync();
 
-        var result = await _controller.ValidateParcel(1);
+        var result = await _controller.ValidateFc(1);
 
         Assert.That(result, Is.TypeOf<ObjectResult>());
         var obj = result as ObjectResult;
@@ -888,7 +986,7 @@ public class ParcelsControllerTests
     }
 
     [Test]
-    public async Task ValidateParcel_WithRealService_CreatesFeacnLinks()
+    public async Task ValidateFc_WithRealService_CreatesFeacnLinks()
     {
         SetCurrentUserId(1);
 
@@ -921,7 +1019,7 @@ public class ParcelsControllerTests
             _mockProcessingService.Object,
             _mockIndPostGenerator.Object);
 
-        await ctrl.ValidateParcel(20);
+        await ctrl.ValidateFc(20);
         var res = await ctrl.GetOrder(20);
 
         Assert.That(res.Value!.FeacnOrderIds, Does.Contain(30));

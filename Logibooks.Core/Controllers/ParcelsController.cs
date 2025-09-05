@@ -379,17 +379,17 @@ public class ParcelsController(
         return Ok(new LookupFeacnCodeResult { KeyWordIds = keyWordIds });
     }
 
-    [HttpPost("{id}/validate")]
+    [HttpPost("{id}/validate-kw")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
-    public async Task<IActionResult> ValidateParcel(int id)
+    public async Task<IActionResult> ValidateKw(int id)
     {
-        _logger.LogDebug("ValidateParcel for id={id}", id);
+        _logger.LogDebug("ValidateKw for id={id}", id);
 
         if (!await _userService.CheckLogist(_curUserId))
         {
-            _logger.LogDebug("ValidateParcel returning '403 Forbidden'");
+            _logger.LogDebug("ValidateKw returning '403 Forbidden'");
             return _403();
         }
 
@@ -397,7 +397,7 @@ public class ParcelsController(
             .FirstOrDefaultAsync(o => o.Id == id && o.CheckStatusId != (int)ParcelCheckStatusCode.MarkedByPartner);
         if (parcel == null)
         {
-            _logger.LogDebug("ValidateParcel returning '404 Not Found'");
+            _logger.LogDebug("ValidateKw returning '404 Not Found'");
             return _404Parcel(id);
         }
 
@@ -407,8 +407,34 @@ public class ParcelsController(
         var wordsLookupContext = new WordsLookupContext<StopWord>(
             stopWords.Where(sw => sw.MatchTypeId < (int)WordMatchTypeCode.MorphologyMatchTypes));
 
-        await _validationService.ValidateFeacnAsync(parcel, null);
         await _validationService.ValidateKwAsync(parcel, morphologyContext, wordsLookupContext);
+
+        return NoContent();
+    }
+
+    [HttpPost("{id}/validate-fc")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
+    [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
+    public async Task<IActionResult> ValidateFc(int id)
+    {
+        _logger.LogDebug("ValidateFc for id={id}", id);
+
+        if (!await _userService.CheckLogist(_curUserId))
+        {
+            _logger.LogDebug("ValidateFc returning '403 Forbidden'");
+            return _403();
+        }
+
+        var parcel = await _db.Parcels
+            .FirstOrDefaultAsync(o => o.Id == id && o.CheckStatusId != (int)ParcelCheckStatusCode.MarkedByPartner);
+        if (parcel == null)
+        {
+            _logger.LogDebug("ValidateFc returning '404 Not Found'");
+            return _404Parcel(id);
+        }
+
+        await _validationService.ValidateFeacnAsync(parcel, null);
 
         return NoContent();
     }
