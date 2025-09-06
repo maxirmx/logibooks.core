@@ -198,76 +198,72 @@ public class ParcelValidationService(
             return;
         }
 
-        // For in-memory database compatibility, perform operations in a specific order to maintain consistency
-        // Store original state in case we need to revert
-        var originalCheckStatusId = order.CheckStatusId;
-        Exception? rollbackException = null;
-
-        try
+        // Use transaction for real databases, skip for in-memory testing
+        var isInMemoryDatabase = dbContext.Database.ProviderName == "Microsoft.EntityFrameworkCore.InMemory";
+        
+        if (isInMemoryDatabase)
         {
-            // Step 1: Remove existing stop word links
-            var existing = dbContext.Set<BaseParcelStopWord>().Where(l => l.BaseParcelId == order.Id);
-            var existingLinks = existing.ToList(); // Store for potential rollback
-            dbContext.Set<BaseParcelStopWord>().RemoveRange(existing);
-
-            // Step 2: Calculate new stop word links
-            var productName = order.ProductName ?? string.Empty;
-            var links = SelectStopWordLinks(order.Id, productName, wordsLookupContext, morphologyContext);
-
-            if (order is WbrParcel wbr && !string.IsNullOrWhiteSpace(wbr.Description))
-            {
-                var linksDesc = SelectStopWordLinks(order.Id, wbr.Description, wordsLookupContext, morphologyContext);
-                var existingIds = new HashSet<int>(links.Select(l => l.StopWordId));
-                foreach (var link in linksDesc)
-                {
-                    if (existingIds.Add(link.StopWordId))
-                    {
-                        links.Add(link);
-                    }
-                }
-            }
-
-            // Step 3: Add new links and update status
-            if (links.Count > 0)
-            {
-                dbContext.AddRange(links);
-                // Use table-driven transition
-                order.CheckStatusId = ApplyCheckStatusTransition(order.CheckStatusId, ValidationEvent.StopWordFound);
-            }
-            else
-            {
-                // Use table-driven transition
-                order.CheckStatusId = ApplyCheckStatusTransition(order.CheckStatusId, ValidationEvent.StopWordNotFound);
-            }
-
-            // Step 4: Save all changes atomically
-            await dbContext.SaveChangesAsync(cancellationToken);
+            await ValidateSwInternalAsync(dbContext, order, morphologyContext, wordsLookupContext, cancellationToken);
         }
-        catch (Exception ex)
+        else
         {
-            rollbackException = ex;
-            
-            // Manual rollback for in-memory database: restore original state
+            using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
             try
             {
-                order.CheckStatusId = originalCheckStatusId;
-                
-                // Remove any partially added links
-                var partialLinks = dbContext.Set<BaseParcelStopWord>().Where(l => l.BaseParcelId == order.Id);
-                dbContext.Set<BaseParcelStopWord>().RemoveRange(partialLinks);
-                
-                // Note: For in-memory database, we can't restore the original links reliably
-                // The calling code should handle this by reloading the parcel if needed
-                
-                await dbContext.SaveChangesAsync(cancellationToken);
+                await ValidateSwInternalAsync(dbContext, order, morphologyContext, wordsLookupContext, cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
             }
             catch
             {
-                // If rollback fails, the original exception is more important
+                await transaction.RollbackAsync(cancellationToken);
+                throw;
             }
-            
-            throw rollbackException;
         }
+    }
+
+    private async Task ValidateSwInternalAsync(
+        AppDbContext dbContext,
+        BaseParcel order,
+        MorphologyContext morphologyContext,
+        WordsLookupContext<StopWord> wordsLookupContext,
+        CancellationToken cancellationToken)
+    {
+        // Step 1: Remove existing stop word links
+        var existing = dbContext.Set<BaseParcelStopWord>().Where(l => l.BaseParcelId == order.Id);
+        dbContext.Set<BaseParcelStopWord>().RemoveRange(existing);
+
+        // Step 2: Calculate new stop word links
+        var productName = order.ProductName ?? string.Empty;
+        var links = SelectStopWordLinks(order.Id, productName, wordsLookupContext, morphologyContext);
+
+        if (order is WbrParcel wbr && !string.IsNullOrWhiteSpace(wbr.Description))
+        {
+            var linksDesc = SelectStopWordLinks(order.Id, wbr.Description, wordsLookupContext, morphologyContext);
+            var existingIds = new HashSet<int>(links.Select(l => l.StopWordId));
+            foreach (var link in linksDesc)
+            {
+                if (existingIds.Add(link.StopWordId))
+                {
+                    links.Add(link);
+                }
+            }
+        }
+
+        // Step 3: Add new links and update status
+        if (links.Count > 0)
+        {
+            dbContext.AddRange(links);
+            // Use table-driven transition
+            order.CheckStatusId = ApplyCheckStatusTransition(order.CheckStatusId, ValidationEvent.StopWordFound);
+        }
+        else
+        {
+            // Use table-driven transition
+            order.CheckStatusId = ApplyCheckStatusTransition(order.CheckStatusId, ValidationEvent.StopWordNotFound);
+        }
+
+        // Step 4: Save all changes atomically
+        await dbContext.SaveChangesAsync(cancellationToken);
     }
 
     public async Task ValidateFeacnAsync(
@@ -289,77 +285,72 @@ public class ParcelValidationService(
             return;
         }
 
-        // For in-memory database compatibility, perform operations in a specific order to maintain consistency
-        // Store original state in case we need to revert
-        var originalCheckStatusId = parcel.CheckStatusId;
-        Exception? rollbackException = null;
-
-        try
-        {
-            // Step 1: Remove existing FEACN prefix links
-            var existing = dbContext.Set<BaseParcelFeacnPrefix>().Where(l => l.BaseParcelId == parcel.Id);
-            var existingLinks = existing.ToList(); // Store for potential rollback
-            dbContext.Set<BaseParcelFeacnPrefix>().RemoveRange(existing);
-
-            // Step 2: Validate FEACN and determine new status
-            if (string.IsNullOrWhiteSpace(parcel.TnVed) || !TnVedRegex.IsMatch(parcel.TnVed))
-            {
-                // Use table-driven transition
-                parcel.CheckStatusId = ApplyCheckStatusTransition(parcel.CheckStatusId, ValidationEvent.InvalidFeacnFormat);
-            }
-            else if (!FeacnCode.RoQuery(dbContext).Any(f => f.Code == parcel.TnVed))
-            {
-                // Use table-driven transition
-                parcel.CheckStatusId = ApplyCheckStatusTransition(parcel.CheckStatusId, ValidationEvent.NonExistingFeacn);
-            }
-            else
-            {
-                // Step 3: Check for FEACN prefix matches
-                var links = feacnContext != null
-                    ? _feacnPrefixCheckService.CheckParcel(parcel, feacnContext)
-                    : await _feacnPrefixCheckService.CheckParcelAsync(parcel, cancellationToken);
-
-                if (links.Any())
-                {
-                    dbContext.AddRange(links);
-                    // Use table-driven transition
-                    parcel.CheckStatusId = ApplyCheckStatusTransition(parcel.CheckStatusId, ValidationEvent.FeacnCodeIssueFound);
-                }
-                else
-                {
-                    // Use table-driven transition
-                    parcel.CheckStatusId = ApplyCheckStatusTransition(parcel.CheckStatusId, ValidationEvent.FeacnCodeCheckOk);
-                }
-            }
+        // Use transaction for real databases, skip for in-memory testing
+        var isInMemoryDatabase = dbContext.Database.ProviderName == "Microsoft.EntityFrameworkCore.InMemory";
         
-            // Step 4: Save all changes atomically
-            await dbContext.SaveChangesAsync(cancellationToken);
-        }
-        catch (Exception ex)
+        if (isInMemoryDatabase)
         {
-            rollbackException = ex;
-            
-            // Manual rollback for in-memory database: restore original state
+            await ValidateFeacnInternalAsync(dbContext, parcel, feacnContext, cancellationToken);
+        }
+        else
+        {
+            using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
             try
             {
-                parcel.CheckStatusId = originalCheckStatusId;
-                
-                // Remove any partially added links
-                var partialLinks = dbContext.Set<BaseParcelFeacnPrefix>().Where(l => l.BaseParcelId == parcel.Id);
-                dbContext.Set<BaseParcelFeacnPrefix>().RemoveRange(partialLinks);
-                
-                // Note: For in-memory database, we can't restore the original links reliably
-                // The calling code should handle this by reloading the parcel if needed
-                
-                await dbContext.SaveChangesAsync(cancellationToken);
+                await ValidateFeacnInternalAsync(dbContext, parcel, feacnContext, cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
             }
             catch
             {
-                // If rollback fails, the original exception is more important
+                await transaction.RollbackAsync(cancellationToken);
+                throw;
             }
-            
-            throw rollbackException;
         }
+    }
+
+    private async Task ValidateFeacnInternalAsync(
+        AppDbContext dbContext,
+        BaseParcel parcel,
+        FeacnPrefixCheckContext? feacnContext,
+        CancellationToken cancellationToken)
+    {
+        // Step 1: Remove existing FEACN prefix links
+        var existing = dbContext.Set<BaseParcelFeacnPrefix>().Where(l => l.BaseParcelId == parcel.Id);
+        dbContext.Set<BaseParcelFeacnPrefix>().RemoveRange(existing);
+
+        // Step 2: Validate FEACN and determine new status
+        if (string.IsNullOrWhiteSpace(parcel.TnVed) || !TnVedRegex.IsMatch(parcel.TnVed))
+        {
+            // Use table-driven transition
+            parcel.CheckStatusId = ApplyCheckStatusTransition(parcel.CheckStatusId, ValidationEvent.InvalidFeacnFormat);
+        }
+        else if (!FeacnCode.RoQuery(dbContext).Any(f => f.Code == parcel.TnVed))
+        {
+            // Use table-driven transition
+            parcel.CheckStatusId = ApplyCheckStatusTransition(parcel.CheckStatusId, ValidationEvent.NonExistingFeacn);
+        }
+        else
+        {
+            // Step 3: Check for FEACN prefix matches
+            var links = feacnContext != null
+                ? _feacnPrefixCheckService.CheckParcel(parcel, feacnContext)
+                : await _feacnPrefixCheckService.CheckParcelAsync(parcel, cancellationToken);
+
+            if (links.Any())
+            {
+                dbContext.AddRange(links);
+                // Use table-driven transition
+                parcel.CheckStatusId = ApplyCheckStatusTransition(parcel.CheckStatusId, ValidationEvent.FeacnCodeIssueFound);
+            }
+            else
+            {
+                // Use table-driven transition
+                parcel.CheckStatusId = ApplyCheckStatusTransition(parcel.CheckStatusId, ValidationEvent.FeacnCodeCheckOk);
+            }
+        }
+        
+        // Step 4: Save all changes atomically
+        await dbContext.SaveChangesAsync(cancellationToken);
     }
 
     private List<BaseParcelStopWord> SelectStopWordLinks(
