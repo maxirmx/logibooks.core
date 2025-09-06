@@ -29,5 +29,6 @@ namespace Logibooks.Core.Interfaces;
 
 public interface IRegisterValidationService : IProgressReporter
 {
-    Task<Guid> StartValidationAsync(int registerId, CancellationToken cancellationToken = default);
+    Task<Guid> StartKwValidationAsync(int registerId, CancellationToken cancellationToken = default);
+    Task<Guid> StartFeacnValidationAsync(int registerId, CancellationToken cancellationToken = default);
 }
