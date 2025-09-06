@@ -36,6 +36,12 @@ namespace Logibooks.Core.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            // First, update any foreign key references to point to id=1 before deleting
+            migrationBuilder.Sql(@"
+                UPDATE parcels SET check_status_id = 1 WHERE check_status_id IN (129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 202, 203);
+                UPDATE parcel_views SET check_status_id = 1 WHERE check_status_id IN (129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 202, 203);
+            ");
+
             migrationBuilder.DeleteData(
                 table: "check_statuses",
                 keyColumn: "id",
