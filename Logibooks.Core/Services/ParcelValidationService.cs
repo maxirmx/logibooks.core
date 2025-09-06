@@ -307,7 +307,7 @@ public class ParcelValidationService(
                 // Use table-driven transition
                 parcel.CheckStatusId = ApplyCheckStatusTransition(parcel.CheckStatusId, ValidationEvent.InvalidFeacnFormat);
             }
-            else if (!dbContext.FeacnCodes.Any(f => f.Code == parcel.TnVed))
+            else if (!FeacnCode.RoQuery(dbContext).Any(f => f.Code == parcel.TnVed))
             {
                 // Use table-driven transition
                 parcel.CheckStatusId = ApplyCheckStatusTransition(parcel.CheckStatusId, ValidationEvent.NonExistingFeacn);
