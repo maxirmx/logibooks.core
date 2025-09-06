@@ -1,27 +1,6 @@
 // Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
 // All rights reserved.
 // This file is a part of Logibooks Core application
-//
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions
-// are met:
-// 1. Redistributions of source code must retain the above copyright
-// notice, this list of conditions and the following disclaimer.
-// 2. Redistributions in binary form must reproduce the above copyright
-// notice, this list of conditions and the following disclaimer in the
-// documentation and/or other materials provided with the distribution.
-//
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-// 'AS IS' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-// TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
-// PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR CONTRIBUTORS
-// BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-// POSSIBILITY OF SUCH DAMAGE.
 
 using System.Collections.Concurrent;
 using Microsoft.EntityFrameworkCore;
@@ -90,68 +69,25 @@ public class RegisterValidationService(
         var morphologyContext = _morphologyService.InitializeContext(
             allStopWords.Where(sw => sw.MatchTypeId >= (int)WordMatchTypeCode.MorphologyMatchTypes));
 
-        var tcs = new TaskCompletionSource();
-
-        _ = Task.Run(async () =>
+        return await ExecuteValidationAsync(process, async (scopedDb, scopedValidationSvc, parcels, serviceProvider) =>
         {
-            using var scope = _scopeFactory.CreateScope();
-            var scopedDb = scope.ServiceProvider.GetService(typeof(AppDbContext)) as AppDbContext;
-            var scopedValidationSvc = scope.ServiceProvider.GetService(typeof(IParcelValidationService)) as IParcelValidationService;
+            var stopWordsContext = new WordsLookupContext<StopWord>(allStopWords);
 
-            if (scopedDb == null || scopedValidationSvc == null)
+            foreach (var id in parcels)
             {
-                process.Error = "Failed to resolve required services";
-                process.Finished = true;
-                tcs.TrySetResult();
-                _byRegister.TryRemove(registerId, out _);
-                _byHandle.TryRemove(process.HandleId, out _);
-                return;
-            }
-
-            try
-            {
-                var parcels = await scopedDb.Parcels
-                    .Where(o => o.RegisterId == registerId &&
-                                o.CheckStatusId < (int)ParcelCheckStatusCode.Approved &&
-                                o.CheckStatusId != (int)ParcelCheckStatusCode.MarkedByPartner)
-                    .Select(o => o.Id)
-                    .ToListAsync(process.Cts.Token);
-                process.Total = parcels.Count;
-                tcs.TrySetResult();
-
-                var stopWordsContext = new WordsLookupContext<StopWord>(allStopWords);
-
-                foreach (var id in parcels)
+                if (process.Cts.IsCancellationRequested)
                 {
-                    if (process.Cts.IsCancellationRequested)
-                    {
-                        process.Finished = true;
-                        break;
-                    }
-                    var parcel = await scopedDb.Parcels.FindAsync([id], cancellationToken: process.Cts.Token);
-                    if (parcel != null)
-                    {
-                        await scopedValidationSvc.ValidateKwAsync(scopedDb, parcel, morphologyContext, stopWordsContext, process.Cts.Token);
-                    }
-                    process.Processed++;
+                    process.Finished = true;
+                    break;
                 }
+                var parcel = await scopedDb.Parcels.FindAsync([id], cancellationToken: process.Cts.Token);
+                if (parcel != null)
+                {
+                    await scopedValidationSvc.ValidateKwAsync(scopedDb, parcel, morphologyContext, stopWordsContext, process.Cts.Token);
+                }
+                process.Processed++;
             }
-            catch (Exception ex)
-            {
-                tcs.TrySetResult();
-                process.Error = ex.Message;
-                _logger.LogError(ex, "Register KW validation failed");
-            }
-            finally
-            {
-                process.Finished = true;
-                _byRegister.TryRemove(registerId, out _);
-                _byHandle.TryRemove(process.HandleId, out _);
-            }
-        });
-
-        await tcs.Task;
-        return process.HandleId;
+        }, "Register KW validation failed");
     }
 
     public async Task<Guid> StartFeacnValidationAsync(int registerId, CancellationToken cancellationToken = default)
@@ -168,6 +104,34 @@ public class RegisterValidationService(
         }
         _byHandle[process.HandleId] = process;
 
+        return await ExecuteValidationAsync(process, async (scopedDb, scopedValidationSvc, parcels, serviceProvider) =>
+        {
+            var scopedFeacnSvc = serviceProvider.GetService(typeof(IFeacnPrefixCheckService)) as IFeacnPrefixCheckService ?? 
+                                 throw new InvalidOperationException("Failed to resolve IFeacnPrefixCheckService");
+            var feacnContext = await scopedFeacnSvc.CreateContext(process.Cts.Token);
+
+            foreach (var id in parcels)
+            {
+                if (process.Cts.IsCancellationRequested)
+                {
+                    process.Finished = true;
+                    break;
+                }
+                var parcel = await scopedDb.Parcels.FindAsync([id], cancellationToken: process.Cts.Token);
+                if (parcel != null)
+                {
+                    await scopedValidationSvc.ValidateFeacnAsync(scopedDb, parcel, feacnContext, process.Cts.Token);
+                }
+                process.Processed++;
+            }
+        }, "Register FEACN validation failed");
+    }
+
+    private async Task<Guid> ExecuteValidationAsync(
+        ValidationProcess process,
+        Func<AppDbContext, IParcelValidationService, List<int>, IServiceProvider, Task> validationAction,
+        string errorMessage)
+    {
         var tcs = new TaskCompletionSource();
 
         _ = Task.Run(async () =>
@@ -175,14 +139,13 @@ public class RegisterValidationService(
             using var scope = _scopeFactory.CreateScope();
             var scopedDb = scope.ServiceProvider.GetService(typeof(AppDbContext)) as AppDbContext;
             var scopedValidationSvc = scope.ServiceProvider.GetService(typeof(IParcelValidationService)) as IParcelValidationService;
-            var scopedFeacnSvc = scope.ServiceProvider.GetService(typeof(IFeacnPrefixCheckService)) as IFeacnPrefixCheckService;
 
-            if (scopedDb == null || scopedValidationSvc == null || scopedFeacnSvc == null)
+            if (scopedDb == null || scopedValidationSvc == null)
             {
                 process.Error = "Failed to resolve required services";
                 process.Finished = true;
                 tcs.TrySetResult();
-                _byRegister.TryRemove(registerId, out _);
+                _byRegister.TryRemove(process.RegisterId, out _);
                 _byHandle.TryRemove(process.HandleId, out _);
                 return;
             }
@@ -190,7 +153,7 @@ public class RegisterValidationService(
             try
             {
                 var parcels = await scopedDb.Parcels
-                    .Where(o => o.RegisterId == registerId &&
+                    .Where(o => o.RegisterId == process.RegisterId &&
                                 o.CheckStatusId < (int)ParcelCheckStatusCode.Approved &&
                                 o.CheckStatusId != (int)ParcelCheckStatusCode.MarkedByPartner)
                     .Select(o => o.Id)
@@ -198,33 +161,19 @@ public class RegisterValidationService(
                 process.Total = parcels.Count;
                 tcs.TrySetResult();
 
-                var feacnContext = await scopedFeacnSvc.CreateContext(process.Cts.Token);
-
-                foreach (var id in parcels)
-                {
-                    if (process.Cts.IsCancellationRequested)
-                    {
-                        process.Finished = true;
-                        break;
-                    }
-                    var parcel = await scopedDb.Parcels.FindAsync([id], cancellationToken: process.Cts.Token);
-                    if (parcel != null)
-                    {
-                        await scopedValidationSvc.ValidateFeacnAsync(scopedDb, parcel, feacnContext, process.Cts.Token);
-                    }
-                    process.Processed++;
-                }
+                await validationAction(scopedDb, scopedValidationSvc, parcels, scope.ServiceProvider);
             }
             catch (Exception ex)
             {
                 tcs.TrySetResult();
                 process.Error = ex.Message;
-                _logger.LogError(ex, "Register FEACN validation failed");
+                _logger.LogError(ex, "{ErrorMessage}", errorMessage);
+
             }
             finally
             {
                 process.Finished = true;
-                _byRegister.TryRemove(registerId, out _);
+                _byRegister.TryRemove(process.RegisterId, out _);
                 _byHandle.TryRemove(process.HandleId, out _);
             }
         });
