@@ -769,7 +769,7 @@ public class RegistersController(
 
         try
         {
-            var handle = await _validationService.StartKwValidationAsync(id);
+            var handle = await _validationService.StartSwValidationAsync(id);
             return Ok(new GuidReference { Id = handle });
         }
         catch (InvalidOperationException)

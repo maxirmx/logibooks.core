@@ -57,11 +57,11 @@ public class RegistersControllerValidationTests : RegistersControllerTestsBase
         await _dbContext.SaveChangesAsync();
 
         var handle = Guid.NewGuid();
-        _mockRegValidationService.Setup(s => s.StartKwValidationAsync(5, It.IsAny<CancellationToken>())).ReturnsAsync(handle);
+        _mockRegValidationService.Setup(s => s.StartSwValidationAsync(5, It.IsAny<CancellationToken>())).ReturnsAsync(handle);
 
         var result = await _controller.ValidateRegisterSw(5);
 
-        _mockRegValidationService.Verify(s => s.StartKwValidationAsync(5, It.IsAny<CancellationToken>()), Times.Once);
+        _mockRegValidationService.Verify(s => s.StartSwValidationAsync(5, It.IsAny<CancellationToken>()), Times.Once);
         Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
         var ok = result.Result as OkObjectResult;
         Assert.That(((GuidReference)ok!.Value!).Id, Is.EqualTo(handle));
@@ -76,7 +76,7 @@ public class RegistersControllerValidationTests : RegistersControllerTestsBase
         Assert.That(result.Result, Is.TypeOf<ObjectResult>());
         var obj = result.Result as ObjectResult;
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
-        _mockRegValidationService.Verify(s => s.StartKwValidationAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+        _mockRegValidationService.Verify(s => s.StartSwValidationAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Test]
@@ -97,7 +97,7 @@ public class RegistersControllerValidationTests : RegistersControllerTestsBase
         _dbContext.Registers.Add(new Register { Id = 7, FileName = "r.xlsx", TheOtherCompanyId = 3 });
         await _dbContext.SaveChangesAsync();
 
-        _mockRegValidationService.Setup(s => s.StartKwValidationAsync(7, It.IsAny<CancellationToken>()))
+        _mockRegValidationService.Setup(s => s.StartSwValidationAsync(7, It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException());
 
         var result = await _controller.ValidateRegisterSw(7);

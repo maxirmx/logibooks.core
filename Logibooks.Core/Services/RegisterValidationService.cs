@@ -27,7 +27,7 @@ public class RegisterValidationService(
 
     private enum ValidationKind
     {
-        Kw,
+        Sw,
         Feacn
     }
 
@@ -51,13 +51,13 @@ public class RegisterValidationService(
     private static readonly ConcurrentDictionary<int, ValidationProcess> _byRegister = new();
     private static readonly ConcurrentDictionary<Guid, ValidationProcess> _byHandle = new();
 
-    public async Task<Guid> StartKwValidationAsync(int registerId, CancellationToken cancellationToken = default)
+    public async Task<Guid> StartSwValidationAsync(int registerId, CancellationToken cancellationToken = default)
     {
-        var process = new ValidationProcess(registerId, ValidationKind.Kw);
+        var process = new ValidationProcess(registerId, ValidationKind.Sw);
         if (!_byRegister.TryAdd(registerId, process))
         {
             var existing = _byRegister[registerId];
-            if (existing.Kind != ValidationKind.Kw)
+            if (existing.Kind != ValidationKind.Sw)
             {
                 throw new InvalidOperationException("Different validation already running");
             }

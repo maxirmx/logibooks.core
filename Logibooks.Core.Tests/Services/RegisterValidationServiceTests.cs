@@ -68,7 +68,7 @@ public class RegisterValidationServiceTests
         var scopeFactory = CreateMockScopeFactory(ctx, mock.Object, feacnSvc);
         var svc = new RegisterValidationService(ctx, scopeFactory, logger, new MorphologySearchService(), feacnSvc);
 
-        var handle = await svc.StartKwValidationAsync(1);
+        var handle = await svc.StartSwValidationAsync(1);
         await Task.Delay(100);
         var progress = svc.GetProgress(handle)!;
 
@@ -187,8 +187,8 @@ public class RegisterValidationServiceTests
         var scopeFactory = CreateMockScopeFactory(ctx, mock.Object, feacnSvc);
         var svc = new RegisterValidationService(ctx, scopeFactory, logger, new MorphologySearchService(), feacnSvc);
 
-        var h1 = await svc.StartKwValidationAsync(3);
-        var h2 = await svc.StartKwValidationAsync(3);
+        var h1 = await svc.StartSwValidationAsync(3);
+        var h2 = await svc.StartSwValidationAsync(3);
         bool f = svc.GetProgress(h1)?.Finished ?? false;  // consider fast finishing
         if (!f) Assert.That(h1, Is.EqualTo(h2));
     }
@@ -222,7 +222,7 @@ public class RegisterValidationServiceTests
 
         var handle = await svc.StartFeacnValidationAsync(30);
         await Task.Delay(10);
-        Assert.ThrowsAsync<InvalidOperationException>(async () => await svc.StartKwValidationAsync(30));
+        Assert.ThrowsAsync<InvalidOperationException>(async () => await svc.StartSwValidationAsync(30));
         svc.Cancel(handle);
     }
 
@@ -247,7 +247,7 @@ public class RegisterValidationServiceTests
         var feacnSvc = new Mock<IFeacnPrefixCheckService>().Object;
         var svc = new RegisterValidationService(ctx, mockScopeFactory.Object, logger, new MorphologySearchService(), feacnSvc);
 
-        var handle = await svc.StartKwValidationAsync(10);
+        var handle = await svc.StartSwValidationAsync(10);
 
         // Poll for progress until error is set or timeout
         ValidationProgress? progress = null;
@@ -303,7 +303,7 @@ public class RegisterValidationServiceTests
         var svc = new RegisterValidationService(ctx, mockScopeFactory.Object, logger, new MorphologySearchService(), feacnPrefixCheckService);
 
         // Act
-        var handle = await svc.StartKwValidationAsync(100);
+        var handle = await svc.StartSwValidationAsync(100);
 
         // Wait for background validation to finish (poll for up to 2 seconds)
         ValidationProgress? progress = null;
@@ -364,7 +364,7 @@ public class RegisterValidationServiceTests
         var scopeFactory = CreateMockScopeFactory(ctx, mock.Object, feacnSvc);
         var svc = new RegisterValidationService(ctx, scopeFactory, logger, new MorphologySearchService(), feacnSvc);
 
-        var handle = await svc.StartKwValidationAsync(200);
+        var handle = await svc.StartSwValidationAsync(200);
         await Task.Delay(100); // Give time for background task
         mock.Verify(m => m.ValidateFeacnAsync(
             It.IsAny<AppDbContext>(),
