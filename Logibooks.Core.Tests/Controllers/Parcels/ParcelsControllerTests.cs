@@ -799,12 +799,12 @@ public class ParcelsControllerTests
     }
 
     [Test]
-    public async Task ValidateKw_RunsService_ForLogist()
+    public async Task ValidateSw_RunsService_ForLogist()
     {
         SetCurrentUserId(1);
         var order = await AddParcelAsync<WbrParcel>(10, 10);
 
-        var result = await _controller.ValidateKw(10);
+        var result = await _controller.ValidateSw(10);
 
         _mockValidationService.Verify(s => s.ValidateKwAsync(
             order,
@@ -821,10 +821,10 @@ public class ParcelsControllerTests
     }
 
     [Test]
-    public async Task ValidateKw_ReturnsForbidden_ForNonLogist()
+    public async Task ValidateSw_ReturnsForbidden_ForNonLogist()
     {
         SetCurrentUserId(99);
-        var result = await _controller.ValidateKw(1);
+        var result = await _controller.ValidateSw(1);
 
         _mockValidationService.Verify(s => s.ValidateKwAsync(
             It.IsAny<BaseParcel>(),
@@ -843,10 +843,10 @@ public class ParcelsControllerTests
     }
 
     [Test]
-    public async Task ValidateKw_ReturnsNotFound_WhenMissing()
+    public async Task ValidateSw_ReturnsNotFound_WhenMissing()
     {
         SetCurrentUserId(1);
-        var result = await _controller.ValidateKw(99);
+        var result = await _controller.ValidateSw(99);
 
         Assert.That(result, Is.TypeOf<ObjectResult>());
         var obj = result as ObjectResult;
@@ -865,12 +865,12 @@ public class ParcelsControllerTests
     }
 
     [Test]
-    public async Task ValidateKw_ReturnsNotFound_ForMarkedByPartner()
+    public async Task ValidateSw_ReturnsNotFound_ForMarkedByPartner()
     {
         SetCurrentUserId(1);
         await AddParcelAsync<WbrParcel>(1, 1, checkStatusId: (int)ParcelCheckStatusCode.MarkedByPartner);
 
-        var result = await _controller.ValidateKw(1);
+        var result = await _controller.ValidateSw(1);
 
         Assert.That(result, Is.TypeOf<ObjectResult>());
         var obj = result as ObjectResult;

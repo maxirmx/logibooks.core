@@ -50,7 +50,7 @@ namespace Logibooks.Core.Tests.Controllers.Registers;
 public class RegistersControllerValidationTests : RegistersControllerTestsBase
 {
     [Test]
-    public async Task ValidateRegisterKw_RunsService_ForLogist()
+    public async Task ValidateSw_RunsService_ForLogist()
     {
         SetCurrentUserId(1);
         _dbContext.Registers.Add(new Register { Id = 5, FileName = "r.xlsx", TheOtherCompanyId = 3 });
@@ -59,7 +59,7 @@ public class RegistersControllerValidationTests : RegistersControllerTestsBase
         var handle = Guid.NewGuid();
         _mockRegValidationService.Setup(s => s.StartKwValidationAsync(5, It.IsAny<CancellationToken>())).ReturnsAsync(handle);
 
-        var result = await _controller.ValidateRegisterKw(5);
+        var result = await _controller.ValidateRegisterSw(5);
 
         _mockRegValidationService.Verify(s => s.StartKwValidationAsync(5, It.IsAny<CancellationToken>()), Times.Once);
         Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
@@ -68,10 +68,10 @@ public class RegistersControllerValidationTests : RegistersControllerTestsBase
     }
 
     [Test]
-    public async Task ValidateRegisterKw_ReturnsForbidden_ForNonLogist()
+    public async Task ValidateSw_ReturnsForbidden_ForNonLogist()
     {
         SetCurrentUserId(2);
-        var result = await _controller.ValidateRegisterKw(1);
+        var result = await _controller.ValidateRegisterSw(1);
 
         Assert.That(result.Result, Is.TypeOf<ObjectResult>());
         var obj = result.Result as ObjectResult;
@@ -80,10 +80,10 @@ public class RegistersControllerValidationTests : RegistersControllerTestsBase
     }
 
     [Test]
-    public async Task ValidateRegisterKw_ReturnsNotFound_WhenMissing()
+    public async Task ValidateSw_ReturnsNotFound_WhenMissing()
     {
         SetCurrentUserId(1);
-        var result = await _controller.ValidateRegisterKw(99);
+        var result = await _controller.ValidateRegisterSw(99);
 
         Assert.That(result.Result, Is.TypeOf<ObjectResult>());
         var obj = result.Result as ObjectResult;
@@ -91,7 +91,7 @@ public class RegistersControllerValidationTests : RegistersControllerTestsBase
     }
 
     [Test]
-    public async Task ValidateRegisterKw_ReturnsConflict_WhenAlreadyValidating()
+    public async Task ValidateSw_ReturnsConflict_WhenAlreadyValidating()
     {
         SetCurrentUserId(1);
         _dbContext.Registers.Add(new Register { Id = 7, FileName = "r.xlsx", TheOtherCompanyId = 3 });
@@ -100,7 +100,7 @@ public class RegistersControllerValidationTests : RegistersControllerTestsBase
         _mockRegValidationService.Setup(s => s.StartKwValidationAsync(7, It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException());
 
-        var result = await _controller.ValidateRegisterKw(7);
+        var result = await _controller.ValidateRegisterSw(7);
 
         Assert.That(result.Result, Is.TypeOf<ObjectResult>());
         var obj = result.Result as ObjectResult;

@@ -746,24 +746,24 @@ public class RegistersController(
         return NoContent();
     }
 
-    [HttpPost("{id}/validate-kw")]
+    [HttpPost("{id}/validate-sw")]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(GuidReference))]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status409Conflict, Type = typeof(ErrMessage))]
-    public async Task<ActionResult<GuidReference>> ValidateRegisterKw(int id)
+    public async Task<ActionResult<GuidReference>> ValidateRegisterSw(int id)
     {
-        _logger.LogDebug("ValidateRegisterKw for id={id}", id);
+        _logger.LogDebug("ValidateRegisterSw for id={id}", id);
 
         if (!await _userService.CheckLogist(_curUserId))
         {
-            _logger.LogDebug("ValidateRegisterKw returning '403 Forbidden'");
+            _logger.LogDebug("ValidateRegisterSw returning '403 Forbidden'");
             return _403();
         }
 
         if (!await _db.Registers.AnyAsync(r => r.Id == id))
         {
-            _logger.LogDebug("ValidateRegisterKw returning '404 Not Found'");
+            _logger.LogDebug("ValidateRegisterSw returning '404 Not Found'");
             return _404Register(id);
         }
 
@@ -774,7 +774,7 @@ public class RegistersController(
         }
         catch (InvalidOperationException)
         {
-            _logger.LogDebug("ValidateRegisterKw returning '409 Conflict'");
+            _logger.LogDebug("ValidateRegisterSw returning '409 Conflict'");
             return _409Validation();
         }
     }

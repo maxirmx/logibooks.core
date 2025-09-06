@@ -358,17 +358,17 @@ public class ParcelsController(
         return Ok(new LookupFeacnCodeResult { KeyWordIds = keyWordIds });
     }
 
-    [HttpPost("{id}/validate-kw")]
+    [HttpPost("{id}/validate-sw")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
-    public async Task<IActionResult> ValidateKw(int id)
+    public async Task<IActionResult> ValidateSw(int id)
     {
-        _logger.LogDebug("ValidateKw for id={id}", id);
+        _logger.LogDebug("ValidateSw for id={id}", id);
 
         if (!await _userService.CheckLogist(_curUserId))
         {
-            _logger.LogDebug("ValidateKw returning '403 Forbidden'");
+            _logger.LogDebug("ValidateSw returning '403 Forbidden'");
             return _403();
         }
 
@@ -376,7 +376,7 @@ public class ParcelsController(
             .FirstOrDefaultAsync(o => o.Id == id && o.CheckStatusId != (int)ParcelCheckStatusCode.MarkedByPartner);
         if (parcel == null)
         {
-            _logger.LogDebug("ValidateKw returning '404 Not Found'");
+            _logger.LogDebug("ValidateSw returning '404 Not Found'");
             return _404Parcel(id);
         }
 
