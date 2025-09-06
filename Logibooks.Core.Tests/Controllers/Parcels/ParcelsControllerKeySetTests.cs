@@ -1,18 +1,20 @@
-// Test to verify the new behavior for filtered parcels
+// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
+// All rights reserved.
+// This file is a part of Logibooks Core application
+
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 using Moq;
-using Logibooks.Core.Controllers;
 using Logibooks.Core.Data;
 using Logibooks.Core.Models;
 
 namespace Logibooks.Core.Tests.Controllers.Parcels;
 
 [TestFixture]
-public class ParcelsControllerNewBehaviorTests
+public class ParcelsControllerKeySetTests
 {
     private AppDbContext _dbContext = null!;
     private Mock<IHttpContextAccessor> _mockHttpContextAccessor = null!;

@@ -1,27 +1,6 @@
 // Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
 // All rights reserved.
 // This file is a part of Logibooks Core application
-//
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions
-// are met:
-// 1. Redistributions of source code must retain the above copyright
-// notice, this list of conditions and the following disclaimer.
-// 2. Redistributions in binary form must reproduce the above copyright
-// notice, this list of conditions and the following disclaimer in the
-// documentation and/or other materials provided with the distribution.
-//
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-// 'AS IS' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-// TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
-// PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR CONTRIBUTORS
-// BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-// POSSIBILITY OF SUCH DAMAGE.
 
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
@@ -32,20 +11,20 @@ namespace Logibooks.Core.Models;
 public class Register
 {
     // ...................................................................................................
-    // В этом классе реализовна большая волосатая имитация универсальности, которую хочет заказчик.
-    // На самом деле оно умеет работать в двух режимах
-    // Экспорт 
-    //   Тогда "Страна отправления": RU
-    //         "Страна назначения": определяется по полю TheOtherCountryCode
-    //         "Отправитель": Company [определена в момент загрузки реестра и не может быть изменена]
-    //         "Получатель": TheOtherCompany
-    // Реимпорт
-    //   Тогда "Страна отправления": определяется по полю TheOtherCountryCode
-    //         "Страна назначения": RU
-    //         "Отправитель": TheOtherCompany
-    //         "Получатель": Company [определена в момент загрузки реестра и не может быть изменена]
+    // Г‚ ГЅГІГ®Г¬ ГЄГ«Г Г±Г±ГҐ Г°ГҐГ Г«ГЁГ§Г®ГўГ­Г  ГЎГ®Г«ГјГёГ Гї ГўГ®Г«Г®Г±Г ГІГ Гї ГЁГ¬ГЁГІГ Г¶ГЁГї ГіГ­ГЁГўГҐГ°Г±Г Г«ГјГ­Г®Г±ГІГЁ, ГЄГ®ГІГ®Г°ГіГѕ ГµГ®Г·ГҐГІ Г§Г ГЄГ Г§Г·ГЁГЄ.
+    // ГЌГ  Г±Г Г¬Г®Г¬ Г¤ГҐГ«ГҐ Г®Г­Г® ГіГ¬ГҐГҐГІ Г°Г ГЎГ®ГІГ ГІГј Гў Г¤ГўГіГµ Г°ГҐГ¦ГЁГ¬Г Гµ
+    // ГќГЄГ±ГЇГ®Г°ГІ 
+    //   Г’Г®ГЈГ¤Г  "Г‘ГІГ°Г Г­Г  Г®ГІГЇГ°Г ГўГ«ГҐГ­ГЁГї": RU
+    //         "Г‘ГІГ°Г Г­Г  Г­Г Г§Г­Г Г·ГҐГ­ГЁГї": Г®ГЇГ°ГҐГ¤ГҐГ«ГїГҐГІГ±Гї ГЇГ® ГЇГ®Г«Гѕ TheOtherCountryCode
+    //         "ГЋГІГЇГ°Г ГўГЁГІГҐГ«Гј": Company [Г®ГЇГ°ГҐГ¤ГҐГ«ГҐГ­Г  Гў Г¬Г®Г¬ГҐГ­ГІ Г§Г ГЈГ°ГіГ§ГЄГЁ Г°ГҐГҐГ±ГІГ°Г  ГЁ Г­ГҐ Г¬Г®Г¦ГҐГІ ГЎГ»ГІГј ГЁГ§Г¬ГҐГ­ГҐГ­Г ]
+    //         "ГЏГ®Г«ГіГ·Г ГІГҐГ«Гј": TheOtherCompany
+    // ГђГҐГЁГ¬ГЇГ®Г°ГІ
+    //   Г’Г®ГЈГ¤Г  "Г‘ГІГ°Г Г­Г  Г®ГІГЇГ°Г ГўГ«ГҐГ­ГЁГї": Г®ГЇГ°ГҐГ¤ГҐГ«ГїГҐГІГ±Гї ГЇГ® ГЇГ®Г«Гѕ TheOtherCountryCode
+    //         "Г‘ГІГ°Г Г­Г  Г­Г Г§Г­Г Г·ГҐГ­ГЁГї": RU
+    //         "ГЋГІГЇГ°Г ГўГЁГІГҐГ«Гј": TheOtherCompany
+    //         "ГЏГ®Г«ГіГ·Г ГІГҐГ«Гј": Company [Г®ГЇГ°ГҐГ¤ГҐГ«ГҐГ­Г  Гў Г¬Г®Г¬ГҐГ­ГІ Г§Г ГЈГ°ГіГ§ГЄГЁ Г°ГҐГҐГ±ГІГ°Г  ГЁ Г­ГҐ Г¬Г®Г¦ГҐГІ ГЎГ»ГІГј ГЁГ§Г¬ГҐГ­ГҐГ­Г ]
     //
-    // Системе TheOtherCompany и TheOtherCountryCode не нужны для того. Совсем не нужны. 
+    // Г‘ГЁГ±ГІГҐГ¬ГҐ TheOtherCompany ГЁ TheOtherCountryCode Г­ГҐ Г­ГіГ¦Г­Г» Г¤Г«Гї ГІГ®ГЈГ®. Г‘Г®ГўГ±ГҐГ¬ Г­ГҐ Г­ГіГ¦Г­Г». 
     // ...................................................................................................
 
     [Column("id")]
@@ -86,14 +65,14 @@ public class Register
 
     [Column("transportation_type_id")]
     public int TransportationTypeId { get; set; } = 1;
-    // { Id = 1, Code = TransportationTypeCode.Avia, Name = "Авиа" }
+    // { Id = 1, Code = TransportationTypeCode.Avia, Name = "ГЂГўГЁГ " }
 
     [JsonIgnore]
     public TransportationType? TransportationType { get; set; }
 
     [Column("customs_procedure_id")]
     public int CustomsProcedureId { get; set; } = 1;
-    // { Id = 1, Code = 10, Name = "Экспорт" }
+    // { Id = 1, Code = 10, Name = "ГќГЄГ±ГЇГ®Г°ГІ" }
 
     [JsonIgnore]
     public CustomsProcedure? CustomsProcedure { get; set; }

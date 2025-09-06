@@ -1,3 +1,7 @@
+// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
+// All rights reserved.
+// This file is a part of Logibooks Core application
+
 using Logibooks.Core.Data;
 using Logibooks.Core.Services;
 using Microsoft.EntityFrameworkCore;
@@ -57,7 +61,7 @@ public class UploadOzonRegisterTests
         var register = ctx.Registers.FirstOrDefault(r => r.Id == reference.Id);
         Assert.That(reference.Id, Is.GreaterThan(0));
         Assert.That(ctx.Registers.Count(), Is.EqualTo(1));
-        Assert.That(ctx.OzonParcels.Count(), Is.EqualTo(3));
+        Assert.That(ctx.OzonParcels.Count(), Is.EqualTo(6));
         Assert.That(ctx.OzonParcels.OrderBy(o => o.Id).First().PostingNumber, Is.EqualTo("0180993146-0049-7"));
         Assert.That(register, Is.Not.Null);
         Assert.That(register!.TheOtherCountryCode, Is.EqualTo(860));
@@ -309,7 +313,7 @@ public class DownloadRegisterTests
         var ds = reader.AsDataSet();
         var table = ds.Tables[0];
 
-        Assert.That(table.Rows.Count, Is.EqualTo(4));
+        Assert.That(table.Rows.Count, Is.EqualTo(7));
 
         using var archive = new System.IO.Compression.ZipArchive(new MemoryStream(bytes));
         var entry = archive.GetEntry("xl/styles.xml");
@@ -402,10 +406,12 @@ public class DownloadRegisterTests
         var orders = _dbContext.OzonParcels.OrderBy(o => o.Id).ToList();
         
         // Set different HasIssues status codes
-        orders[0].CheckStatusId = (int)ParcelCheckStatusCode.HasIssues; // 101
-        orders[1].CheckStatusId = (int)ParcelCheckStatusCode.InvalidFeacnFormat; // 102  
-        orders[2].CheckStatusId = (int)ParcelCheckStatusCode.HasIssuesAtDescription; // 104
-        
+        orders[0].CheckStatusId = (int)ParcelCheckStatusCode.HasIssues; 
+        orders[1].CheckStatusId = (int)ParcelCheckStatusCode.InvalidFeacnFormat; 
+        orders[2].CheckStatusId = (int)ParcelCheckStatusCode.IssueFeacnCodeAndStopWord;
+        orders[3].CheckStatusId = (int)ParcelCheckStatusCode.IssueFeacnCode;
+        orders[4].CheckStatusId = (int)ParcelCheckStatusCode.IssueStopWord;
+
         await _dbContext.SaveChangesAsync();
 
         // Act: Download Excel
@@ -416,7 +422,7 @@ public class DownloadRegisterTests
         using var workbook = new XLWorkbook(ms);
         var worksheet = workbook.Worksheet(1);
         
-        for (int i = 2; i <= 4; i++) // Rows 2-4 (row 1 is header)
+        for (int i = 2; i <= 5; i++) // Rows 2-54 (row 1 is header)
         {
             var row = worksheet.Row(i);
             Assert.That(row.Style.Fill.BackgroundColor, Is.EqualTo(XLColor.Red), 

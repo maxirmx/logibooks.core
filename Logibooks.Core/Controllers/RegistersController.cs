@@ -1,27 +1,6 @@
 ﻿// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
 // All rights reserved.
 // This file is a part of Logibooks Core application
-//
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions
-// are met:
-// 1. Redistributions of source code must retain the above copyright
-// notice, this list of conditions and the following disclaimer.
-// 2. Redistributions in binary form must reproduce the above copyright
-// notice, this list of conditions and the following disclaimer in the
-// documentation and/or other materials provided with the distribution.
-//
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-// 'AS IS' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-// TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
-// PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR CONTRIBUTORS
-// BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-// POSSIBILITY OF SUCH DAMAGE.
 
 using Logibooks.Core.Authorization;
 using Logibooks.Core.Constants;
@@ -767,28 +746,70 @@ public class RegistersController(
         return NoContent();
     }
 
-    [HttpPost("{id}/validate")]
+    [HttpPost("{id}/validate-sw")]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(GuidReference))]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
-    public async Task<ActionResult<GuidReference>> ValidateRegister(int id)
+    [ProducesResponseType(StatusCodes.Status409Conflict, Type = typeof(ErrMessage))]
+    public async Task<ActionResult<GuidReference>> ValidateRegisterSw(int id)
     {
-        _logger.LogDebug("ValidateRegister for id={id}", id);
+        _logger.LogDebug("ValidateRegisterSw for id={id}", id);
 
         if (!await _userService.CheckLogist(_curUserId))
         {
-            _logger.LogDebug("ValidateRegister returning '403 Forbidden'");
+            _logger.LogDebug("ValidateRegisterSw returning '403 Forbidden'");
             return _403();
         }
 
         if (!await _db.Registers.AnyAsync(r => r.Id == id))
         {
-            _logger.LogDebug("ValidateRegister returning '404 Not Found'");
+            _logger.LogDebug("ValidateRegisterSw returning '404 Not Found'");
             return _404Register(id);
         }
 
-        var handle = await _validationService.StartValidationAsync(id);
-        return Ok(new GuidReference { Id = handle });
+        try
+        {
+            var handle = await _validationService.StartSwValidationAsync(id);
+            return Ok(new GuidReference { Id = handle });
+        }
+        catch (InvalidOperationException)
+        {
+            _logger.LogDebug("ValidateRegisterSw returning '409 Conflict'");
+            return _409Validation();
+        }
+    }
+
+    [HttpPost("{id}/validate-fc")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(GuidReference))]
+    [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
+    [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
+    [ProducesResponseType(StatusCodes.Status409Conflict, Type = typeof(ErrMessage))]
+    public async Task<ActionResult<GuidReference>> ValidateRegisterFeacn(int id)
+    {
+        _logger.LogDebug("ValidateRegisterFeacn for id={id}", id);
+
+        if (!await _userService.CheckLogist(_curUserId))
+        {
+            _logger.LogDebug("ValidateRegisterFeacn returning '403 Forbidden'");
+            return _403();
+        }
+
+        if (!await _db.Registers.AnyAsync(r => r.Id == id))
+        {
+            _logger.LogDebug("ValidateRegisterFeacn returning '404 Not Found'");
+            return _404Register(id);
+        }
+
+        try
+        {
+            var handle = await _validationService.StartFeacnValidationAsync(id);
+            return Ok(new GuidReference { Id = handle });
+        }
+        catch (InvalidOperationException)
+        {
+            _logger.LogDebug("ValidateRegisterFeacn returning '409 Conflict'");
+            return _409Validation();
+        }
     }
 
     [HttpGet("validate/{handleId}")]

@@ -1,5 +1,8 @@
+// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
+// All rights reserved.
+// This file is a part of Logibooks Core application
+
 using System.Linq;
-using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
@@ -11,9 +14,7 @@ using NUnit.Framework;
 using Logibooks.Core.Controllers;
 using Logibooks.Core.Data;
 using Logibooks.Core.Models;
-using Logibooks.Core.RestModels;
 using Logibooks.Core.Services;
-using System.Net.Http;
 using Logibooks.Core.Interfaces;
 
 namespace Logibooks.Core.Tests.Controllers;

@@ -1,27 +1,6 @@
 // Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
 // All rights reserved.
 // This file is a part of Logibooks Core application
-//
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions
-// are met:
-// 1. Redistributions of source code must retain the above copyright
-// notice, this list of conditions and the following disclaimer.
-// 2. Redistributions in binary form must reproduce the above copyright
-// notice, this list of conditions and the following disclaimer in the
-// documentation and/or other materials provided with the distribution.
-//
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-// 'AS IS' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-// TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
-// PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR CONTRIBUTORS
-// BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-// POSSIBILITY OF SUCH DAMAGE.
 
 using Logibooks.Core.Data;
 using Logibooks.Core.Interfaces;
@@ -67,20 +46,64 @@ public class RegisterValidationServiceTests
     }
 
     [Test]
-    public async Task StartValidationAsync_RunsValidationForAllOrders()
+    public async Task StartKwValidationAsync_RunsValidationForAllOrders()
     {
         using var ctx = CreateContext();
         ctx.Registers.Add(new Register { Id = 1, FileName = "r.xlsx" });
         ctx.Parcels.AddRange(
-            new WbrParcel { Id = 1, RegisterId = 1, StatusId = 1 },
-            new WbrParcel { Id = 2, RegisterId = 1, StatusId = 1 });
+            new WbrParcel { Id = 1, RegisterId = 1, StatusId = 1, TnVed = "1234567890" },
+            new WbrParcel { Id = 2, RegisterId = 1, StatusId = 1, TnVed = "1234567890" });
         await ctx.SaveChangesAsync();
 
         var mock = new Mock<IParcelValidationService>();
-        mock.Setup(m => m.ValidateAsync(
+        mock.Setup(m => m.ValidateSwAsync(
+            It.IsAny<AppDbContext>(),
             It.IsAny<BaseParcel>(),
-            It.IsAny<MorphologyContext>(), 
+            It.IsAny<MorphologyContext>(),
             It.IsAny<WordsLookupContext<StopWord>>(),
+            It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        var logger = new LoggerFactory().CreateLogger<RegisterValidationService>();
+        var feacnSvc = new Mock<IFeacnPrefixCheckService>().Object;
+        var scopeFactory = CreateMockScopeFactory(ctx, mock.Object, feacnSvc);
+        var svc = new RegisterValidationService(ctx, scopeFactory, logger, new MorphologySearchService(), feacnSvc);
+
+        var handle = await svc.StartSwValidationAsync(1);
+        await Task.Delay(100);
+        var progress = svc.GetProgress(handle)!;
+
+        Assert.That(progress.Total, Is.EqualTo(-1));
+        Assert.That(progress.Processed, Is.EqualTo(-1));
+        Assert.That(progress.Finished, Is.True);
+        mock.Verify(m => m.ValidateSwAsync(
+            It.IsAny<AppDbContext>(),
+            It.IsAny<BaseParcel>(),
+            It.IsAny<MorphologyContext>(),
+            It.IsAny<WordsLookupContext<StopWord>>(),
+            It.IsAny<CancellationToken>()),
+            Times.Exactly(2));
+        mock.Verify(m => m.ValidateFeacnAsync(
+            It.IsAny<AppDbContext>(),
+            It.IsAny<BaseParcel>(),
+            It.IsAny<FeacnPrefixCheckContext?>(),
+            It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Test]
+    public async Task StartFeacnValidationAsync_RunsValidationForAllOrders()
+    {
+        using var ctx = CreateContext();
+        ctx.Registers.Add(new Register { Id = 11, FileName = "r.xlsx" });
+        ctx.Parcels.AddRange(
+            new WbrParcel { Id = 11, RegisterId = 11, StatusId = 1, TnVed = "1234567890" },
+            new WbrParcel { Id = 12, RegisterId = 11, StatusId = 1, TnVed = "1234567890" });
+        await ctx.SaveChangesAsync();
+
+        var mock = new Mock<IParcelValidationService>();
+        mock.Setup(m => m.ValidateFeacnAsync(
+            It.IsAny<AppDbContext>(),
+            It.IsAny<BaseParcel>(),
             It.IsAny<FeacnPrefixCheckContext?>(),
             It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
@@ -89,20 +112,26 @@ public class RegisterValidationServiceTests
         var scopeFactory = CreateMockScopeFactory(ctx, mock.Object, feacnSvc);
         var svc = new RegisterValidationService(ctx, scopeFactory, logger, new MorphologySearchService(), feacnSvc);
 
-        var handle = await svc.StartValidationAsync(1);
-        await Task.Delay(100); // Give more time for background task
+        var handle = await svc.StartFeacnValidationAsync(11);
+        await Task.Delay(100);
         var progress = svc.GetProgress(handle)!;
 
         Assert.That(progress.Total, Is.EqualTo(-1));
         Assert.That(progress.Processed, Is.EqualTo(-1));
         Assert.That(progress.Finished, Is.True);
-        mock.Verify(m => m.ValidateAsync(
+        mock.Verify(m => m.ValidateFeacnAsync(
+            It.IsAny<AppDbContext>(),
             It.IsAny<BaseParcel>(),
-            It.IsAny<MorphologyContext>(), 
-            It.IsAny<WordsLookupContext<StopWord>>(),
             It.IsAny<FeacnPrefixCheckContext?>(),
             It.IsAny<CancellationToken>()),
             Times.Exactly(2));
+        mock.Verify(m => m.ValidateSwAsync(
+            It.IsAny<AppDbContext>(),
+            It.IsAny<BaseParcel>(),
+            It.IsAny<MorphologyContext>(),
+            It.IsAny<WordsLookupContext<StopWord>>(),
+            It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     [Test]
@@ -111,25 +140,31 @@ public class RegisterValidationServiceTests
         using var ctx = CreateContext();
         ctx.Registers.Add(new Register { Id = 2, FileName = "r.xlsx" });
         ctx.Parcels.AddRange(
-            new WbrParcel { Id = 3, RegisterId = 2, StatusId = 1 },
-            new WbrParcel { Id = 4, RegisterId = 2, StatusId = 1 });
+            new WbrParcel { Id = 3, RegisterId = 2, StatusId = 1, TnVed = "1234567890" },
+            new WbrParcel { Id = 4, RegisterId = 2, StatusId = 1, TnVed = "1234567890" });
         await ctx.SaveChangesAsync();
 
         var tcs = new TaskCompletionSource();
         var mock = new Mock<IParcelValidationService>();
-        mock.Setup(m => m.ValidateAsync(
+        mock.Setup(m => m.ValidateFeacnAsync(
+            It.IsAny<AppDbContext>(),
             It.IsAny<BaseParcel>(),
-            It.IsAny<MorphologyContext>(),
-            It.IsAny<WordsLookupContext<StopWord>>(),
             It.IsAny<FeacnPrefixCheckContext?>(),
             It.IsAny<CancellationToken>()))
             .Returns(async () => { await Task.Delay(20); tcs.TrySetResult(); });
+        mock.Setup(m => m.ValidateSwAsync(
+            It.IsAny<AppDbContext>(),
+            It.IsAny<BaseParcel>(),
+            It.IsAny<MorphologyContext>(),
+            It.IsAny<WordsLookupContext<StopWord>>(),
+            It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
         var logger = new LoggerFactory().CreateLogger<RegisterValidationService>();
         var feacnSvc = new Mock<IFeacnPrefixCheckService>().Object;
         var scopeFactory = CreateMockScopeFactory(ctx, mock.Object, feacnSvc);
         var svc = new RegisterValidationService(ctx, scopeFactory, logger, new MorphologySearchService(), feacnSvc);
 
-        var handle = await svc.StartValidationAsync(2);
+        var handle = await svc.StartFeacnValidationAsync(2);
         svc.Cancel(handle);
         await Task.Delay(100); // Give more time for cancellation
         var progress = svc.GetProgress(handle)!;
@@ -140,7 +175,7 @@ public class RegisterValidationServiceTests
     }
 
     [Test]
-    public async Task StartValidationAsync_ReturnsSameHandle_WhenAlreadyRunning()
+    public async Task StartKwValidationAsync_ReturnsSameHandle_WhenAlreadyRunning()
     {
         using var ctx = CreateContext();
         ctx.Registers.Add(new Register { Id = 3, FileName = "r.xlsx" });
@@ -152,14 +187,47 @@ public class RegisterValidationServiceTests
         var scopeFactory = CreateMockScopeFactory(ctx, mock.Object, feacnSvc);
         var svc = new RegisterValidationService(ctx, scopeFactory, logger, new MorphologySearchService(), feacnSvc);
 
-        var h1 = await svc.StartValidationAsync(3);
-        var h2 = await svc.StartValidationAsync(3);
+        var h1 = await svc.StartSwValidationAsync(3);
+        var h2 = await svc.StartSwValidationAsync(3);
         bool f = svc.GetProgress(h1)?.Finished ?? false;  // consider fast finishing
         if (!f) Assert.That(h1, Is.EqualTo(h2));
     }
 
     [Test]
-    public async Task StartValidationAsync_SetsError_WhenScopedServicesNotResolved()
+    public async Task StartKwValidationAsync_Throws_WhenFeacnRunning()
+    {
+        using var ctx = CreateContext();
+        ctx.Registers.Add(new Register { Id = 30, FileName = "r.xlsx" });
+        ctx.Parcels.Add(new WbrParcel { Id = 31, RegisterId = 30, StatusId = 1, TnVed = "123" });
+        await ctx.SaveChangesAsync();
+
+        var mock = new Mock<IParcelValidationService>();
+        mock.Setup(m => m.ValidateFeacnAsync(
+            It.IsAny<AppDbContext>(),
+            It.IsAny<BaseParcel>(),
+            It.IsAny<FeacnPrefixCheckContext?>(),
+            It.IsAny<CancellationToken>()))
+            .Returns(async () => await Task.Delay(100));
+        mock.Setup(m => m.ValidateSwAsync(
+            It.IsAny<AppDbContext>(),
+            It.IsAny<BaseParcel>(),
+            It.IsAny<MorphologyContext>(),
+            It.IsAny<WordsLookupContext<StopWord>>(),
+            It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        var logger = new LoggerFactory().CreateLogger<RegisterValidationService>();
+        var feacnSvc = new Mock<IFeacnPrefixCheckService>().Object;
+        var scopeFactory = CreateMockScopeFactory(ctx, mock.Object, feacnSvc);
+        var svc = new RegisterValidationService(ctx, scopeFactory, logger, new MorphologySearchService(), feacnSvc);
+
+        var handle = await svc.StartFeacnValidationAsync(30);
+        await Task.Delay(10);
+        Assert.ThrowsAsync<InvalidOperationException>(async () => await svc.StartSwValidationAsync(30));
+        svc.Cancel(handle);
+    }
+
+    [Test]
+    public async Task StartKwValidationAsync_SetsError_WhenScopedServicesNotResolved()
     {
         using var ctx = CreateContext();
         ctx.Registers.Add(new Register { Id = 10, FileName = "r.xlsx" });
@@ -179,7 +247,7 @@ public class RegisterValidationServiceTests
         var feacnSvc = new Mock<IFeacnPrefixCheckService>().Object;
         var svc = new RegisterValidationService(ctx, mockScopeFactory.Object, logger, new MorphologySearchService(), feacnSvc);
 
-        var handle = await svc.StartValidationAsync(10);
+        var handle = await svc.StartSwValidationAsync(10);
 
         // Poll for progress until error is set or timeout
         ValidationProgress? progress = null;
@@ -199,7 +267,7 @@ public class RegisterValidationServiceTests
     }
 
     [Test]
-    public async Task StartValidationAsync_ValidatesOrdersWithRealOrderValidationService()
+    public async Task StartKwValidationAsync_ValidatesOrdersWithRealOrderValidationService()
     {
         using var ctx = CreateContext();
         // Add a register and two orders with product names containing stop words
@@ -235,7 +303,7 @@ public class RegisterValidationServiceTests
         var svc = new RegisterValidationService(ctx, mockScopeFactory.Object, logger, new MorphologySearchService(), feacnPrefixCheckService);
 
         // Act
-        var handle = await svc.StartValidationAsync(100);
+        var handle = await svc.StartSwValidationAsync(100);
 
         // Wait for background validation to finish (poll for up to 2 seconds)
         ValidationProgress? progress = null;
@@ -251,21 +319,21 @@ public class RegisterValidationServiceTests
 
 
         // Reload orders and check stop word links
-        var order1 = await ctx.Parcels.Include(o => o.BaseParcelStopWords).FirstAsync(o => o.Id == 101);
-        var order2 = await ctx.Parcels.Include(o => o.BaseParcelStopWords).FirstAsync(o => o.Id == 102);
+        var parcel1 = await ctx.Parcels.Include(o => o.BaseParcelStopWords).FirstAsync(o => o.Id == 101);
+        var parcel2 = await ctx.Parcels.Include(o => o.BaseParcelStopWords).FirstAsync(o => o.Id == 102);
 
         // Order 1 should have links to both "spam" and "malware"
-        var stopWordIds1 = order1.BaseParcelStopWords.Select(l => l.StopWordId).ToList();
+        var stopWordIds1 = parcel1.BaseParcelStopWords.Select(l => l.StopWordId).ToList();
         Assert.That(stopWordIds1, Does.Contain(201));
         Assert.That(stopWordIds1, Does.Contain(202));
         Assert.That(stopWordIds1.Count, Is.EqualTo(2));
 
         // Order 2 should have no stop word links
-        Assert.That(order2.BaseParcelStopWords, Is.Empty);
+        Assert.That(parcel2.BaseParcelStopWords, Is.Empty);
     }
 
     [Test]
-    public async Task StartValidationAsync_SkipsOrdersWithMarkedByPartnerOrGreaterCheckStatusId()
+    public async Task StartKwValidationAsync_SkipsOrdersWithMarkedByPartnerOrGreaterCheckStatusId()
     {
         using var ctx = CreateContext();
         ctx.Registers.Add(new Register { Id = 200, FileName = "r.xlsx" });
@@ -278,11 +346,17 @@ public class RegisterValidationServiceTests
         await ctx.SaveChangesAsync();
 
         var mock = new Mock<IParcelValidationService>();
-        mock.Setup(m => m.ValidateAsync(
+        mock.Setup(m => m.ValidateFeacnAsync(
+            It.IsAny<AppDbContext>(),
+            It.IsAny<BaseParcel>(),
+            It.IsAny<FeacnPrefixCheckContext?>(),
+            It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        mock.Setup(m => m.ValidateSwAsync(
+            It.IsAny<AppDbContext>(),
             It.IsAny<BaseParcel>(),
             It.IsAny<MorphologyContext>(),
             It.IsAny<WordsLookupContext<StopWord>>(),
-            It.IsAny<FeacnPrefixCheckContext?>(),
             It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
         var logger = new LoggerFactory().CreateLogger<RegisterValidationService>();
@@ -290,34 +364,58 @@ public class RegisterValidationServiceTests
         var scopeFactory = CreateMockScopeFactory(ctx, mock.Object, feacnSvc);
         var svc = new RegisterValidationService(ctx, scopeFactory, logger, new MorphologySearchService(), feacnSvc);
 
-        var handle = await svc.StartValidationAsync(200);
+        var handle = await svc.StartSwValidationAsync(200);
         await Task.Delay(100); // Give time for background task
-        mock.Verify(m => m.ValidateAsync(
+        mock.Verify(m => m.ValidateFeacnAsync(
+            It.IsAny<AppDbContext>(),
+            It.Is<BaseParcel>(o => o.Id == 201),
+            It.IsAny<FeacnPrefixCheckContext?>(),
+            It.IsAny<CancellationToken>()),
+            Times.Never);
+        mock.Verify(m => m.ValidateSwAsync(
+            It.IsAny<AppDbContext>(),
             It.Is<BaseParcel>(o => o.Id == 201),
             It.IsAny<MorphologyContext>(),
             It.IsAny<WordsLookupContext<StopWord>>(),
-            It.IsAny<FeacnPrefixCheckContext?>(),
             It.IsAny<CancellationToken>()),
             Times.Once);
-        mock.Verify(m => m.ValidateAsync(
+        mock.Verify(m => m.ValidateFeacnAsync(
+            It.IsAny<AppDbContext>(),
+            It.Is<BaseParcel>(o => o.Id == 202),
+            It.IsAny<FeacnPrefixCheckContext?>(),
+            It.IsAny<CancellationToken>()),
+            Times.Never);
+        mock.Verify(m => m.ValidateSwAsync(
+            It.IsAny<AppDbContext>(),
             It.Is<BaseParcel>(o => o.Id == 202),
             It.IsAny<MorphologyContext>(),
             It.IsAny<WordsLookupContext<StopWord>>(),
+            It.IsAny<CancellationToken>()),
+            Times.Never);
+        mock.Verify(m => m.ValidateFeacnAsync(
+            It.IsAny<AppDbContext>(),
+            It.Is<BaseParcel>(o => o.Id == 203),
             It.IsAny<FeacnPrefixCheckContext?>(),
             It.IsAny<CancellationToken>()),
             Times.Never);
-        mock.Verify(m => m.ValidateAsync(
+        mock.Verify(m => m.ValidateSwAsync(
+            It.IsAny<AppDbContext>(),
             It.Is<BaseParcel>(o => o.Id == 203),
             It.IsAny<MorphologyContext>(),
             It.IsAny<WordsLookupContext<StopWord>>(),
+            It.IsAny<CancellationToken>()),
+            Times.Never);
+        mock.Verify(m => m.ValidateFeacnAsync(
+            It.IsAny<AppDbContext>(),
+            It.Is<BaseParcel>(o => o.Id == 204),
             It.IsAny<FeacnPrefixCheckContext?>(),
             It.IsAny<CancellationToken>()),
             Times.Never);
-        mock.Verify(m => m.ValidateAsync(
+        mock.Verify(m => m.ValidateSwAsync(
+            It.IsAny<AppDbContext>(),
             It.Is<BaseParcel>(o => o.Id == 204),
             It.IsAny<MorphologyContext>(),
             It.IsAny<WordsLookupContext<StopWord>>(),
-            It.IsAny<FeacnPrefixCheckContext?>(),
             It.IsAny<CancellationToken>()),
             Times.Never);
     }
