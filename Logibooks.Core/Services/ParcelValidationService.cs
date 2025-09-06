@@ -76,6 +76,9 @@ public class ParcelValidationService(
             {((int)ParcelCheckStatusCode.IssueInvalidFeacnFormatAndStopWord, ValidationEvent.StopWordNotFound), (int)ParcelCheckStatusCode.NoIssuesStopWordsAndInvalidFeacnFormat},
             {((int)ParcelCheckStatusCode.IssueNonexistingFeacn, ValidationEvent.StopWordNotFound), (int)ParcelCheckStatusCode.NoIssuesStopWordsAndNonexistingFeacn},
             {((int)ParcelCheckStatusCode.IssueNonexistingFeacnAndStopWord, ValidationEvent.StopWordNotFound), (int)ParcelCheckStatusCode.NoIssuesStopWordsAndNonexistingFeacn},
+            {((int)ParcelCheckStatusCode.NoIssuesStopWordsAndFeacnCode, ValidationEvent.StopWordNotFound), (int)ParcelCheckStatusCode.NoIssuesStopWordsAndFeacnCode},
+            {((int)ParcelCheckStatusCode.NoIssuesStopWordsAndInvalidFeacnFormat, ValidationEvent.StopWordNotFound), (int)ParcelCheckStatusCode.NoIssuesStopWordsAndInvalidFeacnFormat},
+            {((int)ParcelCheckStatusCode.NoIssuesStopWordsAndNonexistingFeacn, ValidationEvent.StopWordNotFound), (int)ParcelCheckStatusCode.NoIssuesStopWordsAndNonexistingFeacn},
 
             // Invalid FEACN format transitions (Запрет)
             {((int)ParcelCheckStatusCode.NoIssues, ValidationEvent.InvalidFeacnFormat), (int)ParcelCheckStatusCode.NoIssuesStopWordsAndInvalidFeacnFormat},
