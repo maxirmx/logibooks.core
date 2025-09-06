@@ -44,6 +44,7 @@ public class ParcelValidationService(
     /// - Все остальные статусы могут переходить в зависимости от результата валидации
     /// - При обнаружении проблем статус переходит к более специфичному варианту
     /// - При решении проблем статус возвращается к менее проблемному состоянию
+    /// - КРИТИЧНО: Переходы по измерениям независимы - удаление стоп-слов не должно очищать проблемы и наоборот
     /// 
     /// </summary>
     /// <param name="currentCheckStatusId">Текущий статус проверки посылки</param>
@@ -72,10 +73,13 @@ public class ParcelValidationService(
             {((int)ParcelCheckStatusCode.NoIssuesFeacnAndStopWord, ValidationEvent.StopWordNotFound), (int)ParcelCheckStatusCode.NoIssues},
             {((int)ParcelCheckStatusCode.IssueFeacnCode, ValidationEvent.StopWordNotFound), (int)ParcelCheckStatusCode.NoIssuesStopWordsAndFeacnCode},
             {((int)ParcelCheckStatusCode.IssueFeacnCodeAndStopWord, ValidationEvent.StopWordNotFound), (int)ParcelCheckStatusCode.NoIssuesStopWordsAndFeacnCode},
+            {((int)ParcelCheckStatusCode.NoIssuesStopWordsAndFeacnCode, ValidationEvent.StopWordNotFound), (int)ParcelCheckStatusCode.NoIssuesStopWordsAndFeacnCode}, // Preserve FEACN issue
             {((int)ParcelCheckStatusCode.IssueInvalidFeacnFormat, ValidationEvent.StopWordNotFound), (int)ParcelCheckStatusCode.NoIssuesStopWordsAndInvalidFeacnFormat},
             {((int)ParcelCheckStatusCode.IssueInvalidFeacnFormatAndStopWord, ValidationEvent.StopWordNotFound), (int)ParcelCheckStatusCode.NoIssuesStopWordsAndInvalidFeacnFormat},
+            {((int)ParcelCheckStatusCode.NoIssuesStopWordsAndInvalidFeacnFormat, ValidationEvent.StopWordNotFound), (int)ParcelCheckStatusCode.NoIssuesStopWordsAndInvalidFeacnFormat}, // Preserve FEACN issue
             {((int)ParcelCheckStatusCode.IssueNonexistingFeacn, ValidationEvent.StopWordNotFound), (int)ParcelCheckStatusCode.NoIssuesStopWordsAndNonexistingFeacn},
             {((int)ParcelCheckStatusCode.IssueNonexistingFeacnAndStopWord, ValidationEvent.StopWordNotFound), (int)ParcelCheckStatusCode.NoIssuesStopWordsAndNonexistingFeacn},
+            {((int)ParcelCheckStatusCode.NoIssuesStopWordsAndNonexistingFeacn, ValidationEvent.StopWordNotFound), (int)ParcelCheckStatusCode.NoIssuesStopWordsAndNonexistingFeacn}, // Preserve FEACN issue
 
             // Invalid FEACN format transitions (Запрет)
             {((int)ParcelCheckStatusCode.NoIssues, ValidationEvent.InvalidFeacnFormat), (int)ParcelCheckStatusCode.NoIssuesStopWordsAndInvalidFeacnFormat},
