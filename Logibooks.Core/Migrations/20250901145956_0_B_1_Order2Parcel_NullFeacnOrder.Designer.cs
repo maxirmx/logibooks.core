@@ -3,6 +3,7 @@ using System;
 using Logibooks.Core.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Logibooks.Core.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250901145956_0_B_1_Order2Parcel_NullFeacnOrder")]
+    partial class _0_B_1_Order2Parcel_NullFeacnOrder
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -647,61 +650,6 @@ namespace Logibooks.Core.Migrations
                         },
                         new
                         {
-                            Id = 129,
-                            Title = "Стоп ТН ВЭД"
-                        },
-                        new
-                        {
-                            Id = 137,
-                            Title = "Стоп ТН ВЭД"
-                        },
-                        new
-                        {
-                            Id = 130,
-                            Title = "Стоп ТН ВЭД/Слово"
-                        },
-                        new
-                        {
-                            Id = 131,
-                            Title = "Нет ТН ВЭД"
-                        },
-                        new
-                        {
-                            Id = 138,
-                            Title = "Нет ТН ВЭД"
-                        },
-                        new
-                        {
-                            Id = 132,
-                            Title = "Нет ТН ВЭД, Cтоп слово"
-                        },
-                        new
-                        {
-                            Id = 133,
-                            Title = "Формат ТН ВЭД"
-                        },
-                        new
-                        {
-                            Id = 139,
-                            Title = "Формат ТН ВЭД"
-                        },
-                        new
-                        {
-                            Id = 134,
-                            Title = "Формат ТН ВЭД, Стоп слово"
-                        },
-                        new
-                        {
-                            Id = 135,
-                            Title = "Стоп слово"
-                        },
-                        new
-                        {
-                            Id = 136,
-                            Title = "Стоп слово"
-                        },
-                        new
-                        {
                             Id = 200,
                             Title = "Запрещено партнёром"
                         },
@@ -709,16 +657,6 @@ namespace Logibooks.Core.Migrations
                         {
                             Id = 201,
                             Title = "Ок"
-                        },
-                        new
-                        {
-                            Id = 202,
-                            Title = "Ок (стоп-слова)"
-                        },
-                        new
-                        {
-                            Id = 203,
-                            Title = "Ок (ТН ВЭД)"
                         },
                         new
                         {

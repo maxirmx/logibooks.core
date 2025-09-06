@@ -3,6 +3,7 @@ using System;
 using Logibooks.Core.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Logibooks.Core.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250731063058_0_8_2_Change_Words")]
+    partial class _0_8_2_Change_Words
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -22,7 +25,7 @@ namespace Logibooks.Core.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("Logibooks.Core.Models.BaseParcel", b =>
+            modelBuilder.Entity("Logibooks.Core.Models.BaseOrder", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -38,10 +41,6 @@ namespace Logibooks.Core.Migrations
                     b.Property<short>("CountryCode")
                         .HasColumnType("smallint")
                         .HasColumnName("country_code");
-
-                    b.Property<long>("PartnerColor")
-                        .HasColumnType("bigint")
-                        .HasColumnName("partner_color");
 
                     b.Property<string>("ProductName")
                         .HasColumnType("text")
@@ -67,68 +66,47 @@ namespace Logibooks.Core.Migrations
 
                     b.HasIndex("StatusId");
 
-                    b.HasIndex(new[] { "RegisterId", "CheckStatusId", "Id" }, "IX_base_parcels_registerid_checkstatusid_id");
+                    b.HasIndex(new[] { "RegisterId", "CheckStatusId", "Id" }, "IX_base_orders_registerid_checkstatusid_id");
 
-                    b.HasIndex(new[] { "TnVed" }, "IX_base_parcels_tn_ved");
+                    b.HasIndex(new[] { "TnVed" }, "IX_base_orders_tn_ved");
 
-                    b.ToTable("base_parcels", (string)null);
+                    b.ToTable("base_orders", (string)null);
 
                     b.UseTptMappingStrategy();
                 });
 
-            modelBuilder.Entity("Logibooks.Core.Models.BaseParcelFeacnPrefix", b =>
+            modelBuilder.Entity("Logibooks.Core.Models.BaseOrderFeacnPrefix", b =>
                 {
-                    b.Property<int>("BaseParcelId")
+                    b.Property<int>("BaseOrderId")
                         .HasColumnType("integer")
-                        .HasColumnName("base_parcel_id");
+                        .HasColumnName("base_order_id");
 
                     b.Property<int>("FeacnPrefixId")
                         .HasColumnType("integer")
                         .HasColumnName("feacn_prefix_id");
 
-                    b.HasKey("BaseParcelId", "FeacnPrefixId");
+                    b.HasKey("BaseOrderId", "FeacnPrefixId");
 
                     b.HasIndex("FeacnPrefixId");
 
-                    b.ToTable("base_parcel_feacn_prefixes");
+                    b.ToTable("base_order_feacn_prefixes");
                 });
 
-            modelBuilder.Entity("Logibooks.Core.Models.BaseParcelKeyWord", b =>
+            modelBuilder.Entity("Logibooks.Core.Models.BaseOrderStopWord", b =>
                 {
-                    b.Property<int>("BaseParcelId")
+                    b.Property<int>("BaseOrderId")
                         .HasColumnType("integer")
-                        .HasColumnName("base_parcel_id");
-
-                    b.Property<int>("KeyWordId")
-                        .HasColumnType("integer")
-                        .HasColumnName("key_word_id");
-
-                    b.HasKey("BaseParcelId", "KeyWordId");
-
-                    b.HasIndex(new[] { "BaseParcelId" }, "IX_base_parcel_key_words_base_parcel_id");
-
-                    b.HasIndex(new[] { "BaseParcelId", "KeyWordId" }, "IX_base_parcel_key_words_base_parcel_id_key_word_id");
-
-                    b.HasIndex(new[] { "KeyWordId" }, "IX_base_parcel_key_words_key_word_id");
-
-                    b.ToTable("base_parcel_key_words");
-                });
-
-            modelBuilder.Entity("Logibooks.Core.Models.BaseParcelStopWord", b =>
-                {
-                    b.Property<int>("BaseParcelId")
-                        .HasColumnType("integer")
-                        .HasColumnName("base_parcel_id");
+                        .HasColumnName("base_order_id");
 
                     b.Property<int>("StopWordId")
                         .HasColumnType("integer")
                         .HasColumnName("stop_word_id");
 
-                    b.HasKey("BaseParcelId", "StopWordId");
+                    b.HasKey("BaseOrderId", "StopWordId");
 
                     b.HasIndex("StopWordId");
 
-                    b.ToTable("base_parcel_stop_words");
+                    b.ToTable("base_order_stop_words");
                 });
 
             modelBuilder.Entity("Logibooks.Core.Models.Company", b =>
@@ -164,11 +142,6 @@ namespace Logibooks.Core.Migrations
                         .HasColumnType("text")
                         .HasColumnName("name");
 
-                    b.Property<string>("Ogrn")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("ogrn");
-
                     b.Property<string>("PostalCode")
                         .IsRequired()
                         .HasColumnType("text")
@@ -202,7 +175,6 @@ namespace Logibooks.Core.Migrations
                             Inn = "7704217370",
                             Kpp = "997750001",
                             Name = "ООО \"Интернет Решения\"",
-                            Ogrn = "",
                             PostalCode = "123112",
                             ShortName = "",
                             Street = "Пресненская набережная д.10, пом.1, этаж 41, ком.6"
@@ -215,7 +187,6 @@ namespace Logibooks.Core.Migrations
                             Inn = "9714053621",
                             Kpp = "507401001",
                             Name = "",
-                            Ogrn = "",
                             PostalCode = "",
                             ShortName = "ООО \"РВБ\"",
                             Street = "Индустриальный Парк Коледино, д.6, стр.1"
@@ -332,96 +303,6 @@ namespace Logibooks.Core.Migrations
                         });
                 });
 
-            modelBuilder.Entity("Logibooks.Core.Models.FeacnCode", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Code")
-                        .IsRequired()
-                        .HasMaxLength(10)
-                        .HasColumnType("character varying(10)")
-                        .HasColumnName("code");
-
-                    b.Property<string>("CodeEx")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("code_ex");
-
-                    b.Property<DateOnly?>("FromDate")
-                        .HasColumnType("date")
-                        .HasColumnName("from_date");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("name");
-
-                    b.Property<string>("NormalizedName")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("normalized");
-
-                    b.Property<string>("OldName")
-                        .HasColumnType("text")
-                        .HasColumnName("old_name");
-
-                    b.Property<DateOnly?>("OldNameToDate")
-                        .HasColumnType("date")
-                        .HasColumnName("old_name_to_date");
-
-                    b.Property<int?>("ParentId")
-                        .HasColumnType("integer")
-                        .HasColumnName("parent_id");
-
-                    b.Property<DateOnly?>("ToDate")
-                        .HasColumnType("date")
-                        .HasColumnName("to_date");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ParentId");
-
-                    b.HasIndex(new[] { "Code" }, "IX_feacn_codes_code");
-
-                    b.ToTable("feacn_codes");
-                });
-
-            modelBuilder.Entity("Logibooks.Core.Models.FeacnInsertItem", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Code")
-                        .IsRequired()
-                        .HasMaxLength(10)
-                        .HasColumnType("character varying(10)")
-                        .HasColumnName("code");
-
-                    b.Property<string>("InsertAfter")
-                        .HasColumnType("text")
-                        .HasColumnName("insert_after");
-
-                    b.Property<string>("InsertBefore")
-                        .HasColumnType("text")
-                        .HasColumnName("insert_before");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex(new[] { "Code" }, "IX_insert_items_code")
-                        .IsUnique();
-
-                    b.ToTable("feacn_insert_items");
-                });
-
             modelBuilder.Entity("Logibooks.Core.Models.FeacnOrder", b =>
                 {
                     b.Property<int>("Id")
@@ -505,8 +386,7 @@ namespace Logibooks.Core.Migrations
 
                     b.Property<string>("Code")
                         .IsRequired()
-                        .HasMaxLength(10)
-                        .HasColumnType("character varying(10)")
+                        .HasColumnType("text")
                         .HasColumnName("code");
 
                     b.Property<string>("Comment")
@@ -517,7 +397,7 @@ namespace Logibooks.Core.Migrations
                         .HasColumnType("text")
                         .HasColumnName("description");
 
-                    b.Property<int?>("FeacnOrderId")
+                    b.Property<int>("FeacnOrderId")
                         .HasColumnType("integer")
                         .HasColumnName("feacn_order_id");
 
@@ -543,8 +423,7 @@ namespace Logibooks.Core.Migrations
 
                     b.Property<string>("Code")
                         .IsRequired()
-                        .HasMaxLength(10)
-                        .HasColumnType("character varying(10)")
+                        .HasColumnType("text")
                         .HasColumnName("code");
 
                     b.Property<int>("FeacnPrefixId")
@@ -558,55 +437,7 @@ namespace Logibooks.Core.Migrations
                     b.ToTable("feacn_prefix_exceptions");
                 });
 
-            modelBuilder.Entity("Logibooks.Core.Models.KeyWord", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("MatchTypeId")
-                        .HasColumnType("integer")
-                        .HasColumnName("match_type_id");
-
-                    b.Property<string>("Word")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("word");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("MatchTypeId");
-
-                    b.HasIndex(new[] { "Word" }, "IX_key_words_word")
-                        .IsUnique();
-
-                    b.ToTable("key_words");
-                });
-
-            modelBuilder.Entity("Logibooks.Core.Models.KeyWordFeacnCode", b =>
-                {
-                    b.Property<int>("KeyWordId")
-                        .HasColumnType("integer")
-                        .HasColumnName("key_word_id");
-
-                    b.Property<string>("FeacnCode")
-                        .HasMaxLength(10)
-                        .HasColumnType("character varying(10)")
-                        .HasColumnName("feacn_code");
-
-                    b.HasKey("KeyWordId", "FeacnCode");
-
-                    b.HasIndex(new[] { "FeacnCode" }, "IX_key_word_feacn_codes_feacn_code");
-
-                    b.HasIndex(new[] { "KeyWordId" }, "IX_key_word_feacn_codes_key_word_id");
-
-                    b.ToTable("key_word_feacn_codes");
-                });
-
-            modelBuilder.Entity("Logibooks.Core.Models.ParcelCheckStatus", b =>
+            modelBuilder.Entity("Logibooks.Core.Models.OrderCheckStatus", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -647,92 +478,17 @@ namespace Logibooks.Core.Migrations
                         },
                         new
                         {
-                            Id = 129,
-                            Title = "Стоп ТН ВЭД"
-                        },
-                        new
-                        {
-                            Id = 137,
-                            Title = "Стоп ТН ВЭД"
-                        },
-                        new
-                        {
-                            Id = 130,
-                            Title = "Стоп ТН ВЭД/Слово"
-                        },
-                        new
-                        {
-                            Id = 131,
-                            Title = "Нет ТН ВЭД"
-                        },
-                        new
-                        {
-                            Id = 138,
-                            Title = "Нет ТН ВЭД"
-                        },
-                        new
-                        {
-                            Id = 132,
-                            Title = "Нет ТН ВЭД, Cтоп слово"
-                        },
-                        new
-                        {
-                            Id = 133,
-                            Title = "Формат ТН ВЭД"
-                        },
-                        new
-                        {
-                            Id = 139,
-                            Title = "Формат ТН ВЭД"
-                        },
-                        new
-                        {
-                            Id = 134,
-                            Title = "Формат ТН ВЭД, Стоп слово"
-                        },
-                        new
-                        {
-                            Id = 135,
-                            Title = "Стоп слово"
-                        },
-                        new
-                        {
-                            Id = 136,
-                            Title = "Стоп слово"
-                        },
-                        new
-                        {
-                            Id = 200,
-                            Title = "Запрещено партнёром"
-                        },
-                        new
-                        {
                             Id = 201,
                             Title = "Ок"
                         },
                         new
                         {
-                            Id = 202,
-                            Title = "Ок (стоп-слова)"
-                        },
-                        new
-                        {
-                            Id = 203,
-                            Title = "Ок (ТН ВЭД)"
-                        },
-                        new
-                        {
                             Id = 301,
                             Title = "Согласовано"
-                        },
-                        new
-                        {
-                            Id = 399,
-                            Title = "Согласовано с акцизом"
                         });
                 });
 
-            modelBuilder.Entity("Logibooks.Core.Models.ParcelStatus", b =>
+            modelBuilder.Entity("Logibooks.Core.Models.OrderStatus", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -758,36 +514,6 @@ namespace Logibooks.Core.Migrations
                         });
                 });
 
-            modelBuilder.Entity("Logibooks.Core.Models.ParcelView", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("BaseParcelId")
-                        .HasColumnType("integer")
-                        .HasColumnName("base_parcel_id");
-
-                    b.Property<DateTime>("DTime")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("dtime");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("integer")
-                        .HasColumnName("user_id");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.HasIndex(new[] { "BaseParcelId", "UserId", "DTime" }, "IX_parcel_views_baseparcelid_userid_dtime");
-
-                    b.ToTable("parcel_views");
-                });
-
             modelBuilder.Entity("Logibooks.Core.Models.Register", b =>
                 {
                     b.Property<int>("Id")
@@ -809,10 +535,9 @@ namespace Logibooks.Core.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("dtime");
 
-                    b.Property<string>("DealNumber")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("deal_number");
+                    b.Property<short?>("DestCountryCode")
+                        .HasColumnType("smallint")
+                        .HasColumnName("dest_country_code");
 
                     b.Property<string>("FileName")
                         .IsRequired()
@@ -827,14 +552,6 @@ namespace Logibooks.Core.Migrations
                         .HasColumnType("text")
                         .HasColumnName("invoice_number");
 
-                    b.Property<int?>("TheOtherCompanyId")
-                        .HasColumnType("integer")
-                        .HasColumnName("the_other_company_id");
-
-                    b.Property<short?>("TheOtherCountryCode")
-                        .HasColumnType("smallint")
-                        .HasColumnName("the_other_country_code");
-
                     b.Property<int>("TransportationTypeId")
                         .HasColumnType("integer")
                         .HasColumnName("transportation_type_id");
@@ -845,9 +562,7 @@ namespace Logibooks.Core.Migrations
 
                     b.HasIndex("CustomsProcedureId");
 
-                    b.HasIndex("TheOtherCompanyId");
-
-                    b.HasIndex("TheOtherCountryCode");
+                    b.HasIndex("DestCountryCode");
 
                     b.HasIndex("TransportationTypeId");
 
@@ -920,6 +635,52 @@ namespace Logibooks.Core.Migrations
                     b.ToTable("stop_words");
                 });
 
+            modelBuilder.Entity("Logibooks.Core.Models.StopWordMatchType", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("stop_word_match_type");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Name = "Точная последовательность букв, цифр и проблелов"
+                        },
+                        new
+                        {
+                            Id = 11,
+                            Name = "Точное слово"
+                        },
+                        new
+                        {
+                            Id = 21,
+                            Name = "Фраза (последовательность слов)"
+                        },
+                        new
+                        {
+                            Id = 41,
+                            Name = "Слово и его формы (Золото -> c золотом, о золоте, ...)"
+                        },
+                        new
+                        {
+                            Id = 51,
+                            Name = "Слово и однокоренные (Золото -> золотой, золотистый, ...)"
+                        });
+                });
+
             modelBuilder.Entity("Logibooks.Core.Models.TransportationType", b =>
                 {
                     b.Property<int>("Id")
@@ -932,11 +693,6 @@ namespace Logibooks.Core.Migrations
                     b.Property<decimal>("Code")
                         .HasColumnType("numeric(2)")
                         .HasColumnName("code");
-
-                    b.Property<string>("Document")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("document");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -952,14 +708,12 @@ namespace Logibooks.Core.Migrations
                         {
                             Id = 1,
                             Code = 0m,
-                            Document = "AWB",
                             Name = "Авиа"
                         },
                         new
                         {
                             Id = 2,
                             Code = 1m,
-                            Document = "CMR",
                             Name = "Авто"
                         });
                 });
@@ -1079,55 +833,9 @@ namespace Logibooks.Core.Migrations
                         });
                 });
 
-            modelBuilder.Entity("Logibooks.Core.Models.WordMatchType", b =>
+            modelBuilder.Entity("Logibooks.Core.Models.OzonOrder", b =>
                 {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("name");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("word_match_types");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            Name = "Точная последовательность букв, цифр и пробелов"
-                        },
-                        new
-                        {
-                            Id = 11,
-                            Name = "Точное слово"
-                        },
-                        new
-                        {
-                            Id = 21,
-                            Name = "Фраза (последовательность слов)"
-                        },
-                        new
-                        {
-                            Id = 41,
-                            Name = "Слово и его формы (Золото -> c золотом, о золоте, ...)"
-                        },
-                        new
-                        {
-                            Id = 51,
-                            Name = "Слово и однокоренные (Золото -> золотой, золотистый, ...)"
-                        });
-                });
-
-            modelBuilder.Entity("Logibooks.Core.Models.OzonParcel", b =>
-                {
-                    b.HasBaseType("Logibooks.Core.Models.BaseParcel");
+                    b.HasBaseType("Logibooks.Core.Models.BaseOrder");
 
                     b.Property<string>("Address")
                         .HasColumnType("text")
@@ -1258,19 +966,17 @@ namespace Logibooks.Core.Migrations
                         .HasColumnName("unit_price");
 
                     b.Property<decimal?>("WeightKg")
-                        .HasColumnType("numeric(10,3)")
+                        .HasColumnType("numeric(10,2)")
                         .HasColumnName("weight_kg");
 
                     b.HasIndex("PostingNumber");
 
-                    b.HasIndex(new[] { "PostingNumber" }, "IX_ozon_parcels_posting_number");
-
-                    b.ToTable("ozon_parcels", (string)null);
+                    b.ToTable("ozon_orders", (string)null);
                 });
 
-            modelBuilder.Entity("Logibooks.Core.Models.WbrParcel", b =>
+            modelBuilder.Entity("Logibooks.Core.Models.WbrOrder", b =>
                 {
-                    b.HasBaseType("Logibooks.Core.Models.BaseParcel");
+                    b.HasBaseType("Logibooks.Core.Models.BaseOrder");
 
                     b.Property<string>("Barcode")
                         .HasColumnType("text")
@@ -1437,17 +1143,17 @@ namespace Logibooks.Core.Migrations
                         .HasColumnName("unit_price");
 
                     b.Property<decimal?>("WeightKg")
-                        .HasColumnType("numeric(10,3)")
+                        .HasColumnType("numeric(10,2)")
                         .HasColumnName("weight_kg");
 
-                    b.HasIndex(new[] { "Shk" }, "IX_wbr_parcels_shk");
+                    b.HasIndex(new[] { "Shk" }, "IX_wbr_orders_shk");
 
-                    b.ToTable("wbr_parcels", (string)null);
+                    b.ToTable("wbr_orders", (string)null);
                 });
 
-            modelBuilder.Entity("Logibooks.Core.Models.BaseParcel", b =>
+            modelBuilder.Entity("Logibooks.Core.Models.BaseOrder", b =>
                 {
-                    b.HasOne("Logibooks.Core.Models.ParcelCheckStatus", "CheckStatus")
+                    b.HasOne("Logibooks.Core.Models.OrderCheckStatus", "CheckStatus")
                         .WithMany("Orders")
                         .HasForeignKey("CheckStatusId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -1465,7 +1171,7 @@ namespace Logibooks.Core.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Logibooks.Core.Models.ParcelStatus", "Status")
+                    b.HasOne("Logibooks.Core.Models.OrderStatus", "Status")
                         .WithMany("Orders")
                         .HasForeignKey("StatusId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -1480,49 +1186,30 @@ namespace Logibooks.Core.Migrations
                     b.Navigation("Status");
                 });
 
-            modelBuilder.Entity("Logibooks.Core.Models.BaseParcelFeacnPrefix", b =>
+            modelBuilder.Entity("Logibooks.Core.Models.BaseOrderFeacnPrefix", b =>
                 {
-                    b.HasOne("Logibooks.Core.Models.BaseParcel", "BaseParcel")
-                        .WithMany("BaseParcelFeacnPrefixes")
-                        .HasForeignKey("BaseParcelId")
+                    b.HasOne("Logibooks.Core.Models.BaseOrder", "BaseOrder")
+                        .WithMany("BaseOrderFeacnPrefixes")
+                        .HasForeignKey("BaseOrderId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("Logibooks.Core.Models.FeacnPrefix", "FeacnPrefix")
-                        .WithMany("BaseParcelFeacnPrefixes")
+                        .WithMany("BaseOrderFeacnPrefixes")
                         .HasForeignKey("FeacnPrefixId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("BaseParcel");
+                    b.Navigation("BaseOrder");
 
                     b.Navigation("FeacnPrefix");
                 });
 
-            modelBuilder.Entity("Logibooks.Core.Models.BaseParcelKeyWord", b =>
+            modelBuilder.Entity("Logibooks.Core.Models.BaseOrderStopWord", b =>
                 {
-                    b.HasOne("Logibooks.Core.Models.BaseParcel", "BaseParcel")
-                        .WithMany("BaseParcelKeyWords")
-                        .HasForeignKey("BaseParcelId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Logibooks.Core.Models.KeyWord", "KeyWord")
-                        .WithMany("BaseParcelKeyWords")
-                        .HasForeignKey("KeyWordId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("BaseParcel");
-
-                    b.Navigation("KeyWord");
-                });
-
-            modelBuilder.Entity("Logibooks.Core.Models.BaseParcelStopWord", b =>
-                {
-                    b.HasOne("Logibooks.Core.Models.BaseParcel", "BaseParcel")
-                        .WithMany("BaseParcelStopWords")
-                        .HasForeignKey("BaseParcelId")
+                    b.HasOne("Logibooks.Core.Models.BaseOrder", "BaseOrder")
+                        .WithMany("BaseOrderStopWords")
+                        .HasForeignKey("BaseOrderId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -1532,7 +1219,7 @@ namespace Logibooks.Core.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("BaseParcel");
+                    b.Navigation("BaseOrder");
 
                     b.Navigation("StopWord");
                 });
@@ -1548,22 +1235,13 @@ namespace Logibooks.Core.Migrations
                     b.Navigation("Country");
                 });
 
-            modelBuilder.Entity("Logibooks.Core.Models.FeacnCode", b =>
-                {
-                    b.HasOne("Logibooks.Core.Models.FeacnCode", "Parent")
-                        .WithMany("Children")
-                        .HasForeignKey("ParentId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("Parent");
-                });
-
             modelBuilder.Entity("Logibooks.Core.Models.FeacnPrefix", b =>
                 {
                     b.HasOne("Logibooks.Core.Models.FeacnOrder", "FeacnOrder")
                         .WithMany("FeacnPrefixes")
                         .HasForeignKey("FeacnOrderId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("FeacnOrder");
                 });
@@ -1577,47 +1255,6 @@ namespace Logibooks.Core.Migrations
                         .IsRequired();
 
                     b.Navigation("FeacnPrefix");
-                });
-
-            modelBuilder.Entity("Logibooks.Core.Models.KeyWord", b =>
-                {
-                    b.HasOne("Logibooks.Core.Models.WordMatchType", "MatchType")
-                        .WithMany("KeyWords")
-                        .HasForeignKey("MatchTypeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("MatchType");
-                });
-
-            modelBuilder.Entity("Logibooks.Core.Models.KeyWordFeacnCode", b =>
-                {
-                    b.HasOne("Logibooks.Core.Models.KeyWord", "KeyWord")
-                        .WithMany("KeyWordFeacnCodes")
-                        .HasForeignKey("KeyWordId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("KeyWord");
-                });
-
-            modelBuilder.Entity("Logibooks.Core.Models.ParcelView", b =>
-                {
-                    b.HasOne("Logibooks.Core.Models.BaseParcel", "BaseParcel")
-                        .WithMany()
-                        .HasForeignKey("BaseParcelId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Logibooks.Core.Models.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("BaseParcel");
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Logibooks.Core.Models.Register", b =>
@@ -1634,14 +1271,9 @@ namespace Logibooks.Core.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("Logibooks.Core.Models.Company", "TheOtherCompany")
-                        .WithMany("TheOtherRegisters")
-                        .HasForeignKey("TheOtherCompanyId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("Logibooks.Core.Models.Country", "TheOtherCountry")
+                    b.HasOne("Logibooks.Core.Models.Country", "DestinationCountry")
                         .WithMany()
-                        .HasForeignKey("TheOtherCountryCode")
+                        .HasForeignKey("DestCountryCode")
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Logibooks.Core.Models.TransportationType", "TransportationType")
@@ -1654,16 +1286,14 @@ namespace Logibooks.Core.Migrations
 
                     b.Navigation("CustomsProcedure");
 
-                    b.Navigation("TheOtherCompany");
-
-                    b.Navigation("TheOtherCountry");
+                    b.Navigation("DestinationCountry");
 
                     b.Navigation("TransportationType");
                 });
 
             modelBuilder.Entity("Logibooks.Core.Models.StopWord", b =>
                 {
-                    b.HasOne("Logibooks.Core.Models.WordMatchType", "MatchType")
+                    b.HasOne("Logibooks.Core.Models.StopWordMatchType", "MatchType")
                         .WithMany("StopWords")
                         .HasForeignKey("MatchTypeId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -1691,48 +1321,39 @@ namespace Logibooks.Core.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Logibooks.Core.Models.OzonParcel", b =>
+            modelBuilder.Entity("Logibooks.Core.Models.OzonOrder", b =>
                 {
-                    b.HasOne("Logibooks.Core.Models.BaseParcel", null)
+                    b.HasOne("Logibooks.Core.Models.BaseOrder", null)
                         .WithOne()
-                        .HasForeignKey("Logibooks.Core.Models.OzonParcel", "Id")
+                        .HasForeignKey("Logibooks.Core.Models.OzonOrder", "Id")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Logibooks.Core.Models.WbrParcel", b =>
+            modelBuilder.Entity("Logibooks.Core.Models.WbrOrder", b =>
                 {
-                    b.HasOne("Logibooks.Core.Models.BaseParcel", null)
+                    b.HasOne("Logibooks.Core.Models.BaseOrder", null)
                         .WithOne()
-                        .HasForeignKey("Logibooks.Core.Models.WbrParcel", "Id")
+                        .HasForeignKey("Logibooks.Core.Models.WbrOrder", "Id")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Logibooks.Core.Models.BaseParcel", b =>
+            modelBuilder.Entity("Logibooks.Core.Models.BaseOrder", b =>
                 {
-                    b.Navigation("BaseParcelFeacnPrefixes");
+                    b.Navigation("BaseOrderFeacnPrefixes");
 
-                    b.Navigation("BaseParcelKeyWords");
-
-                    b.Navigation("BaseParcelStopWords");
+                    b.Navigation("BaseOrderStopWords");
                 });
 
             modelBuilder.Entity("Logibooks.Core.Models.Company", b =>
                 {
                     b.Navigation("Registers");
-
-                    b.Navigation("TheOtherRegisters");
                 });
 
             modelBuilder.Entity("Logibooks.Core.Models.Country", b =>
                 {
                     b.Navigation("Companies");
-                });
-
-            modelBuilder.Entity("Logibooks.Core.Models.FeacnCode", b =>
-                {
-                    b.Navigation("Children");
                 });
 
             modelBuilder.Entity("Logibooks.Core.Models.FeacnOrder", b =>
@@ -1742,24 +1363,17 @@ namespace Logibooks.Core.Migrations
 
             modelBuilder.Entity("Logibooks.Core.Models.FeacnPrefix", b =>
                 {
-                    b.Navigation("BaseParcelFeacnPrefixes");
+                    b.Navigation("BaseOrderFeacnPrefixes");
 
                     b.Navigation("FeacnPrefixExceptions");
                 });
 
-            modelBuilder.Entity("Logibooks.Core.Models.KeyWord", b =>
-                {
-                    b.Navigation("BaseParcelKeyWords");
-
-                    b.Navigation("KeyWordFeacnCodes");
-                });
-
-            modelBuilder.Entity("Logibooks.Core.Models.ParcelCheckStatus", b =>
+            modelBuilder.Entity("Logibooks.Core.Models.OrderCheckStatus", b =>
                 {
                     b.Navigation("Orders");
                 });
 
-            modelBuilder.Entity("Logibooks.Core.Models.ParcelStatus", b =>
+            modelBuilder.Entity("Logibooks.Core.Models.OrderStatus", b =>
                 {
                     b.Navigation("Orders");
                 });
@@ -1779,16 +1393,14 @@ namespace Logibooks.Core.Migrations
                     b.Navigation("BaseOrderStopWords");
                 });
 
+            modelBuilder.Entity("Logibooks.Core.Models.StopWordMatchType", b =>
+                {
+                    b.Navigation("StopWords");
+                });
+
             modelBuilder.Entity("Logibooks.Core.Models.User", b =>
                 {
                     b.Navigation("UserRoles");
-                });
-
-            modelBuilder.Entity("Logibooks.Core.Models.WordMatchType", b =>
-                {
-                    b.Navigation("KeyWords");
-
-                    b.Navigation("StopWords");
                 });
 #pragma warning restore 612, 618
         }

@@ -235,14 +235,17 @@ namespace Logibooks.Core.Data
 
                 new ParcelCheckStatus { Id = (int)ParcelCheckStatusCode.InvalidFeacnFormat, Title = "Неправильный формат ТН ВЭД" },
                 new ParcelCheckStatus { Id = (int)ParcelCheckStatusCode.NonexistingFeacn, Title = "Несуществующий ТН ВЭД" },
-
-                new ParcelCheckStatus { Id = (int)ParcelCheckStatusCode.IssueFeacnCode, Title = "ТН ВЭД" },
-                new ParcelCheckStatus { Id = (int)ParcelCheckStatusCode.IssueFeacnCodeAndStopWord, Title = "ТН ВЭД, слово" },                                                                                         
+                new ParcelCheckStatus { Id = (int)ParcelCheckStatusCode.IssueFeacnCode, Title = "Стоп ТН ВЭД" },
+                new ParcelCheckStatus { Id = (int)ParcelCheckStatusCode.NoIssuesStopWordsAndFeacnCode, Title = "Стоп ТН ВЭД" },
+                new ParcelCheckStatus { Id = (int)ParcelCheckStatusCode.IssueFeacnCodeAndStopWord, Title = "Стоп ТН ВЭД/Слово" },                                                                                         
                 new ParcelCheckStatus { Id = (int)ParcelCheckStatusCode.IssueNonexistingFeacn, Title = "Нет ТН ВЭД" },
-                new ParcelCheckStatus { Id = (int)ParcelCheckStatusCode.IssueNonexistingFeacnAndStopWord, Title = "Нет ТН ВЭД, слово" },
+                new ParcelCheckStatus { Id = (int)ParcelCheckStatusCode.NoIssuesStopWordsAndNonexistingFeacn, Title = "Нет ТН ВЭД" },
+                new ParcelCheckStatus { Id = (int)ParcelCheckStatusCode.IssueNonexistingFeacnAndStopWord, Title = "Нет ТН ВЭД, Cтоп слово" },
                 new ParcelCheckStatus { Id = (int)ParcelCheckStatusCode.IssueInvalidFeacnFormat, Title = "Формат ТН ВЭД" },
-                new ParcelCheckStatus { Id = (int)ParcelCheckStatusCode.IssueInvalidFeacnFormatAndStopWord, Title = "Формат ТН ВЭД, слово" },
-                new ParcelCheckStatus { Id = (int)ParcelCheckStatusCode.IssueStopWord, Title = "Слово" },
+                new ParcelCheckStatus { Id = (int)ParcelCheckStatusCode.NoIssuesStopWordsAndInvalidFeacnFormat, Title = "Формат ТН ВЭД" },
+                new ParcelCheckStatus { Id = (int)ParcelCheckStatusCode.IssueInvalidFeacnFormatAndStopWord, Title = "Формат ТН ВЭД, Стоп слово" },
+                new ParcelCheckStatus { Id = (int)ParcelCheckStatusCode.IssueStopWord, Title = "Стоп слово" },
+                new ParcelCheckStatus { Id = (int)ParcelCheckStatusCode.NoIssuesFeacnAndStopWord, Title = "Стоп слово" },
 
                 new ParcelCheckStatus { Id = (int)ParcelCheckStatusCode.MarkedByPartner, Title = "Запрещено партнёром" },
                 new ParcelCheckStatus { Id = (int)ParcelCheckStatusCode.NoIssues, Title = "Ок" },

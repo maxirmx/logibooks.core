@@ -1,8 +1,4 @@
-﻿// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
-// All rights reserved.
-// This file is a part of Logibooks Core application
-
-using Microsoft.EntityFrameworkCore.Migrations;
+﻿using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
@@ -21,13 +17,17 @@ namespace Logibooks.Core.Migrations
                 columns: new[] { "id", "title" },
                 values: new object[,]
                 {
-                    { 129, "ТН ВЭД" },
-                    { 130, "ТН ВЭД, слово" },
+                    { 129, "Стоп ТН ВЭД" },
+                    { 130, "Стоп ТН ВЭД/Слово" },
                     { 131, "Нет ТН ВЭД" },
-                    { 132, "Нет ТН ВЭД, слово" },
+                    { 132, "Нет ТН ВЭД, Cтоп слово" },
                     { 133, "Формат ТН ВЭД" },
-                    { 134, "Формат ТН ВЭД, слово" },
-                    { 135, "Слово" },
+                    { 134, "Формат ТН ВЭД, Стоп слово" },
+                    { 135, "Стоп слово" },
+                    { 136, "Стоп слово" },
+                    { 137, "Стоп ТН ВЭД" },
+                    { 138, "Нет ТН ВЭД" },
+                    { 139, "Формат ТН ВЭД" },
                     { 202, "Ок (стоп-слова)" },
                     { 203, "Ок (ТН ВЭД)" }
                 });
@@ -70,6 +70,26 @@ namespace Logibooks.Core.Migrations
                 table: "check_statuses",
                 keyColumn: "id",
                 keyValue: 135);
+
+            migrationBuilder.DeleteData(
+                table: "check_statuses",
+                keyColumn: "id",
+                keyValue: 136);
+
+            migrationBuilder.DeleteData(
+                table: "check_statuses",
+                keyColumn: "id",
+                keyValue: 137);
+
+            migrationBuilder.DeleteData(
+                table: "check_statuses",
+                keyColumn: "id",
+                keyValue: 138);
+
+            migrationBuilder.DeleteData(
+                table: "check_statuses",
+                keyColumn: "id",
+                keyValue: 139);
 
             migrationBuilder.DeleteData(
                 table: "check_statuses",

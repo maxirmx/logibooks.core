@@ -3,6 +3,7 @@ using System;
 using Logibooks.Core.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Logibooks.Core.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250831085222_0_A_7_AWB_CMR_Match")]
+    partial class _0_A_7_AWB_CMR_Match
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -517,7 +520,7 @@ namespace Logibooks.Core.Migrations
                         .HasColumnType("text")
                         .HasColumnName("description");
 
-                    b.Property<int?>("FeacnOrderId")
+                    b.Property<int>("FeacnOrderId")
                         .HasColumnType("integer")
                         .HasColumnName("feacn_order_id");
 
@@ -647,61 +650,6 @@ namespace Logibooks.Core.Migrations
                         },
                         new
                         {
-                            Id = 129,
-                            Title = "Стоп ТН ВЭД"
-                        },
-                        new
-                        {
-                            Id = 137,
-                            Title = "Стоп ТН ВЭД"
-                        },
-                        new
-                        {
-                            Id = 130,
-                            Title = "Стоп ТН ВЭД/Слово"
-                        },
-                        new
-                        {
-                            Id = 131,
-                            Title = "Нет ТН ВЭД"
-                        },
-                        new
-                        {
-                            Id = 138,
-                            Title = "Нет ТН ВЭД"
-                        },
-                        new
-                        {
-                            Id = 132,
-                            Title = "Нет ТН ВЭД, Cтоп слово"
-                        },
-                        new
-                        {
-                            Id = 133,
-                            Title = "Формат ТН ВЭД"
-                        },
-                        new
-                        {
-                            Id = 139,
-                            Title = "Формат ТН ВЭД"
-                        },
-                        new
-                        {
-                            Id = 134,
-                            Title = "Формат ТН ВЭД, Стоп слово"
-                        },
-                        new
-                        {
-                            Id = 135,
-                            Title = "Стоп слово"
-                        },
-                        new
-                        {
-                            Id = 136,
-                            Title = "Стоп слово"
-                        },
-                        new
-                        {
                             Id = 200,
                             Title = "Запрещено партнёром"
                         },
@@ -709,16 +657,6 @@ namespace Logibooks.Core.Migrations
                         {
                             Id = 201,
                             Title = "Ок"
-                        },
-                        new
-                        {
-                            Id = 202,
-                            Title = "Ок (стоп-слова)"
-                        },
-                        new
-                        {
-                            Id = 203,
-                            Title = "Ок (ТН ВЭД)"
                         },
                         new
                         {
@@ -767,9 +705,9 @@ namespace Logibooks.Core.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("BaseParcelId")
+                    b.Property<int>("BaseOrderId")
                         .HasColumnType("integer")
-                        .HasColumnName("base_parcel_id");
+                        .HasColumnName("base_order_id");
 
                     b.Property<DateTime>("DTime")
                         .HasColumnType("timestamp with time zone")
@@ -783,7 +721,7 @@ namespace Logibooks.Core.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.HasIndex(new[] { "BaseParcelId", "UserId", "DTime" }, "IX_parcel_views_baseparcelid_userid_dtime");
+                    b.HasIndex(new[] { "BaseOrderId", "UserId", "DTime" }, "IX_parcel_views_baseorderid_userid_dtime");
 
                     b.ToTable("parcel_views");
                 });
@@ -1563,7 +1501,8 @@ namespace Logibooks.Core.Migrations
                     b.HasOne("Logibooks.Core.Models.FeacnOrder", "FeacnOrder")
                         .WithMany("FeacnPrefixes")
                         .HasForeignKey("FeacnOrderId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("FeacnOrder");
                 });
@@ -1603,9 +1542,9 @@ namespace Logibooks.Core.Migrations
 
             modelBuilder.Entity("Logibooks.Core.Models.ParcelView", b =>
                 {
-                    b.HasOne("Logibooks.Core.Models.BaseParcel", "BaseParcel")
+                    b.HasOne("Logibooks.Core.Models.BaseParcel", "BaseOrder")
                         .WithMany()
-                        .HasForeignKey("BaseParcelId")
+                        .HasForeignKey("BaseOrderId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -1615,7 +1554,7 @@ namespace Logibooks.Core.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("BaseParcel");
+                    b.Navigation("BaseOrder");
 
                     b.Navigation("User");
                 });

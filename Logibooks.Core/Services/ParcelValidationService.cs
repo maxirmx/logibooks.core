@@ -105,10 +105,11 @@ public class ParcelValidationService(
             {((int)ParcelCheckStatusCode.NoIssuesStopWordsAndFeacnCode, ValidationEvent.FeacnCodeCheckOk), (int)ParcelCheckStatusCode.NoIssues},
             {((int)ParcelCheckStatusCode.NoIssuesStopWordsAndInvalidFeacnFormat, ValidationEvent.FeacnCodeCheckOk), (int)ParcelCheckStatusCode.NoIssues},
             {((int)ParcelCheckStatusCode.NoIssuesStopWordsAndNonexistingFeacn, ValidationEvent.FeacnCodeCheckOk), (int)ParcelCheckStatusCode.NoIssues},
-            {((int)ParcelCheckStatusCode.IssueStopWord, ValidationEvent.FeacnCodeCheckOk), (int)ParcelCheckStatusCode.IssueStopWord},
-            {((int)ParcelCheckStatusCode.IssueFeacnCodeAndStopWord, ValidationEvent.FeacnCodeCheckOk), (int)ParcelCheckStatusCode.IssueStopWord},
-            {((int)ParcelCheckStatusCode.IssueInvalidFeacnFormatAndStopWord, ValidationEvent.FeacnCodeCheckOk), (int)ParcelCheckStatusCode.IssueStopWord},
-            {((int)ParcelCheckStatusCode.IssueNonexistingFeacnAndStopWord, ValidationEvent.FeacnCodeCheckOk), (int)ParcelCheckStatusCode.IssueStopWord},
+            {((int)ParcelCheckStatusCode.IssueStopWord, ValidationEvent.FeacnCodeCheckOk), (int)ParcelCheckStatusCode.NoIssuesFeacnAndStopWord},
+            {((int)ParcelCheckStatusCode.NoIssuesFeacnAndStopWord, ValidationEvent.FeacnCodeCheckOk), (int)ParcelCheckStatusCode.NoIssuesFeacnAndStopWord},
+            {((int)ParcelCheckStatusCode.IssueFeacnCodeAndStopWord, ValidationEvent.FeacnCodeCheckOk), (int)ParcelCheckStatusCode.NoIssuesFeacnAndStopWord},
+            {((int)ParcelCheckStatusCode.IssueInvalidFeacnFormatAndStopWord, ValidationEvent.FeacnCodeCheckOk), (int)ParcelCheckStatusCode.NoIssuesFeacnAndStopWord},
+            {((int)ParcelCheckStatusCode.IssueNonexistingFeacnAndStopWord, ValidationEvent.FeacnCodeCheckOk), (int)ParcelCheckStatusCode.NoIssuesFeacnAndStopWord},
 
             // Cross-class FEACN issue replacement transitions (preserve stop word dimension)
 
