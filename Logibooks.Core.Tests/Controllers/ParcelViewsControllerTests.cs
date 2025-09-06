@@ -1,16 +1,21 @@
-using Logibooks.Core.Controllers;
-using Logibooks.Core.Data;
-using Logibooks.Core.Models;
-using Logibooks.Core.RestModels;
+// Copyright (C) 2025 Maxim [maxirmx] Samsonov (www.sw.consulting)
+// All rights reserved.
+// This file is a part of Logibooks Core application
+
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using System.Linq;
+using System.Threading.Tasks;
+
 using Moq;
 using NUnit.Framework;
-using NUnit.Framework.Legacy;
-using System.Threading.Tasks;
-using System.Linq;
+
+using Logibooks.Core.Controllers;
+using Logibooks.Core.Data;
+using Logibooks.Core.Models;
+using Logibooks.Core.RestModels;
 
 namespace Logibooks.Core.Tests.Controllers;
 

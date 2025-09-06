@@ -767,28 +767,70 @@ public class RegistersController(
         return NoContent();
     }
 
-    [HttpPost("{id}/validate")]
+    [HttpPost("{id}/validate-kw")]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(GuidReference))]
     [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
-    public async Task<ActionResult<GuidReference>> ValidateRegister(int id)
+    [ProducesResponseType(StatusCodes.Status409Conflict, Type = typeof(ErrMessage))]
+    public async Task<ActionResult<GuidReference>> ValidateRegisterKw(int id)
     {
-        _logger.LogDebug("ValidateRegister for id={id}", id);
+        _logger.LogDebug("ValidateRegisterKw for id={id}", id);
 
         if (!await _userService.CheckLogist(_curUserId))
         {
-            _logger.LogDebug("ValidateRegister returning '403 Forbidden'");
+            _logger.LogDebug("ValidateRegisterKw returning '403 Forbidden'");
             return _403();
         }
 
         if (!await _db.Registers.AnyAsync(r => r.Id == id))
         {
-            _logger.LogDebug("ValidateRegister returning '404 Not Found'");
+            _logger.LogDebug("ValidateRegisterKw returning '404 Not Found'");
             return _404Register(id);
         }
 
-        var handle = await _validationService.StartValidationAsync(id);
-        return Ok(new GuidReference { Id = handle });
+        try
+        {
+            var handle = await _validationService.StartKwValidationAsync(id);
+            return Ok(new GuidReference { Id = handle });
+        }
+        catch (InvalidOperationException)
+        {
+            _logger.LogDebug("ValidateRegisterKw returning '409 Conflict'");
+            return _409Validation();
+        }
+    }
+
+    [HttpPost("{id}/validate-fc")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(GuidReference))]
+    [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ErrMessage))]
+    [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrMessage))]
+    [ProducesResponseType(StatusCodes.Status409Conflict, Type = typeof(ErrMessage))]
+    public async Task<ActionResult<GuidReference>> ValidateRegisterFeacn(int id)
+    {
+        _logger.LogDebug("ValidateRegisterFeacn for id={id}", id);
+
+        if (!await _userService.CheckLogist(_curUserId))
+        {
+            _logger.LogDebug("ValidateRegisterFeacn returning '403 Forbidden'");
+            return _403();
+        }
+
+        if (!await _db.Registers.AnyAsync(r => r.Id == id))
+        {
+            _logger.LogDebug("ValidateRegisterFeacn returning '404 Not Found'");
+            return _404Register(id);
+        }
+
+        try
+        {
+            var handle = await _validationService.StartFeacnValidationAsync(id);
+            return Ok(new GuidReference { Id = handle });
+        }
+        catch (InvalidOperationException)
+        {
+            _logger.LogDebug("ValidateRegisterFeacn returning '409 Conflict'");
+            return _409Validation();
+        }
     }
 
     [HttpGet("validate/{handleId}")]

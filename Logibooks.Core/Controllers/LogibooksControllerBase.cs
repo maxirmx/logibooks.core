@@ -159,6 +159,12 @@ public class LogibooksControllerPreBase(AppDbContext db, ILogger logger) : Contr
                           new ErrMessage { Msg = $"Ключевое слово уже существует [слово = {word}]" });
     }
 
+    protected ObjectResult _409Validation()
+    {
+        return StatusCode(StatusCodes.Status409Conflict,
+                          new ErrMessage { Msg = "Проверка реестра уже выполняется" });
+    }
+
     /// <summary>
     /// Returns a 409 Conflict response for duplicate FeacnPrefix code
     /// </summary>

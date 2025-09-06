@@ -735,44 +735,62 @@ public class RegistersControllerTests : RegistersControllerTestsBase
     }
 
     [Test]
-    public async Task ValidateRegister_RunsService_ForLogist()
+    public async Task ValidateRegisterKw_RunsService_ForLogist()
     {
         SetCurrentUserId(1);
         _dbContext.Registers.Add(new Register { Id = 5, FileName = "r.xlsx", TheOtherCompanyId = 3 });
         await _dbContext.SaveChangesAsync();
 
         var handle = Guid.NewGuid();
-        _mockRegValidationService.Setup(s => s.StartValidationAsync(5, It.IsAny<CancellationToken>())).ReturnsAsync(handle);
+        _mockRegValidationService.Setup(s => s.StartKwValidationAsync(5, It.IsAny<CancellationToken>())).ReturnsAsync(handle);
 
-        var result = await _controller.ValidateRegister(5);
+        var result = await _controller.ValidateRegisterKw(5);
 
-        _mockRegValidationService.Verify(s => s.StartValidationAsync(5, It.IsAny<CancellationToken>()), Times.Once);
+        _mockRegValidationService.Verify(s => s.StartKwValidationAsync(5, It.IsAny<CancellationToken>()), Times.Once);
         Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
         var ok = result.Result as OkObjectResult;
         Assert.That(((GuidReference)ok!.Value!).Id, Is.EqualTo(handle));
     }
 
     [Test]
-    public async Task ValidateRegister_ReturnsForbidden_ForNonLogist()
+    public async Task ValidateRegisterKw_ReturnsForbidden_ForNonLogist()
     {
         SetCurrentUserId(2);
-        var result = await _controller.ValidateRegister(1);
+        var result = await _controller.ValidateRegisterKw(1);
 
         Assert.That(result.Result, Is.TypeOf<ObjectResult>());
         var obj = result.Result as ObjectResult;
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
-        _mockRegValidationService.Verify(s => s.StartValidationAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+        _mockRegValidationService.Verify(s => s.StartKwValidationAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Test]
-    public async Task ValidateRegister_ReturnsNotFound_WhenMissing()
+    public async Task ValidateRegisterKw_ReturnsNotFound_WhenMissing()
     {
         SetCurrentUserId(1);
-        var result = await _controller.ValidateRegister(99);
+        var result = await _controller.ValidateRegisterKw(99);
 
         Assert.That(result.Result, Is.TypeOf<ObjectResult>());
         var obj = result.Result as ObjectResult;
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
+    }
+
+    [Test]
+    public async Task ValidateRegisterFeacn_RunsService_ForLogist()
+    {
+        SetCurrentUserId(1);
+        _dbContext.Registers.Add(new Register { Id = 6, FileName = "r.xlsx", TheOtherCompanyId = 3 });
+        await _dbContext.SaveChangesAsync();
+
+        var handle = Guid.NewGuid();
+        _mockRegValidationService.Setup(s => s.StartFeacnValidationAsync(6, It.IsAny<CancellationToken>())).ReturnsAsync(handle);
+
+        var result = await _controller.ValidateRegisterFeacn(6);
+
+        _mockRegValidationService.Verify(s => s.StartFeacnValidationAsync(6, It.IsAny<CancellationToken>()), Times.Once);
+        Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
+        var ok = result.Result as OkObjectResult;
+        Assert.That(((GuidReference)ok!.Value!).Id, Is.EqualTo(handle));
     }
 
     [Test]
@@ -850,7 +868,7 @@ public class RegistersControllerTests : RegistersControllerTestsBase
     }
 
     [Test]
-    public async Task ValidateRegister_WithRealService_CreatesFeacnLinks()
+    public async Task ValidateRegisterFeacn_WithRealService_CreatesFeacnLinks()
     {
         SetCurrentUserId(1);
         var register = new Register { Id = 200, FileName = "r.xlsx", TheOtherCompanyId = 3 };
@@ -879,7 +897,7 @@ public class RegistersControllerTests : RegistersControllerTestsBase
         var realRegSvc = new RegisterValidationService(_dbContext, scopeFactoryMock.Object, new LoggerFactory().CreateLogger<RegisterValidationService>(), new MorphologySearchService(), new FeacnPrefixCheckService(_dbContext));
         _controller = new RegistersController(_mockHttpContextAccessor.Object, _dbContext, _userService, _logger, realRegSvc, _mockRegFeacnLookupService.Object, _mockProcessingService.Object, _mockIndPostGenerator.Object);
 
-        var result = await _controller.ValidateRegister(200);
+        var result = await _controller.ValidateRegisterFeacn(200);
         var handle = ((GuidReference)((OkObjectResult)result.Result!).Value!).Id;
 
         // wait for completion
