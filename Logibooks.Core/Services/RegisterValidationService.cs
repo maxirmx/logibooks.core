@@ -80,10 +80,10 @@ public class RegisterValidationService(
                     process.Finished = true;
                     break;
                 }
-                var parcel = await scopedDb.Parcels.FindAsync([id], cancellationToken: process.Cts.Token);
+                var parcel = await scopedDb.Parcels.FindAsync(new object[] { id }, process.Cts.Token);
                 if (parcel != null)
                 {
-                    await scopedValidationSvc.ValidateKwAsync(scopedDb, parcel, morphologyContext, stopWordsContext, process.Cts.Token);
+                    await scopedValidationSvc.ValidateSwAsync(scopedDb, parcel, morphologyContext, stopWordsContext, process.Cts.Token);
                 }
                 process.Processed++;
             }
@@ -117,7 +117,7 @@ public class RegisterValidationService(
                     process.Finished = true;
                     break;
                 }
-                var parcel = await scopedDb.Parcels.FindAsync([id], cancellationToken: process.Cts.Token);
+                var parcel = await scopedDb.Parcels.FindAsync(new object[] { id }, process.Cts.Token);
                 if (parcel != null)
                 {
                     await scopedValidationSvc.ValidateFeacnAsync(scopedDb, parcel, feacnContext, process.Cts.Token);

@@ -11,7 +11,7 @@ namespace Logibooks.Core.Interfaces;
 
 public interface IParcelValidationService
 {
-    Task ValidateKwAsync(
+    Task ValidateSwAsync(
         BaseParcel order,
         MorphologyContext morphologyContext,
         WordsLookupContext<StopWord> wordsLookupContext,
@@ -23,7 +23,7 @@ public interface IParcelValidationService
         CancellationToken cancellationToken = default);
 
     // Overloaded methods that accept DbContext for thread-safe operations
-    Task ValidateKwAsync(
+    Task ValidateSwAsync(
         AppDbContext dbContext,
         BaseParcel parcel,
         MorphologyContext morphologyContext,

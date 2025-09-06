@@ -56,7 +56,7 @@ public class RegisterValidationServiceTests
         await ctx.SaveChangesAsync();
 
         var mock = new Mock<IParcelValidationService>();
-        mock.Setup(m => m.ValidateKwAsync(
+        mock.Setup(m => m.ValidateSwAsync(
             It.IsAny<AppDbContext>(),
             It.IsAny<BaseParcel>(),
             It.IsAny<MorphologyContext>(),
@@ -75,7 +75,7 @@ public class RegisterValidationServiceTests
         Assert.That(progress.Total, Is.EqualTo(-1));
         Assert.That(progress.Processed, Is.EqualTo(-1));
         Assert.That(progress.Finished, Is.True);
-        mock.Verify(m => m.ValidateKwAsync(
+        mock.Verify(m => m.ValidateSwAsync(
             It.IsAny<AppDbContext>(),
             It.IsAny<BaseParcel>(),
             It.IsAny<MorphologyContext>(),
@@ -125,7 +125,7 @@ public class RegisterValidationServiceTests
             It.IsAny<FeacnPrefixCheckContext?>(),
             It.IsAny<CancellationToken>()),
             Times.Exactly(2));
-        mock.Verify(m => m.ValidateKwAsync(
+        mock.Verify(m => m.ValidateSwAsync(
             It.IsAny<AppDbContext>(),
             It.IsAny<BaseParcel>(),
             It.IsAny<MorphologyContext>(),
@@ -152,7 +152,7 @@ public class RegisterValidationServiceTests
             It.IsAny<FeacnPrefixCheckContext?>(),
             It.IsAny<CancellationToken>()))
             .Returns(async () => { await Task.Delay(20); tcs.TrySetResult(); });
-        mock.Setup(m => m.ValidateKwAsync(
+        mock.Setup(m => m.ValidateSwAsync(
             It.IsAny<AppDbContext>(),
             It.IsAny<BaseParcel>(),
             It.IsAny<MorphologyContext>(),
@@ -208,7 +208,7 @@ public class RegisterValidationServiceTests
             It.IsAny<FeacnPrefixCheckContext?>(),
             It.IsAny<CancellationToken>()))
             .Returns(async () => await Task.Delay(100));
-        mock.Setup(m => m.ValidateKwAsync(
+        mock.Setup(m => m.ValidateSwAsync(
             It.IsAny<AppDbContext>(),
             It.IsAny<BaseParcel>(),
             It.IsAny<MorphologyContext>(),
@@ -352,7 +352,7 @@ public class RegisterValidationServiceTests
             It.IsAny<FeacnPrefixCheckContext?>(),
             It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
-        mock.Setup(m => m.ValidateKwAsync(
+        mock.Setup(m => m.ValidateSwAsync(
             It.IsAny<AppDbContext>(),
             It.IsAny<BaseParcel>(),
             It.IsAny<MorphologyContext>(),
@@ -372,7 +372,7 @@ public class RegisterValidationServiceTests
             It.IsAny<FeacnPrefixCheckContext?>(),
             It.IsAny<CancellationToken>()),
             Times.Never);
-        mock.Verify(m => m.ValidateKwAsync(
+        mock.Verify(m => m.ValidateSwAsync(
             It.IsAny<AppDbContext>(),
             It.Is<BaseParcel>(o => o.Id == 201),
             It.IsAny<MorphologyContext>(),
@@ -385,7 +385,7 @@ public class RegisterValidationServiceTests
             It.IsAny<FeacnPrefixCheckContext?>(),
             It.IsAny<CancellationToken>()),
             Times.Never);
-        mock.Verify(m => m.ValidateKwAsync(
+        mock.Verify(m => m.ValidateSwAsync(
             It.IsAny<AppDbContext>(),
             It.Is<BaseParcel>(o => o.Id == 202),
             It.IsAny<MorphologyContext>(),
@@ -398,7 +398,7 @@ public class RegisterValidationServiceTests
             It.IsAny<FeacnPrefixCheckContext?>(),
             It.IsAny<CancellationToken>()),
             Times.Never);
-        mock.Verify(m => m.ValidateKwAsync(
+        mock.Verify(m => m.ValidateSwAsync(
             It.IsAny<AppDbContext>(),
             It.Is<BaseParcel>(o => o.Id == 203),
             It.IsAny<MorphologyContext>(),
@@ -411,7 +411,7 @@ public class RegisterValidationServiceTests
             It.IsAny<FeacnPrefixCheckContext?>(),
             It.IsAny<CancellationToken>()),
             Times.Never);
-        mock.Verify(m => m.ValidateKwAsync(
+        mock.Verify(m => m.ValidateSwAsync(
             It.IsAny<AppDbContext>(),
             It.Is<BaseParcel>(o => o.Id == 204),
             It.IsAny<MorphologyContext>(),

@@ -8,14 +8,13 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 using Moq;
-using Logibooks.Core.Controllers;
 using Logibooks.Core.Data;
 using Logibooks.Core.Models;
 
 namespace Logibooks.Core.Tests.Controllers.Parcels;
 
 [TestFixture]
-public class ParcelsControllerNewBehaviorTests
+public class ParcelsControllerKeySetTests
 {
     private AppDbContext _dbContext = null!;
     private Mock<IHttpContextAccessor> _mockHttpContextAccessor = null!;

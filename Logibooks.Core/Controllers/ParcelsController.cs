@@ -386,7 +386,7 @@ public class ParcelsController(
         var wordsLookupContext = new WordsLookupContext<StopWord>(
             stopWords.Where(sw => sw.MatchTypeId < (int)WordMatchTypeCode.MorphologyMatchTypes));
 
-        await _validationService.ValidateKwAsync(parcel, morphologyContext, wordsLookupContext);
+        await _validationService.ValidateSwAsync(parcel, morphologyContext, wordsLookupContext);
 
         return NoContent();
     }

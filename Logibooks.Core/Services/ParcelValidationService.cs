@@ -172,16 +172,16 @@ public class ParcelValidationService(
         return currentCheckStatusId;
     }
 
-    public async Task ValidateKwAsync(
+    public async Task ValidateSwAsync(
         BaseParcel order,
         MorphologyContext morphologyContext,
         WordsLookupContext<StopWord> wordsLookupContext,
         CancellationToken cancellationToken = default)
     {
-        await ValidateKwAsync(_db, order, morphologyContext, wordsLookupContext, cancellationToken);
+        await ValidateSwAsync(_db, order, morphologyContext, wordsLookupContext, cancellationToken);
     }
 
-    public async Task ValidateKwAsync(
+    public async Task ValidateSwAsync(
         AppDbContext dbContext,
         BaseParcel order,
         MorphologyContext morphologyContext,

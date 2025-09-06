@@ -806,7 +806,7 @@ public class ParcelsControllerTests
 
         var result = await _controller.ValidateSw(10);
 
-        _mockValidationService.Verify(s => s.ValidateKwAsync(
+        _mockValidationService.Verify(s => s.ValidateSwAsync(
             order,
             It.IsAny<MorphologyContext>(),
             It.IsAny<WordsLookupContext<StopWord>>(),
@@ -826,7 +826,7 @@ public class ParcelsControllerTests
         SetCurrentUserId(99);
         var result = await _controller.ValidateSw(1);
 
-        _mockValidationService.Verify(s => s.ValidateKwAsync(
+        _mockValidationService.Verify(s => s.ValidateSwAsync(
             It.IsAny<BaseParcel>(),
             It.IsAny<MorphologyContext>(),
             It.IsAny<WordsLookupContext<StopWord>>(),
@@ -851,7 +851,7 @@ public class ParcelsControllerTests
         Assert.That(result, Is.TypeOf<ObjectResult>());
         var obj = result as ObjectResult;
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
-        _mockValidationService.Verify(s => s.ValidateKwAsync(
+        _mockValidationService.Verify(s => s.ValidateSwAsync(
             It.IsAny<BaseParcel>(),
             It.IsAny<MorphologyContext>(),
             It.IsAny<WordsLookupContext<StopWord>>(),
@@ -875,7 +875,7 @@ public class ParcelsControllerTests
         Assert.That(result, Is.TypeOf<ObjectResult>());
         var obj = result as ObjectResult;
         Assert.That(obj!.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
-        _mockValidationService.Verify(s => s.ValidateKwAsync(
+        _mockValidationService.Verify(s => s.ValidateSwAsync(
             It.IsAny<BaseParcel>(),
             It.IsAny<MorphologyContext>(),
             It.IsAny<WordsLookupContext<StopWord>>(),
@@ -901,7 +901,7 @@ public class ParcelsControllerTests
             It.IsAny<FeacnPrefixCheckContext?>(),
             It.IsAny<CancellationToken>()),
             Times.Once);
-        _mockValidationService.Verify(s => s.ValidateKwAsync(
+        _mockValidationService.Verify(s => s.ValidateSwAsync(
             It.IsAny<BaseParcel>(),
             It.IsAny<MorphologyContext>(),
             It.IsAny<WordsLookupContext<StopWord>>(),
@@ -921,7 +921,7 @@ public class ParcelsControllerTests
             It.IsAny<FeacnPrefixCheckContext?>(),
             It.IsAny<CancellationToken>()),
             Times.Never);
-        _mockValidationService.Verify(s => s.ValidateKwAsync(
+        _mockValidationService.Verify(s => s.ValidateSwAsync(
             It.IsAny<BaseParcel>(),
             It.IsAny<MorphologyContext>(),
             It.IsAny<WordsLookupContext<StopWord>>(),
@@ -946,7 +946,7 @@ public class ParcelsControllerTests
             It.IsAny<FeacnPrefixCheckContext?>(),
             It.IsAny<CancellationToken>()),
             Times.Never);
-        _mockValidationService.Verify(s => s.ValidateKwAsync(
+        _mockValidationService.Verify(s => s.ValidateSwAsync(
             It.IsAny<BaseParcel>(),
             It.IsAny<MorphologyContext>(),
             It.IsAny<WordsLookupContext<StopWord>>(),
@@ -970,7 +970,7 @@ public class ParcelsControllerTests
             It.IsAny<FeacnPrefixCheckContext?>(),
             It.IsAny<CancellationToken>()),
             Times.Never);
-        _mockValidationService.Verify(s => s.ValidateKwAsync(
+        _mockValidationService.Verify(s => s.ValidateSwAsync(
             It.IsAny<BaseParcel>(),
             It.IsAny<MorphologyContext>(),
             It.IsAny<WordsLookupContext<StopWord>>(),

@@ -88,7 +88,7 @@ public class ParcelValidationServiceTests
         var feacnMock = new Mock<IFeacnPrefixCheckService>();
         var svc = new ParcelValidationService(ctx, morph, feacnMock.Object);
 
-        await svc.ValidateKwAsync(parcel, morphologyContext, wordsLookupContext);
+        await svc.ValidateSwAsync(parcel, morphologyContext, wordsLookupContext);
 
         // reload
         var p = await ctx.Parcels.Include(p => p.BaseParcelStopWords).FirstAsync(p => p.Id == 10);
@@ -117,7 +117,7 @@ public class ParcelValidationServiceTests
         var feacnMock = new Mock<IFeacnPrefixCheckService>();
         var svc = new ParcelValidationService(ctx, morph, feacnMock.Object);
 
-        await svc.ValidateKwAsync(parcel, morphologyContext, wordsLookupContext);
+        await svc.ValidateSwAsync(parcel, morphologyContext, wordsLookupContext);
 
         var p = await ctx.Parcels.Include(p => p.BaseParcelStopWords).FirstAsync(p => p.Id == 11);
         Assert.That(p.BaseParcelStopWords, Is.Empty);
